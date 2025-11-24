@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabaseClient';
+// FIX: Added one more "../" to go up 3 levels to the root
+import { supabase } from '../../../lib/supabaseClient';
 import { Search, Loader2, Filter, Database, ChevronRight, Shield, Zap, Sword, Crosshair } from 'lucide-react';
 import Link from 'next/link';
 
@@ -99,7 +100,7 @@ export default function DatabasePage() {
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {filteredItems.slice(0, 50).map((item) => (
-                <Link key={item.id} href={`/build/${item.id}`} className="group">
+                <Link key={item.id} href={`/gaming/build/${item.id}`} className="group">
                     <div className="border-2 border-black dark:border-zinc-700 bg-white dark:bg-zinc-900 h-full hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.2)] hover:-translate-y-1 transition-all duration-200 flex flex-col">
                         
                         {/* IMAGE CONTAINER */}

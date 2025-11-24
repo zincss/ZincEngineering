@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { supabase } from '../../../lib/supabaseClient';
+import { supabase } from '../../../../lib/supabaseClient';
 import { ArrowLeft, Cpu, Shield, Flame, Skull, Zap, BoxSelect, Sword, Crosshair, Hexagon, MapPin, ShoppingCart, ExternalLink, Loader2, Image as ImageIcon, GraduationCap, Activity, CircleDashed, Layers, ChevronDown, Terminal, Target, FileText, AlertTriangle, CheckCircle2, XCircle, BarChart3, Gauge, RotateCcw, BookOpen, BrainCircuit, ScanLine, Info, Youtube, PlayCircle, Globe, Radio, MonitorPlay, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
