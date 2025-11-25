@@ -12,8 +12,8 @@ export default function DriverPage() {
   
   // Data States
   const [recentRaces, setRecentRaces] = useState<any[]>([]);
-  const [careerRaces, setCareerRaces] = useState<any[]>([]); // Full history
-  const [selectedSeason, setSelectedSeason] = useState<string | null>(null); // Current filter
+  const [careerRaces, setCareerRaces] = useState<any[]>([]); 
+  const [selectedSeason, setSelectedSeason] = useState<string | null>(null); 
   
   const [highlights, setHighlights] = useState<any>(null); 
   const [driverImage, setDriverImage] = useState<string | null>(null);
@@ -80,11 +80,16 @@ export default function DriverPage() {
         let teamName = "Free Agent";
         let polePositions = 0;
         let trackPoints: Record<string, number> = {};
-        let firstWin = null;
+        
+        // Define explicit type to satisfy TypeScript
+        let firstWin: { race: string; year: string } | null = null;
+        
         let bestFinish = 99;
         let bestFinishRace = "";
 
-        allRaces.forEach((race: any) => {
+        // FIX: Use 'for...of' loop instead of '.forEach'
+        // This allows TypeScript to correctly track variable assignments
+        for (const race of allRaces) {
             const res = race.Results[0];
             const pos = parseInt(res.position);
             const grid = parseInt(res.grid);
@@ -110,7 +115,7 @@ export default function DriverPage() {
             }
 
             teamName = res.Constructor.name;
-        });
+        }
 
         const bestTrackName = Object.keys(trackPoints).reduce((a, b) => trackPoints[a] > trackPoints[b] ? a : b, "N/A");
 
