@@ -16,16 +16,14 @@ export default function DriverPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 1. FETCH BASIC INFO (Name, Number, Nationality)
-        // This works for ANY driver, active or retired.
+        // 1. FETCH BASIC INFO
         const infoRes = await fetch(`https://api.jolpi.ca/ergast/f1/drivers/${id}.json`);
         const infoData = await infoRes.json();
         const driverInfo = infoData.MRData.DriverTable.Drivers[0];
 
         if (!driverInfo) throw new Error("Driver not found");
 
-        // 2. FETCH CAREER RESULTS (To calculate stats manually)
-        // Limit=1000 ensures we get their ENTIRE career (Alonso has ~400, so this is safe)
+        // 2. FETCH CAREER RESULTS
         const resultsRes = await fetch(`https://api.jolpi.ca/ergast/f1/drivers/${id}/results.json?limit=1000`);
         const resultsData = await resultsRes.json();
         const allRaces = resultsData.MRData.RaceTable.Races;
@@ -58,12 +56,12 @@ export default function DriverPage() {
                 const pageId = Object.keys(pages)[0];
                 const imgUrl = pages[pageId]?.thumbnail?.source;
                 if (imgUrl) setDriverImage(imgUrl);
-            } catch(e) {} // Silent fail
+            } catch(e) {} 
         }
 
         setProfile({ ...driverInfo, team: teamName });
         setStats({ wins, podiums, points, races: allRaces.length });
-        setRecentRaces(allRaces.slice(-5).reverse()); // Last 5 races
+        setRecentRaces(allRaces.slice(-5).reverse()); 
         setLoading(false);
 
       } catch (e) {
@@ -83,10 +81,9 @@ export default function DriverPage() {
 
   if (!profile) return <div className="p-12 text-center font-mono">DRIVER_NOT_FOUND</div>;
 
-  // Helper for "Engineering Log" text
   const getLastRaceLog = () => {
       if (recentRaces.length === 0) return null;
-      const last = recentRaces[0]; // It's reversed, so 0 is latest
+      const last = recentRaces[0]; 
       const res = last.Results[0];
       
       const grid = parseInt(res.grid);
@@ -197,7 +194,7 @@ export default function DriverPage() {
                             <p className="font-mono text-xs text-zinc-400 leading-relaxed">
                                 In their final recorded session at the {log.year} {log.name}, the subject crossed the finish line in <span className="text-white font-bold">P{log.pos}</span>.
                                 <br/><br/>
-                                {/* FIX APPLIED HERE: Replaced '>' with '&gt;' */}
+                                {/* FIX: Use &gt; instead of > */}
                                 <span className="text-white">&gt; TACTICAL ASSESSMENT:</span> <span className={log.color}>{log.delta}</span> vs Grid Position.
                             </p>
                         </div>
