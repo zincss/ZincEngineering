@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Flag, Loader2, Trophy, AlertTriangle, User, History, Activity, RefreshCw, CheckCircle2, Map, MapPin, Share2, Info, Crown, TrendingUp, Medal, Wrench, Users, Car } from 'lucide-react';
+import { Search, Flag, Loader2, Trophy, AlertTriangle, User, History, Activity, RefreshCw, CheckCircle2, Map, MapPin, Share2, Info, Crown, TrendingUp, Medal, Wrench, Users, Car, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 
 // --- UTILS: SMART IMAGE SEARCH ---
@@ -14,6 +14,13 @@ const searchCommons = async (query: string) => {
         // @ts-ignore
         return pages.length > 0 ? pages[0].imageinfo[0].url : null;
     } catch (e) { return null; }
+};
+
+// --- UTILS: NAME FORMATTER ---
+const formatNameFromId = (id: string) => {
+    return id.split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
 };
 
 // --- COMPONENT 1: DRIVER CARD ---
@@ -188,7 +195,6 @@ const TrackCard = ({ circuit }: { circuit: any }) => {
 const ManufacturerCard = ({ team, isHistorical = false }: { team: any, isHistorical?: boolean }) => {
     const [logo, setLogo] = useState<string | null>(null);
 
-    // VERIFIED 2025 TEAM LOGOS
     const TEAM_LOGO_MAP: Record<string, string> = {
         'mercedes': 'https://commons.wikimedia.org/wiki/Special:FilePath/Mercedes_AMG_Petronas_F1_Logo.svg',
         'ferrari': 'https://commons.wikimedia.org/wiki/Special:FilePath/Ferrari_wordmark.svg',
@@ -200,8 +206,6 @@ const ManufacturerCard = ({ team, isHistorical = false }: { team: any, isHistori
         'haas': 'https://commons.wikimedia.org/wiki/Special:FilePath/MoneyGram_Haas_F1_Team_Logo.svg',
         'rb': 'https://commons.wikimedia.org/wiki/Special:FilePath/RB_Logo.svg',
         'sauber': 'https://commons.wikimedia.org/wiki/Special:FilePath/Logo_of_Stake_F1_Team_Kick_Sauber.png',
-        
-        // HISTORICAL LEGENDS (Verified)
         'lotus_f1': 'https://commons.wikimedia.org/wiki/Special:FilePath/Lotus_F1_Team_logo.svg',
         'team_lotus': 'https://commons.wikimedia.org/wiki/Special:FilePath/Team_Lotus_Logo_1958-1994.svg',
         'benetton': 'https://commons.wikimedia.org/wiki/Special:FilePath/Benetton_F1_logo.svg',
@@ -231,22 +235,18 @@ const ManufacturerCard = ({ team, isHistorical = false }: { team: any, isHistori
         const fetchLogo = async () => {
             const id = team.constructorId;
             
-            // 1. CHECK VERIFIED MAP
-            if (TEAM_LOGO_MAP[id]) {
-                setLogo(TEAM_LOGO_MAP[id]);
-                return;
-            }
+            if (TEAM_LOGO_MAP[id]) { setLogo(TEAM_LOGO_MAP[id]); return; }
 
-            // 2. CLEAN NAME (Remove hyphens for better search)
             const name = team.name.split('-')[0].trim();
             
-            // 3. STRICT SEARCH (No generic searches to avoid road cars/randomness)
+            // STRICT SEARCH: Only F1/Racing terms allowed
             let url = await searchCommons(`File:${name} F1 logo.svg`);
             if (!url) url = await searchCommons(`File:${name} Formula One logo.svg`);
             if (!url) url = await searchCommons(`File:${name} Grand Prix logo.svg`);
             if (!url) url = await searchCommons(`File:Scuderia ${name} logo.svg`);
+            if (!url) url = await searchCommons(`File:${name} racing team logo.svg`);
             
-            // Fallback: Only if we are SURE it's F1 (e.g. car image)
+            // Fallback: Car Image
             if (!url) url = await searchCommons(`File:${name} F1 car.jpg`);
             
             if (url) setLogo(url);
@@ -294,12 +294,31 @@ const ManufacturerCard = ({ team, isHistorical = false }: { team: any, isHistori
     );
 };
 
-// --- COMPONENT 4: ELO LEADERBOARD ---
+// --- COMPONENT 4: ELO LEADERBOARD (V5.0 - PRESTIGE & CLEAN NAMES) ---
 const EloLeaderboard = () => {
     const [ratings, setRatings] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const LEGENDS = ['ayrton_senna', 'michael_schumacher', 'prost', 'vettel', 'lauda', 'fangio', 'clark', 'hamilton', 'max_verstappen', 'alonso', 'raikkonen', 'mansell', 'stewart', 'rosberg', 'hakkinen'];
-    const CHAMPIONSHIPS: Record<string, number> = { 'michael_schumacher': 7, 'hamilton': 7, 'fangio': 5, 'prost': 4, 'vettel': 4, 'max_verstappen': 4, 'ayrton_senna': 3, 'lauda': 3, 'stewart': 3, 'piquet': 3, 'brabham': 3, 'alonso': 2, 'clark': 2, 'hakkinen': 2, 'fittipaldi': 2, 'graham_hill': 2, 'ascari': 2, 'raikkonen': 1, 'mansell': 1, 'rosberg': 1, 'button': 1, 'hunt': 1, 'jones': 1, 'vileneuve': 1 };
+    const [visibleCount, setVisibleCount] = useState(15);
+    
+    // Corrected IDs for ALL Legends
+    const LEGENDS = [
+        'senna', 'michael_schumacher', 'prost', 'vettel', 'lauda', 'fangio', 'clark', 
+        'hamilton', 'max_verstappen', 'alonso', 'raikkonen', 'mansell', 'stewart', 
+        'nico_rosberg', 'keke_rosberg', 'hakkinen', 'piquet', 'emerson_fittipaldi', 
+        'ascari', 'graham_hill', 'damon_hill', 'gilles_villeneuve', 'jacques_villeneuve', 
+        'jones', 'rindt', 'surtees', 'hunt', 'mario_andretti', 'jack_brabham', 'hawthorn', 
+        'phil_hill', 'farina', 'moss', 'peterson', 'ickx', 'regazzoni', 'coulthard', 
+        'webber', 'massa', 'berger', 'patrese', 'alboreto', 'jody_scheckter', 'montoya'
+    ];
+
+    const CHAMPIONSHIPS: Record<string, number> = { 
+        'michael_schumacher': 7, 'hamilton': 7, 'fangio': 5, 'prost': 4, 'vettel': 4, 'max_verstappen': 4,
+        'senna': 3, 'lauda': 3, 'stewart': 3, 'piquet': 3, 'jack_brabham': 3,
+        'alonso': 2, 'clark': 2, 'hakkinen': 2, 'emerson_fittipaldi': 2, 'graham_hill': 2, 'ascari': 2,
+        'raikkonen': 1, 'mansell': 1, 'nico_rosberg': 1, 'keke_rosberg': 1, 'button': 1, 'hunt': 1, 'jones': 1, 
+        'jacques_villeneuve': 1, 'damon_hill': 1, 'surtees': 1, 'rindt': 1, 'mario_andretti': 1, 
+        'hawthorn': 1, 'phil_hill': 1, 'farina': 1, 'jody_scheckter': 1
+    };
 
     useEffect(() => {
         const calculateElo = async () => {
@@ -307,37 +326,97 @@ const EloLeaderboard = () => {
             const activeData = await activeRes.json();
             const activeDrivers = activeData.MRData.StandingsTable.StandingsLists[0].DriverStandings.map((d: any) => d.Driver.driverId);
             const allDriverIds = Array.from(new Set([...activeDrivers, ...LEGENDS]));
-            const calculatedRatings = [];
-            for (const id of allDriverIds) {
+            
+            let calculatedRatings: any[] = [];
+            
+            for (let i = 0; i < allDriverIds.length; i++) {
+                const id = allDriverIds[i];
                 try {
                     const res = await fetch(`https://api.jolpi.ca/ergast/f1/drivers/${id}/results.json?limit=1000`);
                     const data = await res.json();
                     const races = data.MRData.RaceTable.Races;
-                    const driverInfo = data.MRData.RaceTable.Races[0]?.Results[0].Driver || { givenName: id, familyName: '', driverId: id };
-                    let score = 1000; let wins = 0; let podiums = 0; let poles = 0; const entries = races.length; const titles = CHAMPIONSHIPS[id] || 0;
-                    races.forEach((r: any) => { const pos = parseInt(r.Results[0].position); const grid = parseInt(r.Results[0].grid); if (pos === 1) wins++; if (pos <= 3) podiums++; if (grid === 1) poles++; });
-                    const winRate = (wins / entries) * 100;
-                    score += (titles * 2000); score += (wins * 50); score += (podiums * 10); score += (poles * 20); score += (winRate * 50);
-                    let tier = 'ROOKIE'; if (score > 15000) tier = 'GOD TIER'; else if (score > 10000) tier = 'GRANDMASTER'; else if (score > 6000) tier = 'LEGEND'; else if (score > 3000) tier = 'CHAMPION'; else if (score > 1500) tier = 'ELITE'; else if (score > 1200) tier = 'PRO';
-                    calculatedRatings.push({ id, name: `${driverInfo.givenName} ${driverInfo.familyName}`, elo: Math.floor(score), titles, wins, entries, tier });
+                    
+                    // FALLBACK NAME FORMATTING (If API returns undefined name)
+                    const rawInfo = data.MRData.RaceTable.Races[0]?.Results[0].Driver;
+                    const driverName = rawInfo 
+                        ? `${rawInfo.givenName} ${rawInfo.familyName}` 
+                        : formatNameFromId(id);
+
+                    const entries = races.length;
+                    let wins = 0, podiums = 0, poles = 0;
+                    const titles = CHAMPIONSHIPS[id] || 0;
+
+                    races.forEach((r: any) => { 
+                        const pos = parseInt(r.Results[0].position);
+                        const grid = parseInt(r.Results[0].grid);
+                        if (pos === 1) wins++;
+                        if (pos <= 3) podiums++;
+                        if (grid === 1) poles++;
+                    });
+
+                    // --- ZINC ELO V5.0 ---
+                    let score = 1000;
+                    score += (titles * 2500); 
+                    score += (wins * 100);
+                    
+                    if (entries > 10) {
+                        const winRate = (wins / entries);
+                        score += (winRate * 5000); 
+                        score += ((podiums / entries) * 1000);
+                    }
+                    
+                    // UNCROWNED KING BONUS
+                    if (titles === 0) {
+                        if (wins >= 10) score += 1000;
+                        if (wins / entries > 0.15) score += 500;
+                    }
+
+                    let tier = 'ROOKIE';
+                    if (score > 18000) tier = 'GOD TIER';
+                    else if (score > 12000) tier = 'GRANDMASTER';
+                    else if (score > 8000) tier = 'LEGEND';
+                    else if (score > 4000) tier = 'CHAMPION';
+                    else if (score > 2000) tier = 'ELITE';
+                    else if (score > 1200) tier = 'PRO';
+
+                    const newRating = { 
+                        id, 
+                        name: driverName, 
+                        elo: Math.floor(score), 
+                        titles, 
+                        wins, 
+                        entries, 
+                        tier,
+                        winRate: entries > 0 ? ((wins/entries)*100).toFixed(1) : "0.0"
+                    };
+                    
+                    calculatedRatings.push(newRating);
+                    
+                    if (i % 5 === 0 || i === allDriverIds.length - 1) {
+                         setRatings([...calculatedRatings].sort((a, b) => b.elo - a.elo));
+                         if (i > 5) setLoading(false);
+                    }
                 } catch (e) {}
             }
-            setRatings(calculatedRatings.sort((a, b) => b.elo - a.elo));
-            setLoading(false);
         };
         calculateElo();
     }, []);
 
-    if (loading) return <div className="flex flex-col items-center justify-center py-20 gap-4"><Loader2 className="animate-spin text-acid" size={32}/><span className="font-mono text-xs animate-pulse text-zinc-500">CALCULATING LEGACY RATINGS...</span></div>;
+    const handleLoadMore = () => setVisibleCount(prev => prev + 15);
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4">
             <div className="bg-zinc-900 border-2 border-black dark:border-zinc-700 p-6 mb-8">
-                <div className="flex items-center gap-2 text-acid mb-2"><Info size={14}/><span className="font-bold font-mono text-xs tracking-widest">ZINC ELO ALGORITHM // V.2.0</span></div>
-                <p className="text-zinc-400 font-mono text-xs max-w-2xl">Legacy-Weighted Rating. Heavily rewards World Championships (2000pts), Win Rate, and Pole Positions. Neutralizes "points inflation" to fairly compare eras.</p>
+                <div className="flex items-center gap-2 text-acid mb-2"><Info size={14}/><span className="font-bold font-mono text-xs tracking-widest">ZINC ELO ENGINE // V.5.0 (PRESTIGE)</span></div>
+                <p className="text-zinc-400 font-mono text-xs max-w-2xl">Legacy-Weighted Rating. Prioritizes Championships, Win Percentage, and Historical Dominance. Includes "Uncrowned King" logic for legends like Stirling Moss.</p>
             </div>
+            
+            {loading && ratings.length === 0 && (
+                 <div className="flex flex-col items-center justify-center py-20 gap-4"><Loader2 className="animate-spin text-acid" size={32}/><span className="font-mono text-xs animate-pulse text-zinc-500">CALCULATING LEGACY RATINGS...</span></div>
+            )}
+
             <div className="grid gap-2">
-                {ratings.map((r, i) => (
+                {ratings.slice(0, visibleCount).map((r, i) => (
                     <div key={r.id} className="flex items-center justify-between bg-white dark:bg-zinc-900 border-2 border-transparent hover:border-black dark:hover:border-white p-4 group transition-all shadow-sm hover:shadow-md">
                         <div className="flex items-center gap-4">
                             <div className={`w-8 h-8 flex items-center justify-center font-black font-mono text-sm ${i < 3 ? 'bg-acid text-black' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'}`}>{i + 1}</div>
@@ -346,16 +425,27 @@ const EloLeaderboard = () => {
                                 <div className="flex gap-2 mt-1">
                                     <span className={`text-[9px] font-bold font-mono uppercase tracking-widest ${r.tier === 'GOD TIER' ? 'text-acid bg-black px-1' : r.tier === 'GRANDMASTER' ? 'text-yellow-600' : 'text-zinc-400'}`}>{r.tier}</span>
                                     {r.titles > 0 && <span className="text-[9px] font-bold font-mono text-yellow-600 flex items-center gap-1"><Crown size={8} /> {r.titles}x WDC</span>}
+                                    {r.titles === 0 && r.wins >= 10 && <span className="text-[9px] font-bold font-mono text-zinc-500 flex items-center gap-1"><Medal size={8} /> LEGEND</span>}
                                 </div>
                             </div>
                         </div>
                         <div className="text-right">
                             <div className="flex items-center gap-2 justify-end text-black dark:text-white"><TrendingUp size={14} className={i < 3 ? "text-green-500" : "text-zinc-300"} /><span className="text-2xl font-black font-mono">{r.elo.toLocaleString()}</span></div>
-                            <span className="text-[9px] font-mono text-zinc-400">{r.wins} WINS / {r.entries} STARTS</span>
+                            <div className="flex gap-3 justify-end text-[9px] font-mono text-zinc-400">
+                                <span>{r.wins} WINS</span>
+                                <span className="text-zinc-600">|</span>
+                                <span>{r.winRate}% RATE</span>
+                            </div>
                         </div>
                     </div>
                 ))}
             </div>
+            
+            {ratings.length > visibleCount && (
+                <button onClick={handleLoadMore} className="w-full py-4 mt-4 bg-zinc-100 dark:bg-zinc-900 border-2 border-transparent hover:border-black dark:hover:border-zinc-700 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all">
+                    LOAD MORE DRIVERS <ChevronDown size={14}/>
+                </button>
+            )}
         </div>
     );
 };
@@ -498,7 +588,7 @@ const TrackSchematics = () => {
     );
 };
 
-// --- SUB-COMPONENT: MANUFACTURER DATABASE (NEW) ---
+// --- SUB-COMPONENT: MANUFACTURER DATABASE ---
 const ManufacturerDatabase = () => {
     const [search, setSearch] = useState('');
     const [active, setActive] = useState<any[]>([]);
@@ -507,9 +597,6 @@ const ManufacturerDatabase = () => {
     const [archiveLoading, setArchiveLoading] = useState(false);
     const downloadStarted = useRef(false);
 
-    // PRE-APPROVED SIGNIFICANT TEAMS (To avoid "Lizzie McGuire" clutter in default view)
-    // This list ensures the initial historical view is only "Real" famous teams.
-    // Searching will still allow finding obscure ones.
     const SIGNIFICANT_TEAMS = [
         'lotus_f1', 'team_lotus', 'ferrari', 'mclaren', 'williams', 'renault', 'benetton',
         'tyrrell', 'brabham', 'brm', 'cooper', 'alfa', 'mercedes', 'red_bull', 'toro_rosso',
@@ -526,7 +613,6 @@ const ManufacturerDatabase = () => {
                     return { ...cs.Constructor, points: cs.points, wins: cs.wins }; 
                 });
                 
-                // Fetch drivers to populate the "DRIVERS" field
                 const dRes = await fetch('https://api.jolpi.ca/ergast/f1/current/driverStandings.json');
                 const dData = await dRes.json();
                 const dList = dData.MRData.StandingsTable.StandingsLists[0].DriverStandings;
@@ -538,7 +624,7 @@ const ManufacturerDatabase = () => {
 
                 setActive(teamsWithDrivers || []);
                 setLoading(false);
-            } catch(e) {}
+            } catch (e) {}
         };
         fetchActive();
     }, []);
@@ -564,9 +650,6 @@ const ManufacturerDatabase = () => {
 
     const filteredActive = active.filter(t => t.name.toLowerCase().includes(search.toLowerCase()));
     
-    // Refined Historical Filter:
-    // 1. If searching, show matches.
-    // 2. If NOT searching, show ONLY Significant Teams (to hide obscure privateers with bad data).
     const filteredHistorical = historical.filter(t => {
         const matchesSearch = t.name.toLowerCase().includes(search.toLowerCase());
         const isNotActive = !active.find(at => at.constructorId === t.constructorId);
@@ -581,7 +664,7 @@ const ManufacturerDatabase = () => {
              <div className="mb-12 sticky top-24 z-30 relative">
                 <div className="relative shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.1)]">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400">{archiveLoading ? <Loader2 size={20} className="animate-spin"/> : <Search size={20} />}</div>
-                    <input type="text" placeholder="SEARCH CONSTRUCTORS..." className="w-full h-16 bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-500 pl-12 pr-4 font-bold font-mono text-base md:text-lg uppercase focus:outline-none focus:border-acid" value={search} onChange={(e) => setSearch(e.target.value)} />
+                    <input type="text" placeholder="SEARCH CONSTRUCTORS..." className="w-full h-16 bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-500 pl-4 font-bold font-mono text-base md:text-lg uppercase focus:outline-none focus:border-acid" value={search} onChange={(e) => setSearch(e.target.value)} />
                 </div>
                 {archiveLoading && <div className="absolute -bottom-6 left-0 text-[9px] font-mono font-bold text-acid animate-pulse">SYNCING TEAM ARCHIVE...</div>}
             </div>
