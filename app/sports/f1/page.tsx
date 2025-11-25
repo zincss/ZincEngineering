@@ -1,19 +1,13 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Flag, Loader2, Trophy, AlertTriangle, User, History, Activity, RefreshCw, CheckCircle2, Map, MapPin, Share2, Info, Crown, TrendingUp, Medal } from 'lucide-react';
+import { Search, Flag, Loader2, Trophy, AlertTriangle, User, History, Activity, RefreshCw, CheckCircle2, Map, MapPin, Share2, Info, Crown, TrendingUp, Medal, Wrench, Users, Car } from 'lucide-react';
 import Link from 'next/link';
-
-// --- GLOBAL CACHE (Restored) ---
-// This sits outside the component so it survives tab switching
-let globalDriverCache: any[] = [];
-let isCacheLoaded = false;
 
 // --- UTILS: SMART IMAGE SEARCH ---
 const searchCommons = async (query: string) => {
     try {
-        const safeQuery = `${query} F1 driver portrait 2024`;
-        const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(safeQuery)}&gsrlimit=1&prop=imageinfo&iiprop=url&format=json&origin=*`);
+        const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(query)}&gsrlimit=1&prop=imageinfo&iiprop=url&format=json&origin=*`);
         const data = await res.json();
         if (!data.query || !data.query.pages) return null;
         const pages = Object.values(data.query.pages);
@@ -190,19 +184,122 @@ const TrackCard = ({ circuit }: { circuit: any }) => {
     );
 };
 
-// --- COMPONENT 3: ELO LEADERBOARD ---
+// --- COMPONENT 3: MANUFACTURER CARD ---
+const ManufacturerCard = ({ team, isHistorical = false }: { team: any, isHistorical?: boolean }) => {
+    const [logo, setLogo] = useState<string | null>(null);
+
+    // VERIFIED 2025 TEAM LOGOS
+    const TEAM_LOGO_MAP: Record<string, string> = {
+        'mercedes': 'https://commons.wikimedia.org/wiki/Special:FilePath/Mercedes_AMG_Petronas_F1_Logo.svg',
+        'ferrari': 'https://commons.wikimedia.org/wiki/Special:FilePath/Ferrari_wordmark.svg',
+        'red_bull': 'https://commons.wikimedia.org/wiki/Special:FilePath/Logo_of_Red_bull.svg',
+        'mclaren': 'https://commons.wikimedia.org/wiki/Special:FilePath/McLaren_Automotive_logo.svg',
+        'alpine': 'https://commons.wikimedia.org/wiki/Special:FilePath/Alpine_F1_Team_Logo.svg',
+        'aston_martin': 'https://commons.wikimedia.org/wiki/Special:FilePath/Aston_Martin_wordmark.svg',
+        'williams': 'https://commons.wikimedia.org/wiki/Special:FilePath/Williams_Racing_2022_logo.svg',
+        'haas': 'https://commons.wikimedia.org/wiki/Special:FilePath/MoneyGram_Haas_F1_Team_Logo.svg',
+        'rb': 'https://commons.wikimedia.org/wiki/Special:FilePath/RB_Logo.svg',
+        'sauber': 'https://commons.wikimedia.org/wiki/Special:FilePath/Logo_of_Stake_F1_Team_Kick_Sauber.png',
+        
+        // HISTORICAL LEGENDS (Verified)
+        'lotus_f1': 'https://commons.wikimedia.org/wiki/Special:FilePath/Lotus_F1_Team_logo.svg',
+        'team_lotus': 'https://commons.wikimedia.org/wiki/Special:FilePath/Team_Lotus_Logo_1958-1994.svg',
+        'benetton': 'https://commons.wikimedia.org/wiki/Special:FilePath/Benetton_F1_logo.svg',
+        'brawn': 'https://commons.wikimedia.org/wiki/Special:FilePath/Brawn_GP_logo.svg',
+        'tyrrell': 'https://commons.wikimedia.org/wiki/Special:FilePath/Tyrrell_Racing_logo.svg',
+        'jordan': 'https://commons.wikimedia.org/wiki/Special:FilePath/Jordan_Grand_Prix_Logo.svg',
+        'ligier': 'https://commons.wikimedia.org/wiki/Special:FilePath/Equipe_Ligier_Logo.svg',
+        'minardi': 'https://commons.wikimedia.org/wiki/Special:FilePath/Minardi_F1_logo.svg',
+        'toro_rosso': 'https://commons.wikimedia.org/wiki/Special:FilePath/Scuderia_Toro_Rosso_Logo.svg',
+        'alphatauri': 'https://commons.wikimedia.org/wiki/Special:FilePath/Scuderia_AlphaTauri_Logo.svg',
+        'racing_point': 'https://commons.wikimedia.org/wiki/Special:FilePath/Racing_Point_F1_Team_logo.svg',
+        'force_india': 'https://commons.wikimedia.org/wiki/Special:FilePath/Sahara_Force_India_F1_Team_Logo.svg',
+        'renault': 'https://commons.wikimedia.org/wiki/Special:FilePath/Renault_F1_Team_logo.svg',
+        'toyota': 'https://commons.wikimedia.org/wiki/Special:FilePath/Toyota_F1_Team.svg',
+        'bmw_sauber': 'https://commons.wikimedia.org/wiki/Special:FilePath/BMW_Sauber_F1_Team_logo.svg',
+        'honda': 'https://commons.wikimedia.org/wiki/Special:FilePath/Honda_Racing_F1_Team_logo.svg',
+        'jaguar': 'https://commons.wikimedia.org/wiki/Special:FilePath/Jaguar_Racing.svg',
+        'brabham': 'https://commons.wikimedia.org/wiki/Special:FilePath/Brabham_logo.svg',
+        'cooper': 'https://commons.wikimedia.org/wiki/Special:FilePath/Cooper_Car_Company_logo.svg',
+        'vanwall': 'https://commons.wikimedia.org/wiki/Special:FilePath/Vanwall_logo.svg',
+        'march': 'https://commons.wikimedia.org/wiki/Special:FilePath/March_Engineering_logo.svg',
+        'arrows': 'https://commons.wikimedia.org/wiki/Special:FilePath/Arrows_Grand_Prix_logo.svg',
+        'bar': 'https://commons.wikimedia.org/wiki/Special:FilePath/British_American_Racing_logo.svg',
+    };
+
+    useEffect(() => {
+        const fetchLogo = async () => {
+            const id = team.constructorId;
+            
+            // 1. CHECK VERIFIED MAP
+            if (TEAM_LOGO_MAP[id]) {
+                setLogo(TEAM_LOGO_MAP[id]);
+                return;
+            }
+
+            // 2. CLEAN NAME (Remove hyphens for better search)
+            const name = team.name.split('-')[0].trim();
+            
+            // 3. STRICT SEARCH (No generic searches to avoid road cars/randomness)
+            let url = await searchCommons(`File:${name} F1 logo.svg`);
+            if (!url) url = await searchCommons(`File:${name} Formula One logo.svg`);
+            if (!url) url = await searchCommons(`File:${name} Grand Prix logo.svg`);
+            if (!url) url = await searchCommons(`File:Scuderia ${name} logo.svg`);
+            
+            // Fallback: Only if we are SURE it's F1 (e.g. car image)
+            if (!url) url = await searchCommons(`File:${name} F1 car.jpg`);
+            
+            if (url) setLogo(url);
+        };
+        fetchLogo();
+    }, [team]);
+
+    const drivers = team.drivers || [];
+
+    return (
+        <Link href={`/sports/f1/team/${team.constructorId}`} className="group border-2 border-black dark:border-zinc-500 bg-white dark:bg-zinc-900 p-0 hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_#DFFF00] transition-all duration-200 flex flex-col h-auto md:h-64 relative overflow-hidden">
+            <div className="h-32 md:h-40 bg-zinc-50 dark:bg-zinc-950 border-b-2 border-inherit relative flex items-center justify-center p-6 group-hover:bg-white dark:group-hover:bg-zinc-900 transition-colors overflow-hidden">
+                {logo ? (
+                    <img src={logo} className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal dark:filter dark:invert opacity-90 group-hover:scale-105 transition-transform duration-500" alt="Team Logo" />
+                ) : (
+                    <div className="flex flex-col items-center justify-center text-zinc-300 dark:text-zinc-700">
+                        <Wrench size={64} />
+                        {isHistorical && <span className="text-[9px] font-mono mt-2 font-bold tracking-widest text-zinc-400">NO LOGO IN ARCHIVE</span>}
+                    </div>
+                )}
+            </div>
+            <div className="flex-1 p-3 md:p-4 flex flex-col justify-between gap-2 md:gap-0">
+                <div>
+                    <span className="text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider truncate">{isHistorical ? 'HISTORICAL' : 'ACTIVE CONSTRUCTOR'}</span>
+                    <h3 className="text-xl font-black uppercase leading-none text-black dark:text-white mb-1 line-clamp-1">{team.name}</h3>
+                </div>
+                
+                {!isHistorical && team.points ? (
+                    <div className="flex justify-between items-end border-t-2 border-zinc-100 dark:border-zinc-800 pt-2 mt-1">
+                        <div className="flex flex-col"><span className="text-[8px] text-zinc-400 font-bold uppercase tracking-wider mb-0.5">PTS</span><span className="text-sm font-black text-acid bg-black px-1 w-fit leading-none py-0.5">{team.points}</span></div>
+                        <div className="flex flex-col items-end">
+                            <span className="text-[8px] text-zinc-400 font-bold uppercase tracking-wider mb-0.5">DRIVERS</span>
+                            <div className="flex gap-1">
+                                {drivers.map((d: string) => (
+                                    <span key={d} className="text-[9px] font-black bg-zinc-200 dark:bg-zinc-700 px-1 text-black dark:text-white">{d}</span>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-2 mt-auto text-[9px] font-mono font-bold text-zinc-400 bg-zinc-50 dark:bg-zinc-800 px-2 py-1 w-fit">ESTABLISHED: N/A</div>
+                )}
+            </div>
+        </Link>
+    );
+};
+
+// --- COMPONENT 4: ELO LEADERBOARD ---
 const EloLeaderboard = () => {
     const [ratings, setRatings] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const LEGENDS = ['ayrton_senna', 'michael_schumacher', 'prost', 'vettel', 'lauda', 'fangio', 'clark', 'hamilton', 'max_verstappen', 'alonso', 'raikkonen', 'mansell', 'stewart', 'rosberg', 'hakkinen'];
-
-    const CHAMPIONSHIPS: Record<string, number> = {
-        'michael_schumacher': 7, 'hamilton': 7, 'fangio': 5, 
-        'prost': 4, 'vettel': 4, 'max_verstappen': 4,
-        'ayrton_senna': 3, 'lauda': 3, 'stewart': 3, 'piquet': 3, 'brabham': 3,
-        'alonso': 2, 'clark': 2, 'hakkinen': 2, 'fittipaldi': 2, 'graham_hill': 2, 'ascari': 2,
-        'raikkonen': 1, 'mansell': 1, 'rosberg': 1, 'button': 1, 'hunt': 1, 'jones': 1, 'vileneuve': 1
-    };
+    const CHAMPIONSHIPS: Record<string, number> = { 'michael_schumacher': 7, 'hamilton': 7, 'fangio': 5, 'prost': 4, 'vettel': 4, 'max_verstappen': 4, 'ayrton_senna': 3, 'lauda': 3, 'stewart': 3, 'piquet': 3, 'brabham': 3, 'alonso': 2, 'clark': 2, 'hakkinen': 2, 'fittipaldi': 2, 'graham_hill': 2, 'ascari': 2, 'raikkonen': 1, 'mansell': 1, 'rosberg': 1, 'button': 1, 'hunt': 1, 'jones': 1, 'vileneuve': 1 };
 
     useEffect(() => {
         const calculateElo = async () => {
@@ -210,56 +307,19 @@ const EloLeaderboard = () => {
             const activeData = await activeRes.json();
             const activeDrivers = activeData.MRData.StandingsTable.StandingsLists[0].DriverStandings.map((d: any) => d.Driver.driverId);
             const allDriverIds = Array.from(new Set([...activeDrivers, ...LEGENDS]));
-            
             const calculatedRatings = [];
-            
             for (const id of allDriverIds) {
                 try {
                     const res = await fetch(`https://api.jolpi.ca/ergast/f1/drivers/${id}/results.json?limit=1000`);
                     const data = await res.json();
                     const races = data.MRData.RaceTable.Races;
                     const driverInfo = data.MRData.RaceTable.Races[0]?.Results[0].Driver || { givenName: id, familyName: '', driverId: id };
-
-                    let score = 1000; 
-                    let wins = 0;
-                    let podiums = 0;
-                    let poles = 0;
-                    const entries = races.length;
-                    const titles = CHAMPIONSHIPS[id] || 0;
-
-                    races.forEach((r: any) => {
-                        const pos = parseInt(r.Results[0].position);
-                        const grid = parseInt(r.Results[0].grid);
-                        if (pos === 1) wins++;
-                        if (pos <= 3) podiums++;
-                        if (grid === 1) poles++;
-                    });
-
+                    let score = 1000; let wins = 0; let podiums = 0; let poles = 0; const entries = races.length; const titles = CHAMPIONSHIPS[id] || 0;
+                    races.forEach((r: any) => { const pos = parseInt(r.Results[0].position); const grid = parseInt(r.Results[0].grid); if (pos === 1) wins++; if (pos <= 3) podiums++; if (grid === 1) poles++; });
                     const winRate = (wins / entries) * 100;
-                    
-                    score += (titles * 2000);      
-                    score += (wins * 50);          
-                    score += (podiums * 10);       
-                    score += (poles * 20);         
-                    score += (winRate * 50);       
-
-                    let tier = 'ROOKIE';
-                    if (score > 15000) tier = 'GOD TIER';
-                    else if (score > 10000) tier = 'GRANDMASTER';
-                    else if (score > 6000) tier = 'LEGEND';
-                    else if (score > 3000) tier = 'CHAMPION';
-                    else if (score > 1500) tier = 'ELITE';
-                    else if (score > 1200) tier = 'PRO';
-
-                    calculatedRatings.push({ 
-                        id, 
-                        name: `${driverInfo.givenName} ${driverInfo.familyName}`, 
-                        elo: Math.floor(score), 
-                        titles,
-                        wins, 
-                        entries, 
-                        tier 
-                    });
+                    score += (titles * 2000); score += (wins * 50); score += (podiums * 10); score += (poles * 20); score += (winRate * 50);
+                    let tier = 'ROOKIE'; if (score > 15000) tier = 'GOD TIER'; else if (score > 10000) tier = 'GRANDMASTER'; else if (score > 6000) tier = 'LEGEND'; else if (score > 3000) tier = 'CHAMPION'; else if (score > 1500) tier = 'ELITE'; else if (score > 1200) tier = 'PRO';
+                    calculatedRatings.push({ id, name: `${driverInfo.givenName} ${driverInfo.familyName}`, elo: Math.floor(score), titles, wins, entries, tier });
                 } catch (e) {}
             }
             setRatings(calculatedRatings.sort((a, b) => b.elo - a.elo));
@@ -308,22 +368,19 @@ const DriverDatabase = () => {
     const [loading, setLoading] = useState(true);
     const [archiveLoading, setArchiveLoading] = useState(false);
     const [error, setError] = useState(false);
-    const [isRefreshing, setIsRefreshing] = useState(false);
     const [lastSync, setLastSync] = useState<string>("");
     const downloadStarted = useRef(false);
 
-    const fetchActiveGrid = async (forceRefresh = false) => {
-        if (forceRefresh) setIsRefreshing(true);
+    const fetchActiveGrid = async () => {
         try {
-            const t = forceRefresh ? `&t=${Date.now()}` : '';
-            const tf = forceRefresh ? `?t=${Date.now()}` : '';
-            const standingsRes = await fetch(`https://api.jolpi.ca/ergast/f1/current/driverStandings.json${tf}`);
+            const t = `?t=${Date.now()}`;
+            const standingsRes = await fetch(`https://api.jolpi.ca/ergast/f1/current/driverStandings.json${t}`);
             const standingsData = await standingsRes.json();
             const standingsList = standingsData.MRData.StandingsTable.StandingsLists[0]?.DriverStandings || [];
-            const lastRaceRes = await fetch(`https://api.jolpi.ca/ergast/f1/current/last/results.json${tf}`);
+            const lastRaceRes = await fetch(`https://api.jolpi.ca/ergast/f1/current/last/results.json${t}`);
             const lastRaceData = await lastRaceRes.json();
             const lastRace = lastRaceData.MRData.RaceTable.Races[0];
-            const allResultsRes = await fetch(`https://api.jolpi.ca/ergast/f1/current/results.json?limit=1000${t}`);
+            const allResultsRes = await fetch(`https://api.jolpi.ca/ergast/f1/current/results.json?limit=1000`);
             const allResultsData = await allResultsRes.json();
             const allRaces = allResultsData.MRData.RaceTable.Races;
 
@@ -352,17 +409,12 @@ const DriverDatabase = () => {
             const now = new Date();
             setLastSync(`${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`);
             setError(false);
-        } catch (e) { setError(true); } finally { setLoading(false); setIsRefreshing(false); }
+        } catch (e) { setError(true); } finally { setLoading(false); }
     };
-
     useEffect(() => { fetchActiveGrid(); }, []);
-    
+
     useEffect(() => {
         const fetchAllDrivers = async () => {
-            if (isCacheLoaded) {
-                setHistoricalDrivers(globalDriverCache);
-                return;
-            }
             if (downloadStarted.current) return;
             downloadStarted.current = true;
             setArchiveLoading(true);
@@ -372,13 +424,9 @@ const DriverDatabase = () => {
                 const limit = 100;
                 const batches = Math.ceil(parseInt(initData.MRData.total) / limit);
                 const promises = [];
-                for (let i = 0; i < batches; i++) {
-                    promises.push(fetch(`https://api.jolpi.ca/ergast/f1/drivers.json?limit=${limit}&offset=${i * limit}`).then(res => res.json()).then(data => data.MRData.DriverTable.Drivers));
-                }
+                for (let i = 0; i < batches; i++) { promises.push(fetch(`https://api.jolpi.ca/ergast/f1/drivers.json?limit=${limit}&offset=${i * limit}`).then(res => res.json()).then(data => data.MRData.DriverTable.Drivers)); }
                 const results = await Promise.all(promises);
-                globalDriverCache = results.flat();
-                isCacheLoaded = true;
-                setHistoricalDrivers(globalDriverCache);
+                setHistoricalDrivers(results.flat());
             } catch (e) {} finally { setArchiveLoading(false); }
         };
         if (search.length > 0 && historicalDrivers.length === 0) fetchAllDrivers();
@@ -395,6 +443,7 @@ const DriverDatabase = () => {
                     <input type="text" placeholder={archiveLoading ? "DOWNLOADING ARCHIVE..." : "SEARCH DRIVER..."} className="w-full h-16 bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-500 pl-12 pr-4 font-bold font-mono text-base md:text-lg uppercase focus:outline-none focus:border-acid transition-colors text-black dark:text-white placeholder:text-zinc-400" value={search} onChange={(e) => setSearch(e.target.value)} disabled={loading} />
                 </div>
             </div>
+            {error && <div className="p-8 border-2 border-red-500 bg-red-50 dark:bg-red-900/20 text-red-600 font-bold font-mono flex items-center gap-4 mb-8"><AlertTriangle size={24} /><span>CONNECTION LOST.</span></div>}
             {filteredActive.length > 0 && (
                 <div className="mb-12">
                     <div className="flex items-center gap-2 mb-4 text-black dark:text-white"><Activity size={16} className="text-acid"/><span className="text-xs font-black tracking-widest uppercase">2025 ACTIVE GRID ({lastSync})</span></div>
@@ -415,7 +464,6 @@ const DriverDatabase = () => {
     );
 };
 
-// --- SUB-COMPONENT: TRACK SCHEMATICS ---
 const TrackSchematics = () => {
     const [tracks, setTracks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -450,21 +498,122 @@ const TrackSchematics = () => {
     );
 };
 
-// --- MAIN HUB ---
-export default function F1Hub() {
-    const [viewMode, setViewMode] = useState<'drivers' | 'tracks' | 'elo'>('drivers');
+// --- SUB-COMPONENT: MANUFACTURER DATABASE (NEW) ---
+const ManufacturerDatabase = () => {
+    const [search, setSearch] = useState('');
+    const [active, setActive] = useState<any[]>([]);
+    const [historical, setHistorical] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [archiveLoading, setArchiveLoading] = useState(false);
+    const downloadStarted = useRef(false);
 
+    // PRE-APPROVED SIGNIFICANT TEAMS (To avoid "Lizzie McGuire" clutter in default view)
+    // This list ensures the initial historical view is only "Real" famous teams.
+    // Searching will still allow finding obscure ones.
+    const SIGNIFICANT_TEAMS = [
+        'lotus_f1', 'team_lotus', 'ferrari', 'mclaren', 'williams', 'renault', 'benetton',
+        'tyrrell', 'brabham', 'brm', 'cooper', 'alfa', 'mercedes', 'red_bull', 'toro_rosso',
+        'jordan', 'minardi', 'ligier', 'arrows', 'sauber', 'toyota', 'honda', 'jaguar', 
+        'bmw_sauber', 'brawn', 'force_india', 'racing_point', 'alphatauri', 'haas', 'aston_martin', 'alpine'
+    ];
+
+    useEffect(() => {
+        const fetchActive = async () => {
+            try {
+                const res = await fetch('https://api.jolpi.ca/ergast/f1/current/constructorStandings.json');
+                const data = await res.json();
+                const teams = data.MRData.StandingsTable.StandingsLists[0]?.ConstructorStandings.map((cs: any) => {
+                    return { ...cs.Constructor, points: cs.points, wins: cs.wins }; 
+                });
+                
+                // Fetch drivers to populate the "DRIVERS" field
+                const dRes = await fetch('https://api.jolpi.ca/ergast/f1/current/driverStandings.json');
+                const dData = await dRes.json();
+                const dList = dData.MRData.StandingsTable.StandingsLists[0].DriverStandings;
+                
+                const teamsWithDrivers = teams.map((t: any) => {
+                    const drivers = dList.filter((d: any) => d.Constructors[0].constructorId === t.constructorId).map((d: any) => d.Driver.code);
+                    return { ...t, drivers };
+                });
+
+                setActive(teamsWithDrivers || []);
+                setLoading(false);
+            } catch(e) {}
+        };
+        fetchActive();
+    }, []);
+
+    useEffect(() => {
+        const fetchAll = async () => {
+            if (downloadStarted.current) return;
+            downloadStarted.current = true;
+            setArchiveLoading(true);
+            try {
+                const initRes = await fetch('https://api.jolpi.ca/ergast/f1/constructors.json?limit=1');
+                const initData = await initRes.json();
+                const limit = 100;
+                const batches = Math.ceil(parseInt(initData.MRData.total) / limit);
+                const promises = [];
+                for (let i = 0; i < batches; i++) { promises.push(fetch(`https://api.jolpi.ca/ergast/f1/constructors.json?limit=${limit}&offset=${i * limit}`).then(res => res.json()).then(data => data.MRData.ConstructorTable.Constructors)); }
+                const results = await Promise.all(promises);
+                setHistorical(results.flat());
+            } catch (e) {} finally { setArchiveLoading(false); }
+        };
+        if (search.length > 0 && historical.length === 0) fetchAll();
+    }, [search]);
+
+    const filteredActive = active.filter(t => t.name.toLowerCase().includes(search.toLowerCase()));
+    
+    // Refined Historical Filter:
+    // 1. If searching, show matches.
+    // 2. If NOT searching, show ONLY Significant Teams (to hide obscure privateers with bad data).
+    const filteredHistorical = historical.filter(t => {
+        const matchesSearch = t.name.toLowerCase().includes(search.toLowerCase());
+        const isNotActive = !active.find(at => at.constructorId === t.constructorId);
+        const isSignificant = SIGNIFICANT_TEAMS.includes(t.constructorId);
+        
+        if (search.length > 0) return matchesSearch && isNotActive;
+        return isNotActive && isSignificant;
+    }).slice(0, 50);
+
+    return (
+        <div className="animate-in fade-in slide-in-from-bottom-4">
+             <div className="mb-12 sticky top-24 z-30 relative">
+                <div className="relative shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.1)]">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400">{archiveLoading ? <Loader2 size={20} className="animate-spin"/> : <Search size={20} />}</div>
+                    <input type="text" placeholder="SEARCH CONSTRUCTORS..." className="w-full h-16 bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-500 pl-12 pr-4 font-bold font-mono text-base md:text-lg uppercase focus:outline-none focus:border-acid" value={search} onChange={(e) => setSearch(e.target.value)} />
+                </div>
+                {archiveLoading && <div className="absolute -bottom-6 left-0 text-[9px] font-mono font-bold text-acid animate-pulse">SYNCING TEAM ARCHIVE...</div>}
+            </div>
+            {filteredActive.length > 0 && (
+                <div className="mb-12">
+                    <div className="flex items-center gap-2 mb-4 text-black dark:text-white"><Activity size={16} /><span className="text-xs font-black tracking-widest uppercase">2025 CONSTRUCTORS</span></div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{filteredActive.map(t => <ManufacturerCard key={t.constructorId} team={t} />)}</div>
+                </div>
+            )}
+            {filteredHistorical.length > 0 && (
+                <div>
+                    <div className="flex items-center gap-2 mb-4 text-black dark:text-white"><History size={16} /><span className="text-xs font-black tracking-widest uppercase">HISTORICAL ARCHIVES</span></div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{filteredHistorical.map(t => <ManufacturerCard key={t.constructorId} team={t} isHistorical={true} />)}</div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default function F1Hub() {
+    const [viewMode, setViewMode] = useState<'drivers' | 'tracks' | 'elo' | 'teams'>('drivers');
     return (
         <div className="min-h-screen max-w-7xl mx-auto px-4 pt-12 pb-20">
             <div className="mb-12 border-b-2 border-black dark:border-zinc-700 pb-8 flex flex-col md:flex-row justify-between items-end gap-6">
                 <div>
                     <div className="flex items-center gap-2 text-acid mb-2"><Flag size={14} /><span className="font-mono text-[10px] font-bold tracking-widest text-black dark:text-white">F1 INTELLIGENCE HUB</span></div>
                     <h1 className="text-4xl md:text-6xl lg:text-8xl font-black uppercase tracking-tighter leading-none text-black dark:text-white transition-all duration-300">
-                        {viewMode === 'drivers' ? 'DRIVER DATABASE' : viewMode === 'tracks' ? 'TRACK SCHEMATICS' : 'ELO RANKINGS'}
+                        {viewMode === 'drivers' ? 'DRIVER DATABASE' : viewMode === 'tracks' ? 'TRACK SCHEMATICS' : viewMode === 'elo' ? 'ELO RANKINGS' : 'CONSTRUCTORS'}
                     </h1>
                 </div>
                 <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
-                    {['drivers', 'tracks', 'elo'].map((mode) => (
+                    {['drivers', 'tracks', 'elo', 'teams'].map((mode) => (
                         <button key={mode} onClick={() => setViewMode(mode as any)} className={`px-4 md:px-6 py-3 font-black font-mono text-xs uppercase tracking-widest border-2 transition-all whitespace-nowrap ${viewMode === mode ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white shadow-[4px_4px_0px_0px_#DFFF00]' : 'bg-transparent text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-white hover:text-black dark:hover:text-white'}`}>{mode}</button>
                     ))}
                 </div>
@@ -472,6 +621,7 @@ export default function F1Hub() {
             {viewMode === 'drivers' && <DriverDatabase />}
             {viewMode === 'tracks' && <TrackSchematics />}
             {viewMode === 'elo' && <EloLeaderboard />}
+            {viewMode === 'teams' && <ManufacturerDatabase />}
         </div>
     );
 }
