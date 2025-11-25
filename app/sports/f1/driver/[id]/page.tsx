@@ -197,7 +197,8 @@ export default function DriverPage() {
                             <p className="font-mono text-xs text-zinc-400 leading-relaxed">
                                 In their final recorded session at the {log.year} {log.name}, the subject crossed the finish line in <span className="text-white font-bold">P{log.pos}</span>.
                                 <br/><br/>
-                                <span className="text-white">> TACTICAL ASSESSMENT:</span> <span className={log.color}>{log.delta}</span> vs Grid Position.
+                                {/* FIX APPLIED HERE: Replaced '>' with '&gt;' */}
+                                <span className="text-white">&gt; TACTICAL ASSESSMENT:</span> <span className={log.color}>{log.delta}</span> vs Grid Position.
                             </p>
                         </div>
                       </>
