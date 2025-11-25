@@ -7,7 +7,8 @@ import Link from 'next/link';
 // --- UTILS: SMART IMAGE SEARCH ---
 const searchCommons = async (query: string) => {
     try {
-        const safeQuery = `${query} F1 driver portrait 2024`;
+        // Strict search to prefer high-quality isolated images
+        const safeQuery = `${query}`;
         const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(safeQuery)}&gsrlimit=1&prop=imageinfo&iiprop=url&format=json&origin=*`);
         const data = await res.json();
         if (!data.query || !data.query.pages) return null;
@@ -17,10 +18,11 @@ const searchCommons = async (query: string) => {
     } catch (e) { return null; }
 };
 
-// --- COMPONENT 1: DRIVER CARD (Unchanged) ---
+// --- COMPONENT 1: DRIVER CARD ---
 const DriverCard = ({ driver, isHistorical = false }: { driver: any, isHistorical?: boolean }) => {
     const [image, setImage] = useState<string | null>(null);
 
+    // ROOKIE & SPECIAL CASE MAP (Manual overrides for new drivers)
     const ROOKIE_IMG_MAP: Record<string, string> = {
         'antonelli': 'https://commons.wikimedia.org/wiki/Special:FilePath/Antonelli_Barcelona_2024_(cropped).jpg',
         'k_antonelli': 'https://commons.wikimedia.org/wiki/Special:FilePath/Antonelli_Barcelona_2024_(cropped).jpg',
@@ -36,8 +38,14 @@ const DriverCard = ({ driver, isHistorical = false }: { driver: any, isHistorica
     useEffect(() => {
         const fetchImage = async () => {
             const did = driver.driverId;
-            if (did && ROOKIE_IMG_MAP[did]) { setImage(ROOKIE_IMG_MAP[did]); return; }
             
+            // 1. ROOKIES: Check Manual Map First
+            if (did && ROOKIE_IMG_MAP[did]) { 
+                setImage(ROOKIE_IMG_MAP[did]); 
+                return; 
+            }
+            
+            // 2. ESTABLISHED: Use Official Wiki Page Image (Best Quality)
             let wikiSuccess = false;
             if (driver.url) {
                 try {
@@ -46,17 +54,22 @@ const DriverCard = ({ driver, isHistorical = false }: { driver: any, isHistorica
                     const wikiData = await wikiRes.json();
                     const pages = wikiData.query.pages;
                     const pageId = Object.keys(pages)[0];
+                    
                     if (pageId !== "-1") {
                         const imgUrl = pages[pageId]?.thumbnail?.source;
-                        if (imgUrl) { setImage(imgUrl); wikiSuccess = true; }
+                        if (imgUrl) {
+                            setImage(imgUrl);
+                            wikiSuccess = true;
+                        }
                     }
                 } catch(e) {}
             }
 
+            // 3. FALLBACK: Smart Search
             if (!wikiSuccess) {
                 const fullName = `${driver.givenName} ${driver.familyName}`;
-                let url = await searchCommons(`${fullName} F1 portrait`);
-                if (!url) url = await searchCommons(`${fullName} driver face`);
+                let url = await searchCommons(`File:${fullName} F1 portrait 2024`);
+                if (!url) url = await searchCommons(`File:${fullName} driver face`);
                 if (url) setImage(url);
             }
         };
@@ -107,22 +120,10 @@ const DriverCard = ({ driver, isHistorical = false }: { driver: any, isHistorica
     );
 };
 
-// --- COMPONENT 2: TRACK CARD (Now Clickable) ---
+// --- COMPONENT 2: TRACK CARD (Mobile Optimized) ---
 const TrackCard = ({ circuit }: { circuit: any }) => {
     const [mapImage, setMapImage] = useState<string | null>(null);
     const [flagImage, setFlagImage] = useState<string | null>(null);
-
-    // SEARCH COMMONS UTILITY (Duplicated here to avoid prop drilling complexity in this snippet)
-    const searchTrack = async (query: string) => {
-        try {
-            const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(query)}&gsrlimit=1&prop=imageinfo&iiprop=url&format=json&origin=*`);
-            const data = await res.json();
-            if (!data.query || !data.query.pages) return null;
-            const pages = Object.values(data.query.pages);
-            // @ts-ignore
-            return pages.length > 0 ? pages[0].imageinfo[0].url : null;
-        } catch (e) { return null; }
-    };
 
     const DIRECT_MAPS: Record<string, string> = {
         'monza': 'https://commons.wikimedia.org/wiki/Special:FilePath/Monza_track_map.svg',
@@ -146,14 +147,14 @@ const TrackCard = ({ circuit }: { circuit: any }) => {
                 return;
             }
 
-            let mapUrl = await searchTrack(`File:${name} layout.svg`); 
-            if (!mapUrl) mapUrl = await searchTrack(`File:${name} track map.svg`);
-            if (!mapUrl) mapUrl = await searchTrack(`File:${name} circuit.png`);
+            let mapUrl = await searchCommons(`File:${name} Layout.svg`); 
+            if (!mapUrl) mapUrl = await searchCommons(`File:${name} track map.svg`);
+            if (!mapUrl) mapUrl = await searchCommons(`File:${name} circuit.png`);
             
             if (mapUrl) {
                 setMapImage(mapUrl);
             } else {
-                let flagUrl = await searchTrack(`File:Flag of ${country}.svg`);
+                let flagUrl = await searchCommons(`File:Flag of ${country}.svg`);
                 if (flagUrl) setFlagImage(flagUrl);
             }
         };
@@ -161,11 +162,13 @@ const TrackCard = ({ circuit }: { circuit: any }) => {
     }, [circuit]);
 
     return (
-        // ADDED: Link Wrapper
-        <Link href={`/sports/f1/circuit/${circuit.circuitId}`} className="group border-2 border-black dark:border-zinc-500 bg-white dark:bg-zinc-900 p-0 hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_#DFFF00] transition-all duration-200 flex flex-col h-64 relative overflow-hidden">
+        <Link 
+            href={`/sports/f1/circuit/${circuit.circuitId}`} 
+            className="group border-2 border-black dark:border-zinc-500 bg-white dark:bg-zinc-900 p-0 hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_#DFFF00] transition-all duration-200 flex flex-col h-auto md:h-64 relative overflow-hidden"
+        >
             
-            {/* IMAGE AREA */}
-            <div className="h-40 bg-zinc-50 dark:bg-zinc-950 border-b-2 border-inherit relative flex items-center justify-center p-6 group-hover:bg-white dark:group-hover:bg-zinc-900 transition-colors overflow-hidden">
+            {/* IMAGE AREA: Shorter on mobile (h-32) to fit more on screen */}
+            <div className="h-32 md:h-40 bg-zinc-50 dark:bg-zinc-950 border-b-2 border-inherit relative flex items-center justify-center p-6 group-hover:bg-white dark:group-hover:bg-zinc-900 transition-colors overflow-hidden">
                 {mapImage ? (
                     <img src={mapImage} className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal dark:filter dark:invert opacity-90 group-hover:scale-105 transition-transform duration-500" alt="Track Map" />
                 ) : flagImage ? (
@@ -176,13 +179,17 @@ const TrackCard = ({ circuit }: { circuit: any }) => {
                 ) : (
                     <Map className="text-zinc-300 dark:text-zinc-700" size={64} />
                 )}
+                
+                <div className="absolute top-2 right-2">
+                    <div className="text-zinc-400 hover:text-black dark:hover:text-white"><Share2 size={14}/></div>
+                </div>
             </div>
 
-            {/* INFO AREA */}
-            <div className="flex-1 p-4 flex flex-col justify-between">
+            {/* INFO AREA: Compact padding on mobile */}
+            <div className="flex-1 p-3 md:p-4 flex flex-col justify-between gap-2 md:gap-0">
                 <div>
                     <span className="text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1"><MapPin size={10}/> {circuit.Location.locality}, {circuit.Location.country}</span>
-                    <h3 className="text-lg font-black uppercase leading-tight text-black dark:text-white mt-1 line-clamp-1">{circuit.circuitName}</h3>
+                    <h3 className="text-base md:text-lg font-black uppercase leading-tight text-black dark:text-white mt-1 line-clamp-1">{circuit.circuitName}</h3>
                 </div>
                 <div className="flex justify-between items-end">
                     <span className="text-[9px] font-bold bg-zinc-100 dark:bg-zinc-800 px-2 py-1 text-zinc-500 uppercase border border-zinc-200 dark:border-zinc-700">LAT: {parseFloat(circuit.Location.lat).toFixed(2)}</span>
@@ -286,7 +293,7 @@ const DriverDatabase = () => {
             <div className="mb-12 sticky top-24 z-30">
                 <div className="relative shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.1)]">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400">{archiveLoading ? <Loader2 size={20} className="animate-spin"/> : <Search size={20} />}</div>
-                    <input type="text" placeholder={archiveLoading ? "DOWNLOADING ARCHIVE..." : "SEARCH DRIVER (E.G. SENNA, SCHUMACHER)..."} className="w-full h-16 bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-500 pl-12 pr-4 font-bold font-mono text-lg uppercase focus:outline-none focus:border-acid transition-colors text-black dark:text-white placeholder:text-zinc-400" value={search} onChange={(e) => setSearch(e.target.value)} disabled={loading} />
+                    <input type="text" placeholder={archiveLoading ? "DOWNLOADING ARCHIVE..." : "SEARCH DRIVER (E.G. SENNA, SCHUMACHER)..."} className="w-full h-16 bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-500 pl-12 pr-4 font-bold font-mono text-base md:text-lg uppercase focus:outline-none focus:border-acid transition-colors text-black dark:text-white placeholder:text-zinc-400" value={search} onChange={(e) => setSearch(e.target.value)} disabled={loading} />
                 </div>
                 {archiveLoading && <div className="absolute -bottom-6 left-0 text-[9px] font-mono font-bold text-acid animate-pulse">SYNCING COMPLETE DATABASE...</div>}
             </div>
@@ -314,7 +321,7 @@ const DriverDatabase = () => {
     );
 };
 
-// --- SUB-COMPONENT: TRACK SCHEMATICS ---
+// --- SUB-COMPONENT: TRACK SCHEMATICS (Fixed Search Input for Mobile) ---
 const TrackSchematics = () => {
     const [tracks, setTracks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -338,7 +345,8 @@ const TrackSchematics = () => {
              <div className="mb-12 sticky top-24 z-30">
                 <div className="relative shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.1)]">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400"><Search size={20} /></div>
-                    <input type="text" placeholder="SEARCH CIRCUITS (E.G. MONZA, SUZUKA)..." className="w-full h-16 bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-500 pl-12 pr-4 font-bold font-mono text-lg uppercase focus:outline-none focus:border-acid transition-colors text-black dark:text-white placeholder:text-zinc-400" value={search} onChange={(e) => setSearch(e.target.value)} />
+                    {/* FIX: Added text-base for mobile to prevent iOS zoom */}
+                    <input type="text" placeholder="SEARCH CIRCUITS (E.G. MONZA, SUZUKA)..." className="w-full h-16 bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-500 pl-12 pr-4 font-bold font-mono text-base md:text-lg uppercase focus:outline-none focus:border-acid transition-colors text-black dark:text-white placeholder:text-zinc-400" value={search} onChange={(e) => setSearch(e.target.value)} />
                 </div>
             </div>
 
@@ -355,7 +363,7 @@ const TrackSchematics = () => {
     );
 };
 
-// --- MAIN HUB ---
+// --- MAIN HUB (Responsive Header) ---
 export default function F1Hub() {
     const [viewMode, setViewMode] = useState<'drivers' | 'tracks'>('drivers');
 
@@ -369,7 +377,8 @@ export default function F1Hub() {
                         <Flag size={14} />
                         <span className="font-mono text-[10px] font-bold tracking-widest text-black dark:text-white">F1 INTELLIGENCE HUB</span>
                     </div>
-                    <h1 className="text-6xl md:text-8xl font-black uppercase tracking-tighter leading-none text-black dark:text-white">
+                    {/* FIX: Responsive Text Size */}
+                    <h1 className="text-4xl md:text-6xl lg:text-8xl font-black uppercase tracking-tighter leading-none text-black dark:text-white transition-all duration-300">
                         {viewMode === 'drivers' ? 'DRIVER DATABASE' : 'TRACK SCHEMATICS'}
                     </h1>
                 </div>
