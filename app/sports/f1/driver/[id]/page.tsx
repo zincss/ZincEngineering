@@ -73,7 +73,7 @@ export default function DriverPage() {
             }
         }
 
-        // 3. PROCESS DATA (Stats & History)
+        // 3. PROCESS DATA
         let wins = 0;
         let podiums = 0;
         let points = 0;
@@ -81,14 +81,10 @@ export default function DriverPage() {
         let polePositions = 0;
         let trackPoints: Record<string, number> = {};
         
-        // Define explicit type to satisfy TypeScript
         let firstWin: { race: string; year: string } | null = null;
-        
         let bestFinish = 99;
         let bestFinishRace = "";
 
-        // FIX: Use 'for...of' loop instead of '.forEach'
-        // This allows TypeScript to correctly track variable assignments
         for (const race of allRaces) {
             const res = race.Results[0];
             const pos = parseInt(res.position);
@@ -136,13 +132,12 @@ export default function DriverPage() {
         }
 
         // 5. SET STATE
-        const sortedRaces = [...allRaces].reverse(); // Newest first
+        const sortedRaces = [...allRaces].reverse(); 
         setProfile({ ...driverInfo, team: teamName });
         setStats({ wins, podiums, points, races: allRaces.length });
         setRecentRaces(sortedRaces.slice(0, 5));
         setCareerRaces(sortedRaces);
         
-        // Default to latest season
         if (sortedRaces.length > 0) setSelectedSeason(sortedRaces[0].season);
 
         setHighlights({
@@ -164,7 +159,7 @@ export default function DriverPage() {
     if (id) fetchData();
   }, [id]);
 
-  // --- COMPUTED DATA FOR SELECTED SEASON ---
+  // --- COMPUTED DATA ---
   const uniqueSeasons = Array.from(new Set(careerRaces.map(r => r.season)));
   const seasonalRaces = careerRaces.filter(r => r.season === selectedSeason);
   
@@ -208,7 +203,7 @@ export default function DriverPage() {
         {/* BENTO GRID */}
         <div className="grid grid-cols-1 lg:grid-cols-12 border-b-2 border-black dark:border-zinc-700">
           
-          {/* COL 1: DRIVER PROFILE */}
+          {/* COL 1: DRIVER PROFILE (Sticky on Desktop, Standard on Mobile) */}
           <div className="lg:col-span-4 bg-zinc-50 dark:bg-zinc-950 p-6 flex flex-col gap-6 border-b-2 lg:border-b-0 lg:border-r-2 border-black dark:border-zinc-700 relative">
               <div>
                   <div className="flex items-center gap-2 mb-2">
@@ -251,11 +246,11 @@ export default function DriverPage() {
               </div>
           </div>
 
-          {/* COL 2: HIGHLIGHTS */}
+          {/* COL 2: HIGHLIGHTS & FORM */}
           <div className="lg:col-span-8 grid grid-rows-[auto_1fr] border-l-2 border-black dark:border-zinc-700">
               
-              {/* HIGHLIGHTS ROW */}
-              <div className="bg-zinc-900 text-zinc-300 p-6 border-b-2 border-black dark:border-zinc-700 flex flex-col h-[320px]">
+              {/* ROW 1: HIGHLIGHTS (Auto height on Mobile, Fixed on Desktop) */}
+              <div className="bg-zinc-900 text-zinc-300 p-6 border-b-2 border-black dark:border-zinc-700 flex flex-col h-auto lg:h-[320px]">
                   <div className="flex items-center gap-2 text-acid mb-4 pb-2 border-b border-zinc-800">
                     <Crown size={14} />
                     <span className="font-bold tracking-widest font-mono text-xs">CAREER HIGHLIGHTS // LEGACY LOG</span>
@@ -263,7 +258,7 @@ export default function DriverPage() {
                   
                   {highlights ? (
                       <>
-                        <div className="grid grid-cols-2 gap-4 mb-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                             <div className="bg-black border border-zinc-800 p-3">
                                 <span className="text-acid font-bold block mb-1 text-[9px] uppercase tracking-wider">ACTIVE YEARS</span>
                                 <span className="text-white uppercase font-bold text-sm">{highlights.firstRace} - {highlights.lastRace}</span>
@@ -275,7 +270,7 @@ export default function DriverPage() {
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 flex-1">
-                             <div className="bg-zinc-800/50 p-4 border border-zinc-700 flex flex-col justify-center">
+                             <div className="bg-zinc-800/50 p-4 border border-zinc-700 flex flex-col justify-center min-h-[100px]">
                                 <div className="flex items-center gap-2 mb-2">
                                     <Star size={14} className="text-acid" />
                                     <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">MILESTONE MOMENT</span>
@@ -285,7 +280,7 @@ export default function DriverPage() {
                                 </div>
                              </div>
 
-                             <div className="bg-zinc-800/50 p-4 border border-zinc-700 flex flex-col justify-center">
+                             <div className="bg-zinc-800/50 p-4 border border-zinc-700 flex flex-col justify-center min-h-[100px]">
                                 <div className="flex items-center gap-2 mb-2">
                                     <History size={14} className="text-acid" />
                                     <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">POLE POSITIONS</span>
@@ -301,8 +296,8 @@ export default function DriverPage() {
                   )}
               </div>
 
-              {/* RECENT FORM ROW */}
-              <div className="bg-white dark:bg-zinc-900 p-6 flex flex-col h-full min-h-[300px]">
+              {/* ROW 2: RECENT FORM (Auto height on Mobile) */}
+              <div className="bg-white dark:bg-zinc-900 p-6 flex flex-col h-auto lg:h-full lg:min-h-[300px]">
                     <div className="flex items-center justify-between mb-6 pb-2 border-b-2 border-zinc-100 dark:border-zinc-800">
                         <div className="flex items-center gap-2">
                              <BarChart3 size={14} className="text-black dark:text-white"/> 
@@ -311,7 +306,7 @@ export default function DriverPage() {
                         <span className="text-[9px] font-mono font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-500 px-2 py-1">FINISHING POS</span>
                     </div>
 
-                    <div className="space-y-4 overflow-y-auto max-h-[200px] custom-scrollbar pr-2">
+                    <div className="space-y-4">
                         {recentRaces.map((race: any) => {
                             const pText = race.Results[0].positionText;
                             const pos = parseInt(race.Results[0].position) || 20; 
@@ -341,7 +336,7 @@ export default function DriverPage() {
         </div>
       </div>
 
-      {/* --- NEW: SEASONAL ARCHIVE SECTION --- */}
+      {/* --- SEASONAL ARCHIVE SECTION --- */}
       <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
           
           {/* Header */}
@@ -350,12 +345,13 @@ export default function DriverPage() {
                   <Calendar size={24} className="text-acid" />
                   <h2 className="text-3xl font-black uppercase tracking-tighter leading-none">SEASON ARCHIVES</h2>
               </div>
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar max-w-full">
+              {/* Responsive Season Selector: Horizontal Scroll enabled, Scrollbar Hidden */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar max-w-full touch-pan-x">
                   {uniqueSeasons.map((season) => (
                       <button 
                         key={season}
                         onClick={() => setSelectedSeason(season as string)}
-                        className={`px-4 py-2 text-xs font-black font-mono uppercase tracking-widest border-2 transition-all whitespace-nowrap ${
+                        className={`px-4 py-2 text-xs font-black font-mono uppercase tracking-widest border-2 transition-all whitespace-nowrap shrink-0 ${
                             selectedSeason === season 
                             ? 'bg-black dark:bg-white text-acid dark:text-black border-black dark:border-white' 
                             : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-400 border-transparent hover:border-zinc-300 dark:hover:border-zinc-700 hover:text-black dark:hover:text-white'
@@ -388,9 +384,9 @@ export default function DriverPage() {
                   </div>
               </div>
 
-              {/* Results Table */}
-              <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
+              {/* Results Table - Wrapped in overflow-x-auto for mobile scrolling */}
+              <div className="overflow-x-auto pb-2">
+                  <table className="w-full text-left border-collapse min-w-[600px]">
                       <thead>
                           <tr className="text-[9px] font-black text-zinc-400 uppercase tracking-widest border-b border-black dark:border-zinc-700">
                               <th className="pb-3 pl-2">RND</th>

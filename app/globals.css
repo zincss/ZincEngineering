@@ -2,31 +2,42 @@
 @tailwind components;
 @tailwind utilities;
 
-/* REMOVED: The body { background-color... } block. 
-   We now handle colors in app/layout.tsx for better switching. */
-
-body {
+/* FIX: Prevent horizontal scroll wobble on mobile */
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  position: relative;
   -webkit-font-smoothing: antialiased;
 }
 
 /* Custom Scrollbar for that "Industrial" feel */
 ::-webkit-scrollbar {
   width: 8px;
+  height: 8px; /* Added for horizontal scrollbars */
 }
 ::-webkit-scrollbar-track {
-  background: transparent; /* Changed to transparent to fit both modes */
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
   background: #27272a; /* zinc-800 */
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #DFFF00; /* Acid Green hover */
 }
 
-/* Dark Mode Scrollbar Tweaks */
 .dark ::-webkit-scrollbar-thumb {
   background: #52525b; /* zinc-600 */
 }
 .dark ::-webkit-scrollbar-thumb:hover {
   background: #DFFF00;
+}
+
+/* UTILITY: Hide scrollbar but keep functionality (for horizontal lists) */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
 }
