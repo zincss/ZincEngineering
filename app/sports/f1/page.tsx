@@ -1,14 +1,18 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Flag, Loader2, Trophy, AlertTriangle, User, History, Activity, RefreshCw, CheckCircle2, Map, MapPin, Share2, Info } from 'lucide-react';
+import { Search, Flag, Loader2, Trophy, AlertTriangle, User, History, Activity, RefreshCw, CheckCircle2, Map, MapPin, Share2, Info, Crown, TrendingUp, Medal } from 'lucide-react';
 import Link from 'next/link';
+
+// --- GLOBAL CACHE (Restored) ---
+// This sits outside the component so it survives tab switching
+let globalDriverCache: any[] = [];
+let isCacheLoaded = false;
 
 // --- UTILS: SMART IMAGE SEARCH ---
 const searchCommons = async (query: string) => {
     try {
-        // Strict search to prefer high-quality isolated images
-        const safeQuery = `${query}`;
+        const safeQuery = `${query} F1 driver portrait 2024`;
         const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(safeQuery)}&gsrlimit=1&prop=imageinfo&iiprop=url&format=json&origin=*`);
         const data = await res.json();
         if (!data.query || !data.query.pages) return null;
@@ -22,7 +26,6 @@ const searchCommons = async (query: string) => {
 const DriverCard = ({ driver, isHistorical = false }: { driver: any, isHistorical?: boolean }) => {
     const [image, setImage] = useState<string | null>(null);
 
-    // ROOKIE & SPECIAL CASE MAP (Manual overrides for new drivers)
     const ROOKIE_IMG_MAP: Record<string, string> = {
         'antonelli': 'https://commons.wikimedia.org/wiki/Special:FilePath/Antonelli_Barcelona_2024_(cropped).jpg',
         'k_antonelli': 'https://commons.wikimedia.org/wiki/Special:FilePath/Antonelli_Barcelona_2024_(cropped).jpg',
@@ -38,14 +41,8 @@ const DriverCard = ({ driver, isHistorical = false }: { driver: any, isHistorica
     useEffect(() => {
         const fetchImage = async () => {
             const did = driver.driverId;
+            if (did && ROOKIE_IMG_MAP[did]) { setImage(ROOKIE_IMG_MAP[did]); return; }
             
-            // 1. ROOKIES: Check Manual Map First
-            if (did && ROOKIE_IMG_MAP[did]) { 
-                setImage(ROOKIE_IMG_MAP[did]); 
-                return; 
-            }
-            
-            // 2. ESTABLISHED: Use Official Wiki Page Image (Best Quality)
             let wikiSuccess = false;
             if (driver.url) {
                 try {
@@ -54,18 +51,13 @@ const DriverCard = ({ driver, isHistorical = false }: { driver: any, isHistorica
                     const wikiData = await wikiRes.json();
                     const pages = wikiData.query.pages;
                     const pageId = Object.keys(pages)[0];
-                    
                     if (pageId !== "-1") {
                         const imgUrl = pages[pageId]?.thumbnail?.source;
-                        if (imgUrl) {
-                            setImage(imgUrl);
-                            wikiSuccess = true;
-                        }
+                        if (imgUrl) { setImage(imgUrl); wikiSuccess = true; }
                     }
                 } catch(e) {}
             }
 
-            // 3. FALLBACK: Smart Search
             if (!wikiSuccess) {
                 const fullName = `${driver.givenName} ${driver.familyName}`;
                 let url = await searchCommons(`File:${fullName} F1 portrait 2024`);
@@ -120,7 +112,7 @@ const DriverCard = ({ driver, isHistorical = false }: { driver: any, isHistorica
     );
 };
 
-// --- COMPONENT 2: TRACK CARD (Mobile Optimized) ---
+// --- COMPONENT 2: TRACK CARD ---
 const TrackCard = ({ circuit }: { circuit: any }) => {
     const [mapImage, setMapImage] = useState<string | null>(null);
     const [flagImage, setFlagImage] = useState<string | null>(null);
@@ -142,19 +134,27 @@ const TrackCard = ({ circuit }: { circuit: any }) => {
             const name = circuit.circuitName;
             const country = circuit.Location.country;
 
-            if (DIRECT_MAPS[id]) {
-                setMapImage(DIRECT_MAPS[id]);
-                return;
+            if (DIRECT_MAPS[id]) { setMapImage(DIRECT_MAPS[id]); return; }
+
+            const getMap = async (q: string) => {
+                 try {
+                    const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(q)}&gsrlimit=1&prop=imageinfo&iiprop=url&format=json&origin=*`);
+                    const data = await res.json();
+                    if (!data.query || !data.query.pages) return null;
+                    const pages = Object.values(data.query.pages);
+                    // @ts-ignore
+                    return pages.length > 0 ? pages[0].imageinfo[0].url : null;
+                } catch (e) { return null; }
             }
 
-            let mapUrl = await searchCommons(`File:${name} Layout.svg`); 
-            if (!mapUrl) mapUrl = await searchCommons(`File:${name} track map.svg`);
-            if (!mapUrl) mapUrl = await searchCommons(`File:${name} circuit.png`);
+            let mapUrl = await getMap(`File:${name} Layout.svg`); 
+            if (!mapUrl) mapUrl = await getMap(`File:${name} track map.svg`);
+            if (!mapUrl) mapUrl = await getMap(`File:${name} circuit.png`);
             
             if (mapUrl) {
                 setMapImage(mapUrl);
             } else {
-                let flagUrl = await searchCommons(`File:Flag of ${country}.svg`);
+                let flagUrl = await getMap(`File:Flag of ${country}.svg`);
                 if (flagUrl) setFlagImage(flagUrl);
             }
         };
@@ -166,8 +166,6 @@ const TrackCard = ({ circuit }: { circuit: any }) => {
             href={`/sports/f1/circuit/${circuit.circuitId}`} 
             className="group border-2 border-black dark:border-zinc-500 bg-white dark:bg-zinc-900 p-0 hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_#DFFF00] transition-all duration-200 flex flex-col h-auto md:h-64 relative overflow-hidden"
         >
-            
-            {/* IMAGE AREA: Shorter on mobile (h-32) to fit more on screen */}
             <div className="h-32 md:h-40 bg-zinc-50 dark:bg-zinc-950 border-b-2 border-inherit relative flex items-center justify-center p-6 group-hover:bg-white dark:group-hover:bg-zinc-900 transition-colors overflow-hidden">
                 {mapImage ? (
                     <img src={mapImage} className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal dark:filter dark:invert opacity-90 group-hover:scale-105 transition-transform duration-500" alt="Track Map" />
@@ -179,23 +177,126 @@ const TrackCard = ({ circuit }: { circuit: any }) => {
                 ) : (
                     <Map className="text-zinc-300 dark:text-zinc-700" size={64} />
                 )}
-                
-                <div className="absolute top-2 right-2">
-                    <div className="text-zinc-400 hover:text-black dark:hover:text-white"><Share2 size={14}/></div>
-                </div>
+                <div className="absolute top-2 right-2"><div className="text-zinc-400 hover:text-black dark:hover:text-white"><Share2 size={14}/></div></div>
             </div>
-
-            {/* INFO AREA: Compact padding on mobile */}
             <div className="flex-1 p-3 md:p-4 flex flex-col justify-between gap-2 md:gap-0">
                 <div>
                     <span className="text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1"><MapPin size={10}/> {circuit.Location.locality}, {circuit.Location.country}</span>
                     <h3 className="text-base md:text-lg font-black uppercase leading-tight text-black dark:text-white mt-1 line-clamp-1">{circuit.circuitName}</h3>
                 </div>
-                <div className="flex justify-between items-end">
-                    <span className="text-[9px] font-bold bg-zinc-100 dark:bg-zinc-800 px-2 py-1 text-zinc-500 uppercase border border-zinc-200 dark:border-zinc-700">LAT: {parseFloat(circuit.Location.lat).toFixed(2)}</span>
-                </div>
+                <div className="flex justify-between items-end"><span className="text-[9px] font-bold bg-zinc-100 dark:bg-zinc-800 px-2 py-1 text-zinc-500 uppercase border border-zinc-200 dark:border-zinc-700">LAT: {parseFloat(circuit.Location.lat).toFixed(2)}</span></div>
             </div>
         </Link>
+    );
+};
+
+// --- COMPONENT 3: ELO LEADERBOARD ---
+const EloLeaderboard = () => {
+    const [ratings, setRatings] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const LEGENDS = ['ayrton_senna', 'michael_schumacher', 'prost', 'vettel', 'lauda', 'fangio', 'clark', 'hamilton', 'max_verstappen', 'alonso', 'raikkonen', 'mansell', 'stewart', 'rosberg', 'hakkinen'];
+
+    const CHAMPIONSHIPS: Record<string, number> = {
+        'michael_schumacher': 7, 'hamilton': 7, 'fangio': 5, 
+        'prost': 4, 'vettel': 4, 'max_verstappen': 4,
+        'ayrton_senna': 3, 'lauda': 3, 'stewart': 3, 'piquet': 3, 'brabham': 3,
+        'alonso': 2, 'clark': 2, 'hakkinen': 2, 'fittipaldi': 2, 'graham_hill': 2, 'ascari': 2,
+        'raikkonen': 1, 'mansell': 1, 'rosberg': 1, 'button': 1, 'hunt': 1, 'jones': 1, 'vileneuve': 1
+    };
+
+    useEffect(() => {
+        const calculateElo = async () => {
+            const activeRes = await fetch('https://api.jolpi.ca/ergast/f1/current/driverStandings.json');
+            const activeData = await activeRes.json();
+            const activeDrivers = activeData.MRData.StandingsTable.StandingsLists[0].DriverStandings.map((d: any) => d.Driver.driverId);
+            const allDriverIds = Array.from(new Set([...activeDrivers, ...LEGENDS]));
+            
+            const calculatedRatings = [];
+            
+            for (const id of allDriverIds) {
+                try {
+                    const res = await fetch(`https://api.jolpi.ca/ergast/f1/drivers/${id}/results.json?limit=1000`);
+                    const data = await res.json();
+                    const races = data.MRData.RaceTable.Races;
+                    const driverInfo = data.MRData.RaceTable.Races[0]?.Results[0].Driver || { givenName: id, familyName: '', driverId: id };
+
+                    let score = 1000; 
+                    let wins = 0;
+                    let podiums = 0;
+                    let poles = 0;
+                    const entries = races.length;
+                    const titles = CHAMPIONSHIPS[id] || 0;
+
+                    races.forEach((r: any) => {
+                        const pos = parseInt(r.Results[0].position);
+                        const grid = parseInt(r.Results[0].grid);
+                        if (pos === 1) wins++;
+                        if (pos <= 3) podiums++;
+                        if (grid === 1) poles++;
+                    });
+
+                    const winRate = (wins / entries) * 100;
+                    
+                    score += (titles * 2000);      
+                    score += (wins * 50);          
+                    score += (podiums * 10);       
+                    score += (poles * 20);         
+                    score += (winRate * 50);       
+
+                    let tier = 'ROOKIE';
+                    if (score > 15000) tier = 'GOD TIER';
+                    else if (score > 10000) tier = 'GRANDMASTER';
+                    else if (score > 6000) tier = 'LEGEND';
+                    else if (score > 3000) tier = 'CHAMPION';
+                    else if (score > 1500) tier = 'ELITE';
+                    else if (score > 1200) tier = 'PRO';
+
+                    calculatedRatings.push({ 
+                        id, 
+                        name: `${driverInfo.givenName} ${driverInfo.familyName}`, 
+                        elo: Math.floor(score), 
+                        titles,
+                        wins, 
+                        entries, 
+                        tier 
+                    });
+                } catch (e) {}
+            }
+            setRatings(calculatedRatings.sort((a, b) => b.elo - a.elo));
+            setLoading(false);
+        };
+        calculateElo();
+    }, []);
+
+    if (loading) return <div className="flex flex-col items-center justify-center py-20 gap-4"><Loader2 className="animate-spin text-acid" size={32}/><span className="font-mono text-xs animate-pulse text-zinc-500">CALCULATING LEGACY RATINGS...</span></div>;
+
+    return (
+        <div className="animate-in fade-in slide-in-from-bottom-4">
+            <div className="bg-zinc-900 border-2 border-black dark:border-zinc-700 p-6 mb-8">
+                <div className="flex items-center gap-2 text-acid mb-2"><Info size={14}/><span className="font-bold font-mono text-xs tracking-widest">ZINC ELO ALGORITHM // V.2.0</span></div>
+                <p className="text-zinc-400 font-mono text-xs max-w-2xl">Legacy-Weighted Rating. Heavily rewards World Championships (2000pts), Win Rate, and Pole Positions. Neutralizes "points inflation" to fairly compare eras.</p>
+            </div>
+            <div className="grid gap-2">
+                {ratings.map((r, i) => (
+                    <div key={r.id} className="flex items-center justify-between bg-white dark:bg-zinc-900 border-2 border-transparent hover:border-black dark:hover:border-white p-4 group transition-all shadow-sm hover:shadow-md">
+                        <div className="flex items-center gap-4">
+                            <div className={`w-8 h-8 flex items-center justify-center font-black font-mono text-sm ${i < 3 ? 'bg-acid text-black' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'}`}>{i + 1}</div>
+                            <div>
+                                <h3 className="font-black text-lg uppercase leading-none text-black dark:text-white">{r.name}</h3>
+                                <div className="flex gap-2 mt-1">
+                                    <span className={`text-[9px] font-bold font-mono uppercase tracking-widest ${r.tier === 'GOD TIER' ? 'text-acid bg-black px-1' : r.tier === 'GRANDMASTER' ? 'text-yellow-600' : 'text-zinc-400'}`}>{r.tier}</span>
+                                    {r.titles > 0 && <span className="text-[9px] font-bold font-mono text-yellow-600 flex items-center gap-1"><Crown size={8} /> {r.titles}x WDC</span>}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <div className="flex items-center gap-2 justify-end text-black dark:text-white"><TrendingUp size={14} className={i < 3 ? "text-green-500" : "text-zinc-300"} /><span className="text-2xl font-black font-mono">{r.elo.toLocaleString()}</span></div>
+                            <span className="text-[9px] font-mono text-zinc-400">{r.wins} WINS / {r.entries} STARTS</span>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
     );
 };
 
@@ -209,7 +310,6 @@ const DriverDatabase = () => {
     const [error, setError] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [lastSync, setLastSync] = useState<string>("");
-    
     const downloadStarted = useRef(false);
 
     const fetchActiveGrid = async (forceRefresh = false) => {
@@ -217,21 +317,17 @@ const DriverDatabase = () => {
         try {
             const t = forceRefresh ? `&t=${Date.now()}` : '';
             const tf = forceRefresh ? `?t=${Date.now()}` : '';
-
             const standingsRes = await fetch(`https://api.jolpi.ca/ergast/f1/current/driverStandings.json${tf}`);
             const standingsData = await standingsRes.json();
             const standingsList = standingsData.MRData.StandingsTable.StandingsLists[0]?.DriverStandings || [];
-
             const lastRaceRes = await fetch(`https://api.jolpi.ca/ergast/f1/current/last/results.json${tf}`);
             const lastRaceData = await lastRaceRes.json();
             const lastRace = lastRaceData.MRData.RaceTable.Races[0];
-
             const allResultsRes = await fetch(`https://api.jolpi.ca/ergast/f1/current/results.json?limit=1000${t}`);
             const allResultsData = await allResultsRes.json();
             const allRaces = allResultsData.MRData.RaceTable.Races;
 
             const driverStats: Record<string, { best: number, latest: { pos: string, race: string } }> = {};
-
             allRaces.forEach((race: any) => {
                 race.Results.forEach((result: any) => {
                     const did = result.Driver.driverId;
@@ -240,7 +336,6 @@ const DriverDatabase = () => {
                     if (!isNaN(pos) && pos < driverStats[did].best) driverStats[did].best = pos;
                 });
             });
-
             if (lastRace && lastRace.Results) {
                 lastRace.Results.forEach((result: any) => {
                     const did = result.Driver.driverId;
@@ -248,13 +343,11 @@ const DriverDatabase = () => {
                     driverStats[did].latest = { pos: result.positionText, race: lastRace.raceName };
                 });
             }
-
             const drivers = standingsList.map((ds: any) => {
                 const did = ds.Driver.driverId;
                 const stats = driverStats[did] || { best: 99, latest: { pos: '-', race: '' } };
                 return { ...ds.Driver, points: ds.points, stats: { best: stats.best === 99 ? '-' : stats.best, latest: stats.latest } };
             });
-            
             setActiveDrivers(drivers);
             const now = new Date();
             setLastSync(`${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`);
@@ -263,9 +356,13 @@ const DriverDatabase = () => {
     };
 
     useEffect(() => { fetchActiveGrid(); }, []);
-
+    
     useEffect(() => {
         const fetchAllDrivers = async () => {
+            if (isCacheLoaded) {
+                setHistoricalDrivers(globalDriverCache);
+                return;
+            }
             if (downloadStarted.current) return;
             downloadStarted.current = true;
             setArchiveLoading(true);
@@ -279,7 +376,9 @@ const DriverDatabase = () => {
                     promises.push(fetch(`https://api.jolpi.ca/ergast/f1/drivers.json?limit=${limit}&offset=${i * limit}`).then(res => res.json()).then(data => data.MRData.DriverTable.Drivers));
                 }
                 const results = await Promise.all(promises);
-                setHistoricalDrivers(results.flat());
+                globalDriverCache = results.flat();
+                isCacheLoaded = true;
+                setHistoricalDrivers(globalDriverCache);
             } catch (e) {} finally { setArchiveLoading(false); }
         };
         if (search.length > 0 && historicalDrivers.length === 0) fetchAllDrivers();
@@ -293,13 +392,9 @@ const DriverDatabase = () => {
             <div className="mb-12 sticky top-24 z-30">
                 <div className="relative shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.1)]">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400">{archiveLoading ? <Loader2 size={20} className="animate-spin"/> : <Search size={20} />}</div>
-                    <input type="text" placeholder={archiveLoading ? "DOWNLOADING ARCHIVE..." : "SEARCH DRIVER (E.G. SENNA, SCHUMACHER)..."} className="w-full h-16 bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-500 pl-12 pr-4 font-bold font-mono text-base md:text-lg uppercase focus:outline-none focus:border-acid transition-colors text-black dark:text-white placeholder:text-zinc-400" value={search} onChange={(e) => setSearch(e.target.value)} disabled={loading} />
+                    <input type="text" placeholder={archiveLoading ? "DOWNLOADING ARCHIVE..." : "SEARCH DRIVER..."} className="w-full h-16 bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-500 pl-12 pr-4 font-bold font-mono text-base md:text-lg uppercase focus:outline-none focus:border-acid transition-colors text-black dark:text-white placeholder:text-zinc-400" value={search} onChange={(e) => setSearch(e.target.value)} disabled={loading} />
                 </div>
-                {archiveLoading && <div className="absolute -bottom-6 left-0 text-[9px] font-mono font-bold text-acid animate-pulse">SYNCING COMPLETE DATABASE...</div>}
             </div>
-
-            {error && <div className="p-8 border-2 border-red-500 bg-red-50 dark:bg-red-900/20 text-red-600 font-bold font-mono flex items-center gap-4 mb-8"><AlertTriangle size={24} /><span>CONNECTION LOST.</span></div>}
-
             {filteredActive.length > 0 && (
                 <div className="mb-12">
                     <div className="flex items-center gap-2 mb-4 text-black dark:text-white"><Activity size={16} className="text-acid"/><span className="text-xs font-black tracking-widest uppercase">2025 ACTIVE GRID ({lastSync})</span></div>
@@ -308,7 +403,6 @@ const DriverDatabase = () => {
                     </div>
                 </div>
             )}
-
             {filteredHistorical.length > 0 && (
                 <div className="mb-12">
                     <div className="flex items-center gap-2 mb-4 text-black dark:text-white"><History size={16} className="text-zinc-400"/><span className="text-xs font-black tracking-widest uppercase">HISTORICAL ARCHIVES ({filteredHistorical.length})</span></div>
@@ -321,7 +415,7 @@ const DriverDatabase = () => {
     );
 };
 
-// --- SUB-COMPONENT: TRACK SCHEMATICS (Fixed Search Input for Mobile) ---
+// --- SUB-COMPONENT: TRACK SCHEMATICS ---
 const TrackSchematics = () => {
     const [tracks, setTracks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -337,7 +431,6 @@ const TrackSchematics = () => {
         };
         fetchTracks();
     }, []);
-
     const filteredTracks = tracks.filter(t => t.circuitName.toLowerCase().includes(search.toLowerCase()) || t.Location.country.toLowerCase().includes(search.toLowerCase()));
 
     return (
@@ -345,72 +438,40 @@ const TrackSchematics = () => {
              <div className="mb-12 sticky top-24 z-30">
                 <div className="relative shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.1)]">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400"><Search size={20} /></div>
-                    {/* FIX: Added text-base for mobile to prevent iOS zoom */}
-                    <input type="text" placeholder="SEARCH CIRCUITS (E.G. MONZA, SUZUKA)..." className="w-full h-16 bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-500 pl-12 pr-4 font-bold font-mono text-base md:text-lg uppercase focus:outline-none focus:border-acid transition-colors text-black dark:text-white placeholder:text-zinc-400" value={search} onChange={(e) => setSearch(e.target.value)} />
+                    <input type="text" placeholder="SEARCH CIRCUITS..." className="w-full h-16 bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-500 pl-12 pr-4 font-bold font-mono text-base md:text-lg uppercase focus:outline-none focus:border-acid transition-colors text-black dark:text-white placeholder:text-zinc-400" value={search} onChange={(e) => setSearch(e.target.value)} />
                 </div>
             </div>
-
-            {loading ? (
-                <div className="flex justify-center py-20"><Loader2 className="animate-spin text-zinc-400" /></div>
-            ) : (
+            {loading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-zinc-400" /></div> : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredTracks.map((circuit) => (
-                        <TrackCard key={circuit.circuitId} circuit={circuit} />
-                    ))}
+                    {filteredTracks.map((circuit) => <TrackCard key={circuit.circuitId} circuit={circuit} />)}
                 </div>
             )}
         </div>
     );
 };
 
-// --- MAIN HUB (Responsive Header) ---
+// --- MAIN HUB ---
 export default function F1Hub() {
-    const [viewMode, setViewMode] = useState<'drivers' | 'tracks'>('drivers');
+    const [viewMode, setViewMode] = useState<'drivers' | 'tracks' | 'elo'>('drivers');
 
     return (
         <div className="min-h-screen max-w-7xl mx-auto px-4 pt-12 pb-20">
-            
-            {/* HEADER & SELECTOR */}
             <div className="mb-12 border-b-2 border-black dark:border-zinc-700 pb-8 flex flex-col md:flex-row justify-between items-end gap-6">
                 <div>
-                    <div className="flex items-center gap-2 text-acid mb-2">
-                        <Flag size={14} />
-                        <span className="font-mono text-[10px] font-bold tracking-widest text-black dark:text-white">F1 INTELLIGENCE HUB</span>
-                    </div>
-                    {/* FIX: Responsive Text Size */}
+                    <div className="flex items-center gap-2 text-acid mb-2"><Flag size={14} /><span className="font-mono text-[10px] font-bold tracking-widest text-black dark:text-white">F1 INTELLIGENCE HUB</span></div>
                     <h1 className="text-4xl md:text-6xl lg:text-8xl font-black uppercase tracking-tighter leading-none text-black dark:text-white transition-all duration-300">
-                        {viewMode === 'drivers' ? 'DRIVER DATABASE' : 'TRACK SCHEMATICS'}
+                        {viewMode === 'drivers' ? 'DRIVER DATABASE' : viewMode === 'tracks' ? 'TRACK SCHEMATICS' : 'ELO RANKINGS'}
                     </h1>
                 </div>
-
-                {/* MODE TOGGLE */}
-                <div className="flex gap-2">
-                    <button 
-                        onClick={() => setViewMode('drivers')}
-                        className={`px-4 md:px-6 py-3 font-black font-mono text-xs uppercase tracking-widest border-2 transition-all ${
-                            viewMode === 'drivers' 
-                            ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white shadow-[4px_4px_0px_0px_#DFFF00]' 
-                            : 'bg-transparent text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-white hover:text-black dark:hover:text-white'
-                        }`}
-                    >
-                        DRIVERS
-                    </button>
-                    <button 
-                        onClick={() => setViewMode('tracks')}
-                        className={`px-4 md:px-6 py-3 font-black font-mono text-xs uppercase tracking-widest border-2 transition-all ${
-                            viewMode === 'tracks' 
-                            ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white shadow-[4px_4px_0px_0px_#DFFF00]' 
-                            : 'bg-transparent text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-white hover:text-black dark:hover:text-white'
-                        }`}
-                    >
-                        TRACKS
-                    </button>
+                <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
+                    {['drivers', 'tracks', 'elo'].map((mode) => (
+                        <button key={mode} onClick={() => setViewMode(mode as any)} className={`px-4 md:px-6 py-3 font-black font-mono text-xs uppercase tracking-widest border-2 transition-all whitespace-nowrap ${viewMode === mode ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white shadow-[4px_4px_0px_0px_#DFFF00]' : 'bg-transparent text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-white hover:text-black dark:hover:text-white'}`}>{mode}</button>
+                    ))}
                 </div>
             </div>
-
-            {/* CONTENT AREA */}
-            {viewMode === 'drivers' ? <DriverDatabase /> : <TrackSchematics />}
-
+            {viewMode === 'drivers' && <DriverDatabase />}
+            {viewMode === 'tracks' && <TrackSchematics />}
+            {viewMode === 'elo' && <EloLeaderboard />}
         </div>
     );
 }
