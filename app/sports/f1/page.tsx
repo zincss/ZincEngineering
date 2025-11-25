@@ -17,10 +17,8 @@ const searchCommons = async (query: string) => {
 };
 
 // --- UTILS: NAME FORMATTER ---
-const formatNameFromId = (id: string) => {
-    return id.split('_')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
+const formatName = (name: string) => {
+    return name.replace(/_/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 };
 
 // --- COMPONENT 1: DRIVER CARD ---
@@ -234,20 +232,14 @@ const ManufacturerCard = ({ team, isHistorical = false }: { team: any, isHistori
     useEffect(() => {
         const fetchLogo = async () => {
             const id = team.constructorId;
-            
             if (TEAM_LOGO_MAP[id]) { setLogo(TEAM_LOGO_MAP[id]); return; }
 
             const name = team.name.split('-')[0].trim();
             
-            // STRICT SEARCH: Only F1/Racing terms allowed
             let url = await searchCommons(`File:${name} F1 logo.svg`);
             if (!url) url = await searchCommons(`File:${name} Formula One logo.svg`);
             if (!url) url = await searchCommons(`File:${name} Grand Prix logo.svg`);
             if (!url) url = await searchCommons(`File:Scuderia ${name} logo.svg`);
-            if (!url) url = await searchCommons(`File:${name} racing team logo.svg`);
-            
-            // Fallback: Car Image
-            if (!url) url = await searchCommons(`File:${name} F1 car.jpg`);
             
             if (url) setLogo(url);
         };
@@ -294,13 +286,12 @@ const ManufacturerCard = ({ team, isHistorical = false }: { team: any, isHistori
     );
 };
 
-// --- COMPONENT 4: ELO LEADERBOARD (V5.0 - PRESTIGE & CLEAN NAMES) ---
+// --- COMPONENT 4: ELO LEADERBOARD (V6.0 - THE GOLDEN RATIO) ---
 const EloLeaderboard = () => {
     const [ratings, setRatings] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [visibleCount, setVisibleCount] = useState(15);
     
-    // Corrected IDs for ALL Legends
     const LEGENDS = [
         'senna', 'michael_schumacher', 'prost', 'vettel', 'lauda', 'fangio', 'clark', 
         'hamilton', 'max_verstappen', 'alonso', 'raikkonen', 'mansell', 'stewart', 
@@ -315,9 +306,9 @@ const EloLeaderboard = () => {
         'michael_schumacher': 7, 'hamilton': 7, 'fangio': 5, 'prost': 4, 'vettel': 4, 'max_verstappen': 4,
         'senna': 3, 'lauda': 3, 'stewart': 3, 'piquet': 3, 'jack_brabham': 3,
         'alonso': 2, 'clark': 2, 'hakkinen': 2, 'emerson_fittipaldi': 2, 'graham_hill': 2, 'ascari': 2,
-        'raikkonen': 1, 'mansell': 1, 'nico_rosberg': 1, 'keke_rosberg': 1, 'button': 1, 'hunt': 1, 'jones': 1, 
-        'jacques_villeneuve': 1, 'damon_hill': 1, 'surtees': 1, 'rindt': 1, 'mario_andretti': 1, 
-        'hawthorn': 1, 'phil_hill': 1, 'farina': 1, 'jody_scheckter': 1
+        'raikkonen': 1, 'mansell': 1, 'nico_rosberg': 1, 'keke_rosberg': 1, 'button': 1, 'hunt': 1, 'jones': 1, 'villeneuve': 1, 
+        'damon_hill': 1, 'surtees': 1, 'rindt': 1, 'mario_andretti': 1, 'hawthorn': 1, 'phil_hill': 1, 'farina': 1,
+        'jody_scheckter': 1, 'moss': 0, 'peterson': 0
     };
 
     useEffect(() => {
@@ -335,13 +326,8 @@ const EloLeaderboard = () => {
                     const res = await fetch(`https://api.jolpi.ca/ergast/f1/drivers/${id}/results.json?limit=1000`);
                     const data = await res.json();
                     const races = data.MRData.RaceTable.Races;
+                    const driverInfo = data.MRData.RaceTable.Races[0]?.Results[0].Driver || { givenName: id, familyName: '', driverId: id };
                     
-                    // FALLBACK NAME FORMATTING (If API returns undefined name)
-                    const rawInfo = data.MRData.RaceTable.Races[0]?.Results[0].Driver;
-                    const driverName = rawInfo 
-                        ? `${rawInfo.givenName} ${rawInfo.familyName}` 
-                        : formatNameFromId(id);
-
                     const entries = races.length;
                     let wins = 0, podiums = 0, poles = 0;
                     const titles = CHAMPIONSHIPS[id] || 0;
@@ -354,43 +340,46 @@ const EloLeaderboard = () => {
                         if (grid === 1) poles++;
                     });
 
-                    // --- ZINC ELO V5.0 ---
+                    // --- ZINC ELO V6.0 ---
                     let score = 1000;
                     score += (titles * 2500); 
-                    score += (wins * 100);
+                    score += (wins * 75);
+                    score += (poles * 40);
                     
                     if (entries > 10) {
                         const winRate = (wins / entries);
                         score += (winRate * 5000); 
-                        score += ((podiums / entries) * 1000);
+                        
+                        const podiumRate = (podiums / entries);
+                        score += (podiumRate * 1000);
                     }
                     
-                    // UNCROWNED KING BONUS
                     if (titles === 0) {
-                        if (wins >= 10) score += 1000;
-                        if (wins / entries > 0.15) score += 500;
+                        if (wins >= 10) score += 2000; 
+                        if (wins / entries > 0.15) score += 1000;
                     }
 
                     let tier = 'ROOKIE';
-                    if (score > 18000) tier = 'GOD TIER';
+                    if (score > 16000) tier = 'GOD TIER';
                     else if (score > 12000) tier = 'GRANDMASTER';
                     else if (score > 8000) tier = 'LEGEND';
-                    else if (score > 4000) tier = 'CHAMPION';
+                    else if (score > 5000) tier = 'CHAMPION';
                     else if (score > 2000) tier = 'ELITE';
                     else if (score > 1200) tier = 'PRO';
 
-                    const newRating = { 
+                    const name = formatName(driverInfo.givenName + " " + driverInfo.familyName);
+                    
+                    calculatedRatings.push({ 
                         id, 
-                        name: driverName, 
+                        name, 
                         elo: Math.floor(score), 
                         titles, 
                         wins, 
                         entries, 
                         tier,
-                        winRate: entries > 0 ? ((wins/entries)*100).toFixed(1) : "0.0"
-                    };
-                    
-                    calculatedRatings.push(newRating);
+                        winRate: entries > 0 ? ((wins/entries)*100).toFixed(1) : "0.0",
+                        podiumRate: entries > 0 ? ((podiums/entries)*100).toFixed(1) : "0.0"
+                    });
                     
                     if (i % 5 === 0 || i === allDriverIds.length - 1) {
                          setRatings([...calculatedRatings].sort((a, b) => b.elo - a.elo));
@@ -407,8 +396,12 @@ const EloLeaderboard = () => {
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4">
             <div className="bg-zinc-900 border-2 border-black dark:border-zinc-700 p-6 mb-8">
-                <div className="flex items-center gap-2 text-acid mb-2"><Info size={14}/><span className="font-bold font-mono text-xs tracking-widest">ZINC ELO ENGINE // V.5.0 (PRESTIGE)</span></div>
-                <p className="text-zinc-400 font-mono text-xs max-w-2xl">Legacy-Weighted Rating. Prioritizes Championships, Win Percentage, and Historical Dominance. Includes "Uncrowned King" logic for legends like Stirling Moss.</p>
+                <div className="flex items-center gap-2 text-acid mb-2"><Info size={14}/><span className="font-bold font-mono text-xs tracking-widest">ZINC ELO ENGINE // V.6.0 (GOLDEN)</span></div>
+                <p className="text-zinc-400 font-mono text-xs max-w-3xl leading-relaxed">
+                    <span className="text-acid font-bold">BETA.</span> Calculates Skill Rating via: 
+                    <span className="text-white"> Championships (2500)</span>, <span className="text-white">Win Dominance (5000)</span>, <span className="text-white">Wins (75)</span>, and <span className="text-white">Poles (40)</span>. 
+                    Features 'Uncrowned King' protocol to properly rank legends like Stirling Moss.
+                </p>
             </div>
             
             {loading && ratings.length === 0 && (
@@ -417,7 +410,7 @@ const EloLeaderboard = () => {
 
             <div className="grid gap-2">
                 {ratings.slice(0, visibleCount).map((r, i) => (
-                    <div key={r.id} className="flex items-center justify-between bg-white dark:bg-zinc-900 border-2 border-transparent hover:border-black dark:hover:border-white p-4 group transition-all shadow-sm hover:shadow-md">
+                    <Link href={`/sports/f1/driver/${r.id}`} key={r.id} className="flex items-center justify-between bg-white dark:bg-zinc-900 border-2 border-transparent hover:border-black dark:hover:border-white p-4 group transition-all shadow-sm hover:shadow-md cursor-pointer">
                         <div className="flex items-center gap-4">
                             <div className={`w-8 h-8 flex items-center justify-center font-black font-mono text-sm ${i < 3 ? 'bg-acid text-black' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'}`}>{i + 1}</div>
                             <div>
@@ -435,9 +428,11 @@ const EloLeaderboard = () => {
                                 <span>{r.wins} WINS</span>
                                 <span className="text-zinc-600">|</span>
                                 <span>{r.winRate}% RATE</span>
+                                <span className="text-zinc-600">|</span>
+                                <span>{r.podiumRate}% POD</span>
                             </div>
                         </div>
-                    </div>
+                    </Link>
                 ))}
             </div>
             
@@ -450,7 +445,7 @@ const EloLeaderboard = () => {
     );
 };
 
-// --- SUB-COMPONENT: DRIVER DATABASE ---
+// --- SUB-COMPONENT: DRIVER DATABASE (On-Demand History) ---
 const DriverDatabase = () => {
     const [search, setSearch] = useState('');
     const [activeDrivers, setActiveDrivers] = useState<any[]>([]);
@@ -503,6 +498,27 @@ const DriverDatabase = () => {
     };
     useEffect(() => { fetchActiveGrid(); }, []);
 
+    // LIVE SEARCH: Query API if driver not in local cache
+    useEffect(() => {
+        const fetchResults = async () => {
+            if (search.length < 3) return;
+            
+            const localMatch = historicalDrivers.some(d => d.familyName.toLowerCase().includes(search.toLowerCase()));
+            if (!localMatch) {
+                try {
+                    setArchiveLoading(true);
+                    const res = await fetch(`https://api.jolpi.ca/ergast/f1/drivers/${search.toLowerCase()}.json`);
+                    const data = await res.json();
+                    if (data.MRData.DriverTable.Drivers.length > 0) {
+                         setHistoricalDrivers(prev => [...prev, ...data.MRData.DriverTable.Drivers]);
+                    }
+                } catch(e) {} finally { setArchiveLoading(false); }
+            }
+        }
+        const timeoutId = setTimeout(() => fetchResults(), 500);
+        return () => clearTimeout(timeoutId);
+    }, [search, historicalDrivers]);
+
     useEffect(() => {
         const fetchAllDrivers = async () => {
             if (downloadStarted.current) return;
@@ -519,8 +535,8 @@ const DriverDatabase = () => {
                 setHistoricalDrivers(results.flat());
             } catch (e) {} finally { setArchiveLoading(false); }
         };
-        if (search.length > 0 && historicalDrivers.length === 0) fetchAllDrivers();
-    }, [search]);
+        fetchAllDrivers(); 
+    }, []);
 
     const filteredActive = activeDrivers.filter(d => d.givenName.toLowerCase().includes(search.toLowerCase()) || d.familyName.toLowerCase().includes(search.toLowerCase()));
     const filteredHistorical = historicalDrivers.filter(d => (d.givenName.toLowerCase().includes(search.toLowerCase()) || d.familyName.toLowerCase().includes(search.toLowerCase())) && !activeDrivers.find(ad => ad.driverId === d.driverId)).slice(0, 50);
@@ -624,7 +640,7 @@ const ManufacturerDatabase = () => {
 
                 setActive(teamsWithDrivers || []);
                 setLoading(false);
-            } catch (e) {}
+            } catch(e) {}
         };
         fetchActive();
     }, []);
