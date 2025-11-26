@@ -8,61 +8,121 @@ import { supabase } from '../../lib/supabaseClient';
 
 const CDN_URL = "https://cdn.warframestat.us/img/";
 
-// --- UNIVERSAL INDEX (Example) ---
+// --- UNIVERSAL ATHLETE INDEX (STATIC + FAST) ---
 const ATHLETE_DB = [
+    // F1
     { id: 'max_verstappen', name: 'Max Verstappen', team: 'Red Bull Racing', sport: 'F1', url: '/sports/f1/driver/max_verstappen' },
+    { id: 'hamilton', name: 'Lewis Hamilton', team: 'Mercedes-AMG', sport: 'F1', url: '/sports/f1/driver/hamilton' },
+    { id: 'leclerc', name: 'Charles Leclerc', team: 'Ferrari', sport: 'F1', url: '/sports/f1/driver/leclerc' },
+    { id: 'norris', name: 'Lando Norris', team: 'McLaren', sport: 'F1', url: '/sports/f1/driver/norris' },
+    
+    // NRL
     { id: 'p1', name: 'Jamayne Isaako', team: 'Dolphins', sport: 'NRL', url: '/sports/nrl/player/p1' },
     { id: 'p3', name: 'Nathan Cleary', team: 'Penrith Panthers', sport: 'NRL', url: '/sports/nrl/player/p3' },
-    { id: 'hamilton', name: 'Lewis Hamilton', team: 'Mercedes-AMG', sport: 'F1', url: '/sports/f1/driver/hamilton' },
-    // ... add more key players here for quick access
+    { id: 'p9', name: 'Reece Walsh', team: 'Brisbane Broncos', sport: 'NRL', url: '/sports/nrl/player/p9' },
+    { id: 'p10', name: 'Kalyn Ponga', team: 'Newcastle Knights', sport: 'NRL', url: '/sports/nrl/player/p10' },
+    
+    // NBA (NEW)
+    { id: 'lebron_james', name: 'LeBron James', team: 'LA Lakers', sport: 'NBA', url: '/sports/nba/player/lebron_james' },
+    { id: 'stephen_curry', name: 'Stephen Curry', team: 'Golden State', sport: 'NBA', url: '/sports/nba/player/stephen_curry' },
+    { id: 'nikola_jokic', name: 'Nikola Jokic', team: 'Denver Nuggets', sport: 'NBA', url: '/sports/nba/player/nikola_jokic' },
+    { id: 'luka_doncic', name: 'Luka Doncic', team: 'Dallas Mavericks', sport: 'NBA', url: '/sports/nba/player/luka_doncic' },
+    { id: 'giannis_antetokounmpo', name: 'Giannis Antetokounmpo', team: 'Milwaukee Bucks', sport: 'NBA', url: '/sports/nba/player/giannis_antetokounmpo' },
+    { id: 'kevin_durant', name: 'Kevin Durant', team: 'Phoenix Suns', sport: 'NBA', url: '/sports/nba/player/kevin_durant' },
+    { id: 'jayson_tatum', name: 'Jayson Tatum', team: 'Boston Celtics', sport: 'NBA', url: '/sports/nba/player/jayson_tatum' },
+    { id: 'anthony_edwards', name: 'Anthony Edwards', team: 'Minnesota Timberwolves', sport: 'NBA', url: '/sports/nba/player/anthony_edwards' },
+    { id: 'victor_wembanyama', name: 'Victor Wembanyama', team: 'San Antonio Spurs', sport: 'NBA', url: '/sports/nba/player/victor_wembanyama' },
+    { id: 'shai_gilgeous-alexander', name: 'Shai Gilgeous-Alexander', team: 'OKC Thunder', sport: 'NBA', url: '/sports/nba/player/shai_gilgeous-alexander' },
 ];
 
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
+  
   const isSports = pathname?.startsWith('/sports');
+
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Universal Search Logic
+  // DB INIT
   useEffect(() => {
-    if (query.length < 2) { setResults([]); return; }
+    if (!isSports) {
+        const initSystem = async () => {
+            try { await supabase.from('items').select('id').limit(1); } catch (e) {}
+        };
+        initSystem();
+    }
+  }, [isSports]);
 
-    if (isSports) {
-        // 1. Local Match
-        const localMatches = ATHLETE_DB.filter(a => a.name.toLowerCase().includes(query.toLowerCase()));
-        setResults(localMatches);
-        
-        // 2. (Optional) API Search can go here if you want "Search Anyone" in the header too
-        // For now, local index is faster and safer.
-        setShowDropdown(true);
-    } else {
-        // Gaming Search
-        const searchGaming = async () => {
-            const { data } = await supabase.from('items').select('id, name, category, image_name').ilike('name', `%${query}%`).limit(5);
+  // SEARCH LOGIC
+  useEffect(() => {
+    const performSearch = async () => {
+      if (query.length < 2) {
+        setResults([]);
+        return;
+      }
+      
+      setLoading(true);
+
+      if (isSports) {
+          // ATHLETE SEARCH (Local Index)
+          const matches = ATHLETE_DB.filter(a => 
+              a.name.toLowerCase().includes(query.toLowerCase()) || 
+              a.team.toLowerCase().includes(query.toLowerCase())
+          ).slice(0, 5);
+          setResults(matches);
+          setShowDropdown(true);
+          setLoading(false);
+      } else {
+          // GAMING SEARCH (Supabase)
+          try {
+            const { data } = await supabase
+              .from('items')
+              .select('id, name, category, image_name')
+              .ilike('name', `%${query}%`)
+              .limit(5);
             setResults(data || []);
             setShowDropdown(true);
-        };
-        searchGaming();
-    }
+          } catch (err) {
+            console.error(err);
+          } finally {
+            setLoading(false);
+          }
+      }
+    };
+
+    const timeoutId = setTimeout(() => performSearch(), 300);
+    return () => clearTimeout(timeoutId);
   }, [query, isSports]);
 
-  // Click Handler
+  // Click Outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) && !inputRef.current?.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const handleSelect = (item: any) => {
       setShowDropdown(false);
       setQuery('');
-      if (item.url) router.push(item.url); // Sports Link
-      else router.push(`/gaming/build/${item.id}`); // Gaming Link
+      if (isSports) {
+          router.push(item.url);
+      } else {
+          router.push(`/gaming/build/${item.id}`);
+      }
   };
-  
-  // ... (Rest of your Header JSX logic - Logo, Nav, Input field etc.)
-  // Ensure you paste the full return statement from your original file, replacing just the logic above.
-  
+
   return (
-      // ... (Your existing return JSX)
-      <header className="sticky top-0 z-50 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-sm border-b-2 border-black dark:border-zinc-800 shadow-sm transition-colors duration-300">
+    <header className="sticky top-0 z-50 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-sm border-b-2 border-black dark:border-zinc-800 shadow-sm transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 md:px-6 h-20 flex items-center justify-between gap-8">
         
         {/* LOGO */}
@@ -88,12 +148,14 @@ export default function Header() {
             {/* INPUT */}
             <div className="relative w-full max-w-md group">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-black dark:group-focus-within:text-white transition-colors">
-                  <Search size={16}/>
+                  {loading ? <Loader2 size={16} className="animate-spin"/> : <Search size={16}/>}
               </div>
               <input 
+                  ref={inputRef}
                   type="text" 
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
+                  onFocus={() => { if(results.length > 0) setShowDropdown(true); }}
                   placeholder={isSports ? "SEARCH GLOBAL ATHLETE DATABASE..." : "SEARCH GAMING ARCHIVES..."}
                   className="w-full bg-zinc-100 dark:bg-zinc-900 border-2 border-transparent focus:border-black dark:focus:border-zinc-600 px-10 py-2 font-mono text-xs font-bold uppercase outline-none text-black dark:text-white transition-all placeholder:text-zinc-400"
               />
@@ -128,7 +190,7 @@ export default function Header() {
                                 <div className="text-[9px] font-mono text-zinc-500 uppercase group-hover:text-black/70">
                                     {isSports ? (
                                         <span className="flex items-center gap-1">
-                                            <span className={`px-1 ${item.sport === 'F1' ? 'bg-red-500 text-white' : 'bg-blue-600 text-white'}`}>{item.sport}</span>
+                                            <span className={`px-1 text-white font-bold ${item.sport === 'F1' ? 'bg-red-600' : item.sport === 'NBA' ? 'bg-orange-500' : 'bg-blue-600'}`}>{item.sport}</span>
                                             {item.team}
                                         </span>
                                     ) : item.category}
