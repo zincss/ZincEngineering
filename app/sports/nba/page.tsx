@@ -1,103 +1,81 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Trophy, LayoutGrid, ChevronRight, Loader2, User, Activity } from 'lucide-react';
+import { Search, Trophy, Loader2, User, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
-import { NBA_TEAMS, NBA_LOGOS, NBA_PLAYER_DB } from './data';
+import { NBA_TEAMS } from './data';
+import { searchPlayers, getLiveScores } from './actions'; 
 
-// ... (Keep TeamCard and PlayerCard components from previous turn, they were fine)
-// Ensure PlayerCard has the ChevronRight import fixed if you copy-paste from older version
-const TeamCard = ({ team }: { team: any }) => (
-    <Link href={`/sports/nba/team/${team.id}`} className="group border-2 border-black dark:border-zinc-700 bg-white dark:bg-zinc-900 p-0 hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_#000] dark:hover:shadow-[8px_8px_0px_0px_#333] transition-all duration-200 flex flex-col h-56 relative overflow-hidden">
-        <div className={`h-32 bg-zinc-50 dark:bg-zinc-950 relative flex items-center justify-center p-6 overflow-hidden border-b-2 border-inherit`}>
-            <img src={NBA_LOGOS[team.id]} className="h-20 w-auto object-contain drop-shadow-md group-hover:scale-110 transition-transform duration-500" alt={team.name} />
-        </div>
-        <div className="flex-1 p-4 flex flex-col justify-between">
-            <h3 className="text-lg font-black uppercase leading-none text-black dark:text-white">{team.name}</h3>
-            <div className="flex items-center gap-2 text-[9px] font-mono font-bold text-zinc-400">
-                <span className="bg-zinc-100 dark:bg-zinc-800 px-2 py-1 uppercase">NBA FRANCHISE</span>
-            </div>
-        </div>
-    </Link>
-);
+// --- LIVE SCOREBOARD ---
+const LiveScoreboard = () => {
+    const [games, setGames] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
 
-const PlayerCard = ({ player }: { player: any }) => {
-    const logo = NBA_LOGOS[player.team];
+    useEffect(() => {
+        getLiveScores().then((data) => {
+            setGames(data);
+            setLoading(false);
+        });
+    }, []);
+
+    if (loading) return <div className="h-12 flex items-center justify-center text-[9px] font-mono animate-pulse text-zinc-500 border-b border-zinc-200 dark:border-zinc-800">INITIALIZING LIVE FEED...</div>;
+    if (games.length === 0) return null;
+
     return (
-        <Link href={`/sports/nba/player/${player.id}`} className="group border-2 border-black dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#000] dark:hover:shadow-[6px_6px_0px_0px_#333] transition-all flex items-center p-4 gap-4">
-            <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-full border-2 border-zinc-200 dark:border-zinc-700 flex items-center justify-center shrink-0 overflow-hidden relative">
-                <img src={player.image || player.thumb} className="w-full h-full object-cover object-top" alt={player.name} onError={(e) => (e.currentTarget.src = 'https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png')} />
-            </div>
-            <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                    {logo && <img src={logo} className="w-4 h-4 object-contain opacity-70" alt={player.team}/>}
-                    <span className="text-[9px] font-bold text-zinc-400 uppercase truncate">{player.team}</span>
+        <div className="mb-8 overflow-x-auto no-scrollbar border-b border-black dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950">
+            <div className="flex divide-x divide-zinc-200 dark:divide-zinc-800 min-w-max">
+                <div className="px-4 py-3 flex items-center gap-2 text-red-600 font-black text-[10px] uppercase tracking-widest bg-white dark:bg-zinc-900 sticky left-0 z-10 border-r border-zinc-200 dark:border-zinc-800 shadow-sm">
+                    <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"/> LIVE
                 </div>
-                <h3 className="text-lg font-black uppercase leading-none truncate text-black dark:text-white group-hover:text-acid transition-colors">{player.name}</h3>
-                <div className="flex items-center gap-3 mt-2">
-                    <span className="text-[9px] font-mono font-bold bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded text-zinc-500">{player.pos}</span>
-                    {player.ppg && <span className="text-[9px] font-mono font-bold text-zinc-400 flex items-center gap-1"><Activity size={10} /> {player.ppg} PPG</span>}
-                </div>
+                {games.map((game: any) => (
+                    <div key={game.id} className="px-6 py-3 flex flex-col justify-center min-w-[140px] hover:bg-white dark:hover:bg-zinc-900 transition-colors group cursor-default">
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="font-black text-xs text-black dark:text-white">{game.home.name}</span>
+                            <span className="font-mono font-bold text-sm text-black dark:text-white">{game.home.score}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="font-black text-xs text-black dark:text-white">{game.away.name}</span>
+                            <span className="font-mono font-bold text-sm text-black dark:text-white">{game.away.score}</span>
+                        </div>
+                        <span className="text-[8px] font-mono text-zinc-400 mt-1 uppercase tracking-widest group-hover:text-acid transition-colors">{game.clock}</span>
+                    </div>
+                ))}
             </div>
-            <ChevronRight size={16} className="text-zinc-300 group-hover:text-black dark:group-hover:text-white transition-colors"/>
-        </Link>
+        </div>
     );
 };
 
 export default function NBAHub() {
     const [viewMode, setViewMode] = useState<'teams' | 'players'>('teams');
     const [search, setSearch] = useState('');
-    const [dynamicPlayers, setDynamicPlayers] = useState<any[]>([]);
+    const [searchResults, setSearchResults] = useState<any[]>([]);
     const [isSearching, setIsSearching] = useState(false);
 
-    // --- LIVE API SEARCH ---
     useEffect(() => {
-        const fetchPlayers = async () => {
-            if (search.length < 3) {
-                setDynamicPlayers([]); 
-                return;
-            }
-            
-            setIsSearching(true);
-            try {
-                // Search TheSportsDB
-                const res = await fetch(`https://www.thesportsdb.com/api/v1/json/3/searchplayers.php?p=${encodeURIComponent(search)}`);
-                const data = await res.json();
-                
-                if (data.player) {
-                    const nbaPlayers = data.player.filter((p: any) => p.strSport === 'Basketball');
-                    const mappedPlayers = nbaPlayers.map((p: any) => ({
-                        id: p.idPlayer, 
-                        name: p.strPlayer,
-                        team: p.strTeam || 'Free Agent',
-                        pos: p.strPosition,
-                        thumb: p.strThumb || p.strCutout,
-                        ppg: 0 // Stats unavailable in basic search
-                    }));
-                    setDynamicPlayers(mappedPlayers);
-                } else {
-                    setDynamicPlayers([]);
-                }
-            } catch (e) { console.error("Search Error:", e); } 
-            finally { setIsSearching(false); }
-        };
-
-        const timeoutId = setTimeout(() => fetchPlayers(), 600);
-        return () => clearTimeout(timeoutId);
+        if (search.length < 2) { setSearchResults([]); return; }
+        
+        setIsSearching(true);
+        const timer = setTimeout(async () => {
+            const results = await searchPlayers(search);
+            setSearchResults(results);
+            setIsSearching(false);
+        }, 500);
+        
+        return () => clearTimeout(timer);
     }, [search]);
 
-    const displayPlayers = search.length >= 3 ? dynamicPlayers : NBA_PLAYER_DB;
-
     return (
-        <div className="min-h-screen max-w-7xl mx-auto px-4 pt-12 pb-20">
-            <div className="mb-12 border-b-2 border-black dark:border-zinc-700 pb-8 flex flex-col md:flex-row justify-between items-end gap-6">
+        <div className="min-h-screen max-w-7xl mx-auto px-4 pt-0 pb-20">
+            <LiveScoreboard />
+            
+            <div className="mb-12 border-b-2 border-black dark:border-zinc-700 pb-8 flex flex-col md:flex-row justify-between items-end gap-6 pt-8">
                 <div>
                     <div className="flex items-center gap-2 text-black dark:text-white mb-2">
                         <Trophy size={14} />
                         <span className="font-mono text-[10px] font-bold tracking-widest">NATIONAL BASKETBALL ASSOCIATION</span>
                     </div>
                     <h1 className="text-4xl md:text-6xl lg:text-8xl font-black uppercase tracking-tighter leading-none text-black dark:text-white transition-all duration-300">
-                        {viewMode === 'teams' ? 'LEAGUE DATABASE' : 'PLAYER ROSTER'}
+                        {viewMode === 'teams' ? 'LEAGUE DATA' : 'PLAYER ROSTER'}
                     </h1>
                 </div>
                 <div className="flex gap-2">
@@ -112,32 +90,48 @@ export default function NBAHub() {
                  </div>
                  <input 
                     type="text" 
-                    placeholder={viewMode === 'teams' ? "SEARCH FRANCHISES..." : "SEARCH PLAYERS (E.G. 'JORDAN')..."}
-                    className="w-full h-14 bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-500 pl-12 font-bold font-mono text-sm uppercase focus:outline-none"
+                    placeholder={viewMode === 'teams' ? "SEARCH FRANCHISES..." : "SEARCH PLAYERS (E.G. 'LEBRON')..."}
+                    className="w-full h-16 bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-500 pl-12 font-bold font-mono text-lg uppercase focus:outline-none focus:border-acid transition-colors text-black dark:text-white"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                  />
             </div>
 
-            {viewMode === 'teams' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {NBA_TEAMS.filter(t => t.name.toLowerCase().includes(search.toLowerCase())).map(team => (
-                        <TeamCard key={team.id} team={team} />
-                    ))}
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {displayPlayers.length > 0 ? (
-                        displayPlayers.map(player => (
-                            <PlayerCard key={player.id} player={player} />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {viewMode === 'teams' ? (
+                    NBA_TEAMS.filter(t => t.name.toLowerCase().includes(search.toLowerCase())).map(team => (
+                        <Link href={`/sports/nba/team/${team.id}`} key={team.id} className="group border-2 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white bg-white dark:bg-zinc-900 p-6 flex items-center gap-6 transition-all hover:-translate-y-1 hover:shadow-lg">
+                            <div className={`w-16 h-16 rounded-full ${team.color} flex items-center justify-center shrink-0 shadow-md`}>
+                                <span className="text-white font-black text-xl">{team.name.charAt(0)}</span>
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-black uppercase leading-none mb-1 text-black dark:text-white">{team.name}</h3>
+                                <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase">{team.city}</span>
+                            </div>
+                        </Link>
+                    ))
+                ) : (
+                    searchResults.length > 0 ? (
+                        searchResults.map(player => (
+                            <Link href={`/sports/nba/player/${player.id}`} key={player.id} className="group border-2 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white bg-white dark:bg-zinc-900 p-4 flex items-center gap-4 transition-all">
+                                <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden relative border border-zinc-200 dark:border-zinc-700 shrink-0">
+                                    <img src={player.image} className="w-full h-full object-cover object-top" alt={player.name} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="font-black text-sm uppercase truncate text-black dark:text-white">{player.name}</h3>
+                                    <div className="text-[10px] font-mono font-bold text-zinc-500 uppercase truncate">{player.team}</div>
+                                </div>
+                                <ChevronRight size={16} className="text-zinc-300 group-hover:text-black dark:group-hover:text-white"/>
+                            </Link>
                         ))
                     ) : (
-                         <div className="col-span-full py-12 text-center text-zinc-400 font-mono text-xs border-2 border-dashed border-zinc-200 dark:border-zinc-800">
-                             PLAYER NOT FOUND.
-                         </div>
-                    )}
-                </div>
-            )}
+                        <div className="col-span-full py-20 text-center border-2 border-dashed border-zinc-200 dark:border-zinc-800">
+                            <User size={32} className="mx-auto text-zinc-300 mb-4" />
+                            <span className="font-mono text-xs text-zinc-400 uppercase">{isSearching ? 'SEARCHING ARCHIVES...' : 'ENTER PLAYER NAME TO INITIALIZE SEARCH'}</span>
+                        </div>
+                    )
+                )}
+            </div>
         </div>
     );
 }
