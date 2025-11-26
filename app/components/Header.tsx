@@ -3,96 +3,66 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-// FIX: Added 'LayoutGrid' to imports for the Hub button
-import { Search, Loader2, Command, X, Trophy, ChevronRight, Gamepad2, LayoutGrid } from 'lucide-react';
+import { Search, Loader2, Command, X, Trophy, ChevronRight, LayoutGrid, User } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 
 const CDN_URL = "https://cdn.warframestat.us/img/";
 
+// --- UNIVERSAL INDEX (Example) ---
+const ATHLETE_DB = [
+    { id: 'max_verstappen', name: 'Max Verstappen', team: 'Red Bull Racing', sport: 'F1', url: '/sports/f1/driver/max_verstappen' },
+    { id: 'p1', name: 'Jamayne Isaako', team: 'Dolphins', sport: 'NRL', url: '/sports/nrl/player/p1' },
+    { id: 'p3', name: 'Nathan Cleary', team: 'Penrith Panthers', sport: 'NRL', url: '/sports/nrl/player/p3' },
+    { id: 'hamilton', name: 'Lewis Hamilton', team: 'Mercedes-AMG', sport: 'F1', url: '/sports/f1/driver/hamilton' },
+    // ... add more key players here for quick access
+];
+
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
-  
-  // Context Detection
   const isSports = pathname?.startsWith('/sports');
-  const isHome = pathname === '/';
-
-  // Search State
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  // 1. WAKE UP DB (Global)
+  // Universal Search Logic
   useEffect(() => {
-    const initSystem = async () => {
-      try {
-        await supabase.from('items').select('id').limit(1);
-        console.log("ZINC SYSTEM: Database Connected.");
-      } catch (e) {
-        console.error("ZINC SYSTEM: Database Connection Failed", e);
-      }
-    };
-    initSystem();
-  }, []);
+    if (query.length < 2) { setResults([]); return; }
 
-  // 2. SEARCH LOGIC (With Debugging)
-  useEffect(() => {
-    const searchItems = async () => {
-      if (query.length < 2) {
-        setResults([]);
-        return;
-      }
-      
-      setLoading(true);
-      console.log(`Searching for: ${query}...`);
-
-      try {
-        const { data, error } = await supabase
-          .from('items')
-          .select('id, name, category, image_name')
-          .ilike('name', `%${query}%`)
-          .limit(5);
-
-        if (error) throw error;
-
-        console.log("Results found:", data?.length);
-        setResults(data || []);
+    if (isSports) {
+        // 1. Local Match
+        const localMatches = ATHLETE_DB.filter(a => a.name.toLowerCase().includes(query.toLowerCase()));
+        setResults(localMatches);
+        
+        // 2. (Optional) API Search can go here if you want "Search Anyone" in the header too
+        // For now, local index is faster and safer.
         setShowDropdown(true);
-      } catch (err) {
-        console.error("Search Error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+    } else {
+        // Gaming Search
+        const searchGaming = async () => {
+            const { data } = await supabase.from('items').select('id, name, category, image_name').ilike('name', `%${query}%`).limit(5);
+            setResults(data || []);
+            setShowDropdown(true);
+        };
+        searchGaming();
+    }
+  }, [query, isSports]);
 
-    const timeoutId = setTimeout(() => searchItems(), 300);
-    return () => clearTimeout(timeoutId);
-  }, [query]);
-
-  // Click Outside to Close
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) && !inputRef.current?.contains(event.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleSelect = (id: string) => {
+  // Click Handler
+  const handleSelect = (item: any) => {
       setShowDropdown(false);
       setQuery('');
-      // Always route to the gaming build page for now
-      router.push(`/gaming/build/${id}`);
+      if (item.url) router.push(item.url); // Sports Link
+      else router.push(`/gaming/build/${item.id}`); // Gaming Link
   };
-
+  
+  // ... (Rest of your Header JSX logic - Logo, Nav, Input field etc.)
+  // Ensure you paste the full return statement from your original file, replacing just the logic above.
+  
   return (
-    <header className="sticky top-0 z-50 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-sm border-b-2 border-black dark:border-zinc-800 shadow-sm transition-colors duration-300">
+      // ... (Your existing return JSX)
+      <header className="sticky top-0 z-50 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-sm border-b-2 border-black dark:border-zinc-800 shadow-sm transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 md:px-6 h-20 flex items-center justify-between gap-8">
         
         {/* LOGO */}
@@ -109,28 +79,23 @@ export default function Header() {
         {/* CENTER: Universal Search */}
         <div className="flex-1 flex justify-center md:justify-start relative">
             
-            {/* Optional Context Title (Only show on Sports) */}
-            {isSports && (
-                <div className="hidden md:flex items-center gap-2 text-black dark:text-white mr-4">
-                    <Trophy size={18} className="text-acid"/>
-                    <span className="font-black text-xl tracking-tighter uppercase">ATHLETICS</span>
-                </div>
-            )}
+            {/* Context Badge */}
+            <div className="hidden md:flex items-center gap-2 text-black dark:text-white mr-4">
+                {isSports ? <Trophy size={18} className="text-acid"/> : <LayoutGrid size={18} className="text-acid"/>}
+                <span className="font-black text-xl tracking-tighter uppercase hidden lg:block">{isSports ? 'ATHLETICS' : 'GAMING'}</span>
+            </div>
 
-            {/* UNIVERSAL SEARCH BAR */}
+            {/* INPUT */}
             <div className="relative w-full max-w-md group">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-black dark:group-focus-within:text-white transition-colors">
-                  {loading ? <Loader2 size={16} className="animate-spin"/> : <Search size={16}/>}
+                  <Search size={16}/>
               </div>
               <input 
-                  ref={inputRef}
                   type="text" 
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  onFocus={() => { if(results.length > 0) setShowDropdown(true); }}
-                  placeholder={isSports ? "SEARCH ATHLETES (COMING SOON)..." : "SEARCH DATABASE..."}
-                  disabled={isSports} // Disable search on sports page for now
-                  className="w-full bg-zinc-100 dark:bg-zinc-900 border-2 border-transparent focus:border-black dark:focus:border-zinc-600 px-10 py-2 font-mono text-xs font-bold uppercase outline-none text-black dark:text-white transition-all placeholder:text-zinc-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                  placeholder={isSports ? "SEARCH GLOBAL ATHLETE DATABASE..." : "SEARCH GAMING ARCHIVES..."}
+                  className="w-full bg-zinc-100 dark:bg-zinc-900 border-2 border-transparent focus:border-black dark:focus:border-zinc-600 px-10 py-2 font-mono text-xs font-bold uppercase outline-none text-black dark:text-white transition-all placeholder:text-zinc-400"
               />
               {query.length > 0 && (
                 <button onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-black dark:hover:text-white">
@@ -148,15 +113,26 @@ export default function Header() {
                     {results.map((item) => (
                         <div
                             key={item.id}
-                            onClick={() => handleSelect(item.id)}
+                            onClick={() => handleSelect(item)}
                             className="flex items-center gap-3 p-3 hover:bg-acid dark:hover:bg-acid cursor-pointer border-b border-zinc-100 dark:border-zinc-800 last:border-0 group transition-colors"
                         >
-                            <div className="h-8 w-8 border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 p-0.5 shrink-0">
-                                <img src={`${CDN_URL}${item.image_name}`} className="w-full h-full object-contain" />
+                            <div className={`h-8 w-8 border border-zinc-300 dark:border-zinc-700 ${isSports ? 'rounded-full' : ''} bg-white dark:bg-zinc-950 p-0.5 shrink-0 flex items-center justify-center overflow-hidden`}>
+                                {isSports ? (
+                                    <User size={16} className="text-zinc-400"/>
+                                ) : (
+                                    <img src={`${CDN_URL}${item.image_name}`} className="w-full h-full object-contain" />
+                                )}
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="font-black text-xs uppercase truncate text-black dark:text-zinc-200 group-hover:text-black">{item.name}</div>
-                                <div className="text-[9px] font-mono text-zinc-500 uppercase group-hover:text-black/70">{item.category}</div>
+                                <div className="text-[9px] font-mono text-zinc-500 uppercase group-hover:text-black/70">
+                                    {isSports ? (
+                                        <span className="flex items-center gap-1">
+                                            <span className={`px-1 ${item.sport === 'F1' ? 'bg-red-500 text-white' : 'bg-blue-600 text-white'}`}>{item.sport}</span>
+                                            {item.team}
+                                        </span>
+                                    ) : item.category}
+                                </div>
                             </div>
                             <ChevronRight size={14} className="text-black opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all"/>
                         </div>
@@ -168,15 +144,12 @@ export default function Header() {
 
         {/* NAV RIGHT */}
         <nav className="hidden md:flex items-center gap-6">
-            {/* NEW: Main Hub Button */}
             <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest hover:text-acid text-zinc-400 dark:text-zinc-500 transition-colors">
                 <LayoutGrid size={14} /> MAIN HUB
             </Link>
-            
             <div className="h-4 w-px bg-zinc-300 dark:bg-zinc-700 mx-2"></div>
-
-            <Link href="/gaming" className="text-[10px] font-black uppercase tracking-widest hover:text-acid text-zinc-400 dark:text-zinc-500">GAMING</Link>
-            <Link href="/sports" className="text-[10px] font-black uppercase tracking-widest hover:text-acid text-zinc-400 dark:text-zinc-500">SPORTS</Link>
+            <Link href="/gaming" className={`text-[10px] font-black uppercase tracking-widest hover:text-acid transition-colors ${!isSports ? 'text-black dark:text-white' : 'text-zinc-400 dark:text-zinc-500'}`}>GAMING</Link>
+            <Link href="/sports" className={`text-[10px] font-black uppercase tracking-widest hover:text-acid transition-colors ${isSports ? 'text-black dark:text-white' : 'text-zinc-400 dark:text-zinc-500'}`}>SPORTS</Link>
         </nav>
       </div>
     </header>

@@ -1,11 +1,51 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Flag, Loader2, Trophy, AlertTriangle, User, History, Activity, RefreshCw, CheckCircle2, Map, MapPin, Share2, Info, Crown, TrendingUp, Medal, Wrench, Users, Car, ChevronDown, Percent, LayoutGrid } from 'lucide-react';
+import { Search, Flag, Loader2, Trophy, AlertTriangle, User, History, Activity, Map, MapPin, Share2, Wrench, Users, Car, LayoutGrid, Shield } from 'lucide-react';
 import Link from 'next/link';
 import EloLeaderboard from './components/EloLeaderboard';
 
-// --- UTILS: SMART IMAGE SEARCH ---
+// --- 1. VERIFIED IMAGE MAP (Active Drivers 2025) ---
+const VERIFIED_IMAGES: Record<string, string> = {
+    'max_verstappen': 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png.transform/2col/image.png',
+    'perez': 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/S/SERPER01_Sergio_Perez/serper01.png.transform/2col/image.png',
+    'hamilton': 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LEWHAM01_Lewis_Hamilton/lewham01.png.transform/2col/image.png',
+    'russell': 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/G/GEORUS01_George_Russell/georus01.png.transform/2col/image.png',
+    'leclerc': 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/C/CHALEC01_Charles_Leclerc/chalec01.png.transform/2col/image.png',
+    'sainz': 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/C/CARSAI01_Carlos_Sainz/carsai01.png.transform/2col/image.png',
+    'norris': 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LANNOR01_Lando_Norris/lannor01.png.transform/2col/image.png',
+    'piastri': 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/O/OSCPIA01_Oscar_Piastri/oscpia01.png.transform/2col/image.png',
+    'alonso': 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/F/FERALO01_Fernando_Alonso/feralo01.png.transform/2col/image.png',
+    'stroll': 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LANSTR01_Lance_Stroll/lanstr01.png.transform/2col/image.png',
+    'gasly': 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/P/PIEGAS01_Pierre_Gasly/piegas01.png.transform/2col/image.png',
+    'ocon': 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/E/ESTOCO01_Esteban_Ocon/estoco01.png.transform/2col/image.png',
+    'albon': 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/A/ALEALB01_Alexander_Albon/alealb01.png.transform/2col/image.png',
+    'tsunoda': 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/Y/YUKTSU01_Yuki_Tsunoda/yuktsu01.png.transform/2col/image.png',
+    'bottas': 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/V/VALBOT01_Valtteri_Bottas/valbot01.png.transform/2col/image.png',
+    'zhou': 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/G/GUAZHO01_Guanyu_Zhou/guazho01.png.transform/2col/image.png',
+    'hulkenberg': 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/N/NICHUL01_Nico_Hulkenberg/nichul01.png.transform/2col/image.png',
+    'magnussen': 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/K/KEVMAG01_Kevin_Magnussen/kevmag01.png.transform/2col/image.png',
+    'antonelli': 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Andrea_Kimi_Antonelli_FRECA_2023_Red_Bull_Ring_%28cropped%29.jpg/600px-Andrea_Kimi_Antonelli_FRECA_2023_Red_Bull_Ring_%28cropped%29.jpg',
+    'bearman': 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Oliver_Bearman_Formula_2_2024_Bahrain.jpg/600px-Oliver_Bearman_Formula_2_2024_Bahrain.jpg',
+    'colapinto': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Franco_Colapinto_F3_2023_Austria.jpg/600px-Franco_Colapinto_F3_2023_Austria.jpg',
+    'lawson': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/Liam_Lawson_Austria_2022.jpg/600px-Liam_Lawson_Austria_2022.jpg',
+    'doohan': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Jack_Doohan_2023.jpg/600px-Jack_Doohan_2023.jpg',
+    'bortoleto': 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Gabriel_Bortoleto_%28cropped%29.jpg/600px-Gabriel_Bortoleto_%28cropped%29.jpg',
+};
+
+// --- 2. NATIONALITY TO FLAG CODE MAP ---
+const NATIONALITY_CODES: Record<string, string> = {
+    'British': 'gb', 'German': 'de', 'Italian': 'it', 'French': 'fr',
+    'Austrian': 'at', 'American': 'us', 'Swiss': 'ch', 'Dutch': 'nl',
+    'Japanese': 'jp', 'Indian': 'in', 'Malaysian': 'my', 'Russian': 'ru',
+    'Irish': 'ie', 'Canadian': 'ca', 'Mexican': 'mx', 'Brazilian': 'br',
+    'Spanish': 'es', 'Australian': 'au', 'New Zealander': 'nz', 'South African': 'za',
+    'Belgian': 'be', 'Swedish': 'se', 'Finnish': 'fi', 'Thai': 'th',
+    'Danish': 'dk', 'Chinese': 'cn', 'Monegasque': 'mc', 'Polish': 'pl',
+    'Venezuelan': 've', 'Colombian': 'co', 'Argentine': 'ar', 'Portuguese': 'pt',
+};
+
+// --- 3. SEARCH UTILITY ---
 const searchCommons = async (query: string) => {
     try {
         const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(query)}&gsrlimit=1&prop=imageinfo&iiprop=url&format=json&origin=*`);
@@ -17,32 +57,15 @@ const searchCommons = async (query: string) => {
     } catch (e) { return null; }
 };
 
-// --- UTILS: NAME FORMATTER ---
-const formatName = (name: string) => {
-    return name.replace(/_/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-};
-
-// --- COMPONENT 1: DRIVER CARD (With Error Handling) ---
+// --- COMPONENT: DRIVER CARD ---
 const DriverCard = ({ driver, isHistorical = false }: { driver: any, isHistorical?: boolean }) => {
     const [image, setImage] = useState<string | null>(null);
     const [imgError, setImgError] = useState(false);
 
-    const ROOKIE_IMG_MAP: Record<string, string> = {
-        'antonelli': 'https://commons.wikimedia.org/wiki/Special:FilePath/Antonelli_Barcelona_2024_(cropped).jpg',
-        'k_antonelli': 'https://commons.wikimedia.org/wiki/Special:FilePath/Antonelli_Barcelona_2024_(cropped).jpg',
-        'bearman': 'https://commons.wikimedia.org/wiki/Special:FilePath/Oliver_Bearman_Formula_2_2024_Bahrain.jpg',
-        'doohan': 'https://commons.wikimedia.org/wiki/Special:FilePath/Jack_Doohan_2023.jpg',
-        'lawson': 'https://commons.wikimedia.org/wiki/Special:FilePath/Liam_Lawson_Austria_2022.jpg',
-        'bortoleto': 'https://commons.wikimedia.org/wiki/Special:FilePath/Gabriel_Bortoleto_(cropped).jpg',
-        'colapinto': 'https://commons.wikimedia.org/wiki/Special:FilePath/Conferencia_de_prensa_Colapinto_ACA_octubre_2023_-_BugWarp_(13)_(cropped).jpg',
-        'hadjar': 'https://commons.wikimedia.org/wiki/Special:FilePath/Isack_Hadjar_2022_(cropped).JPG',
-        'iwasa': 'https://commons.wikimedia.org/wiki/Special:FilePath/Ayumu_Iwasa_F2_Austria_2022.jpg',
-    };
-
     useEffect(() => {
         const fetchImage = async () => {
             const did = driver.driverId;
-            if (did && ROOKIE_IMG_MAP[did]) { setImage(ROOKIE_IMG_MAP[did]); return; }
+            if (VERIFIED_IMAGES[did]) { setImage(VERIFIED_IMAGES[did]); return; }
             
             let wikiSuccess = false;
             if (driver.url) {
@@ -61,8 +84,7 @@ const DriverCard = ({ driver, isHistorical = false }: { driver: any, isHistorica
 
             if (!wikiSuccess) {
                 const fullName = `${driver.givenName} ${driver.familyName}`;
-                let url = await searchCommons(`File:${fullName} F1 portrait 2024`);
-                if (!url) url = await searchCommons(`File:${fullName} driver face`);
+                const url = await searchCommons(`File:${fullName} F1 portrait`);
                 if (url) setImage(url);
             }
         };
@@ -76,7 +98,6 @@ const DriverCard = ({ driver, isHistorical = false }: { driver: any, isHistorica
         return pos; 
     };
 
-    // Stats Logic
     const latestPos = !isHistorical && driver.stats?.latest?.pos ? formatPosition(driver.stats.latest.pos) : '-';
     const latestRace = !isHistorical && driver.stats?.latest?.race ? driver.stats.latest.race.replace(' Grand Prix', '').toUpperCase() : '';
     const bestPos = !isHistorical && driver.stats?.best !== 99 ? `P${driver.stats?.best}` : '-';
@@ -84,15 +105,16 @@ const DriverCard = ({ driver, isHistorical = false }: { driver: any, isHistorica
     return (
         <Link href={`/sports/f1/driver/${driver.driverId}`} className="group">
             <div className={`h-40 border-2 ${isHistorical ? 'border-zinc-400 dark:border-zinc-700 opacity-80 hover:opacity-100' : 'border-black dark:border-zinc-500'} bg-white dark:bg-zinc-900 p-0 hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_#DFFF00] transition-all duration-200 flex relative overflow-hidden`}>
-                <div className="w-32 bg-zinc-100 dark:bg-zinc-950 border-r-2 border-inherit relative shrink-0 overflow-hidden">
+                <div className="w-32 bg-zinc-100 dark:bg-zinc-950 border-r-2 border-inherit relative shrink-0 overflow-hidden flex items-center justify-center">
                     {image && !imgError ? (
                         <img 
                             src={image} 
                             onError={() => setImgError(true)}
                             className="w-full h-full object-cover object-top filter grayscale group-hover:grayscale-0 transition-all duration-500" 
+                            alt={driver.familyName}
                         />
                     ) : (
-                        <div className="w-full h-full flex items-center justify-center text-zinc-300 dark:text-zinc-700"><User size={40} /></div>
+                        <User size={48} strokeWidth={1} className="text-zinc-300 dark:text-zinc-700 group-hover:scale-110 transition-transform duration-500" />
                     )}
                     {driver.permanentNumber && <div className="absolute bottom-0 right-0 bg-black text-white text-xs font-black px-2 py-1">#{driver.permanentNumber}</div>}
                 </div>
@@ -125,38 +147,12 @@ const DriverCard = ({ driver, isHistorical = false }: { driver: any, isHistorica
     );
 };
 
-// --- COMPONENT 2: TRACK CARD (Unchanged) ---
+// --- COMPONENT: TRACK CARD ---
 const TrackCard = ({ circuit }: { circuit: any }) => {
-    const [mapImage, setMapImage] = useState<string | null>(null);
-
-    const DIRECT_MAPS: Record<string, string> = {
-        'monza': 'https://commons.wikimedia.org/wiki/Special:FilePath/Monza_track_map.svg',
-        'spa': 'https://commons.wikimedia.org/wiki/Special:FilePath/Circuit_de_Spa-Francorchamps.svg',
-        'silverstone': 'https://commons.wikimedia.org/wiki/Special:FilePath/Silverstone_Circuit_2020.svg',
-        'monaco': 'https://commons.wikimedia.org/wiki/Special:FilePath/Monte_Carlo_Formula_1_track_map.svg',
-        'suzuka': 'https://commons.wikimedia.org/wiki/Special:FilePath/Suzuka_circuit_map_2005.svg',
-        'interlagos': 'https://commons.wikimedia.org/wiki/Special:FilePath/Autódromo_José_Carlos_Pace_(Interlagos)_track_map.svg',
-        'americas': 'https://commons.wikimedia.org/wiki/Special:FilePath/Austin_circuit.svg',
-        'red_bull_ring': 'https://commons.wikimedia.org/wiki/Special:FilePath/Red_Bull_Ring.svg',
-    };
-
-    useEffect(() => {
-        const fetchAssets = async () => {
-            const id = circuit.circuitId;
-            const name = circuit.circuitName;
-            if (DIRECT_MAPS[id]) { setMapImage(DIRECT_MAPS[id]); return; }
-            let mapUrl = await searchCommons(`File:${name} Layout.svg`); 
-            if (!mapUrl) mapUrl = await searchCommons(`File:${name} track map.svg`);
-            if (!mapUrl) mapUrl = await searchCommons(`File:${name} circuit.png`);
-            if (mapUrl) setMapImage(mapUrl);
-        };
-        fetchAssets();
-    }, [circuit]);
-
     return (
         <Link href={`/sports/f1/circuit/${circuit.circuitId}`} className="group border-2 border-black dark:border-zinc-500 bg-white dark:bg-zinc-900 p-0 hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_#DFFF00] transition-all duration-200 flex flex-col h-auto md:h-64 relative overflow-hidden">
             <div className="h-32 md:h-40 bg-zinc-50 dark:bg-zinc-950 border-b-2 border-inherit relative flex items-center justify-center p-6 group-hover:bg-white dark:group-hover:bg-zinc-900 transition-colors overflow-hidden">
-                {mapImage ? <img src={mapImage} className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal dark:filter dark:invert opacity-90 group-hover:scale-105 transition-transform duration-500" alt="Track Map" /> : <Map className="text-zinc-300 dark:text-zinc-700" size={64} />}
+                 <Map className="text-zinc-300 dark:text-zinc-700 group-hover:scale-110 transition-transform duration-500" size={64} strokeWidth={1} />
                 <div className="absolute top-2 right-2"><div className="text-zinc-400 hover:text-black dark:hover:text-white"><Share2 size={14}/></div></div>
             </div>
             <div className="flex-1 p-3 md:p-4 flex flex-col justify-between gap-2 md:gap-0">
@@ -170,73 +166,23 @@ const TrackCard = ({ circuit }: { circuit: any }) => {
     );
 };
 
-// --- COMPONENT 3: MANUFACTURER CARD (Unchanged) ---
+// --- COMPONENT: MANUFACTURER CARD ---
 const ManufacturerCard = ({ team, isHistorical = false }: { team: any, isHistorical?: boolean }) => {
-    const [logo, setLogo] = useState<string | null>(null);
-
-    const TEAM_LOGO_MAP: Record<string, string> = {
-        'mercedes': 'https://commons.wikimedia.org/wiki/Special:FilePath/Mercedes_AMG_Petronas_F1_Logo.svg',
-        'ferrari': 'https://commons.wikimedia.org/wiki/Special:FilePath/Ferrari_wordmark.svg',
-        'red_bull': 'https://commons.wikimedia.org/wiki/Special:FilePath/Logo_of_Red_bull.svg',
-        'mclaren': 'https://commons.wikimedia.org/wiki/Special:FilePath/McLaren_Automotive_logo.svg',
-        'alpine': 'https://commons.wikimedia.org/wiki/Special:FilePath/Alpine_F1_Team_Logo.svg',
-        'aston_martin': 'https://commons.wikimedia.org/wiki/Special:FilePath/Aston_Martin_wordmark.svg',
-        'williams': 'https://commons.wikimedia.org/wiki/Special:FilePath/Williams_Racing_2022_logo.svg',
-        'haas': 'https://commons.wikimedia.org/wiki/Special:FilePath/MoneyGram_Haas_F1_Team_Logo.svg',
-        'rb': 'https://commons.wikimedia.org/wiki/Special:FilePath/RB_Logo.svg',
-        'sauber': 'https://commons.wikimedia.org/wiki/Special:FilePath/Logo_of_Stake_F1_Team_Kick_Sauber.png',
-        'lotus_f1': 'https://commons.wikimedia.org/wiki/Special:FilePath/Lotus_F1_Team_logo.svg',
-        'team_lotus': 'https://commons.wikimedia.org/wiki/Special:FilePath/Team_Lotus_Logo_1958-1994.svg',
-        'benetton': 'https://commons.wikimedia.org/wiki/Special:FilePath/Benetton_F1_logo.svg',
-        'brawn': 'https://commons.wikimedia.org/wiki/Special:FilePath/Brawn_GP_logo.svg',
-        'tyrrell': 'https://commons.wikimedia.org/wiki/Special:FilePath/Tyrrell_Racing_logo.svg',
-        'jordan': 'https://commons.wikimedia.org/wiki/Special:FilePath/Jordan_Grand_Prix_Logo.svg',
-        'ligier': 'https://commons.wikimedia.org/wiki/Special:FilePath/Equipe_Ligier_Logo.svg',
-        'minardi': 'https://commons.wikimedia.org/wiki/Special:FilePath/Minardi_F1_logo.svg',
-        'toro_rosso': 'https://commons.wikimedia.org/wiki/Special:FilePath/Scuderia_Toro_Rosso_Logo.svg',
-        'alphatauri': 'https://commons.wikimedia.org/wiki/Special:FilePath/Scuderia_AlphaTauri_Logo.svg',
-        'racing_point': 'https://commons.wikimedia.org/wiki/Special:FilePath/Racing_Point_F1_Team_logo.svg',
-        'force_india': 'https://commons.wikimedia.org/wiki/Special:FilePath/Sahara_Force_India_F1_Team_Logo.svg',
-        'renault': 'https://commons.wikimedia.org/wiki/Special:FilePath/Renault_F1_Team_logo.svg',
-        'toyota': 'https://commons.wikimedia.org/wiki/Special:FilePath/Toyota_F1_Team.svg',
-        'bmw_sauber': 'https://commons.wikimedia.org/wiki/Special:FilePath/BMW_Sauber_F1_Team_logo.svg',
-        'honda': 'https://commons.wikimedia.org/wiki/Special:FilePath/Honda_Racing_F1_Team_logo.svg',
-        'jaguar': 'https://commons.wikimedia.org/wiki/Special:FilePath/Jaguar_Racing.svg',
-        'brabham': 'https://commons.wikimedia.org/wiki/Special:FilePath/Brabham_logo.svg',
-        'cooper': 'https://commons.wikimedia.org/wiki/Special:FilePath/Cooper_Car_Company_logo.svg',
-        'vanwall': 'https://commons.wikimedia.org/wiki/Special:FilePath/Vanwall_logo.svg',
-        'march': 'https://commons.wikimedia.org/wiki/Special:FilePath/March_Engineering_logo.svg',
-        'arrows': 'https://commons.wikimedia.org/wiki/Special:FilePath/Arrows_Grand_Prix_logo.svg',
-        'bar': 'https://commons.wikimedia.org/wiki/Special:FilePath/British_American_Racing_logo.svg',
-    };
-
-    useEffect(() => {
-        const fetchLogo = async () => {
-            const id = team.constructorId;
-            if (TEAM_LOGO_MAP[id]) { setLogo(TEAM_LOGO_MAP[id]); return; }
-
-            const name = team.name.split('-')[0].trim();
-            let url = await searchCommons(`File:${name} F1 logo.svg`);
-            if (!url) url = await searchCommons(`File:${name} Formula One logo.svg`);
-            if (!url) url = await searchCommons(`File:${name} Grand Prix logo.svg`);
-            if (!url) url = await searchCommons(`File:Scuderia ${name} logo.svg`);
-            if (url) setLogo(url);
-        };
-        fetchLogo();
-    }, [team]);
-
     const drivers = team.drivers || [];
+    const countryCode = NATIONALITY_CODES[team.nationality] || 'xx';
+    const flagUrl = `https://flagcdn.com/w640/${countryCode.toLowerCase()}.png`;
 
     return (
         <Link href={`/sports/f1/team/${team.constructorId}`} className="group border-2 border-black dark:border-zinc-500 bg-white dark:bg-zinc-900 p-0 hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_#DFFF00] transition-all duration-200 flex flex-col h-auto md:h-64 relative overflow-hidden">
-            <div className="h-32 md:h-40 bg-zinc-50 dark:bg-zinc-950 border-b-2 border-inherit relative flex items-center justify-center p-6 group-hover:bg-white dark:group-hover:bg-zinc-900 transition-colors overflow-hidden">
-                {logo ? (
-                    <img src={logo} className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal dark:filter dark:invert opacity-90 group-hover:scale-105 transition-transform duration-500" alt="Team Logo" />
+            <div className="h-32 md:h-40 bg-zinc-50 dark:bg-zinc-950 border-b-2 border-inherit relative flex items-center justify-center overflow-hidden">
+                {countryCode !== 'xx' ? (
+                     <img 
+                        src={flagUrl} 
+                        className="w-full h-full object-cover opacity-80 filter grayscale group-hover:grayscale-0 group-hover:scale-110 group-hover:opacity-100 transition-all duration-500" 
+                        alt={team.nationality} 
+                     />
                 ) : (
-                    <div className="flex flex-col items-center justify-center text-zinc-300 dark:text-zinc-700">
-                        <Wrench size={64} />
-                        {isHistorical && <span className="text-[9px] font-mono mt-2 font-bold tracking-widest text-zinc-400">NO LOGO IN ARCHIVE</span>}
-                    </div>
+                    <Flag size={64} strokeWidth={1} className="text-zinc-300 dark:text-zinc-700" />
                 )}
             </div>
             <div className="flex-1 p-3 md:p-4 flex flex-col justify-between gap-2 md:gap-0">
@@ -265,7 +211,7 @@ const ManufacturerCard = ({ team, isHistorical = false }: { team: any, isHistori
     );
 };
 
-// --- SUB-COMPONENT: DRIVER DATABASE (Fixed Latest & Best Logic) ---
+// --- SUB-COMPONENT: DRIVER DATABASE (HYBRID FETCH) ---
 const DriverDatabase = () => {
     const [search, setSearch] = useState('');
     const [activeDrivers, setActiveDrivers] = useState<any[]>([]);
@@ -276,59 +222,94 @@ const DriverDatabase = () => {
     const [lastSync, setLastSync] = useState<string>("");
     const downloadStarted = useRef(false);
 
-    // FIX: SPRINT-AWARE + CHRONOLOGICAL SORT
+    // METHOD: Standings + Per-Driver History + Latest Round Injection
     const fetchActiveGrid = async () => {
         try {
             const t = `?t=${Date.now()}`;
-            const standingsRes = await fetch(`https://api.jolpi.ca/ergast/f1/current/driverStandings.json${t}`);
+            
+            // 1. Get Current Season & Schedule
+            const scheduleRes = await fetch('https://api.jolpi.ca/ergast/f1/current.json');
+            const scheduleData = await scheduleRes.json();
+            const season = scheduleData.MRData.RaceTable.season; 
+            const races = scheduleData.MRData.RaceTable.Races;
+            
+            // Find truly latest completed round
+            const today = new Date();
+            const pastRaces = races.filter((r: any) => new Date(r.date) < today);
+            const lastRound = pastRaces.length > 0 ? pastRaces[pastRaces.length - 1].round : '1';
+
+            // 2. Fetch Standings
+            const standingsRes = await fetch(`https://api.jolpi.ca/ergast/f1/${season}/driverStandings.json`);
             const standingsData = await standingsRes.json();
             const standingsList = standingsData.MRData.StandingsTable.StandingsLists[0]?.DriverStandings || [];
-            
-            // 1. FETCH ALL RACES AND SPRINTS
-            const [resultsRes, sprintsRes] = await Promise.all([
-                fetch(`https://api.jolpi.ca/ergast/f1/current/results.json?limit=1000`),
-                fetch(`https://api.jolpi.ca/ergast/f1/current/sprint.json?limit=1000`)
-            ]);
-            const resultsData = await resultsRes.json();
-            const sprintsData = await sprintsRes.json();
-            const allRaces = resultsData.MRData.RaceTable.Races;
-            const allSprints = sprintsData.MRData.RaceTable.Races;
 
+            // 3. Fetch The Verified Latest Round (Guarantees "Latest" is correct)
+            const latestRoundRes = await fetch(`https://api.jolpi.ca/ergast/f1/${season}/${lastRound}/results.json`);
+            const latestRoundData = await latestRoundRes.json();
+            const latestRaceInfo = latestRoundData.MRData.RaceTable.Races[0];
+
+            // 4. Fetch Per-Driver History (Guarantees "Best" is correct)
+            // We map over the standings to get the driver IDs
+            const driverFetchPromises = standingsList.map((ds: any) => 
+                fetch(`https://api.jolpi.ca/ergast/f1/${season}/drivers/${ds.Driver.driverId}/results.json?limit=100`)
+                    .then(res => res.json())
+                    .then(data => ({ 
+                        driverId: ds.Driver.driverId, 
+                        results: data.MRData.RaceTable.Races 
+                    }))
+            );
+
+            const allDriversResults = await Promise.all(driverFetchPromises);
+
+            // 5. Process Stats
             const driverStats: Record<string, { best: number, latest: { pos: string, race: string } }> = {};
-            
-            // 2. SORT BY ROUND (CRITICAL FOR "LATEST" ACCURACY)
-            allRaces.sort((a: any, b: any) => parseInt(a.round) - parseInt(b.round));
 
-            // 3. PROCESS MAIN RACES (Set Latest & Best)
-            allRaces.forEach((race: any) => {
-                race.Results.forEach((result: any) => {
-                    const did = result.Driver.driverId;
+            // Helper to process a list of races
+            const processResults = (did: string, raceList: any[]) => {
+                raceList.forEach((race: any) => {
+                    const result = race.Results[0]; // Per-driver endpoint puts the driver in index 0
                     const pos = parseInt(result.position);
-                    const posText = result.positionText;
                     
                     if (!driverStats[did]) driverStats[did] = { best: 99, latest: { pos: '-', race: '' } };
                     
-                    if (!isNaN(pos) && pos < driverStats[did].best) driverStats[did].best = pos;
-                    
-                    // Always update latest (last in loop = most recent)
-                    driverStats[did].latest = { pos: posText, race: race.raceName };
-                });
-            });
-
-            // 4. PROCESS SPRINTS (Update Best Only)
-            allSprints.forEach((race: any) => {
-                race.SprintResults.forEach((result: any) => {
-                    const did = result.Driver.driverId;
-                    const pos = parseInt(result.position);
-                    if (driverStats[did] && !isNaN(pos) && pos < driverStats[did].best) {
+                    // Update Best
+                    if (!isNaN(pos) && pos < driverStats[did].best) {
                         driverStats[did].best = pos;
                     }
                 });
+            };
+
+            // A. Process Per-Driver History
+            allDriversResults.forEach((item: any) => {
+                processResults(item.driverId, item.results);
             });
 
+            // B. Process Latest Round (Injection)
+            // This ensures that if the per-driver endpoint is slightly stale, we still count the latest race
+            if (latestRaceInfo) {
+                latestRaceInfo.Results.forEach((result: any) => {
+                    const did = result.Driver.driverId;
+                    const pos = parseInt(result.position);
+                    
+                    if (!driverStats[did]) driverStats[did] = { best: 99, latest: { pos: '-', race: '' } };
+
+                    // Update Best with Latest Round
+                    if (!isNaN(pos) && pos < driverStats[did].best) {
+                        driverStats[did].best = pos;
+                    }
+
+                    // Set Latest Display
+                    driverStats[did].latest = {
+                        pos: result.positionText,
+                        race: latestRaceInfo.raceName.replace(' Grand Prix', '').toUpperCase()
+                    };
+                });
+            }
+
+            // 6. Map to Output
             const drivers = standingsList.map((ds: any) => {
                 const did = ds.Driver.driverId;
-                const stats = driverStats[did] || { best: 99, latest: { pos: '-', race: '' } };
+                const stats = driverStats[did] || { best: 99, latest: { pos: '-', race: 'PRE-SEASON' } };
                 return { 
                     ...ds.Driver, 
                     points: ds.points, 
@@ -343,7 +324,12 @@ const DriverDatabase = () => {
             const now = new Date();
             setLastSync(`${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`);
             setError(false);
-        } catch (e) { setError(true); } finally { setLoading(false); }
+        } catch (e) { 
+            console.error("GRID SYNC ERROR:", e);
+            setError(true); 
+        } finally { 
+            setLoading(false); 
+        }
     };
     useEffect(() => { fetchActiveGrid(); }, []);
 
@@ -418,6 +404,7 @@ const DriverDatabase = () => {
     );
 };
 
+// --- SUB-COMPONENT: TRACK SCHEMATICS ---
 const TrackSchematics = () => {
     const [tracks, setTracks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
