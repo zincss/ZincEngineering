@@ -1,8 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { getLiveScores } from '../sports/nba/actions';
-import { Activity, Globe, Zap } from 'lucide-react';
+import { getLiveScores as getNBAScores } from '../sports/nba/actions';
+import { Activity } from 'lucide-react';
+
+const fetchJson = async (url: string) => {
+    try {
+        const res = await fetch(url, { next: { revalidate: 30 } });
+        return res.ok ? await res.json() : null;
+    } catch { return null; }
+};
 
 export default function GlobalTicker() {
     const [items, setItems] = useState<any[]>([]);
@@ -10,39 +17,57 @@ export default function GlobalTicker() {
 
     useEffect(() => {
         const initFeed = async () => {
-            const feed = [];
+            const feed: any[] = [];
 
-            // 1. FETCH NBA SCORES
+            // 1. NBA SCORES
             try {
-                const nbaGames = await getLiveScores();
+                const nbaGames = await getNBAScores();
                 if (nbaGames && nbaGames.length > 0) {
                     nbaGames.forEach((g: any) => {
                         feed.push({
                             sport: 'NBA',
-                            color: 'text-orange-500 border-orange-500',
-                            text: `${g.home.name} ${g.home.score} vs ${g.away.name} ${g.away.score} [${g.status}]`,
+                            color: 'text-[#DFFF00]',
+                            text: `${g.home.name} ${g.home.score} - ${g.away.name} ${g.away.score}`,
                             isLive: g.isLive
                         });
                     });
-                } else {
-                    feed.push({ sport: 'NBA', color: 'text-orange-500 border-orange-500', text: 'NO LIVE GAMES DETECTED' });
                 }
-            } catch (e) { console.error('Ticker NBA Error', e); }
+            } catch (e) {}
 
-            // 2. FETCH F1 LATEST
+            // 2. NFL SCORES
+            try {
+                const nflData = await fetchJson('https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard');
+                if (nflData && nflData.events) {
+                    const activeGames = nflData.events.filter((e: any) => e.status.type.state !== 'pre');
+                    if (activeGames.length > 0) {
+                        activeGames.forEach((e: any) => {
+                            const h = e.competitions[0].competitors.find((c:any)=>c.homeAway==='home');
+                            const a = e.competitions[0].competitors.find((c:any)=>c.homeAway==='away');
+                            const isLive = e.status.type.state === 'in';
+                            feed.push({
+                                sport: 'NFL',
+                                color: 'text-blue-400',
+                                text: `${h.team.abbreviation} ${h.score} - ${a.team.abbreviation} ${a.score}`,
+                                isLive: isLive
+                            });
+                        });
+                    }
+                }
+            } catch (e) {}
+
+            // 3. F1 LATEST
             try {
                 const f1Res = await fetch('https://api.jolpi.ca/ergast/f1/current/last/results.json');
                 const f1Data = await f1Res.json();
                 const race = f1Data.MRData.RaceTable.Races[0];
                 const winner = race.Results[0].Driver.familyName.toUpperCase();
-                const team = race.Results[0].Constructor.name.toUpperCase();
-                
                 feed.push({
                     sport: 'F1',
-                    color: 'text-red-500 border-red-500',
-                    text: `LATEST: ${race.raceName.toUpperCase()} // WINNER: ${winner} (${team})`
+                    color: 'text-red-500',
+                    text: `${race.raceName.toUpperCase()} // ${winner}`,
+                    isLive: false
                 });
-            } catch (e) { console.error('Ticker F1 Error', e); }
+            } catch (e) {}
 
             setItems(feed);
             setLoading(false);
@@ -53,37 +78,32 @@ export default function GlobalTicker() {
 
     if (loading || items.length === 0) return null;
 
-    // Duplicate list for seamless loop
-    const loopItems = [...items, ...items, ...items];
+    const loopItems = [...items, ...items, ...items, ...items];
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 h-10 bg-black border-t-2 border-[#DFFF00] z-40 flex items-center shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+        <div className="fixed bottom-0 left-0 right-0 h-10 bg-white dark:bg-black border-t border-zinc-200 dark:border-zinc-800 z-50 flex items-center">
             
             {/* STATIC LABEL */}
-            <div className="h-full bg-[#DFFF00] text-black px-6 flex items-center gap-2 font-black text-[10px] tracking-widest uppercase z-20 relative">
-                <Activity size={14} className="animate-pulse" />
-                <span className="hidden md:inline">GLOBAL WIRE</span>
-                {/* Slanted Cut */}
-                <div className="absolute right-[-12px] top-0 h-full w-6 bg-[#DFFF00] transform skew-x-[-20deg] z-[-1]"></div>
+            <div className="h-full bg-white dark:bg-black px-4 flex items-center gap-3 font-mono text-[10px] font-bold tracking-widest uppercase z-20 border-r border-zinc-200 dark:border-zinc-800">
+                <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#DFFF00] opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#DFFF00]"></span>
+                </span>
+                <span className="text-black dark:text-white">LIVE WIRE</span>
             </div>
 
-            {/* SCROLLING AREA */}
-            <div className="flex-1 overflow-hidden h-full flex items-center relative pl-8">
-                <div className="animate-ticker flex gap-12 items-center">
+            {/* SCROLLING AREA (Clean, No Vignette) */}
+            <div className="flex-1 overflow-hidden h-full flex items-center">
+                <div className="animate-ticker flex items-center">
                     {loopItems.map((item, i) => (
-                        <div key={i} className="flex items-center gap-3 font-mono text-xs uppercase whitespace-nowrap">
-                            <span className={`px-1.5 py-0.5 text-[9px] font-bold border ${item.color}`}>
+                        <div key={i} className="flex items-center whitespace-nowrap px-6 h-full">
+                            <span className={`text-[10px] font-black mr-2 ${item.color}`}>
                                 {item.sport}
                             </span>
-                            <span className={`text-zinc-400 font-bold ${item.isLive ? 'text-white' : ''}`}>
+                            <span className="text-[10px] font-mono text-zinc-600 dark:text-zinc-400 font-bold uppercase">
                                 {item.text}
                             </span>
-                            {item.isLive && (
-                                <span className="flex h-2 w-2 relative">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                                </span>
-                            )}
+                            <span className="ml-6 text-zinc-300 dark:text-zinc-800">/</span>
                         </div>
                     ))}
                 </div>

@@ -8,9 +8,11 @@ const ESPN_CORE = 'https://site.api.espn.com/apis/v2/sports/basketball/nba';
 const ESPN_SITE = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba';
 const ESPN_WEB = 'https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba';
 
-const SEASON = '2025-26'; 
+const SEASON_NBA = '2025-26'; 
+const SEASON_ESPN = '2026';
 
-// --- HEADERS ---
+// --- HEADERS (For NBA.com) ---
+// These trick the API locally, but Vercel IPs are often flagged regardless.
 const NBA_HEADERS = {
     'Referer': 'https://www.nba.com/',
     'Connection': 'keep-alive',
@@ -24,10 +26,13 @@ const NBA_HEADERS = {
 // --- HELPER: FETCH ---
 const fetchJson = async (url: string, headers: any = {}, revalidate = 60) => {
     try {
+        // Short timeout to fail fast if NBA blocks Vercel
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000); 
+        const timeoutId = setTimeout(() => controller.abort(), 2500); 
+        
         const res = await fetch(url, { headers, next: { revalidate }, signal: controller.signal });
         clearTimeout(timeoutId);
+        
         if (!res.ok) return null;
         return await res.json();
     } catch (e) {
@@ -35,6 +40,7 @@ const fetchJson = async (url: string, headers: any = {}, revalidate = 60) => {
     }
 };
 
+// --- HELPER: NBA MAPPER ---
 const mapNbaResult = (data: any, setIndex = 0) => {
     if (!data || !data.resultSets || !data.resultSets[setIndex]) return [];
     const headers = data.resultSets[setIndex].headers;
@@ -45,105 +51,162 @@ const mapNbaResult = (data: any, setIndex = 0) => {
     });
 };
 
-// --- 1. GET LEAGUE LEADERS ---
+// --- 1. GET LEAGUE LEADERS (DUAL-ENGINE) ---
 export async function getLeagueLeaders() {
-    const params = new URLSearchParams({
-        MeasureType: 'Base', PerMode: 'PerGame', LeagueID: '00', Season: SEASON,
-        SeasonType: 'Regular Season', Month: '0', TeamID: '0', Outcome: '', Location: '',
-        SeasonSegment: '', DateFrom: '', DateTo: '', OpponentTeamID: '0', VsConference: '',
-        VsDivision: '', GameSegment: '', Period: '0', ShotClockRange: '', LastNGames: '0'
-    });
+    // --- ENGINE A: NBA.COM (Works Locally / High Precision) ---
+    try {
+        const params = new URLSearchParams({
+            MeasureType: 'Base', PerMode: 'PerGame', LeagueID: '00', Season: SEASON_NBA,
+            SeasonType: 'Regular Season', Month: '0', TeamID: '0', Outcome: '', Location: '',
+            SeasonSegment: '', DateFrom: '', DateTo: '', OpponentTeamID: '0', VsConference: '',
+            VsDivision: '', GameSegment: '', Period: '0', ShotClockRange: '', LastNGames: '0'
+        });
 
-    const url = `${NBA_API}/leaguedashplayerstats?${params.toString()}`;
-    const data = await fetchJson(url, NBA_HEADERS, 0);
+        const url = `${NBA_API}/leaguedashplayerstats?${params.toString()}`;
+        const nbaData = await fetchJson(url, NBA_HEADERS, 0); // No cache for live
 
-    if (!data) return { seasonLabel: "API ERROR", players: [] };
+        if (nbaData) {
+            const allPlayers = mapNbaResult(nbaData);
+            const sorted = allPlayers.sort((a: any, b: any) => b.PTS - a.PTS).slice(0, 50);
 
-    const allPlayers = mapNbaResult(data);
-    const sorted = allPlayers.sort((a: any, b: any) => b.PTS - a.PTS).slice(0, 50);
+            const players = sorted.map((p: any) => ({
+                id: p.PLAYER_ID.toString(),
+                name: p.PLAYER_NAME,
+                team: p.TEAM_ABBREVIATION,
+                image: `https://cdn.nba.com/headshots/nba/latest/1040x760/${p.PLAYER_ID}.png`,
+                stats: {
+                    ppg: p.PTS.toFixed(1),
+                    rpg: p.REB.toFixed(1),
+                    apg: p.AST.toFixed(1),
+                    spg: p.STL.toFixed(1),
+                    bpg: p.BLK.toFixed(1),
+                    topg: p.TOV.toFixed(1)
+                },
+                elo: (p.PTS + p.REB * 1.2 + p.AST * 1.5 + p.STL * 2 + p.BLK * 2 - p.TOV).toFixed(1),
+                tier: p.PTS >= 30 ? 'MVP' : p.PTS >= 25 ? 'ELITE' : 'STAR'
+            }));
 
-    const players = sorted.map((p: any) => ({
-        id: p.PLAYER_ID.toString(),
-        name: p.PLAYER_NAME,
-        team: p.TEAM_ABBREVIATION,
-        image: `https://cdn.nba.com/headshots/nba/latest/1040x760/${p.PLAYER_ID}.png`,
-        stats: {
-            ppg: p.PTS.toFixed(1),
-            rpg: p.REB.toFixed(1),
-            apg: p.AST.toFixed(1),
-            spg: p.STL.toFixed(1),
-            bpg: p.BLK.toFixed(1),
-            topg: p.TOV.toFixed(1)
-        },
-        elo: (p.PTS + p.REB * 1.2 + p.AST * 1.5 + p.STL * 2 + p.BLK * 2 - p.TOV).toFixed(1),
-        tier: p.PTS >= 30 ? 'MVP' : p.PTS >= 25 ? 'ELITE' : 'STAR'
-    }));
+            return { seasonLabel: `${SEASON_NBA} LIVE`, players };
+        }
+    } catch (e) { console.log('NBA Primary Failed, switching to backup...'); }
 
-    return { seasonLabel: `${SEASON} LIVE`, players };
+    // --- ENGINE B: ESPN FALLBACK (Works on Vercel) ---
+    try {
+        const espnUrl = `${ESPN_WEB}/statistics/byathlete?sort=offensive.avgPoints%3Adesc&limit=50&isqualified=true&season=${SEASON_ESPN}`;
+        const espnData = await fetchJson(espnUrl, {}, 60);
+
+        if (espnData && espnData.athletes) {
+            const players = espnData.athletes.map((a: any) => {
+                const s = a.statistics;
+                const getStat = (n: string) => s.find((x: any) => x.name === n)?.value || 0;
+                
+                const ppg = getStat('offensive.avgPoints');
+                const rpg = getStat('defensive.avgRebounds') + getStat('offensive.avgRebounds');
+                const apg = getStat('offensive.avgAssists');
+                
+                return {
+                    id: a.athlete.id,
+                    name: a.athlete.displayName,
+                    team: a.athlete.team?.abbreviation || 'NBA',
+                    image: a.athlete.headshot?.href,
+                    stats: {
+                        ppg: ppg.toFixed(1),
+                        rpg: rpg.toFixed(1),
+                        apg: apg.toFixed(1),
+                        spg: getStat('defensive.avgSteals').toFixed(1),
+                        bpg: getStat('defensive.avgBlocks').toFixed(1),
+                        topg: getStat('general.avgTurnovers').toFixed(1)
+                    },
+                    elo: (ppg + rpg * 1.2 + apg * 1.5).toFixed(1),
+                    tier: ppg >= 30 ? 'MVP FAVORITE' : 'ALL-STAR'
+                };
+            });
+            return { seasonLabel: `${SEASON_NBA} (CLOUD)`, players };
+        }
+    } catch (e) { console.error('ESPN Backup Failed', e); }
+
+    return { seasonLabel: "DATA UNAVAILABLE", players: [] };
 }
 
-// --- 2. GET PLAYER PROFILE (FIXED STATS + ENHANCED BIO) ---
-export async function getPlayerProfile(playerId: string) {
-    // PATH A: NBA.COM (Accurate Stats via LeagueDash)
-    try {
-        // 1. Fetch Bio Info
-        const infoUrl = `${NBA_API}/commonplayerinfo?PlayerID=${playerId}`;
-        const infoData = await fetchJson(infoUrl, NBA_HEADERS);
+// --- 2. GET STANDINGS (ESPN) ---
+export async function getStandings() {
+    const data = await fetchJson(`${ESPN_CORE}/standings`, {}, 60);
+    
+    if (!data || !data.children) return { east: [], west: [] };
+
+    const east = data.children.find((c: any) => c.name === 'Eastern Conference' || c.abbreviation === 'EST');
+    const west = data.children.find((c: any) => c.name === 'Western Conference' || c.abbreviation === 'WST');
+
+    const formatTeam = (t: any) => {
+        const getStat = (target: string) => {
+            return t.stats?.find((s: any) => 
+                s.name === target || 
+                s.id === target || 
+                s.type === target || 
+                s.shortDisplayName === target
+            )?.value;
+        };
+
+        const rawDiff = getStat('avgPointDifferential') ?? getStat('pointDifferential') ?? getStat('diff') ?? 0;
         
-        if (infoData) {
-            const i = mapNbaResult(infoData, 0)[0];
+        return {
+            id: t.team.id,
+            name: t.team.abbreviation || t.team.displayName,
+            logo: t.team.logos?.[0]?.href,
+            wins: getStat('wins') || 0,
+            losses: getStat('losses') || 0,
+            pct: getStat('winPercent') || 0,
+            diff: Number(rawDiff).toFixed(1),
+            seed: getStat('playoffSeed'),
+        };
+    };
+
+    const sortTeams = (a: any, b: any) => a.seed - b.seed;
+
+    return {
+        east: (east?.standings?.entries?.map(formatTeam) || []).sort(sortTeams),
+        west: (west?.standings?.entries?.map(formatTeam) || []).sort(sortTeams)
+    };
+}
+
+// --- 3. GET PLAYER PROFILE (HYBRID) ---
+export async function getPlayerProfile(playerId: string) {
+    // Attempt A: NBA.com (High Fidelity)
+    try {
+        const info = await fetchJson(`${NBA_API}/commonplayerinfo?PlayerID=${playerId}`, NBA_HEADERS);
+        
+        if (info) {
+            const i = mapNbaResult(info, 0)[0];
             
-            // 2. FETCH STATS - USING THE ROBUST ENDPOINT (Same as ELO Board)
-            // We fetch the whole league list (cached/fast) and find this specific player.
-            // This avoids the 'playerprofilev2' 403 block.
+            // Re-use the robust league-wide stats logic to avoid profile blocking
             const statsParams = new URLSearchParams({
-                MeasureType: 'Base', PerMode: 'PerGame', LeagueID: '00', Season: SEASON,
+                MeasureType: 'Base', PerMode: 'PerGame', LeagueID: '00', Season: SEASON_NBA,
                 SeasonType: 'Regular Season', Month: '0', TeamID: '0', Outcome: '', Location: '',
                 SeasonSegment: '', DateFrom: '', DateTo: '', OpponentTeamID: '0', VsConference: '',
                 VsDivision: '', GameSegment: '', Period: '0', ShotClockRange: '', LastNGames: '0'
             });
-            const statsUrl = `${NBA_API}/leaguedashplayerstats?${statsParams.toString()}`;
-            const statsData = await fetchJson(statsUrl, NBA_HEADERS, 0);
             
+            const statsData = await fetchJson(`${NBA_API}/leaguedashplayerstats?${statsParams}`, NBA_HEADERS, 0);
             const allStats = mapNbaResult(statsData);
             const pStats = allStats.find((p: any) => p.PLAYER_ID.toString() === playerId) || {};
 
-            // 3. Fetch Game Log
-            const logUrl = `${NBA_API}/playergamelog?PlayerID=${playerId}&Season=${SEASON}&SeasonType=Regular+Season`;
-            const logData = await fetchJson(logUrl, NBA_HEADERS);
-            const logs = mapNbaResult(logData, 0).slice(0, 5).map((g: any) => ({
+            const log = await fetchJson(`${NBA_API}/playergamelog?PlayerID=${playerId}&Season=${SEASON_NBA}&SeasonType=Regular+Season`, NBA_HEADERS);
+            const games = mapNbaResult(log, 0).slice(0, 5).map((g: any) => ({
                 date: g.GAME_DATE, opponent: g.MATCHUP.split(' ')[2], result: g.WL,
                 pts: g.PTS, reb: g.REB, ast: g.AST, min: g.MIN
             }));
 
-            // 4. Generate Bio
-            const draftStr = i.DRAFT_YEAR && i.DRAFT_YEAR !== 'Undrafted' 
-                ? `Selected ${i.DRAFT_NUMBER} overall in the ${i.DRAFT_YEAR} Draft (Round ${i.DRAFT_ROUND}).` 
-                : 'Entered the league as an Undrafted Free Agent.';
-            
-            const schoolStr = i.SCHOOL && i.SCHOOL !== ' ' 
-                ? `Alumni of ${i.SCHOOL}.` 
-                : `Originates from ${i.COUNTRY}.`;
-
-            const expStr = i.SEASON_EXP > 0 
-                ? `Veteran presence with ${i.SEASON_EXP} years of league experience.` 
-                : 'Currently in their rookie campaign.';
-
-            const bioText = `${i.DISPLAY_FIRST_LAST} operates as a ${i.POSITION} for the ${i.TEAM_CITY} ${i.TEAM_NAME}. Standing ${i.HEIGHT} and weighing ${i.WEIGHT} lbs, this ${i.COUNTRY} native is a key asset to the rotation. ${draftStr} ${schoolStr} ${expStr}`;
+            // Generate Narrative
+            const bioText = `${i.DISPLAY_FIRST_LAST} operates as a ${i.POSITION} for the ${i.TEAM_CITY} ${i.TEAM_NAME}. Standing ${i.HEIGHT} and weighing ${i.WEIGHT} lbs, this ${i.COUNTRY} native is a key asset to the rotation.`;
 
             return {
                 id: playerId, name: i.DISPLAY_FIRST_LAST, team: i.TEAM_NAME, teamId: i.TEAM_ID,
                 number: i.JERSEY, pos: i.POSITION, height: i.HEIGHT, weight: i.WEIGHT,
                 age: ((new Date().getTime() - new Date(i.BIRTHDATE).getTime()) / 31557600000).toFixed(0),
                 born: i.BIRTHDATE, image: `https://cdn.nba.com/headshots/nba/latest/1040x760/${playerId}.png`,
-                
                 draft: i.DRAFT_YEAR === 'Undrafted' ? 'UNDRAFTED' : `${i.DRAFT_YEAR} / R${i.DRAFT_ROUND} / P${i.DRAFT_NUMBER}`,
-                school: i.SCHOOL || i.COUNTRY,
-                exp: i.SEASON_EXP,
-                country: i.COUNTRY,
-                
-                status: 'Active', seasonLabel: SEASON, 
-                desc: bioText,
+                school: i.SCHOOL || i.COUNTRY, exp: i.SEASON_EXP, country: i.COUNTRY,
+                status: 'Active', seasonLabel: SEASON_NBA, desc: bioText,
                 stats: {
                     ppg: (pStats.PTS || 0).toFixed(1),
                     rpg: (pStats.REB || 0).toFixed(1),
@@ -152,12 +215,12 @@ export async function getPlayerProfile(playerId: string) {
                     bpg: (pStats.BLK || 0).toFixed(1),
                     topg: (pStats.TOV || 0).toFixed(1)
                 },
-                gameLog: logs
+                gameLog: games
             };
         }
     } catch(e) {}
 
-    // PATH B: ESPN Fallback
+    // Attempt B: ESPN Fallback
     try {
         const data = await fetchJson(`${ESPN_WEB}/athletes/${playerId}/overview`);
         if (data?.athlete) {
@@ -174,10 +237,8 @@ export async function getPlayerProfile(playerId: string) {
             return {
                 id: p.id, name: p.fullName, team: p.team?.displayName || 'Free Agent',
                 image: p.headshot?.href, seasonLabel: latestSeason ? latestSeason.year : 'N/A',
-                draft: p.draft?.year ? `${p.draft.year} / R${p.draft.round} / P${p.draft.selection}` : 'N/A', 
-                school: p.college?.name || 'N/A',
-                exp: p.experience?.years || 0, 
-                country: p.citizenship || 'N/A',
+                draft: p.draft?.year ? `${p.draft.year} / R${p.draft.round} / P${p.draft.selection}` : 'N/A',
+                school: p.college?.name || 'N/A', exp: p.experience?.years || 0, country: p.citizenship || 'N/A',
                 desc: `Tactical profile for ${p.fullName}. Professional basketball player for the ${p.team?.displayName || 'NBA'}. Awaiting full biometric sync from primary database.`,
                 stats: {
                     ppg: getVal('PTS'), rpg: getVal('REB'), apg: getVal('AST'),
@@ -191,31 +252,7 @@ export async function getPlayerProfile(playerId: string) {
     return null;
 }
 
-// --- 3. STANDINGS (ESPN) ---
-export async function getStandings() {
-    const data = await fetchJson(`${ESPN_CORE}/standings`, {}, 60);
-    if (!data || !data.children) return { east: [], west: [] };
-
-    const east = data.children.find((c: any) => c.name === 'Eastern Conference' || c.abbreviation === 'EST');
-    const west = data.children.find((c: any) => c.name === 'Western Conference' || c.abbreviation === 'WST');
-
-    const formatTeam = (t: any) => {
-        const getStat = (target: string) => t.stats?.find((s: any) => s.name === target || s.id === target || s.type === target || s.shortDisplayName === target)?.value || 0;
-        return {
-            id: t.team.id, name: t.team.abbreviation, logo: t.team.logos?.[0]?.href,
-            wins: getStat('wins'), losses: getStat('losses'), pct: getStat('winPercent'),
-            diff: Number(getStat('avgPointDifferential') ?? getStat('pointDifferential') ?? 0).toFixed(1),
-            seed: getStat('playoffSeed')
-        };
-    };
-
-    return {
-        east: (east?.standings?.entries?.map(formatTeam) || []).sort((a: any, b: any) => a.seed - b.seed),
-        west: (west?.standings?.entries?.map(formatTeam) || []).sort((a: any, b: any) => a.seed - b.seed)
-    };
-}
-
-// --- 4. LIVE SCORES ---
+// --- 4. LIVE SCORES (ESPN) ---
 export async function getLiveScores() {
     const data = await fetchJson(`${ESPN_SITE}/scoreboard`, {}, 30);
     if (!data?.events) return [];
@@ -230,10 +267,10 @@ export async function getLiveScores() {
     });
 }
 
-// --- 5. SEARCH ---
+// --- 5. SEARCH (NBA) ---
 export async function searchPlayers(query: string) {
     if (!query || query.length < 2) return [];
-    const url = `${NBA_API}/commonallplayers?IsOnlyCurrentSeason=1&LeagueID=00&Season=${SEASON}`;
+    const url = `${NBA_API}/commonallplayers?IsOnlyCurrentSeason=1&LeagueID=00&Season=${SEASON_NBA}`;
     const data = await fetchJson(url, NBA_HEADERS);
     if (!data) return [];
     return mapNbaResult(data).filter((p: any) => p.DISPLAY_FIRST_LAST.toLowerCase().includes(query.toLowerCase())).slice(0, 10).map((p: any) => ({
@@ -242,7 +279,7 @@ export async function searchPlayers(query: string) {
     }));
 }
 
-// --- 6. TEAM DATA ---
+// --- 6. TEAM DATA (ESPN) ---
 export async function getTeamData(espnId: string) {
     const [t, r, s] = await Promise.all([
         fetchJson(`${ESPN_SITE}/teams/${espnId}`),

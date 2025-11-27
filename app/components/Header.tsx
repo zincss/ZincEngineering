@@ -4,11 +4,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Search, Loader2, Command, X, Trophy, ChevronRight, LayoutGrid, User, Circle, Gamepad2 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
-import ThemeToggle from './ThemeToggle';
 
 const CDN_URL = "https://cdn.warframestat.us/img/";
 
-// --- UNIVERSAL ATHLETE INDEX (STATIC + FAST) ---
+// --- UNIVERSAL ATHLETE INDEX ---
 const ATHLETE_DB = [
     // F1
     { id: 'max_verstappen', name: 'Max Verstappen', team: 'Red Bull Racing', sport: 'F1', url: '/sports/f1/driver/max_verstappen' },
@@ -42,7 +41,6 @@ export default function Header() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // DB INIT
   useEffect(() => {
     if (!isSports && !isHome) {
         const initSystem = async () => {
@@ -52,7 +50,6 @@ export default function Header() {
     }
   }, [isSports, isHome]);
 
-  // SEARCH LOGIC
   useEffect(() => {
     if (isHome) return; 
 
@@ -93,7 +90,6 @@ export default function Header() {
     return () => clearTimeout(timeoutId);
   }, [query, isSports, isHome]);
 
-  // Click Outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) && !inputRef.current?.contains(event.target as Node)) {
@@ -115,41 +111,34 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md border-b-2 border-black dark:border-zinc-800 shadow-sm transition-colors duration-300">
+    <header className="sticky top-0 z-50 bg-black/90 backdrop-blur-md border-b border-zinc-800 shadow-sm transition-colors duration-300">
       <div className="max-w-[1600px] mx-auto px-4 md:px-6 h-20 flex items-center justify-between gap-6">
         
-        {/* LEFT: LOGO & STATUS */}
+        {/* LEFT: LOGO */}
         <div className="flex items-center gap-6">
             <a href="/" className="flex items-center gap-3 group shrink-0">
-                <div className="bg-black text-[#DFFF00] w-10 h-10 flex items-center justify-center font-black text-xl group-hover:bg-[#DFFF00] group-hover:text-black transition-all border border-transparent dark:border-zinc-700 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] group-hover:shadow-none group-hover:translate-x-[2px] group-hover:translate-y-[2px]">
+                <div className="bg-[#DFFF00] w-10 h-10 flex items-center justify-center font-black text-xl text-black transition-all shadow-[0_0_15px_rgba(223,255,0,0.3)] group-hover:shadow-[0_0_25px_rgba(223,255,0,0.6)]">
                     Z
                 </div>
                 <div className="hidden md:flex flex-col">
-                    <span className="font-black text-lg leading-none tracking-tighter text-black dark:text-white">ZINC</span>
-                    <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-400 tracking-widest">ENGINEERING</span>
+                    <span className="font-black text-lg leading-none tracking-tighter text-white">ZINC</span>
+                    <span className="font-mono text-[9px] text-zinc-400 tracking-widest">ENGINEERING</span>
                 </div>
             </a>
-
-            {/* Vertical Divider */}
-            <div className="h-8 w-px bg-zinc-200 dark:bg-zinc-800 hidden md:block"></div>
-
-            {/* Status Indicator */}
-            <div className="hidden md:flex items-center gap-2 text-[9px] font-mono font-bold tracking-widest text-zinc-400 dark:text-zinc-600 uppercase">
-                <Circle size={8} className="fill-green-500 text-green-500 animate-pulse" />
+            <div className="h-8 w-px bg-zinc-800 hidden md:block"></div>
+            <div className="hidden md:flex items-center gap-2 text-[9px] font-mono font-bold tracking-widest text-zinc-500 uppercase">
+                <Circle size={8} className="fill-[#DFFF00] text-[#DFFF00] animate-pulse" />
                 <span>System Online</span>
             </div>
         </div>
 
-        {/* CENTER: SEARCH (HIDDEN ON HOME) */}
+        {/* CENTER: SEARCH */}
         <div className={`flex-1 max-w-2xl flex justify-center md:justify-start relative transition-opacity duration-500 ${isHome ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
             {!isHome && (
             <div className="relative w-full group">
-              {/* Search Icon / Loader */}
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-black dark:group-focus-within:text-[#DFFF00] transition-colors">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-[#DFFF00] transition-colors">
                   {loading ? <Loader2 size={16} className="animate-spin"/> : <Search size={16}/>}
               </div>
-              
-              {/* Input */}
               <input 
                   ref={inputRef}
                   type="text" 
@@ -157,53 +146,50 @@ export default function Header() {
                   onChange={(e) => setQuery(e.target.value)}
                   onFocus={() => { if(results.length > 0) setShowDropdown(true); }}
                   placeholder={isSports ? "SEARCH GLOBAL ATHLETE DATABASE..." : "SEARCH GAMING ARCHIVES..."}
-                  className="w-full h-10 bg-zinc-100 dark:bg-zinc-900 border-2 border-transparent focus:border-black dark:focus:border-zinc-600 pl-12 pr-10 font-mono text-xs font-bold uppercase outline-none text-black dark:text-white transition-all placeholder:text-zinc-400"
+                  className="w-full h-10 bg-zinc-900 border border-zinc-700 focus:border-[#DFFF00] pl-12 pr-10 font-mono text-xs font-bold uppercase outline-none text-white transition-all placeholder:text-zinc-600 focus:bg-black"
               />
-              
-              {/* Clear Button */}
               {query.length > 0 && (
-                <button onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-black dark:hover:text-white transition-colors">
+                <button onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors">
                     <X size={14} />
                 </button>
               )}
-
-              {/* Context Badge (Inside Search Area on Desktop) */}
-              <div className="absolute right-0 top-[-20px] hidden md:flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-zinc-400">
+              {/* Context Badge */}
+              <div className="absolute right-0 top-[-20px] hidden md:flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-zinc-500">
                   {isSports ? <span className="flex items-center gap-1"><Trophy size={10}/> ATHLETICS_MODE</span> : <span className="flex items-center gap-1"><Gamepad2 size={10}/> GAMING_MODE</span>}
               </div>
 
               {/* DROPDOWN */}
               {showDropdown && results.length > 0 && (
-                <div ref={dropdownRef} className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-700 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.1)] animate-in fade-in slide-in-from-top-1 overflow-hidden z-50">
-                    <div className="bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 border-b border-zinc-200 dark:border-zinc-700 flex justify-between items-center">
-                        <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Matches Found: {results.length}</span>
-                        <Command size={10} className="text-zinc-400"/>
+                <div ref={dropdownRef} className="absolute top-full left-0 right-0 mt-1 bg-black border border-zinc-700 shadow-2xl z-50">
+                    <div className="bg-zinc-900 px-3 py-1.5 border-b border-zinc-800 flex justify-between items-center">
+                        <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Matches Found: {results.length}</span>
+                        <Command size={10} className="text-zinc-600"/>
                     </div>
                     {results.map((item) => (
                         <div
                             key={item.id}
                             onClick={() => handleSelect(item)}
-                            className="flex items-center gap-3 p-3 hover:bg-[#DFFF00] dark:hover:bg-[#DFFF00] cursor-pointer border-b border-zinc-100 dark:border-zinc-800 last:border-0 group transition-colors"
+                            className="flex items-center gap-3 p-3 hover:bg-zinc-900 cursor-pointer border-b border-zinc-900 last:border-0 group transition-colors"
                         >
-                            <div className={`h-8 w-8 border border-zinc-300 dark:border-zinc-700 ${isSports ? 'rounded-full' : ''} bg-white dark:bg-zinc-950 p-0.5 shrink-0 flex items-center justify-center overflow-hidden`}>
+                            <div className={`h-8 w-8 border border-zinc-700 ${isSports ? 'rounded-full' : ''} bg-black p-0.5 shrink-0 flex items-center justify-center overflow-hidden`}>
                                 {isSports ? (
-                                    <User size={16} className="text-zinc-400"/>
+                                    <User size={16} className="text-zinc-500"/>
                                 ) : (
                                     <img src={`${CDN_URL}${item.image_name}`} className="w-full h-full object-contain" />
                                 )}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <div className="font-black text-xs uppercase truncate text-black dark:text-zinc-200 group-hover:text-black">{item.name}</div>
-                                <div className="text-[9px] font-mono text-zinc-500 uppercase group-hover:text-black/70">
+                                <div className="font-black text-xs uppercase truncate text-zinc-200 group-hover:text-[#DFFF00]">{item.name}</div>
+                                <div className="text-[9px] font-mono text-zinc-500 uppercase">
                                     {isSports ? (
                                         <span className="flex items-center gap-1">
-                                            <span className={`px-1 text-white font-bold ${item.sport === 'F1' ? 'bg-red-600' : item.sport === 'NBA' ? 'bg-orange-500' : 'bg-blue-600'}`}>{item.sport}</span>
+                                            <span className={`px-1 text-white font-bold ${item.sport === 'F1' ? 'bg-red-900' : item.sport === 'NBA' ? 'bg-orange-800' : 'bg-blue-900'}`}>{item.sport}</span>
                                             {item.team}
                                         </span>
                                     ) : item.category}
                                 </div>
                             </div>
-                            <ChevronRight size={14} className="text-black opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all"/>
+                            <ChevronRight size={14} className="text-[#DFFF00] opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all"/>
                         </div>
                     ))}
                 </div>
@@ -212,32 +198,28 @@ export default function Header() {
             )}
         </div>
 
-        {/* RIGHT: NAV & THEME */}
+        {/* RIGHT: NAV (NO TOGGLE) */}
         <div className="flex items-center gap-6">
-            <nav className="hidden lg:flex items-center gap-6">
+            <nav className="hidden lg:flex items-center gap-8">
                 <a 
                     href="/" 
-                    className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest hover:text-[#DFFF00] transition-colors ${pathname === '/' ? 'text-[#DFFF00]' : 'text-zinc-400 dark:text-zinc-500'}`}
+                    className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest hover:text-[#DFFF00] transition-colors ${pathname === '/' ? 'text-[#DFFF00]' : 'text-zinc-500'}`}
                 >
                     <LayoutGrid size={14} /> HUB
                 </a>
                 <a 
                     href="/gaming" 
-                    className={`text-[10px] font-black uppercase tracking-widest hover:text-[#DFFF00] transition-colors ${isGaming ? 'text-black dark:text-white underline decoration-2 underline-offset-4 decoration-[#DFFF00]' : 'text-zinc-400 dark:text-zinc-500'}`}
+                    className={`text-[10px] font-black uppercase tracking-widest hover:text-[#DFFF00] transition-colors ${isGaming ? 'text-white underline decoration-2 underline-offset-8 decoration-[#DFFF00]' : 'text-zinc-500'}`}
                 >
                     GAMING
                 </a>
                 <a 
                     href="/sports" 
-                    className={`text-[10px] font-black uppercase tracking-widest hover:text-[#DFFF00] transition-colors ${isSports ? 'text-black dark:text-white underline decoration-2 underline-offset-4 decoration-[#DFFF00]' : 'text-zinc-400 dark:text-zinc-500'}`}
+                    className={`text-[10px] font-black uppercase tracking-widest hover:text-[#DFFF00] transition-colors ${isSports ? 'text-white underline decoration-2 underline-offset-8 decoration-[#DFFF00]' : 'text-zinc-500'}`}
                 >
                     SPORTS
                 </a>
             </nav>
-            
-            <div className="h-8 w-px bg-zinc-200 dark:bg-zinc-800 hidden lg:block"></div>
-            
-            <ThemeToggle />
         </div>
       </div>
     </header>

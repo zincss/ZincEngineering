@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Flag, Loader2, Trophy, AlertTriangle, User, History, Activity, Map, MapPin, Share2, Wrench, Users, Car, LayoutGrid, Shield } from 'lucide-react';
+import { Search, Flag, Loader2, Trophy, AlertTriangle, User, History, Activity, Map, MapPin, Share2, Wrench, Users, Car, LayoutGrid, Shield, Crown, BarChart3, Star, Timer } from 'lucide-react';
 import Link from 'next/link';
 import EloLeaderboard from './components/EloLeaderboard';
 
@@ -127,16 +127,35 @@ const DriverCard = ({ driver, isHistorical = false }: { driver: any, isHistorica
                         <h3 className="text-xl font-black uppercase leading-none text-black dark:text-white mb-1 line-clamp-2">{driver.givenName} {driver.familyName}</h3>
                     </div>
                     {!isHistorical && driver.points ? (
-                        <div className="grid grid-cols-3 gap-1 border-t-2 border-zinc-100 dark:border-zinc-800 pt-2 mt-1">
-                            <div className="flex flex-col"><span className="text-[8px] text-zinc-400 font-bold uppercase tracking-wider mb-0.5">PTS</span><span className="text-sm font-black text-acid bg-black px-1 w-fit leading-none py-0.5">{driver.points}</span></div>
-                            <div className="flex flex-col">
-                                <span className="text-[8px] text-zinc-400 font-bold uppercase tracking-wider mb-0.5">LATEST</span>
-                                <div className="flex flex-col leading-none">
-                                    <span className={`text-sm font-black ${latestPos === 'DNF' ? 'text-red-500' : 'text-black dark:text-white'}`}>{latestPos}</span>
-                                    <span className="text-[7px] font-mono font-bold text-zinc-400 truncate w-full">{latestRace}</span>
+                        <div className="flex divide-x divide-zinc-200 dark:divide-zinc-700 border-t-2 border-zinc-100 dark:border-zinc-800 pt-2 mt-auto">
+                            
+                            {/* COL 1: POINTS */}
+                            <div className="flex-1 pr-2 flex flex-col justify-between">
+                                <span className="text-[7px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">POINTS</span>
+                                <div>
+                                    <span className="text-sm font-black bg-[#DFFF00] text-black px-1.5 py-0.5 leading-none block w-fit">{driver.points}</span>
+                                    <span className="text-[7px] font-mono font-bold text-transparent select-none block mt-0.5">.</span>
                                 </div>
                             </div>
-                            <div className="flex flex-col"><span className="text-[8px] text-zinc-400 font-bold uppercase tracking-wider mb-0.5">BEST</span><span className="text-sm font-black text-black dark:text-white leading-none">{bestPos}</span></div>
+                            
+                            {/* COL 2: LATEST */}
+                            <div className="flex-1 px-2 flex flex-col justify-between min-w-0">
+                                <span className="text-[7px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">LATEST</span>
+                                <div>
+                                    <span className={`text-sm font-black leading-none block ${latestPos === 'DNF' ? 'text-red-500' : 'text-black dark:text-white'}`}>{latestPos}</span>
+                                    <span className="text-[7px] font-mono font-bold text-zinc-400 truncate block mt-0.5 w-full">{latestRace || '-'}</span>
+                                </div>
+                            </div>
+
+                            {/* COL 3: BEST */}
+                            <div className="flex-1 pl-2 flex flex-col justify-between">
+                                <span className="text-[7px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">BEST</span>
+                                <div>
+                                    <span className="text-sm font-black text-black dark:text-white leading-none block">{bestPos}</span>
+                                    <span className="text-[7px] font-mono font-bold text-zinc-400 block mt-0.5">SEASON</span>
+                                </div>
+                            </div>
+
                         </div>
                     ) : (
                         <div className="flex items-center gap-2 mt-auto">{driver.code && <div className="text-[9px] font-mono font-bold text-zinc-400 bg-zinc-50 dark:bg-zinc-800 px-2 py-1">CODE: {driver.code}</div>}</div>
@@ -248,8 +267,8 @@ const DriverDatabase = () => {
             const latestRoundData = await latestRoundRes.json();
             const latestRaceInfo = latestRoundData.MRData.RaceTable.Races[0];
 
-            // 4. Fetch Per-Driver History (Guarantees "Best" is correct)
-            // We map over the standings to get the driver IDs
+            // 4. Fetch Per-Driver History (Guarantees "Best" is correct) - WITH ERROR TOLERANCE
+            // We use Promise.allSettled to ensure that one failure doesn't crash the entire grid
             const driverFetchPromises = standingsList.map((ds: any) => 
                 fetch(`https://api.jolpi.ca/ergast/f1/${season}/drivers/${ds.Driver.driverId}/results.json?limit=100`)
                     .then(res => res.json())
@@ -259,7 +278,14 @@ const DriverDatabase = () => {
                     }))
             );
 
-            const allDriversResults = await Promise.all(driverFetchPromises);
+            // Wait for all requests to settle (success or fail)
+            const results = await Promise.allSettled(driverFetchPromises);
+            
+            // Filter out only the successful ones
+            const allDriversResults = results
+                .filter(r => r.status === 'fulfilled')
+                // @ts-ignore
+                .map(r => r.value);
 
             // 5. Process Stats
             const driverStats: Record<string, { best: number, latest: { pos: string, race: string } }> = {};
@@ -279,7 +305,7 @@ const DriverDatabase = () => {
                 });
             };
 
-            // A. Process Per-Driver History
+            // A. Process Per-Driver History (from successful fetches)
             allDriversResults.forEach((item: any) => {
                 processResults(item.driverId, item.results);
             });
@@ -364,7 +390,7 @@ const DriverDatabase = () => {
                 const limit = 100;
                 const batches = Math.ceil(parseInt(initData.MRData.total) / limit);
                 const promises = [];
-                for (let i = 0; i < batches; i++) { promises.push(fetch(`https://api.jolpi.ca/ergast/f1/drivers.json?limit=${limit}&offset=${i * limit}`).then(res => res.json()).then(data => data.MRData.DriverTable.Drivers)); }
+                for (let i = 0; i < batches; i++) { promises.push(fetch(`https://api.jolpi.ca/ergast/f1/drivers.json?limit=${limit}&offset=${i * limit}`).then(res => res.json()).then(data => data.MRData.ConstructorTable.Constructors)); }
                 const results = await Promise.all(promises);
                 setHistoricalDrivers(results.flat());
             } catch (e) {} finally { setArchiveLoading(false); }
@@ -511,7 +537,7 @@ const ManufacturerDatabase = () => {
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4">
-             <div className="mb-12 sticky top-24 z-30 relative">
+             <div className="mb-12 sticky top-24 z-30">
                 <div className="relative shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.1)]">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400">{archiveLoading ? <Loader2 size={20} className="animate-spin"/> : <Search size={20} />}</div>
                     <input type="text" placeholder="SEARCH CONSTRUCTORS..." className="w-full h-16 bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-500 pl-4 font-bold font-mono text-base md:text-lg uppercase focus:outline-none focus:border-acid" value={search} onChange={(e) => setSearch(e.target.value)} />

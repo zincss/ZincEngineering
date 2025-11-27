@@ -1,14 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Gamepad2, Trophy, ArrowRight, Zap, Activity, Box, AlertTriangle } from "lucide-react";
+import { Gamepad2, Trophy, ArrowRight, Zap, Activity, Box, AlertTriangle, Cpu, Terminal, Satellite } from "lucide-react";
 import GlobalTicker from './components/GlobalTicker';
 
 export default function Hub() {
   const [showAck, setShowAck] = useState(false);
 
   useEffect(() => {
-    // Check if user has already acknowledged the alpha state
     const hasAcked = localStorage.getItem('zinc_alpha_ack');
     if (!hasAcked) {
       setShowAck(true);
@@ -21,132 +20,134 @@ export default function Hub() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-80px)] flex flex-col items-center justify-center relative px-4 bg-grid-pattern pb-20">
+    <div className="min-h-[calc(100vh-80px)] flex flex-col items-center justify-center relative px-4 pb-20">
       
-      {/* --- LIVE TICKER --- */}
+      {/* --- BACKGROUND ENGINE --- */}
+      <div className="bg-starfield">
+          <div className="stars-1"></div>
+          <div className="stars-2"></div>
+          <div className="stars-3"></div>
+      </div>
+
       <GlobalTicker />
 
-      {/* --- ALPHA ACKNOWLEDGEMENT MODAL --- */}
+      {/* --- ACKNOWLEDGEMENT MODAL --- */}
       {showAck && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md px-4 animate-in fade-in duration-300">
-            <div className="max-w-md w-full bg-zinc-900 border-2 border-[#DFFF00] p-1 shadow-[0_0_50px_rgba(223,255,0,0.15)] relative">
+            <div className="max-w-md w-full bg-black border border-zinc-800 p-8 shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#DFFF00] to-transparent opacity-50"></div>
                 
-                {/* Decorative Corner Accents */}
-                <div className="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-[#DFFF00] -translate-x-1 -translate-y-1"></div>
-                <div className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-[#DFFF00] translate-x-1 -translate-y-1"></div>
-                <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-[#DFFF00] -translate-x-1 translate-y-1"></div>
-                <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-[#DFFF00] translate-x-1 translate-y-1"></div>
-
-                <div className="bg-black p-8 relative overflow-hidden">
-                    {/* Scanline texture */}
-                    <div className="absolute inset-0 bg-[linear-gradient(transparent_2px,#000_2px)] bg-[length:100%_4px] opacity-20 pointer-events-none"></div>
-
-                    <div className="flex items-center gap-3 text-[#DFFF00] mb-6 border-b border-zinc-800 pb-4">
-                        <AlertTriangle size={28} className="animate-pulse" />
-                        <div>
-                            <h2 className="text-xl font-black tracking-widest uppercase leading-none">SYSTEM WARNING</h2>
-                            <span className="text-[9px] font-mono text-zinc-500">SECURE CONNECTION // UNSTABLE</span>
-                        </div>
-                    </div>
-
-                    <div className="font-mono text-xs text-zinc-300 leading-relaxed mb-8 space-y-4">
-                        <p>
-                            <strong className="text-white bg-red-500/20 text-red-500 px-1 py-0.5 mr-1">CAUTION:</strong> 
-                            You are accessing the ZINC ENGINEERING Interface in <span className="text-[#DFFF00] font-bold">ALPHA STATE</span> (v.3.0.4).
-                        </p>
-                        <p className="text-zinc-400">
-                            System stability is not guaranteed. Operational modules may be incomplete, unstable, or prone to critical runtime errors.
-                        </p>
-                    </div>
-
-                    <button
-                        onClick={handleAck}
-                        className="w-full py-4 bg-[#DFFF00] text-black font-black font-mono text-sm uppercase tracking-widest hover:bg-white hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
-                    >
-                        I UNDERSTAND <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform"/>
-                    </button>
+                <div className="flex items-center gap-3 text-[#DFFF00] mb-6">
+                    <Terminal size={24} />
+                    <h2 className="text-xl font-mono font-bold tracking-wider uppercase">INITIALIZING...</h2>
                 </div>
+
+                <div className="font-mono text-xs text-zinc-400 leading-relaxed mb-8 space-y-4">
+                    <p>
+                        Welcome to <span className="text-white font-bold">ZINC ENGINEERING</span>.
+                    </p>
+                    <p>
+                        This interface is currently operating in <span className="text-[#DFFF00]">ALPHA PREVIEW</span> mode. Live telemetry feeds and database connections may fluctuate.
+                    </p>
+                </div>
+
+                <button
+                    onClick={handleAck}
+                    className="w-full py-4 bg-[#DFFF00] text-black font-black font-mono text-sm uppercase tracking-widest hover:bg-white transition-colors flex items-center justify-center gap-2"
+                >
+                    ESTABLISH LINK <ArrowRight size={16} />
+                </button>
             </div>
         </div>
       )}
 
-      {/* Hero Section */}
-      <div className="text-center mb-16 relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
-        <div className="inline-flex items-center gap-2 text-zinc-400 text-[10px] font-mono font-bold tracking-[0.4em] mb-6 border border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-sm px-4 py-1 rounded-full">
-           <span>ZINC_CORP // CENTRAL_COMMAND</span>
-           <span className="w-1.5 h-1.5 bg-[#DFFF00] rounded-full animate-pulse shadow-[0_0_10px_#DFFF00]"></span>
+      {/* --- HERO SECTION --- */}
+      <div className="text-center mb-24 relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+        
+        {/* Status Badge */}
+        <div className="inline-flex items-center gap-3 text-zinc-500 text-[10px] font-mono font-bold tracking-[0.2em] mb-8 uppercase border border-zinc-800 bg-black/50 backdrop-blur-sm px-4 py-1.5 rounded-sm">
+           <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#DFFF00] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#DFFF00]"></span>
+           </span>
+           <span>Orbital Uplink Established</span>
         </div>
 
-        <h1 className="text-7xl md:text-9xl font-black tracking-tighter text-black dark:text-white uppercase leading-[0.85]">
-          ZINC
-          <span className="block text-4xl md:text-6xl tracking-[0.1em] text-transparent bg-clip-text bg-gradient-to-b from-zinc-400 to-zinc-200 dark:from-zinc-600 dark:to-zinc-800 mt-2">
-            ENGINEERING
-          </span>
-        </h1>
-        <p className="mt-8 text-zinc-500 font-mono text-xs uppercase tracking-widest flex items-center justify-center gap-2">
-            <Box size={12} /> Select Operational Division
-        </p>
+        {/* Title Block */}
+        <div className="flex flex-col items-center">
+            {/* ZINC: Clean, White, Heavy */}
+            <h1 className="text-8xl md:text-[10rem] font-black tracking-tighter text-black dark:text-white leading-[0.8] mix-blend-difference">
+              ZINC
+            </h1>
+            
+            {/* ENGINEERING: Acid Green, Tactical */}
+            <div className="flex items-center gap-4 mt-6">
+                <div className="h-px w-8 md:w-24 bg-zinc-800 dark:bg-zinc-700"></div>
+                <h2 className="text-xl md:text-3xl font-mono font-bold tracking-[0.4em] text-[#DFFF00] uppercase">
+                  ENGINEERING
+                </h2>
+                <div className="h-px w-8 md:w-24 bg-zinc-800 dark:bg-zinc-700"></div>
+            </div>
+        </div>
+
       </div>
 
-      {/* Division Selector */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-5xl relative z-20 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-200">
+      {/* --- MODULE SELECTOR --- */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-5xl relative z-20 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-150">
         
-        {/* 1. GAMING DIVISION */}
-        <a href="/gaming" className="group relative h-80 border-2 border-black dark:border-zinc-700 bg-white dark:bg-zinc-900 p-8 flex flex-col justify-between hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_#DFFF00] transition-all duration-300 overflow-hidden">
-            <div className="absolute -right-12 -top-12 p-4 opacity-5 group-hover:opacity-10 transition-opacity rotate-12 duration-500 group-hover:scale-110">
-                <Gamepad2 size={280} className="text-black dark:text-white" />
+        {/* 1. GAMING PROTOCOL */}
+        <a href="/gaming" className="group relative h-64 border border-zinc-300 dark:border-zinc-800 bg-zinc-100 dark:bg-black p-8 flex flex-col justify-between hover:border-[#DFFF00] transition-colors duration-300 overflow-hidden">
+            {/* Background Icon */}
+            <div className="absolute -right-8 -top-8 opacity-[0.03] group-hover:opacity-10 transition-opacity duration-500">
+                <Gamepad2 size={240} />
             </div>
             
             <div className="relative z-10">
-                <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-black dark:text-white flex items-center justify-center mb-6 group-hover:bg-[#DFFF00] group-hover:text-black group-hover:border-black transition-colors">
-                    <Zap size={24} />
+                <div className="flex items-center gap-2 mb-4 text-zinc-400 group-hover:text-[#DFFF00] transition-colors">
+                    <Zap size={16} />
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest">PROTOCOL_01</span>
                 </div>
-                <h2 className="text-4xl font-black uppercase mb-2 text-black dark:text-white tracking-tighter">GAMING<br/>DIVISION</h2>
-                <div className="h-1 w-12 bg-[#DFFF00] mb-4"></div>
-                <p className="font-mono text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-xs">
-                    Warframe tactical database, market analytics, and automated build optimization tools.
+                <h2 className="text-4xl font-black uppercase text-black dark:text-white tracking-tighter mb-2">GAMING</h2>
+                <p className="font-mono text-[10px] text-zinc-500 leading-relaxed max-w-[200px]">
+                    Warframe build tactical database & market arbitrage tools.
                 </p>
             </div>
 
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-black dark:text-white group-hover:gap-4 transition-all">
-                INITIALIZE <ArrowRight size={14} className="text-[#DFFF00]" />
+            <div className="flex items-center justify-between border-t border-zinc-300 dark:border-zinc-800 pt-4 mt-4 group-hover:border-[#DFFF00]/30 transition-colors">
+                <span className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">ACCESS</span>
+                <ArrowRight size={14} className="text-[#DFFF00] -translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
             </div>
         </a>
 
-        {/* 2. ATHLETICS DIVISION */}
-        <a href="/sports" className="group relative h-80 border-2 border-black dark:border-zinc-700 bg-zinc-950 dark:bg-black p-8 flex flex-col justify-between hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_#DFFF00] transition-all duration-300 overflow-hidden">
-            <div className="absolute -right-12 -top-12 p-4 opacity-10 group-hover:opacity-20 transition-opacity rotate-12 duration-500 group-hover:scale-110">
-                <Trophy size={280} className="text-white" />
+        {/* 2. ATHLETICS PROTOCOL */}
+        <a href="/sports" className="group relative h-64 border border-zinc-300 dark:border-zinc-800 bg-zinc-100 dark:bg-black p-8 flex flex-col justify-between hover:border-[#DFFF00] transition-colors duration-300 overflow-hidden">
+            {/* Background Icon */}
+            <div className="absolute -right-8 -top-8 opacity-[0.03] group-hover:opacity-10 transition-opacity duration-500">
+                <Satellite size={240} />
             </div>
             
             <div className="relative z-10">
-                <div className="w-12 h-12 bg-zinc-900 border border-zinc-800 text-white flex items-center justify-center mb-6 group-hover:bg-white group-hover:text-black transition-colors">
-                    <Trophy size={24} />
+                <div className="flex items-center gap-2 mb-4 text-zinc-400 group-hover:text-[#DFFF00] transition-colors">
+                    <Activity size={16} />
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest">PROTOCOL_02</span>
                 </div>
-                <h2 className="text-4xl font-black uppercase mb-2 text-white tracking-tighter">ATHLETICS<br/>DIVISION</h2>
-                <div className="h-1 w-12 bg-white mb-4"></div>
-                <p className="font-mono text-xs text-zinc-400 leading-relaxed max-w-xs">
-                    Live sports telemetry, team analytics, and comprehensive performance archives (NBA, F1, NRL).
+                <h2 className="text-4xl font-black uppercase text-black dark:text-white tracking-tighter mb-2">ATHLETICS</h2>
+                <p className="font-mono text-[10px] text-zinc-500 leading-relaxed max-w-[200px]">
+                    Live global sports telemetry & performance archives.
                 </p>
             </div>
 
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white group-hover:gap-4 transition-all">
-                ACCESS DATA <ArrowRight size={14} className="text-[#DFFF00]" />
+            <div className="flex items-center justify-between border-t border-zinc-300 dark:border-zinc-800 pt-4 mt-4 group-hover:border-[#DFFF00]/30 transition-colors">
+                <span className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">ACCESS</span>
+                <ArrowRight size={14} className="text-[#DFFF00] -translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
             </div>
         </a>
 
       </div>
 
-      {/* Decorative Footer */}
-      <div className="absolute bottom-10 left-0 right-0 flex justify-between items-end px-8 pb-4 opacity-30 pointer-events-none font-mono text-[9px] z-0">
-         <div className="flex flex-col gap-1">
-            <div className="h-16 w-px bg-black dark:bg-white" />
-            <span className="text-black dark:text-white tracking-widest">SEC.LEVEL: ALPHA</span>
-         </div>
-         <div className="flex flex-col gap-1 items-end">
-            <div className="h-16 w-px bg-black dark:bg-white" />
-            <span className="text-black dark:text-white tracking-widest">V.3.0.4 // STABLE</span>
-         </div>
+      {/* Footer */}
+      <div className="absolute bottom-12 left-0 right-0 flex justify-center opacity-30 pointer-events-none z-0">
+         <div className="h-px w-32 bg-zinc-800"></div>
       </div>
 
     </div>

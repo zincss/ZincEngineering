@@ -1,138 +1,271 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Shield, Loader2, Users, ChevronRight, User, Activity } from 'lucide-react';
+import { Trophy, Loader2, AlertTriangle, TrendingUp, LayoutGrid, Users, Activity, Shield, Calendar, MapPin } from 'lucide-react';
 import Link from 'next/link';
-import { NRL_TEAMS, TEAM_LOGOS, PLAYER_DB } from './data';
+import { NRL_TEAMS, TEAM_LOGOS } from './data';
+import { getLiveScores, getStandings, getLeagueLeaders } from './actions'; 
 
-const TeamCard = ({ team }: { team: any }) => (
-    <Link href={`/sports/nrl/team/${team.id}`} className="group border-2 border-black dark:border-zinc-700 bg-white dark:bg-zinc-900 p-0 hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_#000000] dark:hover:shadow-[8px_8px_0px_0px_#333] transition-all duration-200 flex flex-col h-56 relative overflow-hidden">
-        <div className={`h-32 bg-zinc-50 dark:bg-zinc-950 relative flex items-center justify-center p-6 overflow-hidden border-b-2 border-inherit`}>
-            <img src={TEAM_LOGOS[team.id]} className="h-20 w-auto object-contain drop-shadow-md group-hover:scale-110 transition-transform duration-500" alt={team.name} />
-        </div>
-        <div className="flex-1 p-4 flex flex-col justify-between">
-            <h3 className="text-lg font-black uppercase leading-none text-black dark:text-white">{team.name}</h3>
-            <div className="flex items-center gap-2 text-[9px] font-mono font-bold text-zinc-400">
-                <span className="bg-zinc-100 dark:bg-zinc-800 px-2 py-1 uppercase">CLUB PROFILE</span>
-            </div>
-        </div>
-    </Link>
-);
+// --- COMPONENT: LIVE FIXTURES (Redesigned) ---
+const LiveScoreboard = () => {
+    const [games, setGames] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
 
-const PlayerCard = ({ player }: { player: any }) => {
-    // Fallback logic if team isn't in our strict list (e.g. search result)
-    const teamSlug = NRL_TEAMS.find(t => player.team.toLowerCase().includes(t.name.toLowerCase()))?.id || 'broncos';
-    const logo = TEAM_LOGOS[teamSlug];
-    
+    useEffect(() => {
+        getLiveScores().then((data) => {
+            setGames(data);
+            setLoading(false);
+        });
+    }, []);
+
+    if (loading) return <div className="h-12 flex items-center justify-center text-[9px] font-mono animate-pulse text-zinc-500 border-b border-zinc-800 bg-black">LOADING FIXTURES...</div>;
+
     return (
-        <Link href={`/sports/nrl/player/${player.id}`} className="group border-2 border-black dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_#000] dark:hover:shadow-[6px_6px_0px_0px_#333] transition-all flex items-center p-4 gap-4">
-            <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-full border-2 border-zinc-200 dark:border-zinc-700 flex items-center justify-center shrink-0 overflow-hidden relative">
-                {player.image || player.thumb ? (
-                    <img src={player.image || player.thumb} className="w-full h-full object-cover object-top" alt={player.name} />
-                ) : (
-                    <User size={32} className="text-zinc-300 dark:text-zinc-600" />
-                )}
-            </div>
-            <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                    {logo && <img src={logo} className="w-4 h-4 object-contain opacity-70" alt={player.team}/>}
-                    <span className="text-[9px] font-bold text-zinc-400 uppercase truncate">{player.team}</span>
-                </div>
-                <h3 className="text-lg font-black uppercase leading-none truncate text-black dark:text-white group-hover:text-acid transition-colors">{player.name}</h3>
-                <div className="flex items-center gap-3 mt-2">
-                    <span className="text-[9px] font-mono font-bold bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded text-zinc-500">{player.pos}</span>
+        <div className="mb-12 border-b border-zinc-800 bg-black/50 backdrop-blur-sm overflow-hidden relative flex items-center h-20">
+            <div className="absolute left-0 top-0 bottom-0 z-20 flex items-center px-6 bg-black border-r border-zinc-800">
+                <div className="flex items-center gap-2 text-[#DFFF00] font-black text-[10px] uppercase tracking-widest">
+                    <Calendar size={14} /> ROUND 1
                 </div>
             </div>
-            <ChevronRight size={16} className="text-zinc-300 group-hover:text-black dark:group-hover:text-white transition-colors"/>
-        </Link>
+            <div className="flex overflow-x-auto no-scrollbar pl-32 items-center h-full">
+                <div className="flex divide-x divide-zinc-800 h-full">
+                    {games.map((game: any, i: number) => (
+                        <div key={`${game.id}-${i}`} className="px-8 py-2 flex flex-col justify-center min-w-[240px] hover:bg-zinc-900 transition-colors group cursor-default h-full">
+                            <div className="flex justify-between items-center mb-1">
+                                <div className="flex items-center gap-2">
+                                    <img src={game.home.logo} className="w-5 h-5 object-contain" />
+                                    <span className="font-black text-xs text-white">{game.home.name}</span>
+                                </div>
+                                <span className="font-mono font-bold text-xs text-zinc-500">VS</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="font-black text-xs text-white">{game.away.name}</span>
+                                    <img src={game.away.logo} className="w-5 h-5 object-contain" />
+                                </div>
+                            </div>
+                            <div className="flex items-center justify-between mt-1">
+                                <span className="text-[9px] font-mono text-[#DFFF00] uppercase tracking-widest">{game.status}</span>
+                                <span className="text-[8px] font-bold text-zinc-600 uppercase flex items-center gap-1 truncate max-w-[100px]">
+                                   <MapPin size={8}/> {game.venue || 'TBA'}
+                                </span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
     );
 };
 
-export default function NRLHub() {
-    const [viewMode, setViewMode] = useState<'teams' | 'players'>('teams');
-    const [search, setSearch] = useState('');
-    const [searchResults, setSearchResults] = useState<any[]>([]);
-    const [isSearching, setIsSearching] = useState(false);
+// --- COMPONENT: ROUND 1 FIXTURE LIST (Replaces Bracket) ---
+const FixtureModule = () => {
+    const [games, setGames] = useState<any[]>([]);
 
-    // --- LIVE SEARCH (Wikipedia Index) ---
     useEffect(() => {
-        if (search.length < 3) { setSearchResults([]); return; }
-        
-        const doSearch = async () => {
-            setIsSearching(true);
-            try {
-                // Search Wikipedia for Rugby League players specifically
-                const res = await fetch(`https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(search)}&limit=10&namespace=0&format=json&origin=*`);
-                const data = await res.json();
-                const titles = data[1]; // ["Andrew Johns", "Andrew Johns (doctor)", ...]
-                
-                // Filter & Map
-                const results = titles
-                    .filter((t: string) => !t.includes('(doctor)') && !t.includes('(artist)')) // Basic filtering
-                    .map((title: string) => ({
-                        id: title.replace(/ /g, '_'), // Wiki friendly ID
-                        name: title.replace(/ \(rugby league\)/i, ''),
-                        team: 'Search Result',
-                        pos: 'Player',
-                        isSearch: true
-                    }));
-                setSearchResults(results);
-            } catch (e) { console.error(e); } 
-            finally { setIsSearching(false); }
-        };
-
-        const timeoutId = setTimeout(() => doSearch(), 500);
-        return () => clearTimeout(timeoutId);
-    }, [search]);
-
-    const displayPlayers = search.length >= 3 ? searchResults : PLAYER_DB;
+        getLiveScores().then(setGames);
+    }, []);
 
     return (
-        <div className="min-h-screen max-w-7xl mx-auto px-4 pt-12 pb-20">
-            
-            <div className="mb-12 border-b-2 border-black dark:border-zinc-700 pb-8 flex flex-col md:flex-row justify-between items-end gap-6">
-                <div>
-                    <div className="flex items-center gap-2 text-black dark:text-white mb-2">
-                        <Shield size={14} />
-                        <span className="font-mono text-[10px] font-bold tracking-widest">NRL PREMIERSHIP</span>
+        <div className="bg-zinc-900 border border-zinc-800 p-6 mb-12">
+            <div className="flex items-center gap-2 mb-6 pb-2 border-b border-zinc-800">
+                <Calendar size={16} className="text-[#DFFF00]"/>
+                <span className="text-xs font-black tracking-widest uppercase text-white">UPCOMING MATCHES</span>
+            </div>
+            <div className="grid gap-3">
+                {games.map((game) => (
+                    <div key={game.id} className="flex items-center justify-between bg-black p-4 border border-zinc-800 hover:border-zinc-600 transition-colors">
+                        <div className="flex items-center gap-4 w-1/3">
+                            <img src={game.home.logo} className="w-8 h-8 object-contain" />
+                            <span className="font-black text-sm text-white hidden md:inline">{game.home.name}</span>
+                        </div>
+                        
+                        <div className="text-center flex-1">
+                            <div className="text-[10px] font-mono font-bold text-[#DFFF00] mb-1">{game.status}</div>
+                            <div className="text-[9px] font-bold text-zinc-500 uppercase">{game.venue}</div>
+                        </div>
+
+                        <div className="flex items-center gap-4 w-1/3 justify-end">
+                            <span className="font-black text-sm text-white hidden md:inline">{game.away.name}</span>
+                            <img src={game.away.logo} className="w-8 h-8 object-contain" />
+                        </div>
                     </div>
-                    <h1 className="text-4xl md:text-6xl lg:text-8xl font-black uppercase tracking-tighter leading-none text-black dark:text-white transition-all duration-300">
-                        {viewMode === 'teams' ? 'CLUB DATABASE' : 'PLAYER ROSTER'}
-                    </h1>
-                </div>
-                
-                <div className="flex gap-2">
-                     <button onClick={() => setViewMode('teams')} className={`px-6 py-3 font-black font-mono text-xs uppercase tracking-widest border-2 transition-all ${viewMode === 'teams' ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white shadow-[4px_4px_0px_0px_#000]' : 'text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white'}`}>CLUBS</button>
-                     <button onClick={() => setViewMode('players')} className={`px-6 py-3 font-black font-mono text-xs uppercase tracking-widest border-2 transition-all ${viewMode === 'players' ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white shadow-[4px_4px_0px_0px_#000]' : 'text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white'}`}>PLAYERS</button>
-                </div>
+                ))}
             </div>
+        </div>
+    );
+};
 
-            <div className="mb-8 relative shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)]">
-                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400">
-                    {isSearching ? <Loader2 size={20} className="animate-spin"/> : <Search size={20} />}
-                 </div>
-                 <input 
-                    type="text" 
-                    placeholder={viewMode === 'teams' ? "SEARCH CLUBS..." : "SEARCH ANY PLAYER (E.G. 'WALLY LEWIS')..."}
-                    className="w-full h-14 bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-500 pl-12 font-bold font-mono text-sm uppercase focus:outline-none"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                 />
+// --- COMPONENT: 2025 LADDER ---
+const StandingsModule = () => {
+    const [ladder, setLadder] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        getStandings().then((data) => {
+            setLadder(data);
+            setLoading(false);
+        });
+    }, []);
+
+    return (
+        <div className="bg-black border border-zinc-800 p-4 mb-12">
+            <div className="flex items-center gap-2 mb-4 pb-2 border-b border-zinc-800">
+                <TrendingUp size={14} className="text-white"/>
+                <span className="text-xs font-black tracking-widest uppercase text-white">2025 PREMIERSHIP LADDER</span>
             </div>
-
-            {viewMode === 'teams' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {NRL_TEAMS.filter(t => t.name.toLowerCase().includes(search.toLowerCase())).map(team => (
-                        <TeamCard key={team.id} team={team} />
-                    ))}
+            {loading ? (
+                <div className="flex items-center justify-center py-12 gap-2 text-zinc-500 font-mono text-[10px] animate-pulse">
+                    <Loader2 size={12} className="animate-spin"/> INITIALIZING SEASON...
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {displayPlayers.map(player => (
-                        <PlayerCard key={player.id} player={player} />
-                    ))}
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left min-w-[300px]">
+                        <thead>
+                            <tr className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">
+                                <th className="pb-2 pl-2">POS</th>
+                                <th className="pb-2">CLUB</th>
+                                <th className="pb-2 text-right">P</th>
+                                <th className="pb-2 text-right">W</th>
+                                <th className="pb-2 text-right">L</th>
+                                <th className="pb-2 text-right">PTS</th>
+                                <th className="pb-2 text-right pr-2">DIFF</th>
+                            </tr>
+                        </thead>
+                        <tbody className="font-mono text-xs text-zinc-300">
+                            {ladder.map((t, i) => (
+                                <tr key={t.id} className={`border-b border-zinc-900 last:border-0 hover:bg-zinc-900 transition-colors`}>
+                                    <td className="py-3 pl-2 font-black text-zinc-600">{t.rank}</td>
+                                    <td className="py-3 flex items-center gap-3 font-bold text-white">
+                                        <img src={t.logo} className="w-6 h-6 object-contain" />
+                                        <span className="truncate max-w-[150px]">{t.name}</span>
+                                    </td>
+                                    <td className="py-3 text-right text-zinc-500">0</td>
+                                    <td className="py-3 text-right text-zinc-500">0</td>
+                                    <td className="py-3 text-right text-zinc-500">0</td>
+                                    <td className="py-3 text-right font-black text-white">0</td>
+                                    <td className="py-3 text-right pr-2 text-zinc-500">0</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             )}
+        </div>
+    );
+};
+
+// --- COMPONENT: LEADERS ---
+const LeadersModule = () => {
+    const [data, setData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        getLeagueLeaders().then(d => {
+            setData(d);
+            setLoading(false);
+        })
+    }, []);
+
+    if (loading) return null;
+
+    return (
+        <div className="bg-zinc-900 border-2 border-black p-6 mb-8">
+             <div className="flex items-center gap-2 text-[#DFFF00] mb-2">
+                <Activity size={16}/>
+                <span className="font-bold font-mono text-xs tracking-widest">PLAYER WATCHLIST // <span className="text-white uppercase">{data.seasonLabel}</span></span>
+            </div>
+            <div className="grid gap-2 mt-4">
+                 {data.players.map((p: any, i: number) => (
+                     <Link href={`/sports/nrl/player/${p.id}`} key={p.id} className="flex items-center gap-4 bg-black border border-zinc-800 hover:border-[#DFFF00] p-3 transition-all group">
+                         <div className="text-zinc-600 font-black font-mono text-lg w-6 text-center">{i + 1}</div>
+                         <div className="flex-1">
+                             <div className="font-bold text-sm text-white uppercase group-hover:text-[#DFFF00] transition-colors">{p.name}</div>
+                             <div className="text-[10px] font-mono text-zinc-500 uppercase">{p.team}</div>
+                         </div>
+                         <div className="text-right">
+                             <div className="text-[10px] font-black text-[#DFFF00] font-mono">{p.tier}</div>
+                         </div>
+                     </Link>
+                 ))}
+            </div>
+        </div>
+    )
+}
+
+export default function NRLHub() {
+    const [activeTab, setActiveTab] = useState<'league' | 'leaders'>('league');
+
+    return (
+        <div className="min-h-screen max-w-7xl mx-auto px-4 pt-0 pb-20">
+            {/* BACKGROUND */}
+            <div className="bg-starfield">
+                <div className="stars-1"></div>
+                <div className="stars-2"></div>
+                <div className="stars-3"></div>
+            </div>
+
+            <LiveScoreboard />
+            
+            {/* HEADER */}
+            <div className="mb-12 border-b border-zinc-800 pb-8 flex flex-col md:flex-row justify-between items-end gap-6">
+                <div>
+                    <div className="flex items-center gap-2 text-zinc-400 mb-2">
+                        <Shield size={14} className="text-[#DFFF00]" />
+                        <span className="font-mono text-[10px] font-bold tracking-widest text-[#DFFF00]">NATIONAL RUGBY LEAGUE</span>
+                    </div>
+                    <h1 className="text-5xl md:text-8xl font-black uppercase tracking-tighter leading-none text-white">
+                        PREMIERSHIP
+                    </h1>
+                </div>
+
+                {/* TABS */}
+                <div className="flex gap-2">
+                     <button 
+                        onClick={() => setActiveTab('league')}
+                        className={`px-4 py-3 font-black font-mono text-xs uppercase tracking-widest border transition-all ${activeTab === 'league' ? 'bg-[#DFFF00] text-black border-[#DFFF00] shadow-[0_0_15px_rgba(223,255,0,0.3)]' : 'bg-black/50 text-zinc-500 border-zinc-800 hover:text-white'}`}
+                    >
+                        LEAGUE DATA
+                    </button>
+                     <button 
+                        onClick={() => setActiveTab('leaders')}
+                        className={`px-4 py-3 font-black font-mono text-xs uppercase tracking-widest border transition-all ${activeTab === 'leaders' ? 'bg-[#DFFF00] text-black border-[#DFFF00] shadow-[0_0_15px_rgba(223,255,0,0.3)]' : 'bg-black/50 text-zinc-500 border-zinc-800 hover:text-white'}`}
+                    >
+                        PLAYER WATCH
+                    </button>
+                </div>
+            </div>
+
+            {/* CONTENT */}
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {activeTab === 'league' && (
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                        <div className="lg:col-span-8">
+                            <StandingsModule />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {NRL_TEAMS.map(team => (
+                                    <Link href={`/sports/nrl/team/${team.id}`} key={team.id} className="group border border-zinc-800 hover:border-[#DFFF00] bg-black/50 backdrop-blur-sm p-6 flex items-center gap-6 transition-all hover:-translate-y-1">
+                                        <div className={`w-16 h-16 flex items-center justify-center shrink-0 bg-zinc-900 border border-zinc-700 rounded-full p-2`}>
+                                            <img src={team.logo} className="w-full h-full object-contain" alt={team.name} />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-black uppercase leading-none mb-1 text-white group-hover:text-[#DFFF00] transition-colors">{team.name}</h3>
+                                            <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase">{team.stadium}</span>
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="lg:col-span-4">
+                            <FixtureModule />
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'leaders' && (
+                    <div className="max-w-4xl mx-auto">
+                        <LeadersModule />
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
