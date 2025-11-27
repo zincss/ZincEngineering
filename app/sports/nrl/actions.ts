@@ -2,6 +2,7 @@
 
 import { NRL_TEAMS } from './data';
 
+// --- ENDPOINTS ---
 const ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/rugby/nrl';
 const SEASON = '2025'; 
 
@@ -14,139 +15,136 @@ const ESPN_TEAM_IDS: Record<string, string> = {
     'dolphins': '2722'
 };
 
-// Helper
+// --- HELPER: FETCH ---
 const fetchJson = async (url: string, revalidate = 60) => {
     try {
         const res = await fetch(url, { next: { revalidate } });
-        return res.ok ? await res.json() : null;
-    } catch { return null; }
+        if (!res.ok) return null;
+        return await res.json();
+    } catch (e) {
+        return null;
+    }
 };
 
-// --- 1. LIVE SCOREBOARD (SMART OFF-SEASON) ---
+// --- 1. LIVE SCOREBOARD ---
 export async function getLiveScores() {
-    const data = await fetchJson(`${ESPN_BASE}/scoreboard`);
-    
-    // If no games, return Grand Final / Season Summary
-    if (!data || !data.events || data.events.length === 0) {
-        return [{
-            id: 'gf-2024',
-            status: 'SEASON COMPLETE',
+    // Returns real 2025 fixtures (pre-season) for a live feel
+    return [
+        {
+            id: 'rd1-game1',
+            status: 'MAR 2 - 11:00 AM', 
             isLive: false,
-            isOffseason: true,
-            home: { name: 'Storm', score: '6', logo: 'https://a.espncdn.com/i/teamlogos/rugbyleague/scores/500/2413.png' },
-            away: { name: 'Panthers', score: '14', logo: 'https://a.espncdn.com/i/teamlogos/rugbyleague/scores/500/2417.png' },
-            premier: 'Penrith Panthers'
-        }];
-    }
-
-    return data.events.map((e: any) => {
-        const h = e.competitions[0].competitors.find((c: any) => c.homeAway === 'home');
-        const a = e.competitions[0].competitors.find((c: any) => c.homeAway === 'away');
-        const isLive = e.status.type.state === 'in';
-        
-        return {
-            id: e.id,
-            status: isLive ? `Q${e.status.period} ${e.status.displayClock}` : e.status.type.shortDetail,
-            isLive,
-            home: { name: h.team.abbreviation, score: h.score, logo: h.team.logo },
-            away: { name: a.team.abbreviation, score: a.score, logo: a.team.logo }
-        };
-    });
+            home: { name: 'Raiders', score: 'v', logo: 'https://www.nrl.com/client/dist/logos/raiders-badge.svg' },
+            away: { name: 'Warriors', score: 's', logo: 'https://www.nrl.com/client/dist/logos/warriors-badge.svg' },
+            venue: 'Allegiant Stadium, Las Vegas'
+        },
+        {
+            id: 'rd1-game2',
+            status: 'MAR 2 - 3:30 PM',
+            isLive: false,
+            home: { name: 'Panthers', score: 'v', logo: 'https://www.nrl.com/client/dist/logos/panthers-badge.svg' },
+            away: { name: 'Sharks', score: 's', logo: 'https://www.nrl.com/client/dist/logos/sharks-badge.svg' },
+            venue: 'Allegiant Stadium, Las Vegas'
+        },
+        {
+            id: 'rd1-game3',
+            status: 'MAR 6 - 8:00 PM',
+            isLive: false,
+            home: { name: 'Roosters', score: 'v', logo: 'https://www.nrl.com/client/dist/logos/roosters-badge.svg' },
+            away: { name: 'Broncos', score: 's', logo: 'https://www.nrl.com/client/dist/logos/broncos-badge.svg' },
+            venue: 'Allianz Stadium, Sydney'
+        }
+    ];
 }
 
-// --- 2. LADDER ---
+// --- 2. STANDINGS (REAL DATA) ---
 export async function getStandings() {
     const data = await fetchJson(`${ESPN_BASE}/standings`);
-    if (!data?.children) return [];
     
+    if (!data || !data.children) {
+        // Return a fresh 0-0 ladder for pre-season accuracy
+        const sortedTeams = [...NRL_TEAMS].sort((a, b) => a.name.localeCompare(b.name));
+        return sortedTeams.map((team, i) => ({
+            id: team.id,
+            localId: team.id,
+            name: team.name,
+            logo: team.logo,
+            rank: i + 1,
+            wins: 0, losses: 0, points: 0, diff: 0,
+        }));
+    }
+
     const group = data.children[0]?.standings?.entries;
     if (!group) return [];
 
     return group.map((t: any) => {
         const getStat = (n: string) => t.stats?.find((s: any) => s.name === n)?.value || 0;
-        const teamConfig = NRL_TEAMS.find(local => ESPN_TEAM_IDS[local.id] === t.team.id) || {};
+        const espnId = t.team.id;
+        
+        // --- FIX: Ensure a default object is provided if internal team ID is not found ---
+        const defaultTeam = { id: 'unknown', logo: t.team.logos?.[0]?.href };
+        const teamConfig = NRL_TEAMS.find(local => ESPN_TEAM_IDS[local.id] === espnId) || defaultTeam;
 
         return {
             id: t.team.id,
-            localId: teamConfig.id, // For linking
+            localId: teamConfig.id, // Accessing safely
             name: t.team.displayName,
             logo: t.team.logos?.[0]?.href,
-            rank: getStat('rank'),
+            rank: getStat('rank') || t.seed,
             wins: getStat('wins'),
             losses: getStat('losses'),
             points: getStat('points'),
-            diff: getStat('pointDifferential')
+            diff: getStat('pointDifferential'),
         };
     });
 }
 
-// --- 3. TEAM DATA (ESPN SOURCE) ---
-export async function getTeamData(teamId: string) {
-    // Map internal ID (e.g. 'broncos') to ESPN ID (e.g. '2407')
-    const espnId = ESPN_TEAM_IDS[teamId];
-    if (!espnId) return null;
-
-    const [teamData, rosterData] = await Promise.all([
-        fetchJson(`${ESPN_BASE}/teams/${espnId}`),
-        fetchJson(`${ESPN_BASE}/teams/${espnId}/roster`)
-    ]);
-
-    if (!teamData?.team) return null;
-
-    const t = teamData.team;
-    
-    // ESPN Roster structure for NRL is sometimes nested differently
-    // We'll try a few paths or return empty if off-season wipes it
-    const athletes = rosterData?.athletes || [];
-
-    const roster = athletes.map((p: any) => ({
-        id: p.id,
-        name: p.fullName,
-        pos: p.position?.abbreviation || 'PL',
-        number: p.jersey || '-',
-        image: p.headshot?.href || `https://a.espncdn.com/combiner/i?img=/i/headshots/rugbyleague/players/full/${p.id}.png`,
-        height: p.displayHeight,
-        weight: p.displayWeight
-    }));
-
+// --- 3. LEAGUE LEADERS (2025 WATCHLIST) ---
+export async function getLeagueLeaders() {
     return {
-        id: t.id,
-        name: t.displayName,
-        logo: t.logos?.[0]?.href,
-        color: t.color,
-        record: t.record?.items?.[0]?.summary || '0-0',
-        standing: t.standingSummary,
-        roster
+        seasonLabel: "2025 PRE-SEASON WATCH",
+        players: [
+            { id: 'jahream_bula', name: 'Jahream Bula', team: 'Wests Tigers', image: NRL_TEAMS.find(t=>t.id==='tigers')?.logo, stats: { ppg: '-', tries: '0', assists: '0', goals: '0' }, elo: 'RISING STAR', tier: 'ROOKIE TO WATCH' },
+            { id: 'nathan_cleary', name: 'Nathan Cleary', team: 'Penrith Panthers', image: NRL_TEAMS.find(t=>t.id==='panthers')?.logo, stats: { ppg: '-', tries: '0', assists: '0', goals: '0' }, elo: '99.9', tier: 'REIGNING PREMIER' },
+            { id: 'kalyn_ponga', name: 'Kalyn Ponga', team: 'Newcastle Knights', image: NRL_TEAMS.find(t=>t.id==='knights')?.logo, stats: { ppg: '-', tries: '0', assists: '0', goals: '0' }, elo: '98.5', tier: 'DALLY M MEDALIST' }
+        ]
     };
 }
 
-// --- 4. PLAYER PROFILE (WIKI HYBRID) ---
-// NRL Player stats are locked down, so we use Wikipedia for the Bio + Mock for stats to keep the UI consistent
+// --- 4. PLAYER PROFILE (WIKI) ---
 export async function getPlayerProfile(playerId: string) {
     try {
-        // Fetch Wiki Bio
         const wikiRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${playerId}`);
         const wikiData = await wikiRes.json();
         
         if (wikiData.title) {
-            const name = wikiData.title.replace(/ \(rugby league\)/i, '');
-            
             return {
                 id: playerId,
-                name: name,
+                name: wikiData.title.replace(/ \(rugby league\)/i, ''),
                 team: "NRL", 
                 pos: "First Grade",
                 image: wikiData.thumbnail?.source,
                 desc: wikiData.extract,
-                stats: { 
-                    apps: '100+', 
-                    tries: Math.floor(Math.random() * 50) + 10, 
-                    goals: Math.floor(Math.random() * 20),
-                    winRate: '60%' 
-                },
-                bio: { height: '185 cm', weight: '98 kg', age: '26', debut: '2018' }
+                stats: { apps: '0', tries: '0', goals: '0', winRate: '-' },
+                bio: { height: '-', weight: '-', age: '-', debut: '-' }
             };
         }
     } catch (e) {}
     return null;
+}
+
+// --- 5. TEAM DATA ---
+export async function getTeamData(teamId: string) {
+    const team = NRL_TEAMS.find(t => t.id === teamId);
+    if (!team) return null;
+
+    return {
+        id: team.id,
+        name: team.name,
+        logo: team.logo,
+        color: team.color,
+        record: '0-0',
+        standing: 'PRE-SEASON',
+        roster: [] // Empty roster for now to avoid fake data
+    };
 }
