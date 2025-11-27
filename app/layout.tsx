@@ -1,14 +1,11 @@
 import './globals.css'
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import Header from './components/Header'
-import { Providers } from './providers' // Import the provider
-
-const inter = Inter({ subsets: ['latin'] })
+import { Providers } from './providers'
 
 export const metadata: Metadata = {
-  title: 'ZINC ENGINEERING',
-  description: 'Warframe Tactical Database',
+  title: 'ZINC ENGINEERING // HUB',
+  description: 'Advanced Tactical & Athletic Telemetry',
 }
 
 export default function RootLayout({
@@ -18,10 +15,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50 transition-colors duration-300`}>
+      <body className="font-sans bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50 min-h-screen flex flex-col selection:bg-[#DFFF00] selection:text-black">
         <Providers>
           <Header /> 
-          {children}
+          <main className="flex-1 relative">
+            {children}
+          </main>
         </Providers>
       </body>
     </html>

@@ -2,28 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
-/* FIX: Prevent horizontal scroll wobble on mobile */
+/* GLOBAL: High-Vis Selection */
+::selection {
+  background-color: #DFFF00; /* Acid Green */
+  color: #000000;
+}
+
+/* GLOBAL: Prevent horizontal scroll wobble */
 html, body {
   overflow-x: hidden;
   width: 100%;
   position: relative;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom Scrollbar for that "Industrial" feel */
+/* UTILITY: Industrial Grid Background */
+.bg-grid-pattern {
+  background-size: 40px 40px;
+  background-image: linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+}
+
+.dark .bg-grid-pattern {
+  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+
+/* UTILITY: Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
-  height: 8px; /* Added for horizontal scrollbars */
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
   background: #27272a; /* zinc-800 */
-  border-radius: 4px;
+  border-radius: 0px; /* Square for industrial look */
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #DFFF00; /* Acid Green hover */
+  background: #DFFF00; /* Acid Green */
 }
 
 .dark ::-webkit-scrollbar-thumb {
@@ -33,11 +52,11 @@ html, body {
   background: #DFFF00;
 }
 
-/* UTILITY: Hide scrollbar but keep functionality (for horizontal lists) */
+/* UTILITY: Hide scrollbar */
 .no-scrollbar::-webkit-scrollbar {
     display: none;
 }
 .no-scrollbar {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }

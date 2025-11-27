@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { Search, Loader2, Command, X, Trophy, ChevronRight, LayoutGrid, User } from 'lucide-react';
+import { Search, Loader2, Command, X, Trophy, ChevronRight, LayoutGrid, User, Circle, Gamepad2 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
+import ThemeToggle from './ThemeToggle';
 
 const CDN_URL = "https://cdn.warframestat.us/img/";
 
@@ -20,26 +20,19 @@ const ATHLETE_DB = [
     { id: 'p1', name: 'Jamayne Isaako', team: 'Dolphins', sport: 'NRL', url: '/sports/nrl/player/p1' },
     { id: 'p3', name: 'Nathan Cleary', team: 'Penrith Panthers', sport: 'NRL', url: '/sports/nrl/player/p3' },
     { id: 'p9', name: 'Reece Walsh', team: 'Brisbane Broncos', sport: 'NRL', url: '/sports/nrl/player/p9' },
-    { id: 'p10', name: 'Kalyn Ponga', team: 'Newcastle Knights', sport: 'NRL', url: '/sports/nrl/player/p10' },
     
-    // NBA (NEW)
+    // NBA
     { id: 'lebron_james', name: 'LeBron James', team: 'LA Lakers', sport: 'NBA', url: '/sports/nba/player/lebron_james' },
     { id: 'stephen_curry', name: 'Stephen Curry', team: 'Golden State', sport: 'NBA', url: '/sports/nba/player/stephen_curry' },
     { id: 'nikola_jokic', name: 'Nikola Jokic', team: 'Denver Nuggets', sport: 'NBA', url: '/sports/nba/player/nikola_jokic' },
-    { id: 'luka_doncic', name: 'Luka Doncic', team: 'Dallas Mavericks', sport: 'NBA', url: '/sports/nba/player/luka_doncic' },
-    { id: 'giannis_antetokounmpo', name: 'Giannis Antetokounmpo', team: 'Milwaukee Bucks', sport: 'NBA', url: '/sports/nba/player/giannis_antetokounmpo' },
-    { id: 'kevin_durant', name: 'Kevin Durant', team: 'Phoenix Suns', sport: 'NBA', url: '/sports/nba/player/kevin_durant' },
-    { id: 'jayson_tatum', name: 'Jayson Tatum', team: 'Boston Celtics', sport: 'NBA', url: '/sports/nba/player/jayson_tatum' },
-    { id: 'anthony_edwards', name: 'Anthony Edwards', team: 'Minnesota Timberwolves', sport: 'NBA', url: '/sports/nba/player/anthony_edwards' },
-    { id: 'victor_wembanyama', name: 'Victor Wembanyama', team: 'San Antonio Spurs', sport: 'NBA', url: '/sports/nba/player/victor_wembanyama' },
-    { id: 'shai_gilgeous-alexander', name: 'Shai Gilgeous-Alexander', team: 'OKC Thunder', sport: 'NBA', url: '/sports/nba/player/shai_gilgeous-alexander' },
 ];
 
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
-  
+  const isHome = pathname === '/';
   const isSports = pathname?.startsWith('/sports');
+  const isGaming = pathname?.startsWith('/gaming');
 
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
@@ -51,16 +44,18 @@ export default function Header() {
 
   // DB INIT
   useEffect(() => {
-    if (!isSports) {
+    if (!isSports && !isHome) {
         const initSystem = async () => {
             try { await supabase.from('items').select('id').limit(1); } catch (e) {}
         };
         initSystem();
     }
-  }, [isSports]);
+  }, [isSports, isHome]);
 
   // SEARCH LOGIC
   useEffect(() => {
+    if (isHome) return; 
+
     const performSearch = async () => {
       if (query.length < 2) {
         setResults([]);
@@ -70,7 +65,6 @@ export default function Header() {
       setLoading(true);
 
       if (isSports) {
-          // ATHLETE SEARCH (Local Index)
           const matches = ATHLETE_DB.filter(a => 
               a.name.toLowerCase().includes(query.toLowerCase()) || 
               a.team.toLowerCase().includes(query.toLowerCase())
@@ -79,7 +73,6 @@ export default function Header() {
           setShowDropdown(true);
           setLoading(false);
       } else {
-          // GAMING SEARCH (Supabase)
           try {
             const { data } = await supabase
               .from('items')
@@ -98,7 +91,7 @@ export default function Header() {
 
     const timeoutId = setTimeout(() => performSearch(), 300);
     return () => clearTimeout(timeoutId);
-  }, [query, isSports]);
+  }, [query, isSports, isHome]);
 
   // Click Outside
   useEffect(() => {
@@ -115,41 +108,48 @@ export default function Header() {
       setShowDropdown(false);
       setQuery('');
       if (isSports) {
-          router.push(item.url);
+          window.location.href = item.url;
       } else {
-          router.push(`/gaming/build/${item.id}`);
+          window.location.href = `/gaming/build/${item.id}`;
       }
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-sm border-b-2 border-black dark:border-zinc-800 shadow-sm transition-colors duration-300">
-      <div className="max-w-7xl mx-auto px-4 md:px-6 h-20 flex items-center justify-between gap-8">
+    <header className="sticky top-0 z-50 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md border-b-2 border-black dark:border-zinc-800 shadow-sm transition-colors duration-300">
+      <div className="max-w-[1600px] mx-auto px-4 md:px-6 h-20 flex items-center justify-between gap-6">
         
-        {/* LOGO */}
-        <Link href="/" className="flex items-center gap-3 group shrink-0">
-          <div className="bg-black text-acid w-10 h-10 flex items-center justify-center font-black text-xl group-hover:bg-acid group-hover:text-black transition-colors border border-transparent dark:border-zinc-700">
-            Z
-          </div>
-          <div className="hidden md:flex flex-col">
-            <span className="font-black text-lg leading-none tracking-tighter text-black dark:text-white">ZINC</span>
-            <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-400 tracking-widest">ENGINEERING</span>
-          </div>
-        </Link>
+        {/* LEFT: LOGO & STATUS */}
+        <div className="flex items-center gap-6">
+            <a href="/" className="flex items-center gap-3 group shrink-0">
+                <div className="bg-black text-[#DFFF00] w-10 h-10 flex items-center justify-center font-black text-xl group-hover:bg-[#DFFF00] group-hover:text-black transition-all border border-transparent dark:border-zinc-700 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] group-hover:shadow-none group-hover:translate-x-[2px] group-hover:translate-y-[2px]">
+                    Z
+                </div>
+                <div className="hidden md:flex flex-col">
+                    <span className="font-black text-lg leading-none tracking-tighter text-black dark:text-white">ZINC</span>
+                    <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-400 tracking-widest">ENGINEERING</span>
+                </div>
+            </a>
 
-        {/* CENTER: Universal Search */}
-        <div className="flex-1 flex justify-center md:justify-start relative">
-            
-            {/* Context Badge */}
-            <div className="hidden md:flex items-center gap-2 text-black dark:text-white mr-4">
-                {isSports ? <Trophy size={18} className="text-acid"/> : <LayoutGrid size={18} className="text-acid"/>}
-                <span className="font-black text-xl tracking-tighter uppercase hidden lg:block">{isSports ? 'ATHLETICS' : 'GAMING'}</span>
+            {/* Vertical Divider */}
+            <div className="h-8 w-px bg-zinc-200 dark:bg-zinc-800 hidden md:block"></div>
+
+            {/* Status Indicator */}
+            <div className="hidden md:flex items-center gap-2 text-[9px] font-mono font-bold tracking-widest text-zinc-400 dark:text-zinc-600 uppercase">
+                <Circle size={8} className="fill-green-500 text-green-500 animate-pulse" />
+                <span>System Online</span>
             </div>
+        </div>
 
-            {/* INPUT */}
-            <div className="relative w-full max-w-md group">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-black dark:group-focus-within:text-white transition-colors">
+        {/* CENTER: SEARCH (HIDDEN ON HOME) */}
+        <div className={`flex-1 max-w-2xl flex justify-center md:justify-start relative transition-opacity duration-500 ${isHome ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+            {!isHome && (
+            <div className="relative w-full group">
+              {/* Search Icon / Loader */}
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-black dark:group-focus-within:text-[#DFFF00] transition-colors">
                   {loading ? <Loader2 size={16} className="animate-spin"/> : <Search size={16}/>}
               </div>
+              
+              {/* Input */}
               <input 
                   ref={inputRef}
                   type="text" 
@@ -157,17 +157,24 @@ export default function Header() {
                   onChange={(e) => setQuery(e.target.value)}
                   onFocus={() => { if(results.length > 0) setShowDropdown(true); }}
                   placeholder={isSports ? "SEARCH GLOBAL ATHLETE DATABASE..." : "SEARCH GAMING ARCHIVES..."}
-                  className="w-full bg-zinc-100 dark:bg-zinc-900 border-2 border-transparent focus:border-black dark:focus:border-zinc-600 px-10 py-2 font-mono text-xs font-bold uppercase outline-none text-black dark:text-white transition-all placeholder:text-zinc-400"
+                  className="w-full h-10 bg-zinc-100 dark:bg-zinc-900 border-2 border-transparent focus:border-black dark:focus:border-zinc-600 pl-12 pr-10 font-mono text-xs font-bold uppercase outline-none text-black dark:text-white transition-all placeholder:text-zinc-400"
               />
+              
+              {/* Clear Button */}
               {query.length > 0 && (
-                <button onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-black dark:hover:text-white">
+                <button onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-black dark:hover:text-white transition-colors">
                     <X size={14} />
                 </button>
               )}
 
-              {/* DROPDOWN RESULTS */}
+              {/* Context Badge (Inside Search Area on Desktop) */}
+              <div className="absolute right-0 top-[-20px] hidden md:flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-zinc-400">
+                  {isSports ? <span className="flex items-center gap-1"><Trophy size={10}/> ATHLETICS_MODE</span> : <span className="flex items-center gap-1"><Gamepad2 size={10}/> GAMING_MODE</span>}
+              </div>
+
+              {/* DROPDOWN */}
               {showDropdown && results.length > 0 && (
-                <div ref={dropdownRef} className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-700 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.1)] animate-in fade-in slide-in-from-top-1 overflow-hidden z-50">
+                <div ref={dropdownRef} className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-700 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.1)] animate-in fade-in slide-in-from-top-1 overflow-hidden z-50">
                     <div className="bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 border-b border-zinc-200 dark:border-zinc-700 flex justify-between items-center">
                         <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Matches Found: {results.length}</span>
                         <Command size={10} className="text-zinc-400"/>
@@ -176,7 +183,7 @@ export default function Header() {
                         <div
                             key={item.id}
                             onClick={() => handleSelect(item)}
-                            className="flex items-center gap-3 p-3 hover:bg-acid dark:hover:bg-acid cursor-pointer border-b border-zinc-100 dark:border-zinc-800 last:border-0 group transition-colors"
+                            className="flex items-center gap-3 p-3 hover:bg-[#DFFF00] dark:hover:bg-[#DFFF00] cursor-pointer border-b border-zinc-100 dark:border-zinc-800 last:border-0 group transition-colors"
                         >
                             <div className={`h-8 w-8 border border-zinc-300 dark:border-zinc-700 ${isSports ? 'rounded-full' : ''} bg-white dark:bg-zinc-950 p-0.5 shrink-0 flex items-center justify-center overflow-hidden`}>
                                 {isSports ? (
@@ -201,18 +208,37 @@ export default function Header() {
                     ))}
                 </div>
               )}
-           </div>
+            </div>
+            )}
         </div>
 
-        {/* NAV RIGHT */}
-        <nav className="hidden md:flex items-center gap-6">
-            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest hover:text-acid text-zinc-400 dark:text-zinc-500 transition-colors">
-                <LayoutGrid size={14} /> MAIN HUB
-            </Link>
-            <div className="h-4 w-px bg-zinc-300 dark:bg-zinc-700 mx-2"></div>
-            <Link href="/gaming" className={`text-[10px] font-black uppercase tracking-widest hover:text-acid transition-colors ${!isSports ? 'text-black dark:text-white' : 'text-zinc-400 dark:text-zinc-500'}`}>GAMING</Link>
-            <Link href="/sports" className={`text-[10px] font-black uppercase tracking-widest hover:text-acid transition-colors ${isSports ? 'text-black dark:text-white' : 'text-zinc-400 dark:text-zinc-500'}`}>SPORTS</Link>
-        </nav>
+        {/* RIGHT: NAV & THEME */}
+        <div className="flex items-center gap-6">
+            <nav className="hidden lg:flex items-center gap-6">
+                <a 
+                    href="/" 
+                    className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest hover:text-[#DFFF00] transition-colors ${pathname === '/' ? 'text-[#DFFF00]' : 'text-zinc-400 dark:text-zinc-500'}`}
+                >
+                    <LayoutGrid size={14} /> HUB
+                </a>
+                <a 
+                    href="/gaming" 
+                    className={`text-[10px] font-black uppercase tracking-widest hover:text-[#DFFF00] transition-colors ${isGaming ? 'text-black dark:text-white underline decoration-2 underline-offset-4 decoration-[#DFFF00]' : 'text-zinc-400 dark:text-zinc-500'}`}
+                >
+                    GAMING
+                </a>
+                <a 
+                    href="/sports" 
+                    className={`text-[10px] font-black uppercase tracking-widest hover:text-[#DFFF00] transition-colors ${isSports ? 'text-black dark:text-white underline decoration-2 underline-offset-4 decoration-[#DFFF00]' : 'text-zinc-400 dark:text-zinc-500'}`}
+                >
+                    SPORTS
+                </a>
+            </nav>
+            
+            <div className="h-8 w-px bg-zinc-200 dark:bg-zinc-800 hidden lg:block"></div>
+            
+            <ThemeToggle />
+        </div>
       </div>
     </header>
   );
