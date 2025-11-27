@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Activity, Info, Loader2, Ruler, Weight, Users, TrendingUp, Crosshair, Shield, Zap, Calendar } from 'lucide-react';
+import { ArrowLeft, Activity, Info, Loader2, Ruler, Weight, Users, TrendingUp, Crosshair, Shield, Zap, Calendar, Award, Globe, Clock, FileText, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { getPlayerProfile } from '../../actions'; 
@@ -23,51 +23,88 @@ export default function PlayerPage() {
     load();
   }, [id]);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center gap-2 font-mono text-xs text-zinc-500"><Loader2 className="animate-spin text-acid"/> ACCESSING BIOMETRICS...</div>;
-  if (!data) return <div className="p-20 text-center font-mono text-zinc-500">PLAYER ARCHIVE NOT FOUND.</div>;
+  if (loading) return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-zinc-50 dark:bg-zinc-950">
+        <Loader2 className="animate-spin text-[#DFFF00]" size={40}/> 
+        <span className="font-mono text-xs font-bold tracking-widest text-zinc-400 animate-pulse">DECRYPTING PLAYER BIOMETRICS...</span>
+    </div>
+  );
+
+  if (!data) return (
+    <div className="min-h-screen flex items-center justify-center text-zinc-500 font-mono text-sm">
+        PLAYER ARCHIVE NOT FOUND.
+    </div>
+  );
 
   const teamConfig = NBA_TEAMS.find(t => t.espnId === data.teamId) || NBA_TEAMS.find(t => t.name.includes(data.team)) || NBA_TEAMS[0];
   const teamColor = teamConfig.color;
 
   return (
-    <div className="max-w-5xl mx-auto pb-40 px-4 md:px-0 pt-12 animate-in fade-in slide-in-from-bottom-4">
-      <Link href={`/sports/nba/team/${teamConfig.id}`} className="inline-flex items-center gap-2 text-zinc-500 hover:text-black dark:hover:text-white hover:bg-acid px-3 py-1 mb-6 group transition-colors font-mono font-bold text-xs uppercase tracking-widest border border-transparent hover:border-black"><ArrowLeft size={14} /> RETURN TO ROSTER</Link>
+    <div className="max-w-7xl mx-auto pb-40 px-4 md:px-0 pt-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      
+      {/* HEADER NAV */}
+      <Link href="/sports/nba" className="inline-flex items-center gap-2 text-zinc-500 hover:text-black dark:hover:text-white hover:bg-[#DFFF00] px-4 py-2 mb-8 group transition-all font-mono font-black text-[10px] uppercase tracking-[0.2em] border border-zinc-200 dark:border-zinc-800 hover:border-black">
+          <ArrowLeft size={12} /> TACTICAL ROSTER
+      </Link>
 
       {/* HERO SECTION */}
-      <div className="bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-700 shadow-[8px_8px_0px_0px_#DFFF00] mb-12 relative overflow-hidden min-h-[300px] flex flex-col md:flex-row items-end">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 border-2 border-black dark:border-zinc-700 bg-zinc-900 shadow-[12px_12px_0px_0px_#DFFF00] mb-12 relative overflow-hidden">
           
-          {/* Background */}
-          <div className={`absolute inset-0 ${teamColor} opacity-90`}>
-              <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(0,0,0,0.1)_25%,transparent_25%,transparent_50%,rgba(0,0,0,0.1)_50%,rgba(0,0,0,0.1)_75%,transparent_75%,transparent)] bg-[length:4px_4px]"></div>
-          </div>
-          
-          {/* Player Image */}
-          <div className="relative z-10 w-full md:w-1/3 h-64 md:h-full flex items-end justify-center md:justify-start md:pl-8 pointer-events-none">
-              <img src={data.image} className="h-full w-auto object-contain drop-shadow-2xl transform scale-125 origin-bottom" alt={data.name} />
+          {/* LEFT: IMAGE */}
+          <div className={`lg:col-span-5 relative h-[400px] lg:h-auto ${teamColor} overflow-hidden`}>
+              <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(0,0,0,0.3)_1px,transparent_1px),linear-gradient(-45deg,rgba(0,0,0,0.3)_1px,transparent_1px)] bg-[size:20px_20px] opacity-30"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80"></div>
+              
+              <div className="absolute top-4 left-4 z-20 flex gap-2">
+                  <span className="bg-black text-[#DFFF00] px-3 py-1 text-[10px] font-black uppercase tracking-widest border border-[#DFFF00] shadow-sm">{data.team}</span>
+                  <span className="bg-white text-black px-3 py-1 text-[10px] font-black uppercase tracking-widest">#{data.number}</span>
+              </div>
+
+              <img src={data.image} className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[90%] w-auto object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)] z-10 hover:scale-105 transition-transform duration-500" alt={data.name} />
           </div>
 
-          {/* Info Block */}
-          <div className="relative z-10 flex-1 p-8 text-white w-full bg-gradient-to-t from-black/80 via-black/40 to-transparent md:bg-none">
-              <div className="flex flex-wrap gap-2 mb-2">
-                  <span className="bg-black border border-white/20 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-acid">{data.team}</span>
-                  <span className="bg-black border border-white/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest">#{data.number}</span>
-                  <span className="bg-black border border-white/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest">{data.pos}</span>
+          {/* RIGHT: INFO */}
+          <div className="lg:col-span-7 p-8 lg:p-12 flex flex-col justify-between bg-zinc-900 text-white relative">
+              <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
+                  <Activity size={300} />
               </div>
-              <h1 className="text-5xl md:text-7xl font-black uppercase leading-[0.9] tracking-tighter drop-shadow-lg mb-6">{data.name}</h1>
-              
-              {/* Key Stats Row */}
-              <div className="grid grid-cols-3 gap-4 border-t border-white/20 pt-4 max-w-md">
-                  <div>
-                      <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest block mb-1">PPG</span>
-                      <span className="text-3xl font-black">{data.stats.ppg}</span>
+
+              <div>
+                  <div className="flex items-center gap-3 mb-2 text-zinc-400">
+                      <Users size={16} />
+                      <span className="font-mono text-xs font-bold tracking-[0.2em] uppercase">{data.pos} // {data.status}</span>
                   </div>
-                  <div>
-                      <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest block mb-1">RPG</span>
-                      <span className="text-3xl font-black">{data.stats.rpg}</span>
+                  <h1 className="text-5xl md:text-7xl font-black uppercase leading-[0.85] tracking-tighter mb-6">{data.name}</h1>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 border-t border-zinc-700 pt-6">
+                      <div>
+                          <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest block mb-1">HEIGHT</span>
+                          <span className="text-xl font-mono font-bold">{data.height}</span>
+                      </div>
+                      <div>
+                          <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest block mb-1">WEIGHT</span>
+                          <span className="text-xl font-mono font-bold">{data.weight}</span>
+                      </div>
+                      <div>
+                          <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest block mb-1">AGE</span>
+                          <span className="text-xl font-mono font-bold">{data.age}</span>
+                      </div>
+                      <div>
+                          <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest block mb-1">EXP</span>
+                          <span className="text-xl font-mono font-bold">{data.exp} YRS</span>
+                      </div>
                   </div>
-                  <div>
-                      <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest block mb-1">APG</span>
-                      <span className="text-3xl font-black">{data.stats.apg}</span>
+              </div>
+
+              <div className="mt-8 flex flex-wrap gap-4">
+                  <div className="px-4 py-2 border border-zinc-700 bg-black/50 text-[10px] font-mono text-zinc-400 flex items-center gap-2 uppercase tracking-widest">
+                      <Globe size={12} className="text-[#DFFF00]"/> {data.country}
+                  </div>
+                  <div className="px-4 py-2 border border-zinc-700 bg-black/50 text-[10px] font-mono text-zinc-400 flex items-center gap-2 uppercase tracking-widest">
+                      <MapPin size={12} className="text-[#DFFF00]"/> {data.school}
+                  </div>
+                  <div className="px-4 py-2 border border-zinc-700 bg-black/50 text-[10px] font-mono text-zinc-400 flex items-center gap-2 uppercase tracking-widest">
+                      <Award size={12} className="text-[#DFFF00]"/> DRAFT: {data.draft}
                   </div>
               </div>
           </div>
@@ -75,89 +112,105 @@ export default function PlayerPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* LEFT COL: GAME LOG */}
-          <div className="lg:col-span-2">
-              <div className="bg-zinc-50 dark:bg-zinc-900 border-2 border-black dark:border-zinc-700 p-6">
-                  <div className="flex items-center justify-between mb-6 pb-2 border-b-2 border-zinc-200 dark:border-zinc-800">
-                      <div className="flex items-center gap-2">
-                          <Activity size={14} className="text-black dark:text-white"/>
-                          <span className="text-xs font-black tracking-widest uppercase text-black dark:text-white">RECENT GAME LOG</span>
-                      </div>
-                      <span className="text-[9px] font-mono font-bold bg-acid text-black px-2 py-1">LAST 5 GAMES</span>
+          {/* COL 1: SEASON STATS */}
+          <div className="lg:col-span-2 space-y-8">
+              
+              {/* STAT CARDS */}
+              <div className="grid grid-cols-3 gap-4">
+                  <div className="bg-black text-[#DFFF00] p-6 border-2 border-black dark:border-zinc-700 relative overflow-hidden group">
+                      <div className="absolute top-2 right-2 opacity-20"><Crosshair size={40}/></div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 block mb-2 group-hover:text-white transition-colors">POINTS</span>
+                      <span className="text-5xl font-black tracking-tighter">{data.stats.ppg}</span>
                   </div>
+                  <div className="bg-white dark:bg-zinc-900 p-6 border-2 border-zinc-200 dark:border-zinc-700 relative overflow-hidden group">
+                      <div className="absolute top-2 right-2 opacity-10"><Shield size={40}/></div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-2 group-hover:text-black dark:group-hover:text-white transition-colors">REBOUNDS</span>
+                      <span className="text-5xl font-black tracking-tighter text-black dark:text-white">{data.stats.rpg}</span>
+                  </div>
+                  <div className="bg-white dark:bg-zinc-900 p-6 border-2 border-zinc-200 dark:border-zinc-700 relative overflow-hidden group">
+                      <div className="absolute top-2 right-2 opacity-10"><Zap size={40}/></div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-2 group-hover:text-black dark:group-hover:text-white transition-colors">ASSISTS</span>
+                      <span className="text-5xl font-black tracking-tighter text-black dark:text-white">{data.stats.apg}</span>
+                  </div>
+              </div>
 
-                  <div className="overflow-x-auto">
-                      <table className="w-full text-left min-w-[400px]">
-                          <thead>
-                              <tr className="text-[9px] font-black text-zinc-400 uppercase tracking-widest border-b border-zinc-200 dark:border-zinc-800">
-                                  <th className="pb-2 pl-2">DATE</th>
-                                  <th className="pb-2">OPP</th>
-                                  <th className="pb-2 text-center">RES</th>
-                                  <th className="pb-2 text-right text-black dark:text-white">PTS</th>
-                                  <th className="pb-2 text-right">REB</th>
-                                  <th className="pb-2 text-right">AST</th>
-                                  <th className="pb-2 text-right pr-2">MIN</th>
-                              </tr>
-                          </thead>
-                          <tbody className="font-mono text-xs text-zinc-600 dark:text-zinc-300">
-                              {data.gameLog.map((g: any, i: number) => (
-                                  <tr key={i} className="border-b border-zinc-100 dark:border-zinc-800 last:border-0 hover:bg-white dark:hover:bg-zinc-800 transition-colors">
-                                      <td className="py-3 pl-2 font-bold text-zinc-400">{g.date}</td>
-                                      <td className="py-3 font-bold uppercase">{g.opponent}</td>
-                                      <td className="py-3 text-center">
-                                          <span className={`px-1.5 py-0.5 font-bold text-[9px] ${g.result === 'W' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>{g.result}</span>
-                                      </td>
-                                      <td className="py-3 text-right font-black text-black dark:text-white text-sm">{g.pts}</td>
-                                      <td className="py-3 text-right">{g.reb}</td>
-                                      <td className="py-3 text-right">{g.ast}</td>
-                                      <td className="py-3 text-right pr-2 text-zinc-400">{g.min}</td>
-                                  </tr>
-                              ))}
-                          </tbody>
-                      </table>
+              {/* GAME LOG */}
+              <div className="bg-white dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-700 p-8">
+                  <div className="flex items-center justify-between mb-6 border-b-2 border-black dark:border-zinc-800 pb-4">
+                      <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2"><Clock size={16} /> RECENT PERFORMANCE</h3>
+                      <span className="text-[9px] font-mono font-bold bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded text-zinc-500">LAST 5 GAMES</span>
                   </div>
+                  
+                  {data.gameLog.length > 0 ? (
+                      <div className="overflow-x-auto">
+                          <table className="w-full text-left">
+                              <thead>
+                                  <tr className="text-[9px] font-black text-zinc-400 uppercase tracking-widest border-b border-zinc-100 dark:border-zinc-800">
+                                      <th className="pb-3 pl-2">DATE</th>
+                                      <th className="pb-3">OPPONENT</th>
+                                      <th className="pb-3 text-center">RESULT</th>
+                                      <th className="pb-3 text-right">PTS</th>
+                                      <th className="pb-3 text-right">REB</th>
+                                      <th className="pb-3 text-right">AST</th>
+                                      <th className="pb-3 text-right pr-2">MIN</th>
+                                  </tr>
+                              </thead>
+                              <tbody className="font-mono text-xs text-zinc-600 dark:text-zinc-300">
+                                  {data.gameLog.map((g: any, i: number) => (
+                                      <tr key={i} className="border-b border-zinc-50 dark:border-zinc-800 last:border-0 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors group">
+                                          <td className="py-3 pl-2 font-bold text-zinc-400">{g.date}</td>
+                                          <td className="py-3 font-black text-black dark:text-white uppercase">{g.opponent}</td>
+                                          <td className="py-3 text-center">
+                                              <span className={`px-2 py-0.5 font-bold text-[9px] ${g.result === 'W' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>{g.result}</span>
+                                          </td>
+                                          <td className="py-3 text-right font-black text-black dark:text-white group-hover:text-[#DFFF00] transition-colors">{g.pts}</td>
+                                          <td className="py-3 text-right">{g.reb}</td>
+                                          <td className="py-3 text-right">{g.ast}</td>
+                                          <td className="py-3 text-right pr-2 text-zinc-400">{g.min}</td>
+                                      </tr>
+                                  ))}
+                              </tbody>
+                          </table>
+                      </div>
+                  ) : (
+                      <div className="py-8 text-center text-zinc-400 font-mono text-xs">NO GAME LOG DATA AVAILABLE.</div>
+                  )}
               </div>
           </div>
 
-          {/* RIGHT COL: BIO & VITALS */}
+          {/* COL 2: SCOUTING REPORT */}
           <div className="space-y-6">
-               
-               {/* VITALS */}
-               <div className="bg-black text-zinc-300 p-6 border-b-4 border-acid">
-                    <div className="flex items-center gap-2 text-acid mb-6">
-                         <Zap size={16} />
-                         <span className="font-bold font-mono text-xs tracking-widest">BIOMETRICS</span>
-                    </div>
-                    <div className="space-y-4 font-mono text-xs">
-                        <div className="flex justify-between border-b border-zinc-800 pb-2">
-                             <span className="text-zinc-500 flex items-center gap-2"><Ruler size={12}/> HEIGHT</span>
-                             <span className="text-white font-bold">{data.height}</span>
+               <div className="bg-zinc-50 dark:bg-zinc-950 border-2 border-zinc-200 dark:border-zinc-800 p-6">
+                    <h3 className="text-xs font-black uppercase tracking-widest mb-4 flex items-center gap-2 text-zinc-400"><TrendingUp size={14} /> DEFENSIVE METRICS</h3>
+                    <div className="space-y-3">
+                        <div className="flex justify-between items-center border-b border-zinc-200 dark:border-zinc-800 pb-2">
+                             <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase">STEALS</span>
+                             <span className="font-black text-sm">{data.stats.spg}</span>
                         </div>
-                        <div className="flex justify-between border-b border-zinc-800 pb-2">
-                             <span className="text-zinc-500 flex items-center gap-2"><Weight size={12}/> WEIGHT</span>
-                             <span className="text-white font-bold">{data.weight}</span>
+                        <div className="flex justify-between items-center border-b border-zinc-200 dark:border-zinc-800 pb-2">
+                             <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase">BLOCKS</span>
+                             <span className="font-black text-sm">{data.stats.bpg}</span>
                         </div>
-                        <div className="flex justify-between border-b border-zinc-800 pb-2">
-                             <span className="text-zinc-500 flex items-center gap-2"><Users size={12}/> AGE</span>
-                             <span className="text-white font-bold">{data.age} YEARS</span>
-                        </div>
-                        <div className="flex justify-between border-b border-zinc-800 pb-2">
-                             <span className="text-zinc-500 flex items-center gap-2"><Calendar size={12}/> BORN</span>
-                             <span className="text-white font-bold">{data.born}</span>
-                        </div>
-                         <div className="flex justify-between pt-2">
-                             <span className="text-zinc-500 flex items-center gap-2"><TrendingUp size={12}/> STATUS</span>
-                             <span className="text-acid font-bold uppercase">{data.status}</span>
+                        <div className="flex justify-between items-center">
+                             <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase">TURNOVERS</span>
+                             <span className="font-black text-sm text-red-500">{data.stats.topg}</span>
                         </div>
                     </div>
                </div>
 
-               {/* BIO TEXT */}
-               <div className="bg-white dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-800 p-6">
-                  <h3 className="font-black text-xs uppercase mb-4 flex items-center gap-2 text-zinc-400"><Info size={14}/> PLAYER DOSSIER</h3>
-                  <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400 font-serif whitespace-pre-line text-justify">{data.desc}</p>
+               <div className="bg-zinc-900 text-zinc-400 p-6 border-l-4 border-[#DFFF00]">
+                  <div className="flex items-center gap-2 mb-4 text-[#DFFF00]">
+                      <FileText size={16} />
+                      <span className="font-bold font-mono text-xs tracking-widest">SCOUTING REPORT</span>
+                  </div>
+                  <p className="text-xs leading-relaxed font-mono whitespace-pre-line">
+                      {data.desc}
+                  </p>
+                  <div className="mt-4 pt-4 border-t border-zinc-800 flex justify-between items-center">
+                      <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-500">DATA SOURCE</span>
+                      <span className="text-white font-black text-[10px] bg-black px-2 py-1 border border-zinc-700">NBA OFFICIAL API</span>
+                  </div>
               </div>
-
           </div>
 
       </div>

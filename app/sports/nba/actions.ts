@@ -10,7 +10,7 @@ const ESPN_WEB = 'https://site.web.api.espn.com/apis/common/v3/sports/basketball
 
 const SEASON = '2025-26'; 
 
-// --- HEADERS (For NBA.com) ---
+// --- HEADERS ---
 const NBA_HEADERS = {
     'Referer': 'https://www.nba.com/',
     'Connection': 'keep-alive',
@@ -21,10 +21,13 @@ const NBA_HEADERS = {
     'x-nba-stats-token': 'true'
 };
 
-// --- HELPERS ---
+// --- HELPER: FETCH ---
 const fetchJson = async (url: string, headers: any = {}, revalidate = 60) => {
     try {
-        const res = await fetch(url, { headers, next: { revalidate } });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000); 
+        const res = await fetch(url, { headers, next: { revalidate }, signal: controller.signal });
+        clearTimeout(timeoutId);
         if (!res.ok) return null;
         return await res.json();
     } catch (e) {
@@ -42,7 +45,7 @@ const mapNbaResult = (data: any, setIndex = 0) => {
     });
 };
 
-// --- 1. GET LEAGUE LEADERS (NBA - PERFECT ELO) ---
+// --- 1. GET LEAGUE LEADERS ---
 export async function getLeagueLeaders() {
     const params = new URLSearchParams({
         MeasureType: 'Base', PerMode: 'PerGame', LeagueID: '00', Season: SEASON,
@@ -79,85 +82,108 @@ export async function getLeagueLeaders() {
     return { seasonLabel: `${SEASON} LIVE`, players };
 }
 
-// --- 2. GET STANDINGS (ESPN - FIXED PARSER) ---
-export async function getStandings() {
-    const data = await fetchJson(`${ESPN_CORE}/standings`, {}, 60);
-    
-    if (!data || !data.children) return { east: [], west: [] };
-
-    const east = data.children.find((c: any) => c.name === 'Eastern Conference' || c.abbreviation === 'EST');
-    const west = data.children.find((c: any) => c.name === 'Western Conference' || c.abbreviation === 'WST');
-
-    const formatTeam = (t: any) => {
-        // ROBUST STAT FINDER (This was the missing key!)
-        const getStat = (target: string) => {
-            return t.stats?.find((s: any) => 
-                s.name === target || 
-                s.id === target || 
-                s.type === target || 
-                s.shortDisplayName === target
-            )?.value;
-        };
-
-        const rawDiff = getStat('avgPointDifferential') ?? getStat('pointDifferential') ?? getStat('diff') ?? 0;
-        
-        return {
-            id: t.team.id,
-            name: t.team.abbreviation || t.team.displayName,
-            logo: t.team.logos?.[0]?.href,
-            wins: getStat('wins') || 0,
-            losses: getStat('losses') || 0,
-            pct: getStat('winPercent') || 0,
-            diff: Number(rawDiff).toFixed(1),
-            seed: getStat('playoffSeed'),
-        };
-    };
-
-    const sortTeams = (a: any, b: any) => a.seed - b.seed;
-
-    return {
-        east: (east?.standings?.entries?.map(formatTeam) || []).sort(sortTeams),
-        west: (west?.standings?.entries?.map(formatTeam) || []).sort(sortTeams)
-    };
-}
-
-// --- 3. GET PLAYER PROFILE (Hybrid) ---
+// --- 2. GET PLAYER PROFILE (FIXED STATS + ENHANCED BIO) ---
 export async function getPlayerProfile(playerId: string) {
+    // PATH A: NBA.COM (Accurate Stats via LeagueDash)
     try {
-        const info = await fetchJson(`${NBA_API}/commonplayerinfo?PlayerID=${playerId}`, NBA_HEADERS);
-        const stats = await fetchJson(`${NBA_API}/playerprofilev2?PlayerID=${playerId}&PerMode=PerGame`, NBA_HEADERS);
+        // 1. Fetch Bio Info
+        const infoUrl = `${NBA_API}/commonplayerinfo?PlayerID=${playerId}`;
+        const infoData = await fetchJson(infoUrl, NBA_HEADERS);
         
-        if (info && stats) {
-            const i = mapNbaResult(info, 0)[0];
-            const s = mapNbaResult(stats, 0).find((x: any) => x.SEASON_ID === SEASON) || {};
-            const log = await fetchJson(`${NBA_API}/playergamelog?PlayerID=${playerId}&Season=${SEASON}&SeasonType=Regular+Season`, NBA_HEADERS);
-            const games = mapNbaResult(log, 0).slice(0, 5).map((g: any) => ({
+        if (infoData) {
+            const i = mapNbaResult(infoData, 0)[0];
+            
+            // 2. FETCH STATS - USING THE ROBUST ENDPOINT (Same as ELO Board)
+            // We fetch the whole league list (cached/fast) and find this specific player.
+            // This avoids the 'playerprofilev2' 403 block.
+            const statsParams = new URLSearchParams({
+                MeasureType: 'Base', PerMode: 'PerGame', LeagueID: '00', Season: SEASON,
+                SeasonType: 'Regular Season', Month: '0', TeamID: '0', Outcome: '', Location: '',
+                SeasonSegment: '', DateFrom: '', DateTo: '', OpponentTeamID: '0', VsConference: '',
+                VsDivision: '', GameSegment: '', Period: '0', ShotClockRange: '', LastNGames: '0'
+            });
+            const statsUrl = `${NBA_API}/leaguedashplayerstats?${statsParams.toString()}`;
+            const statsData = await fetchJson(statsUrl, NBA_HEADERS, 0);
+            
+            const allStats = mapNbaResult(statsData);
+            const pStats = allStats.find((p: any) => p.PLAYER_ID.toString() === playerId) || {};
+
+            // 3. Fetch Game Log
+            const logUrl = `${NBA_API}/playergamelog?PlayerID=${playerId}&Season=${SEASON}&SeasonType=Regular+Season`;
+            const logData = await fetchJson(logUrl, NBA_HEADERS);
+            const logs = mapNbaResult(logData, 0).slice(0, 5).map((g: any) => ({
                 date: g.GAME_DATE, opponent: g.MATCHUP.split(' ')[2], result: g.WL,
                 pts: g.PTS, reb: g.REB, ast: g.AST, min: g.MIN
             }));
+
+            // 4. Generate Bio
+            const draftStr = i.DRAFT_YEAR && i.DRAFT_YEAR !== 'Undrafted' 
+                ? `Selected ${i.DRAFT_NUMBER} overall in the ${i.DRAFT_YEAR} Draft (Round ${i.DRAFT_ROUND}).` 
+                : 'Entered the league as an Undrafted Free Agent.';
+            
+            const schoolStr = i.SCHOOL && i.SCHOOL !== ' ' 
+                ? `Alumni of ${i.SCHOOL}.` 
+                : `Originates from ${i.COUNTRY}.`;
+
+            const expStr = i.SEASON_EXP > 0 
+                ? `Veteran presence with ${i.SEASON_EXP} years of league experience.` 
+                : 'Currently in their rookie campaign.';
+
+            const bioText = `${i.DISPLAY_FIRST_LAST} operates as a ${i.POSITION} for the ${i.TEAM_CITY} ${i.TEAM_NAME}. Standing ${i.HEIGHT} and weighing ${i.WEIGHT} lbs, this ${i.COUNTRY} native is a key asset to the rotation. ${draftStr} ${schoolStr} ${expStr}`;
 
             return {
                 id: playerId, name: i.DISPLAY_FIRST_LAST, team: i.TEAM_NAME, teamId: i.TEAM_ID,
                 number: i.JERSEY, pos: i.POSITION, height: i.HEIGHT, weight: i.WEIGHT,
                 age: ((new Date().getTime() - new Date(i.BIRTHDATE).getTime()) / 31557600000).toFixed(0),
                 born: i.BIRTHDATE, image: `https://cdn.nba.com/headshots/nba/latest/1040x760/${playerId}.png`,
-                status: 'Active', seasonLabel: SEASON, desc: `${i.DISPLAY_FIRST_LAST} | ${i.TEAM_NAME}`,
+                
+                draft: i.DRAFT_YEAR === 'Undrafted' ? 'UNDRAFTED' : `${i.DRAFT_YEAR} / R${i.DRAFT_ROUND} / P${i.DRAFT_NUMBER}`,
+                school: i.SCHOOL || i.COUNTRY,
+                exp: i.SEASON_EXP,
+                country: i.COUNTRY,
+                
+                status: 'Active', seasonLabel: SEASON, 
+                desc: bioText,
                 stats: {
-                    ppg: (s.PTS || 0).toFixed(1), rpg: (s.REB || 0).toFixed(1), apg: (s.AST || 0).toFixed(1),
-                    spg: (s.STL || 0).toFixed(1), bpg: (s.BLK || 0).toFixed(1), topg: (s.TOV || 0).toFixed(1)
+                    ppg: (pStats.PTS || 0).toFixed(1),
+                    rpg: (pStats.REB || 0).toFixed(1),
+                    apg: (pStats.AST || 0).toFixed(1),
+                    spg: (pStats.STL || 0).toFixed(1),
+                    bpg: (pStats.BLK || 0).toFixed(1),
+                    topg: (pStats.TOV || 0).toFixed(1)
                 },
-                gameLog: games
+                gameLog: logs
             };
         }
     } catch(e) {}
 
+    // PATH B: ESPN Fallback
     try {
         const data = await fetchJson(`${ESPN_WEB}/athletes/${playerId}/overview`);
         if (data?.athlete) {
+            const p = data.athlete;
+            const seasons = data.statistics?.regularSeason?.seasons || [];
+            const latestSeason = seasons.sort((a: any, b: any) => b.year - a.year)[0];
+            const labels = data.statistics?.names || [];
+            
+            const getVal = (k: string) => {
+                const i = labels.indexOf(k);
+                return (i > -1 && latestSeason) ? parseFloat(latestSeason.stats[i]).toFixed(1) : '0.0';
+            };
+
             return {
-                id: data.athlete.id, name: data.athlete.fullName, team: data.athlete.team?.displayName,
-                image: data.athlete.headshot?.href, seasonLabel: 'ESPN BACKUP',
-                stats: { ppg: '0.0', rpg: '0.0', apg: '0.0' }, gameLog: [], desc: 'Stats unavailable.'
+                id: p.id, name: p.fullName, team: p.team?.displayName || 'Free Agent',
+                image: p.headshot?.href, seasonLabel: latestSeason ? latestSeason.year : 'N/A',
+                draft: p.draft?.year ? `${p.draft.year} / R${p.draft.round} / P${p.draft.selection}` : 'N/A', 
+                school: p.college?.name || 'N/A',
+                exp: p.experience?.years || 0, 
+                country: p.citizenship || 'N/A',
+                desc: `Tactical profile for ${p.fullName}. Professional basketball player for the ${p.team?.displayName || 'NBA'}. Awaiting full biometric sync from primary database.`,
+                stats: {
+                    ppg: getVal('PTS'), rpg: getVal('REB'), apg: getVal('AST'),
+                    spg: getVal('STL'), bpg: getVal('BLK'), topg: getVal('TO')
+                },
+                gameLog: [] 
             };
         }
     } catch(e) {}
@@ -165,10 +191,34 @@ export async function getPlayerProfile(playerId: string) {
     return null;
 }
 
-// --- 4. LIVE SCORES (ESPN) ---
+// --- 3. STANDINGS (ESPN) ---
+export async function getStandings() {
+    const data = await fetchJson(`${ESPN_CORE}/standings`, {}, 60);
+    if (!data || !data.children) return { east: [], west: [] };
+
+    const east = data.children.find((c: any) => c.name === 'Eastern Conference' || c.abbreviation === 'EST');
+    const west = data.children.find((c: any) => c.name === 'Western Conference' || c.abbreviation === 'WST');
+
+    const formatTeam = (t: any) => {
+        const getStat = (target: string) => t.stats?.find((s: any) => s.name === target || s.id === target || s.type === target || s.shortDisplayName === target)?.value || 0;
+        return {
+            id: t.team.id, name: t.team.abbreviation, logo: t.team.logos?.[0]?.href,
+            wins: getStat('wins'), losses: getStat('losses'), pct: getStat('winPercent'),
+            diff: Number(getStat('avgPointDifferential') ?? getStat('pointDifferential') ?? 0).toFixed(1),
+            seed: getStat('playoffSeed')
+        };
+    };
+
+    return {
+        east: (east?.standings?.entries?.map(formatTeam) || []).sort((a: any, b: any) => a.seed - b.seed),
+        west: (west?.standings?.entries?.map(formatTeam) || []).sort((a: any, b: any) => a.seed - b.seed)
+    };
+}
+
+// --- 4. LIVE SCORES ---
 export async function getLiveScores() {
     const data = await fetchJson(`${ESPN_SITE}/scoreboard`, {}, 30);
-    if (!data || !data.events) return [];
+    if (!data?.events) return [];
     return data.events.map((e: any) => {
         const h = e.competitions[0].competitors.find((c:any)=>c.homeAway==='home');
         const a = e.competitions[0].competitors.find((c:any)=>c.homeAway==='away');
@@ -180,7 +230,7 @@ export async function getLiveScores() {
     });
 }
 
-// --- 5. SEARCH (NBA) ---
+// --- 5. SEARCH ---
 export async function searchPlayers(query: string) {
     if (!query || query.length < 2) return [];
     const url = `${NBA_API}/commonallplayers?IsOnlyCurrentSeason=1&LeagueID=00&Season=${SEASON}`;
@@ -192,7 +242,7 @@ export async function searchPlayers(query: string) {
     }));
 }
 
-// --- 6. TEAM DATA (ESPN) ---
+// --- 6. TEAM DATA ---
 export async function getTeamData(espnId: string) {
     const [t, r, s] = await Promise.all([
         fetchJson(`${ESPN_SITE}/teams/${espnId}`),
