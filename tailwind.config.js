@@ -9,18 +9,15 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Detected from app/page.tsx and globals.css
         acid: '#DFFF00',
-        // Approximate matches for ModCard.tsx usages
         orokin: {
           400: '#E5CC80', 
           700: '#8A7129', 
           800: '#2A2410', 
           900: '#141108', 
-          gold: '#D4AF37', // Derived from shadow-rgba(212,175,55)
+          gold: '#D4AF37',
         }
       },
-      // Detected from app/sports/nba/page.tsx
       keyframes: {
         scroll: {
           '0%': { transform: 'translateX(0)' },
@@ -36,13 +33,13 @@ module.exports = {
         },
       },
       animation: {
-        scroll: 'scroll 40s linear infinite',
+        scroll: 'scroll 80s linear infinite', // SLOWED DOWN FROM 40s
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
       },
     },
   },
   plugins: [
-    require("tailwindcss-animate"), // Required for 'animate-in', 'fade-in' classes seen in your files
+    require("tailwindcss-animate"),
   ],
 }

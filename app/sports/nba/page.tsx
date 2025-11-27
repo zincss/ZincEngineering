@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Trophy, Loader2, Users, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Trophy, Loader2, AlertTriangle, TrendingUp, LayoutGrid, Users, Activity } from 'lucide-react';
 import Link from 'next/link';
 import { NBA_TEAMS } from './data';
 import { getLiveScores, getStandings } from './actions'; 
 import SeasonLeaders from './components/SeasonLeaders';
 import PlayerSearch from './components/PlayerSearch';
+import RosterExplorer from './components/RosterExplorer';
 
 // --- LIVE SCOREBOARD ---
 const LiveScoreboard = () => {
@@ -28,22 +29,15 @@ const LiveScoreboard = () => {
         </div>
     );
 
-    // Create a seamless loop by duplicating the data
-    // We multiply it enough times to ensure it fills a wide screen before repeating
     const loopGames = [...games, ...games, ...games, ...games]; 
 
     return (
         <div className="mb-8 border-b border-black dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 overflow-hidden relative flex items-center h-16">
-            
-            {/* FIXED LIVE BADGE */}
             <div className="absolute left-0 top-0 bottom-0 z-20 flex items-center px-6 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 shadow-[4px_0_20px_rgba(0,0,0,0.1)]">
                 <div className="flex items-center gap-2 text-red-600 font-black text-[10px] uppercase tracking-widest">
                     <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"/> LIVE
                 </div>
             </div>
-
-            {/* SCROLLING TRACK */}
-            {/* 'pl-28' ensures the first item starts to the right of the badge initially */}
             <div className="flex animate-scroll hover:[animation-play-state:paused] pl-28 w-max">
                 <div className="flex divide-x divide-zinc-200 dark:divide-zinc-800">
                     {loopGames.map((game: any, i: number) => (
@@ -91,7 +85,6 @@ const StandingsModule = () => {
                 <TrendingUp size={14} className="text-black dark:text-white"/>
                 <span className="text-xs font-black tracking-widest uppercase">{title}</span>
             </div>
-            
             {loading ? (
                 <div className="flex items-center justify-center py-12 gap-2 text-zinc-400 font-mono text-[10px] animate-pulse">
                     <Loader2 size={12} className="animate-spin"/> SYNCING STANDINGS...
@@ -140,67 +133,112 @@ const StandingsModule = () => {
 };
 
 export default function NBAHub() {
+    const [activeTab, setActiveTab] = useState<'league' | 'elo' | 'players'>('league');
+
     return (
         <div className="min-h-screen max-w-7xl mx-auto px-4 pt-0 pb-20">
             <LiveScoreboard />
             
-            <div className="mb-12 border-b-2 border-black dark:border-zinc-700 pb-8 pt-8">
-                <div className="flex items-center gap-2 text-black dark:text-white mb-2">
-                    <Trophy size={14} />
-                    <span className="font-mono text-[10px] font-bold tracking-widest">NATIONAL BASKETBALL ASSOCIATION</span>
+            {/* --- HEADER --- */}
+            <div className="mb-12 border-b-2 border-black dark:border-zinc-700 pb-8 pt-8 flex flex-col md:flex-row justify-between items-end gap-6">
+                <div>
+                    <div className="flex items-center gap-2 text-black dark:text-white mb-2">
+                        <Trophy size={14} />
+                        <span className="font-mono text-[10px] font-bold tracking-widest">NATIONAL BASKETBALL ASSOCIATION</span>
+                    </div>
+                    <h1 className="text-5xl md:text-8xl font-black uppercase tracking-tighter leading-none text-black dark:text-white">
+                        {activeTab === 'league' ? 'LEAGUE DATA' : activeTab === 'elo' ? 'ELO RANKINGS' : 'PLAYER DATABASE'}
+                    </h1>
                 </div>
-                <h1 className="text-5xl md:text-8xl font-black uppercase tracking-tighter leading-none text-black dark:text-white">
-                    LEAGUE DATA
-                </h1>
+
+                {/* --- TAB NAVIGATION --- */}
+                <div className="w-full md:w-auto overflow-x-auto no-scrollbar">
+                    <div className="flex gap-2">
+                        <button 
+                            onClick={() => setActiveTab('league')}
+                            className={`px-4 py-3 font-black font-mono text-xs uppercase tracking-widest border-2 transition-all whitespace-nowrap ${
+                                activeTab === 'league' 
+                                ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white shadow-[4px_4px_0px_0px_#DFFF00]' 
+                                : 'bg-transparent text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white hover:text-black dark:hover:text-white'
+                            }`}
+                        >
+                            <LayoutGrid size={14} className="inline mr-2 mb-0.5"/> LEAGUE
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('elo')}
+                            className={`px-4 py-3 font-black font-mono text-xs uppercase tracking-widest border-2 transition-all whitespace-nowrap ${
+                                activeTab === 'elo' 
+                                ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white shadow-[4px_4px_0px_0px_#DFFF00]' 
+                                : 'bg-transparent text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white hover:text-black dark:hover:text-white'
+                            }`}
+                        >
+                            <Activity size={14} className="inline mr-2 mb-0.5"/> ELO RANKINGS
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('players')}
+                            className={`px-4 py-3 font-black font-mono text-xs uppercase tracking-widest border-2 transition-all whitespace-nowrap ${
+                                activeTab === 'players' 
+                                ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white shadow-[4px_4px_0px_0px_#DFFF00]' 
+                                : 'bg-transparent text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white hover:text-black dark:hover:text-white'
+                            }`}
+                        >
+                            <Users size={14} className="inline mr-2 mb-0.5"/> PLAYER DB
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+            {/* --- CONTENT AREA --- */}
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                 
-                {/* LEFT COLUMN: STANDINGS & TEAMS (8 Cols) */}
-                <div className="lg:col-span-8 order-2 lg:order-1">
-                    
-                    {/* GLOBAL PLAYER SEARCH - Replaces old franchise search */}
-                    <div className="mb-12">
-                         <div className="flex items-center gap-2 text-black dark:text-white mb-4">
-                            <Users size={20} />
-                            <h2 className="text-2xl font-black uppercase tracking-tighter">Global Athlete Database</h2>
+                {/* 1. LEAGUE VIEW (DEFAULT) */}
+                {activeTab === 'league' && (
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                        <div className="lg:col-span-12">
+                            <StandingsModule />
+                            
+                            <div className="flex items-center gap-2 text-black dark:text-white mb-6">
+                                <Users size={20} />
+                                <h2 className="text-2xl font-black uppercase tracking-tighter">Active Franchises</h2>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {NBA_TEAMS.map(team => (
+                                    <Link href={`/sports/nba/team/${team.id}`} key={team.id} className="group border-2 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white bg-white dark:bg-zinc-900 p-6 flex items-center gap-6 transition-all hover:-translate-y-1 hover:shadow-lg">
+                                        <div className={`w-16 h-16 rounded-full ${team.color} flex items-center justify-center shrink-0 shadow-md p-3 bg-white dark:bg-zinc-800`}>
+                                            <img src={team.logo} className="w-full h-full object-contain" alt={team.name} />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xl font-black uppercase leading-none mb-1 text-black dark:text-white">{team.name}</h3>
+                                            <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase">{team.city}</span>
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
                         </div>
-                        <PlayerSearch />
                     </div>
+                )}
 
-                    <div className="flex items-center gap-2 text-black dark:text-white mb-6">
-                        <Users size={20} />
-                        <h2 className="text-2xl font-black uppercase tracking-tighter">Franchises</h2>
+                {/* 2. ELO RANKINGS VIEW */}
+                {activeTab === 'elo' && (
+                    <div className="max-w-4xl mx-auto">
+                        <SeasonLeaders />
                     </div>
+                )}
 
-                    <StandingsModule />
-
-                    {/* Team Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {NBA_TEAMS.map(team => (
-                            <Link href={`/sports/nba/team/${team.id}`} key={team.id} className="group border-2 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white bg-white dark:bg-zinc-900 p-6 flex items-center gap-6 transition-all hover:-translate-y-1 hover:shadow-lg">
-                                <div className={`w-16 h-16 rounded-full ${team.color} flex items-center justify-center shrink-0 shadow-md p-3 bg-white dark:bg-zinc-800`}>
-                                    <img src={team.logo} className="w-full h-full object-contain" alt={team.name} />
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-black uppercase leading-none mb-1 text-black dark:text-white">{team.name}</h3>
-                                    <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase">{team.city}</span>
-                                </div>
-                            </Link>
-                        ))}
+                {/* 3. PLAYER DATABASE VIEW */}
+                {activeTab === 'players' && (
+                    <div className="max-w-5xl mx-auto space-y-12">
+                        <div>
+                            <div className="flex items-center gap-2 text-black dark:text-white mb-4">
+                                <Users size={20} />
+                                <h2 className="text-2xl font-black uppercase tracking-tighter">Global Athlete Search</h2>
+                            </div>
+                            <PlayerSearch />
+                        </div>
+                        
+                        <RosterExplorer />
                     </div>
-                </div>
-
-                {/* RIGHT COLUMN: PLAYERS & RANKINGS (4 Cols) */}
-                <div className="lg:col-span-4 order-1 lg:order-2">
-                     <div className="flex items-center gap-2 text-black dark:text-white mb-6">
-                        <Trophy size={20} />
-                        <h2 className="text-2xl font-black uppercase tracking-tighter">Players Hub</h2>
-                    </div>
-                    
-                    {/* The Season Elo Ranking Component */}
-                    <SeasonLeaders />
-                </div>
+                )}
 
             </div>
         </div>
