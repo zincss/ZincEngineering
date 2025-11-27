@@ -154,7 +154,7 @@ export async function getPlayerProfile(playerId: string) {
         let totalPts = 0, totalReb = 0, totalAst = 0;
         const gamesPlayed = gameLog.length;
         
-        gameLog.forEach(g => {
+        gameLog.forEach((g: any) => {
             totalPts += parseFloat(g.pts) || 0;
             totalReb += parseFloat(g.reb) || 0;
             totalAst += parseFloat(g.ast) || 0;
