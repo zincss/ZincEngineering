@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Gamepad2, Trophy, ArrowRight, Zap, Activity, Box, AlertTriangle } from "lucide-react";
+import GlobalTicker from './components/GlobalTicker';
 
 export default function Hub() {
   const [showAck, setShowAck] = useState(false);
@@ -20,8 +21,11 @@ export default function Hub() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-80px)] flex flex-col items-center justify-center relative px-4 bg-grid-pattern">
+    <div className="min-h-[calc(100vh-80px)] flex flex-col items-center justify-center relative px-4 bg-grid-pattern pb-20">
       
+      {/* --- LIVE TICKER --- */}
+      <GlobalTicker />
+
       {/* --- ALPHA ACKNOWLEDGEMENT MODAL --- */}
       {showAck && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md px-4 animate-in fade-in duration-300">
@@ -134,7 +138,7 @@ export default function Hub() {
       </div>
 
       {/* Decorative Footer */}
-      <div className="absolute bottom-0 left-0 right-0 flex justify-between items-end px-8 pb-8 opacity-30 pointer-events-none font-mono text-[9px] z-0">
+      <div className="absolute bottom-10 left-0 right-0 flex justify-between items-end px-8 pb-4 opacity-30 pointer-events-none font-mono text-[9px] z-0">
          <div className="flex flex-col gap-1">
             <div className="h-16 w-px bg-black dark:bg-white" />
             <span className="text-black dark:text-white tracking-widest">SEC.LEVEL: ALPHA</span>

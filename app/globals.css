@@ -60,3 +60,16 @@ html, body {
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
+
+/* ANIMATION: Infinite Ticker */
+@keyframes ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-ticker {
+  animation: ticker 40s linear infinite;
+  width: max-content;
+}
+.animate-ticker:hover {
+  animation-play-state: paused;
+}
