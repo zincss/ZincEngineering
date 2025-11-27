@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Trophy, Loader2, User, ChevronRight, Activity, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Search, Trophy, Loader2, Users, TrendingUp, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { NBA_TEAMS } from './data';
 import { getLiveScores, getStandings } from './actions'; 
+import SeasonLeaders from './components/SeasonLeaders';
 
 // --- LIVE SCOREBOARD ---
 const LiveScoreboard = () => {
@@ -138,34 +139,58 @@ export default function NBAHub() {
                 </h1>
             </div>
 
-            <div className="mb-8 relative shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)]">
-                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400">
-                    <Search size={20} />
-                 </div>
-                 <input 
-                    type="text" 
-                    placeholder="SEARCH FRANCHISES..."
-                    className="w-full h-16 bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-500 pl-12 font-bold font-mono text-lg uppercase focus:outline-none focus:border-acid transition-colors text-black dark:text-white"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                 />
-            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                
+                {/* LEFT COLUMN: STANDINGS & TEAMS (8 Cols) */}
+                <div className="lg:col-span-8 order-2 lg:order-1">
+                    <div className="flex items-center gap-2 text-black dark:text-white mb-6">
+                        <Users size={20} />
+                        <h2 className="text-2xl font-black uppercase tracking-tighter">Franchises</h2>
+                    </div>
 
-            {/* If searching, only show teams grid. If not searching, show Standings then teams. */}
-            {search.length === 0 && <StandingsModule />}
+                    <div className="mb-8 relative shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)]">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400">
+                            <Search size={20} />
+                        </div>
+                        <input 
+                            type="text" 
+                            placeholder="SEARCH TEAMS..."
+                            className="w-full h-16 bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-500 pl-12 font-bold font-mono text-lg uppercase focus:outline-none focus:border-acid transition-colors text-black dark:text-white"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                    </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {NBA_TEAMS.filter(t => t.name.toLowerCase().includes(search.toLowerCase())).map(team => (
-                    <Link href={`/sports/nba/team/${team.id}`} key={team.id} className="group border-2 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white bg-white dark:bg-zinc-900 p-6 flex items-center gap-6 transition-all hover:-translate-y-1 hover:shadow-lg">
-                        <div className={`w-16 h-16 rounded-full ${team.color} flex items-center justify-center shrink-0 shadow-md p-3 bg-white dark:bg-zinc-800`}>
-                            <img src={team.logo} className="w-full h-full object-contain" alt={team.name} />
-                        </div>
-                        <div>
-                            <h3 className="text-xl font-black uppercase leading-none mb-1 text-black dark:text-white">{team.name}</h3>
-                            <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase">{team.city}</span>
-                        </div>
-                    </Link>
-                ))}
+                    {/* Show Standings only if not searching */}
+                    {search.length === 0 && <StandingsModule />}
+
+                    {/* Team Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {NBA_TEAMS.filter(t => t.name.toLowerCase().includes(search.toLowerCase())).map(team => (
+                            <Link href={`/sports/nba/team/${team.id}`} key={team.id} className="group border-2 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white bg-white dark:bg-zinc-900 p-6 flex items-center gap-6 transition-all hover:-translate-y-1 hover:shadow-lg">
+                                <div className={`w-16 h-16 rounded-full ${team.color} flex items-center justify-center shrink-0 shadow-md p-3 bg-white dark:bg-zinc-800`}>
+                                    <img src={team.logo} className="w-full h-full object-contain" alt={team.name} />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black uppercase leading-none mb-1 text-black dark:text-white">{team.name}</h3>
+                                    <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase">{team.city}</span>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+
+                {/* RIGHT COLUMN: PLAYERS & RANKINGS (4 Cols) */}
+                <div className="lg:col-span-4 order-1 lg:order-2">
+                     <div className="flex items-center gap-2 text-black dark:text-white mb-6">
+                        <Trophy size={20} />
+                        <h2 className="text-2xl font-black uppercase tracking-tighter">Players Hub</h2>
+                    </div>
+                    
+                    {/* The Season Elo Ranking Component */}
+                    <SeasonLeaders />
+                </div>
+
             </div>
         </div>
     );

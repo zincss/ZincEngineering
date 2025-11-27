@@ -12,12 +12,12 @@ const fetchJson = async (url: string, revalidate = 60) => {
     try {
         const res = await fetch(url, { next: { revalidate } });
         if (!res.ok) {
-            console.error(`Fetch error ${res.status}: ${url}`);
+            // console.error(`Fetch error ${res.status}: ${url}`);
             return null;
         }
         return await res.json();
     } catch (e) {
-        console.error(`Fetch failed: ${url}`, e);
+        // console.error(`Fetch failed: ${url}`, e);
         return null;
     }
 };
@@ -82,7 +82,6 @@ export async function getTeamData(espnId: string) {
     // Format Schedule / Results
     const schedule = (scheduleData?.events || []).map((e: any) => {
         const game = e.competitions[0];
-        const isHome = game.competitors.find((c: any) => c.team.id === espnId)?.homeAway === 'home';
         const opponent = game.competitors.find((c: any) => c.team.id !== espnId);
         const teamResult = game.competitors.find((c: any) => c.team.id === espnId);
         
@@ -115,21 +114,16 @@ export async function getTeamData(espnId: string) {
 
 // --- 3. GET PLAYER PROFILE (WITH GAMELOG & ROBUST STATS) ---
 export async function getPlayerProfile(playerId: string) {
-    // 1. Basic Bio
     const bioData = await fetchJson(`${WEB_API}/athletes/${playerId}`, 3600);
     if (!bioData || !bioData.athlete) return null;
     
     const p = bioData.athlete;
 
-    // 2. Game Log (Recent Games)
     const logData = await fetchJson(`${WEB_API}/athletes/${playerId}/gamelog`, 3600);
     const events = logData?.seasonTypes?.[0]?.categories?.[0]?.events || [];
     
-    // Parse Game Log
     const gameLog = events.map((e: any) => {
         const stats = e.stats || [];
-        // Helper to find stat by index (ESPN NBA standard indices)
-        // 0:MIN, 1:FG, 2:FG%, 3:3PT, 4:3P%, 5:FT, 6:FT%, 7:REB, 8:AST, 9:BLK, 10:STL, 11:PF, 12:TO, 13:PTS
         return {
             date: e.eventDate ? new Date(e.eventDate).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' }) : '-',
             opponent: e.opponent?.abbreviation || 'OPP',
@@ -139,37 +133,37 @@ export async function getPlayerProfile(playerId: string) {
             reb: stats[7] || '0',
             ast: stats[8] || '0',
             stl: stats[10] || '0',
-            blk: stats[9] || '0'
+            blk: stats[9] || '0',
+            to:  stats[12] || '0'
         };
-    }); // We keep all for calculation, slice later
+    });
 
-    // 3. ROBUST STATS FETCHING
-    // Attempt 1: Fetch from the specific 'statistics' endpoint which usually has summaries
-    // Attempt 2: Calculate averages from the game log manually if API fails
-    
-    let seasonAvg = { ppg: '0.0', rpg: '0.0', apg: '0.0', per: '-' };
+    let seasonAvg = { ppg: '0.0', rpg: '0.0', apg: '0.0', spg: '0.0', bpg: '0.0', topg: '0.0', games: 0 };
 
-    // Try to calculate from log first (Most reliable for "current season" as it's raw data)
     if (gameLog.length > 0) {
-        let totalPts = 0, totalReb = 0, totalAst = 0;
+        let totalPts = 0, totalReb = 0, totalAst = 0, totalStl = 0, totalBlk = 0, totalTo = 0;
         const gamesPlayed = gameLog.length;
         
         gameLog.forEach((g: any) => {
             totalPts += parseFloat(g.pts) || 0;
             totalReb += parseFloat(g.reb) || 0;
             totalAst += parseFloat(g.ast) || 0;
+            totalStl += parseFloat(g.stl) || 0;
+            totalBlk += parseFloat(g.blk) || 0;
+            totalTo  += parseFloat(g.to)  || 0;
         });
 
         seasonAvg = {
             ppg: (totalPts / gamesPlayed).toFixed(1),
             rpg: (totalReb / gamesPlayed).toFixed(1),
             apg: (totalAst / gamesPlayed).toFixed(1),
-            per: '-' // PER is complex, we'll leave it or fetch if possible
+            spg: (totalStl / gamesPlayed).toFixed(1),
+            bpg: (totalBlk / gamesPlayed).toFixed(1),
+            topg: (totalTo / gamesPlayed).toFixed(1),
+            games: gamesPlayed
         };
     }
 
-    // 4. Bio Details
-    // Fallback for birthPlace using displayDob if city is missing
     const bornText = p.birthPlace?.city 
         ? `${p.birthPlace.city}, ${p.birthPlace.state || p.birthPlace.country}` 
         : p.displayDOB || 'Unknown';
@@ -189,11 +183,11 @@ export async function getPlayerProfile(playerId: string) {
         status: p.status?.name,
         stats: seasonAvg,
         gameLog: gameLog.slice(0, 10), // Only show last 10 in table
-        desc: `Professional basketball player for the ${p.team?.displayName}. ${p.college ? `Attended ${p.college.name}.` : ''}`
+        desc: `Professional basketball player for the ${p.team?.displayName}.`
     };
 }
 
-// --- 4. GET STANDINGS (FIXED & SORTED) ---
+// --- 4. GET STANDINGS ---
 export async function getStandings() {
     const data = await fetchJson(`${CORE_URL}/standings`, 3600);
     
@@ -222,7 +216,6 @@ export async function getStandings() {
         };
     };
 
-    // Sort by SEED (Ascending: 1 -> 15)
     const sortTeams = (a: any, b: any) => {
         if (a.seed && b.seed) return a.seed - b.seed;
         return b.pct - a.pct;
@@ -232,4 +225,33 @@ export async function getStandings() {
         east: (east?.standings?.entries?.map(formatTeam) || []).sort(sortTeams),
         west: (west?.standings?.entries?.map(formatTeam) || []).sort(sortTeams)
     };
+}
+
+// --- 5. GET LEAGUE LEADERS (ZINC ELO CANDIDATES) ---
+export async function getLeagueLeaders() {
+    // Reduced Candidate List to prevent API Timeouts (Top 8 Safe Picks)
+    const CANDIDATES = [
+        '3112335', // Jokic
+        '3945274', // Luka
+        '3032977', // Giannis
+        '4278078', // Shai
+        '4065648', // Tatum
+        '3059318', // Embiid
+        '4432809', // Ant Edwards
+        '3202'     // KD
+    ];
+
+    // Use Promise.allSettled so one failure doesn't break the whole app
+    const results = await Promise.allSettled(
+        CANDIDATES.map(id => getPlayerProfile(id))
+    );
+
+    // Filter only successful requests
+    const profiles = results
+        .filter(r => r.status === 'fulfilled')
+        // @ts-ignore
+        .map(r => r.value)
+        .filter(p => p !== null);
+
+    return profiles;
 }
