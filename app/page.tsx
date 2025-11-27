@@ -1,12 +1,71 @@
 'use client';
 
-import React from 'react';
-import { Gamepad2, Trophy, ArrowRight, Zap, Activity, Box } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { Gamepad2, Trophy, ArrowRight, Zap, Activity, Box, AlertTriangle } from "lucide-react";
 
 export default function Hub() {
+  const [showAck, setShowAck] = useState(false);
+
+  useEffect(() => {
+    // Check if user has already acknowledged the alpha state
+    const hasAcked = localStorage.getItem('zinc_alpha_ack');
+    if (!hasAcked) {
+      setShowAck(true);
+    }
+  }, []);
+
+  const handleAck = () => {
+    localStorage.setItem('zinc_alpha_ack', 'true');
+    setShowAck(false);
+  };
+
   return (
     <div className="min-h-[calc(100vh-80px)] flex flex-col items-center justify-center relative px-4 bg-grid-pattern">
       
+      {/* --- ALPHA ACKNOWLEDGEMENT MODAL --- */}
+      {showAck && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md px-4 animate-in fade-in duration-300">
+            <div className="max-w-md w-full bg-zinc-900 border-2 border-[#DFFF00] p-1 shadow-[0_0_50px_rgba(223,255,0,0.15)] relative">
+                
+                {/* Decorative Corner Accents */}
+                <div className="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-[#DFFF00] -translate-x-1 -translate-y-1"></div>
+                <div className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-[#DFFF00] translate-x-1 -translate-y-1"></div>
+                <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-[#DFFF00] -translate-x-1 translate-y-1"></div>
+                <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-[#DFFF00] translate-x-1 translate-y-1"></div>
+
+                <div className="bg-black p-8 relative overflow-hidden">
+                    {/* Scanline texture */}
+                    <div className="absolute inset-0 bg-[linear-gradient(transparent_2px,#000_2px)] bg-[length:100%_4px] opacity-20 pointer-events-none"></div>
+
+                    <div className="flex items-center gap-3 text-[#DFFF00] mb-6 border-b border-zinc-800 pb-4">
+                        <AlertTriangle size={28} className="animate-pulse" />
+                        <div>
+                            <h2 className="text-xl font-black tracking-widest uppercase leading-none">SYSTEM WARNING</h2>
+                            <span className="text-[9px] font-mono text-zinc-500">SECURE CONNECTION // UNSTABLE</span>
+                        </div>
+                    </div>
+
+                    <div className="font-mono text-xs text-zinc-300 leading-relaxed mb-8 space-y-4">
+                        <p>
+                            <strong className="text-white bg-red-500/20 text-red-500 px-1 py-0.5 mr-1">CAUTION:</strong> 
+                            You are accessing the ZINC ENGINEERING Interface in <span className="text-[#DFFF00] font-bold">ALPHA STATE</span> (v.3.0.4).
+                        </p>
+                        <p className="text-zinc-400">
+                            System stability is not guaranteed. Operational modules may be incomplete, unstable, or prone to critical runtime errors.
+                        </p>
+                    </div>
+
+                    <button
+                        onClick={handleAck}
+                        className="w-full py-4 bg-[#DFFF00] text-black font-black font-mono text-sm uppercase tracking-widest hover:bg-white hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
+                    >
+                        I UNDERSTAND <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform"/>
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
+
       {/* Hero Section */}
       <div className="text-center mb-16 relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
         <div className="inline-flex items-center gap-2 text-zinc-400 text-[10px] font-mono font-bold tracking-[0.4em] mb-6 border border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-sm px-4 py-1 rounded-full">

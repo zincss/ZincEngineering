@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Trophy, Loader2, Users, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Trophy, Loader2, Users, AlertTriangle, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { NBA_TEAMS } from './data';
 import { getLiveScores, getStandings } from './actions'; 
 import SeasonLeaders from './components/SeasonLeaders';
+import PlayerSearch from './components/PlayerSearch';
 
 // --- LIVE SCOREBOARD ---
 const LiveScoreboard = () => {
@@ -20,37 +21,53 @@ const LiveScoreboard = () => {
     }, []);
 
     if (loading) return <div className="h-12 flex items-center justify-center text-[9px] font-mono animate-pulse text-zinc-500 border-b border-zinc-200 dark:border-zinc-800">INITIALIZING LIVE FEED...</div>;
+    
     if (games.length === 0) return (
         <div className="h-12 flex items-center justify-center text-[9px] font-mono text-zinc-500 border-b border-zinc-200 dark:border-zinc-800">
             NO ACTIVE GAMES
         </div>
     );
 
+    // Create a seamless loop by duplicating the data
+    // We multiply it enough times to ensure it fills a wide screen before repeating
+    const loopGames = [...games, ...games, ...games, ...games]; 
+
     return (
-        <div className="mb-8 overflow-x-auto no-scrollbar border-b border-black dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950">
-            <div className="flex divide-x divide-zinc-200 dark:divide-zinc-800 min-w-max">
-                <div className="px-4 py-3 flex items-center gap-2 text-red-600 font-black text-[10px] uppercase tracking-widest bg-white dark:bg-zinc-900 sticky left-0 z-10 border-r border-zinc-200 dark:border-zinc-800 shadow-sm">
+        <div className="mb-8 border-b border-black dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 overflow-hidden relative flex items-center h-16">
+            
+            {/* FIXED LIVE BADGE */}
+            <div className="absolute left-0 top-0 bottom-0 z-20 flex items-center px-6 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 shadow-[4px_0_20px_rgba(0,0,0,0.1)]">
+                <div className="flex items-center gap-2 text-red-600 font-black text-[10px] uppercase tracking-widest">
                     <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"/> LIVE
                 </div>
-                {games.map((game: any) => (
-                    <div key={game.id} className="px-6 py-3 flex flex-col justify-center min-w-[160px] hover:bg-white dark:hover:bg-zinc-900 transition-colors group cursor-default">
-                        <div className="flex justify-between items-center mb-1">
-                            <div className="flex items-center gap-2">
-                                <img src={game.home.logo} className="w-4 h-4 object-contain" />
-                                <span className="font-black text-xs text-black dark:text-white">{game.home.name}</span>
+            </div>
+
+            {/* SCROLLING TRACK */}
+            {/* 'pl-28' ensures the first item starts to the right of the badge initially */}
+            <div className="flex animate-scroll hover:[animation-play-state:paused] pl-28 w-max">
+                <div className="flex divide-x divide-zinc-200 dark:divide-zinc-800">
+                    {loopGames.map((game: any, i: number) => (
+                        <div key={`${game.id}-${i}`} className="px-8 py-1 flex flex-col justify-center min-w-[220px] hover:bg-white dark:hover:bg-zinc-900 transition-colors group cursor-default">
+                            <div className="flex justify-between items-center mb-1">
+                                <div className="flex items-center gap-2">
+                                    <img src={game.home.logo} className="w-4 h-4 object-contain" />
+                                    <span className="font-black text-xs text-black dark:text-white">{game.home.name}</span>
+                                </div>
+                                <span className="font-mono font-bold text-sm text-black dark:text-white">{game.home.score}</span>
                             </div>
-                            <span className="font-mono font-bold text-sm text-black dark:text-white">{game.home.score}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-2">
-                                <img src={game.away.logo} className="w-4 h-4 object-contain" />
-                                <span className="font-black text-xs text-black dark:text-white">{game.away.name}</span>
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                    <img src={game.away.logo} className="w-4 h-4 object-contain" />
+                                    <span className="font-black text-xs text-black dark:text-white">{game.away.name}</span>
+                                </div>
+                                <span className="font-mono font-bold text-sm text-black dark:text-white">{game.away.score}</span>
                             </div>
-                            <span className="font-mono font-bold text-sm text-black dark:text-white">{game.away.score}</span>
+                            <div className="flex items-center justify-between mt-0.5">
+                                <span className="text-[8px] font-mono text-zinc-400 uppercase tracking-widest group-hover:text-acid transition-colors">{game.status}</span>
+                            </div>
                         </div>
-                        <span className="text-[8px] font-mono text-zinc-400 mt-1 uppercase tracking-widest group-hover:text-acid transition-colors">{game.status}</span>
-                    </div>
-                ))}
+                    ))}
+                </div>
             </div>
         </div>
     );
@@ -123,8 +140,6 @@ const StandingsModule = () => {
 };
 
 export default function NBAHub() {
-    const [search, setSearch] = useState('');
-
     return (
         <div className="min-h-screen max-w-7xl mx-auto px-4 pt-0 pb-20">
             <LiveScoreboard />
@@ -143,30 +158,26 @@ export default function NBAHub() {
                 
                 {/* LEFT COLUMN: STANDINGS & TEAMS (8 Cols) */}
                 <div className="lg:col-span-8 order-2 lg:order-1">
+                    
+                    {/* GLOBAL PLAYER SEARCH - Replaces old franchise search */}
+                    <div className="mb-12">
+                         <div className="flex items-center gap-2 text-black dark:text-white mb-4">
+                            <Users size={20} />
+                            <h2 className="text-2xl font-black uppercase tracking-tighter">Global Athlete Database</h2>
+                        </div>
+                        <PlayerSearch />
+                    </div>
+
                     <div className="flex items-center gap-2 text-black dark:text-white mb-6">
                         <Users size={20} />
                         <h2 className="text-2xl font-black uppercase tracking-tighter">Franchises</h2>
                     </div>
 
-                    <div className="mb-8 relative shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)]">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400">
-                            <Search size={20} />
-                        </div>
-                        <input 
-                            type="text" 
-                            placeholder="SEARCH TEAMS..."
-                            className="w-full h-16 bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-500 pl-12 font-bold font-mono text-lg uppercase focus:outline-none focus:border-acid transition-colors text-black dark:text-white"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                        />
-                    </div>
-
-                    {/* Show Standings only if not searching */}
-                    {search.length === 0 && <StandingsModule />}
+                    <StandingsModule />
 
                     {/* Team Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {NBA_TEAMS.filter(t => t.name.toLowerCase().includes(search.toLowerCase())).map(team => (
+                        {NBA_TEAMS.map(team => (
                             <Link href={`/sports/nba/team/${team.id}`} key={team.id} className="group border-2 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white bg-white dark:bg-zinc-900 p-6 flex items-center gap-6 transition-all hover:-translate-y-1 hover:shadow-lg">
                                 <div className={`w-16 h-16 rounded-full ${team.color} flex items-center justify-center shrink-0 shadow-md p-3 bg-white dark:bg-zinc-800`}>
                                     <img src={team.logo} className="w-full h-full object-contain" alt={team.name} />
