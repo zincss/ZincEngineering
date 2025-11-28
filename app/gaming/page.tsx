@@ -1,9 +1,104 @@
 'use client';
 
+import React, { useState, useEffect } from 'react';
 import Link from "next/link";
-import { Ghost, ArrowRight, Plus } from "lucide-react";
+import { Ghost, ArrowRight, Plus, Lock, KeyRound, AlertCircle, Loader2 } from "lucide-react";
 
-export default function GamingHub() {
+export default function EntertainmentHub() {
+  // --- SECURITY LOGIC ---
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [code, setCode] = useState('');
+  const [error, setError] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    // Check if previously unlocked
+    const auth = localStorage.getItem('zinc_ent_auth');
+    if (auth === 'true') {
+      setIsUnlocked(true);
+    }
+    setCheckingAuth(false);
+  }, []);
+
+  const handleUnlock = (e: React.FormEvent) => {
+    e.preventDefault();
+    setVerifying(true);
+    setError(false);
+
+    // SIMULATE NETWORK DELAY
+    setTimeout(() => {
+        if (code.toUpperCase() === 'ZINC') {
+            setIsUnlocked(true);
+            localStorage.setItem('zinc_ent_auth', 'true');
+        } else {
+            setError(true);
+            setCode('');
+        }
+        setVerifying(false);
+    }, 800);
+  };
+
+  // --- RENDERING ---
+  
+  // 1. Loading State (prevent flicker)
+  if (checkingAuth) return <div className="min-h-screen bg-black" />;
+
+  // 2. Lock Screen
+  if (!isUnlocked) {
+    return (
+        <div className="min-h-[calc(100vh-80px)] flex flex-col items-center justify-center relative px-4">
+             <div className="bg-starfield">
+                <div className="stars-1"></div>
+            </div>
+
+            <div className="max-w-md w-full bg-black/50 backdrop-blur-md border border-zinc-800 p-8 flex flex-col items-center text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="w-16 h-16 bg-zinc-900 rounded-full flex items-center justify-center mb-6 border border-zinc-800">
+                    <Lock size={24} className="text-zinc-500" />
+                </div>
+                
+                <h1 className="text-2xl font-black text-white uppercase tracking-tighter mb-2">RESTRICTED ACCESS</h1>
+                <p className="font-mono text-xs text-zinc-500 mb-8 leading-relaxed">
+                    This division requires Level 2 security clearance. <br/>
+                    Please enter your authorization code to proceed.
+                </p>
+
+                <form onSubmit={handleUnlock} className="w-full relative">
+                    <div className="relative group">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600">
+                            <KeyRound size={16} />
+                        </div>
+                        <input 
+                            type="password" 
+                            value={code}
+                            onChange={(e) => { setError(false); setCode(e.target.value); }}
+                            placeholder="ENTER ACCESS CODE..."
+                            className="w-full h-12 bg-zinc-900/50 border border-zinc-700 focus:border-[#DFFF00] pl-12 pr-4 font-mono text-sm font-bold tracking-widest outline-none text-white transition-all uppercase placeholder:text-zinc-700 text-center"
+                            autoFocus
+                        />
+                    </div>
+
+                    {error && (
+                        <div className="flex items-center justify-center gap-2 text-red-500 text-[10px] font-mono font-bold mt-3 animate-in fade-in slide-in-from-top-1">
+                            <AlertCircle size={12} />
+                            <span>ACCESS DENIED // INVALID CODE</span>
+                        </div>
+                    )}
+
+                    <button 
+                        type="submit"
+                        disabled={verifying}
+                        className="w-full mt-4 h-12 bg-[#DFFF00] hover:bg-white text-black font-black font-mono text-xs uppercase tracking-[0.2em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                        {verifying ? <Loader2 size={16} className="animate-spin" /> : "AUTHENTICATE"}
+                    </button>
+                </form>
+            </div>
+        </div>
+    )
+  }
+
+  // 3. Main Content (Entertainment Hub)
   return (
     <div className="min-h-[calc(100vh-80px)] flex flex-col items-center justify-center relative px-4 pb-20">
       
@@ -16,9 +111,14 @@ export default function GamingHub() {
 
       {/* HERO */}
       <div className="text-center mb-20 relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
-        <div className="inline-flex items-center gap-2 text-zinc-500 text-[10px] font-mono font-bold tracking-[0.3em] mb-6 uppercase border border-zinc-800 px-4 py-1 rounded-full bg-black/50 backdrop-blur-sm">
-           <span>ZINC_CORP // GAMING_DIVISION</span>
-           <span className="w-1.5 h-1.5 bg-[#DFFF00] rounded-full animate-pulse shadow-[0_0_10px_#DFFF00]"></span>
+        
+        {/* Status Badge */}
+        <div className="inline-flex items-center gap-3 text-zinc-500 text-[10px] font-mono font-bold tracking-[0.2em] mb-6 uppercase border border-zinc-800 bg-black/50 backdrop-blur-sm px-4 py-1.5 rounded-sm">
+           <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#DFFF00] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#DFFF00]"></span>
+           </span>
+           <span>ZINC_CORP // ENTERTAINMENT_DIVISION</span>
         </div>
 
         <div className="flex flex-col items-center">
