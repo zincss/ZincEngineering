@@ -1,7 +1,7 @@
 'use client';
 
 import Link from "next/link";
-import { Trophy, Wind, Activity, ArrowRight, Shield } from "lucide-react";
+import { Trophy, Wind, Activity, ArrowRight, Shield, Flag } from "lucide-react";
 
 export default function SportsHub() {
   return (
@@ -38,7 +38,7 @@ export default function SportsHub() {
       </div>
 
       {/* GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-6xl relative z-20 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-200">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-[1400px] relative z-20 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-200">
         
         {/* NBA */}
         <Link href="/sports/nba" className="group relative h-80 border border-zinc-800 bg-black/50 hover:bg-zinc-900/80 p-8 flex flex-col justify-between hover:border-[#DFFF00] transition-all duration-300 overflow-hidden backdrop-blur-sm">
@@ -49,10 +49,10 @@ export default function SportsHub() {
                 <div className="w-12 h-12 bg-[#DFFF00] text-black flex items-center justify-center mb-6 font-black text-xl group-hover:scale-110 transition-transform">
                     NBA
                 </div>
-                <h2 className="text-3xl font-black uppercase mb-2 text-white tracking-tighter">BASKETBALL<br/>OPS</h2>
+                <h2 className="text-2xl font-black uppercase mb-2 text-white tracking-tighter">BASKETBALL<br/>OPS</h2>
                 <div className="h-1 w-12 bg-[#DFFF00] mb-4"></div>
                 <p className="font-mono text-[10px] text-zinc-400 leading-relaxed">
-                    Real-time court telemetry, player efficiency ratings, and franchise historical archives.
+                    Real-time court telemetry and archives.
                 </p>
             </div>
             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-white transition-colors">
@@ -69,10 +69,10 @@ export default function SportsHub() {
                 <div className="w-12 h-12 bg-red-600 text-white flex items-center justify-center mb-6 font-black text-xl group-hover:scale-110 transition-transform">
                     F1
                 </div>
-                <h2 className="text-3xl font-black uppercase mb-2 text-white tracking-tighter">FORMULA 1<br/>TELEMETRY</h2>
+                <h2 className="text-2xl font-black uppercase mb-2 text-white tracking-tighter">FORMULA 1<br/>TELEMETRY</h2>
                 <div className="h-1 w-12 bg-red-600 mb-4"></div>
                 <p className="font-mono text-[10px] text-zinc-400 leading-relaxed">
-                    Circuit lap data, driver standings, and constructor performance metrics.
+                    Lap data and constructor metrics.
                 </p>
             </div>
             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-white transition-colors">
@@ -89,14 +89,37 @@ export default function SportsHub() {
                 <div className="w-12 h-12 bg-green-600 text-white flex items-center justify-center mb-6 font-black text-xl group-hover:scale-110 transition-transform">
                     NRL
                 </div>
-                <h2 className="text-3xl font-black uppercase mb-2 text-white tracking-tighter">RUGBY<br/>LEAGUE</h2>
+                <h2 className="text-2xl font-black uppercase mb-2 text-white tracking-tighter">RUGBY<br/>LEAGUE</h2>
                 <div className="h-1 w-12 bg-green-600 mb-4"></div>
                 <p className="font-mono text-[10px] text-zinc-400 leading-relaxed">
-                    Match statistics, team ladders, and player performance tracking.
+                    Match stats and player tracking.
                 </p>
             </div>
             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-white transition-colors">
                 OPEN DATABASE <ArrowRight size={14} className="text-green-600" />
+            </div>
+        </Link>
+
+        {/* GOLF - NEW MODULE */}
+        <Link href="/sports/golf" className="group relative h-80 border border-zinc-800 bg-black/50 hover:bg-zinc-900/80 p-8 flex flex-col justify-between hover:border-[#DFFF00] transition-all duration-300 overflow-hidden backdrop-blur-sm">
+            <div className="absolute -right-12 -top-12 p-4 opacity-5 group-hover:opacity-10 transition-opacity rotate-12 duration-500 group-hover:scale-110">
+                <Flag size={200} className="text-white" />
+            </div>
+            <div className="relative z-10">
+                <div className="w-12 h-12 bg-white text-black flex items-center justify-center mb-6 font-black text-xl group-hover:scale-110 transition-transform border border-zinc-200">
+                    GOLF
+                </div>
+                <div className="absolute top-0 right-0">
+                    <span className="text-[9px] font-mono text-[#DFFF00] border border-[#DFFF00]/30 px-2 py-1 bg-black/50">NEW</span>
+                </div>
+                <h2 className="text-2xl font-black uppercase mb-2 text-white tracking-tighter">FAIRWAY<br/>CONTROL</h2>
+                <div className="h-1 w-12 bg-white mb-4"></div>
+                <p className="font-mono text-[10px] text-zinc-400 leading-relaxed">
+                    Global rankings, live tournament scoring, and shot analytics.
+                </p>
+            </div>
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-white transition-colors">
+                TEE OFF <ArrowRight size={14} className="text-white" />
             </div>
         </Link>
 
