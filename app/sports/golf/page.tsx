@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Flag, Target, MapPin, Trophy, Calendar } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Flag, Target, MapPin, Trophy, Calendar, Terminal, Activity } from 'lucide-react';
 
 // FIX: Update imports to point to lib/components
 import { LiveLeaderboard } from './lib/components/LiveLeaderboard';
@@ -11,11 +12,41 @@ import { SeasonLeaders } from './lib/components/SeasonLeaders';
 // FIX: Import from lib/golf-api
 import { getRankings, getTournaments, getSeasonLeaders, Golfer, Tournament, StatLeaderboard } from './lib/golf-api';
 
+// --- LOADER OVERLAY ---
+const NavigationLoader = () => (
+    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="relative mb-8">
+           <div className="absolute inset-0 bg-[#DFFF00] blur-2xl opacity-20 animate-pulse"></div>
+           <div className="w-16 h-16 border-2 border-zinc-800 border-t-[#DFFF00] rounded-full animate-spin relative z-10"></div>
+           <div className="absolute inset-0 flex items-center justify-center z-10">
+               <Activity size={24} className="text-[#DFFF00]" />
+           </div>
+        </div>
+        <div className="text-center space-y-3">
+            <div className="flex items-center justify-center gap-3 text-[#DFFF00] font-mono text-sm font-black tracking-[0.2em] uppercase">
+                <Terminal size={14} />
+                <span>ACCESSING DATABASE</span>
+            </div>
+            <span className="text-zinc-500 font-mono text-[10px] font-bold tracking-widest animate-pulse">
+                RETRIEVING SECURE DATA...
+            </span>
+        </div>
+    </div>
+);
+
 export default function GolfHub() {
+  const router = useRouter();
   const [rankings, setRankings] = useState<Golfer[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [featured, setFeatured] = useState<Tournament | null>(null);
   const [seasonStats, setSeasonStats] = useState<StatLeaderboard[]>([]);
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  // You can pass this handler to sub-components if you update them
+  const handleNavigate = (url: string) => {
+      setIsNavigating(true);
+      router.push(url);
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -36,6 +67,10 @@ export default function GolfHub() {
 
   return (
     <div className="min-h-screen bg-black pb-20 pt-8">
+       
+       {/* NAVIGATION LOADER */}
+       {isNavigating && <NavigationLoader />}
+
        {/* LIVE TICKER */}
        <div className="sticky top-[80px] z-30 mb-8">
           <LiveLeaderboard />

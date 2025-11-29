@@ -15,15 +15,15 @@ export default function SportsHub() {
       </div>
 
       {/* HERO */}
-      <div className="text-center mb-20 relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
+      <div className="text-center mt-12 md:mt-24 mb-20 relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
         
         {/* Status Badge: Square Look */}
-        <div className="inline-flex items-center gap-3 text-zinc-500 text-[10px] font-mono font-bold tracking-[0.2em] mb-6 uppercase border border-zinc-800 bg-black/50 backdrop-blur-sm px-4 py-1.5 rounded-sm">
+        <div className="inline-flex items-center gap-3 text-zinc-500 text-[10px] font-mono font-bold tracking-[0.2em] mb-10 uppercase border border-zinc-800 bg-black/50 backdrop-blur-sm px-4 py-1.5 rounded-sm">
            <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#DFFF00] opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-[#DFFF00]"></span>
            </span>
-           <span>ZINC_CORP // ATHLETICS_DIVISION</span>
+           <span>ZINC_ENGINEERING // ATHLETICS_DIVISION</span>
         </div>
 
         <div className="flex flex-col items-center">

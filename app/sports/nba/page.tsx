@@ -1,13 +1,36 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Trophy, Loader2, AlertTriangle, TrendingUp, LayoutGrid, Users, Activity } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Trophy, Loader2, AlertTriangle, TrendingUp, LayoutGrid, Users, Activity, Terminal } from 'lucide-react';
 import Link from 'next/link';
 import { NBA_TEAMS } from './data';
 import { getLiveScores, getStandings } from './actions'; 
 import SeasonLeaders from './components/SeasonLeaders';
 import PlayerSearch from './components/PlayerSearch';
 import RosterExplorer from './components/RosterExplorer';
+
+// --- LOADER OVERLAY ---
+const NavigationLoader = () => (
+    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="relative mb-8">
+           <div className="absolute inset-0 bg-[#DFFF00] blur-2xl opacity-20 animate-pulse"></div>
+           <div className="w-16 h-16 border-2 border-zinc-800 border-t-[#DFFF00] rounded-full animate-spin relative z-10"></div>
+           <div className="absolute inset-0 flex items-center justify-center z-10">
+               <Activity size={24} className="text-[#DFFF00]" />
+           </div>
+        </div>
+        <div className="text-center space-y-3">
+            <div className="flex items-center justify-center gap-3 text-[#DFFF00] font-mono text-sm font-black tracking-[0.2em] uppercase">
+                <Terminal size={14} />
+                <span>ACCESSING DATABASE</span>
+            </div>
+            <span className="text-zinc-500 font-mono text-[10px] font-bold tracking-widest animate-pulse">
+                RETRIEVING SECURE DATA...
+            </span>
+        </div>
+    </div>
+);
 
 // --- LIVE SCOREBOARD (DARK MODE ONLY) ---
 const LiveScoreboard = () => {
@@ -29,6 +52,7 @@ const LiveScoreboard = () => {
         </div>
     );
 
+    // Create a loop for seamless scrolling
     const loopGames = [...games, ...games, ...games, ...games]; 
 
     return (
@@ -38,7 +62,8 @@ const LiveScoreboard = () => {
                     <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"/> LIVE
                 </div>
             </div>
-            <div className="flex animate-scroll hover:[animation-play-state:paused] pl-28 w-max">
+            {/* FIXED: Changed 'animate-scroll' to 'animate-ticker' to match tailwind.config.js */}
+            <div className="flex animate-ticker hover:[animation-play-state:paused] pl-28 w-max">
                 <div className="flex divide-x divide-zinc-800">
                     {loopGames.map((game: any, i: number) => (
                         <div key={`${game.id}-${i}`} className="px-8 py-1 flex flex-col justify-center min-w-[220px] hover:bg-zinc-900 transition-colors group cursor-default">
@@ -129,7 +154,14 @@ const StandingsModule = () => {
 };
 
 export default function NBAHub() {
+    const router = useRouter();
     const [activeTab, setActiveTab] = useState<'league' | 'elo' | 'players'>('league');
+    const [isNavigating, setIsNavigating] = useState(false);
+
+    const handleNavigate = (url: string) => {
+        setIsNavigating(true);
+        router.push(url);
+    };
 
     return (
         <div className="min-h-screen max-w-7xl mx-auto px-4 pt-0 pb-20">
@@ -139,6 +171,9 @@ export default function NBAHub() {
                 <div className="stars-2"></div>
                 <div className="stars-3"></div>
             </div>
+
+            {/* NAVIGATION LOADER */}
+            {isNavigating && <NavigationLoader />}
 
             <LiveScoreboard />
             
@@ -190,7 +225,11 @@ export default function NBAHub() {
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {NBA_TEAMS.map(team => (
-                                    <Link href={`/sports/nba/team/${team.id}`} key={team.id} className="group border border-zinc-800 hover:border-[#DFFF00] bg-black/50 backdrop-blur-sm p-6 flex items-center gap-6 transition-all hover:-translate-y-1">
+                                    <div 
+                                        key={team.id} 
+                                        onClick={() => handleNavigate(`/sports/nba/team/${team.id}`)}
+                                        className="group cursor-pointer border border-zinc-800 hover:border-[#DFFF00] bg-black/50 backdrop-blur-sm p-6 flex items-center gap-6 transition-all hover:-translate-y-1"
+                                    >
                                         <div className={`w-16 h-16 rounded-full ${team.color} flex items-center justify-center shrink-0 shadow-md p-3 bg-zinc-900 border border-zinc-700`}>
                                             <img src={team.logo} className="w-full h-full object-contain" alt={team.name} />
                                         </div>
@@ -198,7 +237,7 @@ export default function NBAHub() {
                                             <h3 className="text-xl font-black uppercase leading-none mb-1 text-white group-hover:text-[#DFFF00] transition-colors">{team.name}</h3>
                                             <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase">{team.city}</span>
                                         </div>
-                                    </Link>
+                                    </div>
                                 ))}
                             </div>
                         </div>

@@ -1,10 +1,33 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Trophy, Loader2, AlertTriangle, TrendingUp, LayoutGrid, Users, Activity, Shield, Calendar, MapPin } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Trophy, Loader2, AlertTriangle, TrendingUp, LayoutGrid, Users, Activity, Shield, Calendar, MapPin, Terminal } from 'lucide-react';
 import Link from 'next/link';
 import { NRL_TEAMS, TEAM_LOGOS } from './data';
 import { getLiveScores, getStandings, getLeagueLeaders } from './actions'; 
+
+// --- LOADER OVERLAY ---
+const NavigationLoader = () => (
+    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="relative mb-8">
+           <div className="absolute inset-0 bg-[#DFFF00] blur-2xl opacity-20 animate-pulse"></div>
+           <div className="w-16 h-16 border-2 border-zinc-800 border-t-[#DFFF00] rounded-full animate-spin relative z-10"></div>
+           <div className="absolute inset-0 flex items-center justify-center z-10">
+               <Activity size={24} className="text-[#DFFF00]" />
+           </div>
+        </div>
+        <div className="text-center space-y-3">
+            <div className="flex items-center justify-center gap-3 text-[#DFFF00] font-mono text-sm font-black tracking-[0.2em] uppercase">
+                <Terminal size={14} />
+                <span>ACCESSING DATABASE</span>
+            </div>
+            <span className="text-zinc-500 font-mono text-[10px] font-bold tracking-widest animate-pulse">
+                RETRIEVING SECURE DATA...
+            </span>
+        </div>
+    </div>
+);
 
 // --- COMPONENT: LIVE FIXTURES (Redesigned) ---
 const LiveScoreboard = () => {
@@ -154,7 +177,7 @@ const StandingsModule = () => {
 };
 
 // --- COMPONENT: LEADERS ---
-const LeadersModule = () => {
+const LeadersModule = ({ onNavigate }: { onNavigate: (url: string) => void }) => {
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
@@ -175,7 +198,11 @@ const LeadersModule = () => {
             </div>
             <div className="grid gap-2 mt-4">
                  {data.players.map((p: any, i: number) => (
-                     <Link href={`/sports/nrl/player/${p.id}`} key={p.id} className="flex items-center gap-4 bg-black border border-zinc-800 hover:border-[#DFFF00] p-3 transition-all group">
+                     <div 
+                        key={p.id} 
+                        onClick={() => onNavigate(`/sports/nrl/player/${p.id}`)}
+                        className="flex items-center gap-4 bg-black border border-zinc-800 hover:border-[#DFFF00] p-3 transition-all group cursor-pointer"
+                     >
                          <div className="text-zinc-600 font-black font-mono text-lg w-6 text-center">{i + 1}</div>
                          <div className="flex-1">
                              <div className="font-bold text-sm text-white uppercase group-hover:text-[#DFFF00] transition-colors">{p.name}</div>
@@ -184,7 +211,7 @@ const LeadersModule = () => {
                          <div className="text-right">
                              <div className="text-[10px] font-black text-[#DFFF00] font-mono">{p.tier}</div>
                          </div>
-                     </Link>
+                     </div>
                  ))}
             </div>
         </div>
@@ -192,7 +219,14 @@ const LeadersModule = () => {
 }
 
 export default function NRLHub() {
+    const router = useRouter();
     const [activeTab, setActiveTab] = useState<'league' | 'leaders'>('league');
+    const [isNavigating, setIsNavigating] = useState(false);
+
+    const handleNavigate = (url: string) => {
+        setIsNavigating(true);
+        router.push(url);
+    };
 
     return (
         <div className="min-h-screen max-w-7xl mx-auto px-4 pt-0 pb-20">
@@ -202,6 +236,9 @@ export default function NRLHub() {
                 <div className="stars-2"></div>
                 <div className="stars-3"></div>
             </div>
+
+            {/* NAVIGATION LOADER */}
+            {isNavigating && <NavigationLoader />}
 
             <LiveScoreboard />
             
@@ -242,7 +279,11 @@ export default function NRLHub() {
                             <StandingsModule />
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {NRL_TEAMS.map(team => (
-                                    <Link href={`/sports/nrl/team/${team.id}`} key={team.id} className="group border border-zinc-800 hover:border-[#DFFF00] bg-black/50 backdrop-blur-sm p-6 flex items-center gap-6 transition-all hover:-translate-y-1">
+                                    <div 
+                                        key={team.id} 
+                                        onClick={() => handleNavigate(`/sports/nrl/team/${team.id}`)}
+                                        className="group cursor-pointer border border-zinc-800 hover:border-[#DFFF00] bg-black/50 backdrop-blur-sm p-6 flex items-center gap-6 transition-all hover:-translate-y-1"
+                                    >
                                         <div className={`w-16 h-16 flex items-center justify-center shrink-0 bg-zinc-900 border border-zinc-700 rounded-full p-2`}>
                                             <img src={team.logo} className="w-full h-full object-contain" alt={team.name} />
                                         </div>
@@ -250,7 +291,7 @@ export default function NRLHub() {
                                             <h3 className="text-lg font-black uppercase leading-none mb-1 text-white group-hover:text-[#DFFF00] transition-colors">{team.name}</h3>
                                             <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase">{team.stadium}</span>
                                         </div>
-                                    </Link>
+                                    </div>
                                 ))}
                             </div>
                         </div>
@@ -262,7 +303,7 @@ export default function NRLHub() {
 
                 {activeTab === 'leaders' && (
                     <div className="max-w-4xl mx-auto">
-                        <LeadersModule />
+                        <LeadersModule onNavigate={handleNavigate} />
                     </div>
                 )}
             </div>

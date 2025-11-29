@@ -28,7 +28,6 @@ const fetchJson = async (url: string, revalidate = 60) => {
 
 // --- 1. LIVE SCOREBOARD ---
 export async function getLiveScores() {
-    // Returns real 2025 fixtures (pre-season) for a live feel
     return [
         {
             id: 'rd1-game1',
@@ -57,12 +56,11 @@ export async function getLiveScores() {
     ];
 }
 
-// --- 2. STANDINGS (REAL DATA) ---
+// --- 2. STANDINGS ---
 export async function getStandings() {
     const data = await fetchJson(`${ESPN_BASE}/standings`);
     
     if (!data || !data.children) {
-        // Return a fresh 0-0 ladder for pre-season accuracy
         const sortedTeams = [...NRL_TEAMS].sort((a, b) => a.name.localeCompare(b.name));
         return sortedTeams.map((team, i) => ({
             id: team.id,
@@ -80,14 +78,12 @@ export async function getStandings() {
     return group.map((t: any) => {
         const getStat = (n: string) => t.stats?.find((s: any) => s.name === n)?.value || 0;
         const espnId = t.team.id;
-        
-        // --- FIX: Ensure a default object is provided if internal team ID is not found ---
         const defaultTeam = { id: 'unknown', logo: t.team.logos?.[0]?.href };
         const teamConfig = NRL_TEAMS.find(local => ESPN_TEAM_IDS[local.id] === espnId) || defaultTeam;
 
         return {
             id: t.team.id,
-            localId: teamConfig.id, // Accessing safely
+            localId: teamConfig.id,
             name: t.team.displayName,
             logo: t.team.logos?.[0]?.href,
             rank: getStat('rank') || t.seed,
@@ -99,7 +95,7 @@ export async function getStandings() {
     });
 }
 
-// --- 3. LEAGUE LEADERS (2025 WATCHLIST) ---
+// --- 3. LEAGUE LEADERS ---
 export async function getLeagueLeaders() {
     return {
         seasonLabel: "2025 PRE-SEASON WATCH",
@@ -111,7 +107,7 @@ export async function getLeagueLeaders() {
     };
 }
 
-// --- 4. PLAYER PROFILE (WIKI) ---
+// --- 4. PLAYER PROFILE ---
 export async function getPlayerProfile(playerId: string) {
     try {
         const wikiRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${playerId}`);
@@ -133,7 +129,39 @@ export async function getPlayerProfile(playerId: string) {
     return null;
 }
 
-// --- 5. TEAM DATA ---
+// --- 5. SEARCH PLAYERS (SMARTER WIKI SEARCH) ---
+export async function searchPlayers(query: string) {
+    if (!query || query.length < 3) return [];
+
+    try {
+        const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query + " rugby league")}&format=json&origin=*`;
+        const res = await fetch(searchUrl);
+        const data = await res.json();
+
+        if (!data.query || !data.query.search) return [];
+
+        const results = data.query.search.map((result: any) => {
+            const cleanName = result.title.replace(/ \(rugby league\)/i, '').replace(/ \(rugby league player\)/i, '');
+            const slug = result.title.replace(/ /g, '_');
+            return {
+                id: slug,
+                name: cleanName,
+                team: 'NRL Archive',
+                sport: 'NRL',
+                url: `/sports/nrl/player/${slug}`,
+            };
+        });
+
+        // Filter out junk results that don't match query at all
+        const lowerQ = query.toLowerCase();
+        return results.filter((r: any) => r.name.toLowerCase().includes(lowerQ)).slice(0, 5);
+
+    } catch (e) {
+        return [];
+    }
+}
+
+// --- 6. TEAM DATA ---
 export async function getTeamData(teamId: string) {
     const team = NRL_TEAMS.find(t => t.id === teamId);
     if (!team) return null;
@@ -145,6 +173,6 @@ export async function getTeamData(teamId: string) {
         color: team.color,
         record: '0-0',
         standing: 'PRE-SEASON',
-        roster: [] // Empty roster for now to avoid fake data
+        roster: []
     };
 }

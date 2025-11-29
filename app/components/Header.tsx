@@ -2,94 +2,161 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Search, Loader2, Command, X, Trophy, ChevronRight, LayoutGrid, User, Circle, Gamepad2, Menu, Film } from 'lucide-react';
+import { Search, Loader2, Command, X, Trophy, ChevronRight, LayoutGrid, User, Circle, Gamepad2, Menu, Film, Terminal, Activity } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
+
+// Import search actions
+import { searchPlayers as searchNBA } from '../sports/nba/actions';
+import { searchPlayers as searchNRL } from '../sports/nrl/actions';
+import { searchF1Archive as searchF1 } from '../sports/f1/actions'; 
+import { searchPlayers as searchGolf } from '../sports/golf/actions';
 
 const CDN_URL = "https://cdn.warframestat.us/img/";
 
-// --- UNIVERSAL ATHLETE INDEX ---
-const ATHLETE_DB = [
-    // F1
-    { id: 'max_verstappen', name: 'Max Verstappen', team: 'Red Bull Racing', sport: 'F1', url: '/sports/f1/driver/max_verstappen' },
-    { id: 'hamilton', name: 'Lewis Hamilton', team: 'Mercedes-AMG', sport: 'F1', url: '/sports/f1/driver/hamilton' },
-    { id: 'leclerc', name: 'Charles Leclerc', team: 'Ferrari', sport: 'F1', url: '/sports/f1/driver/leclerc' },
-    { id: 'norris', name: 'Lando Norris', team: 'McLaren', sport: 'F1', url: '/sports/f1/driver/norris' },
-    
-    // NRL
-    { id: 'p1', name: 'Jamayne Isaako', team: 'Dolphins', sport: 'NRL', url: '/sports/nrl/player/p1' },
-    { id: 'p3', name: 'Nathan Cleary', team: 'Penrith Panthers', sport: 'NRL', url: '/sports/nrl/player/p3' },
-    { id: 'p9', name: 'Reece Walsh', team: 'Brisbane Broncos', sport: 'NRL', url: '/sports/nrl/player/p9' },
-    
-    // NBA
-    { id: 'lebron_james', name: 'LeBron James', team: 'LA Lakers', sport: 'NBA', url: '/sports/nba/player/lebron_james' },
-    { id: 'stephen_curry', name: 'Stephen Curry', team: 'Golden State', sport: 'NBA', url: '/sports/nba/player/stephen_curry' },
-    { id: 'nikola_jokic', name: 'Nikola Jokic', team: 'Denver Nuggets', sport: 'NBA', url: '/sports/nba/player/nikola_jokic' },
-];
+// --- LOADER OVERLAY COMPONENT ---
+const NavigationLoader = () => (
+    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="relative mb-8">
+           <div className="absolute inset-0 bg-[#DFFF00] blur-2xl opacity-20 animate-pulse"></div>
+           <div className="w-16 h-16 border-2 border-zinc-800 border-t-[#DFFF00] rounded-full animate-spin relative z-10"></div>
+           <div className="absolute inset-0 flex items-center justify-center z-10">
+               <Activity size={24} className="text-[#DFFF00]" />
+           </div>
+        </div>
+        <div className="text-center space-y-3">
+            <div className="flex items-center justify-center gap-3 text-[#DFFF00] font-mono text-sm font-black tracking-[0.2em] uppercase">
+                <Terminal size={14} />
+                <span>ACCESSING DATABASE</span>
+            </div>
+            <span className="text-zinc-500 font-mono text-[10px] font-bold tracking-widest animate-pulse">
+                RETRIEVING SECURE DATA...
+            </span>
+        </div>
+    </div>
+);
 
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const isHome = pathname === '/';
-  const isSports = pathname?.startsWith('/sports');
+  
+  const isSports = pathname?.startsWith('/sports') || pathname === '/';
   const isGaming = pathname?.startsWith('/gaming');
+
+  // Detect Context to Boost Results
+  const contextSport = pathname?.includes('/nba') ? 'NBA' 
+                     : pathname?.includes('/nrl') ? 'NRL'
+                     : pathname?.includes('/f1') ? 'F1'
+                     : pathname?.includes('/golf') ? 'GOLF'
+                     : null;
 
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!isSports && !isHome) {
-        const initSystem = async () => {
-            try { await supabase.from('items').select('id').limit(1); } catch (e) {}
-        };
-        initSystem();
-    }
-  }, [isSports, isHome]);
+    setIsNavigating(false);
+  }, [pathname]);
 
+  // --- UNIFIED SEARCH ENGINE ---
   useEffect(() => {
-    if (isHome) return; 
+    if (isGaming && !isHome) return; 
 
     const performSearch = async () => {
-      if (query.length < 2) {
+      if (query.length < 3) {
         setResults([]);
+        setLoading(false);
         return;
       }
       
       setLoading(true);
+      setShowDropdown(true);
 
-      if (isSports) {
-          const matches = ATHLETE_DB.filter(a => 
-              a.name.toLowerCase().includes(query.toLowerCase()) || 
-              a.team.toLowerCase().includes(query.toLowerCase())
-          ).slice(0, 5);
-          setResults(matches);
-          setShowDropdown(true);
-          setLoading(false);
-      } else {
-          try {
-            const { data } = await supabase
-              .from('items')
-              .select('id, name, category, image_name')
-              .ilike('name', `%${query}%`)
-              .limit(5);
-            setResults(data || []);
-            setShowDropdown(true);
-          } catch (err) {
-            console.error(err);
-          } finally {
-            setLoading(false);
+      try {
+          let hits: any[] = [];
+
+          if (isSports) {
+              // 1. EXECUTE PARALLEL SEARCHES (All Sports)
+              const [nba, nrl, f1, golf] = await Promise.all([
+                  searchNBA(query).catch(() => []),
+                  searchNRL(query).catch(() => []),
+                  searchF1(query).catch(() => []),
+                  searchGolf(query).catch(() => [])
+              ]);
+              
+              // 2. NORMALIZE F1 DATA
+              const f1Norm = f1.map((d: any) => ({ 
+                  id: d.driverId, 
+                  name: `${d.givenName} ${d.familyName}`, 
+                  team: d.nationality, 
+                  sport: 'F1', 
+                  url: `/sports/f1/driver/${d.driverId}` 
+              }));
+
+              // 3. COMBINE ALL RESULTS
+              hits = [...nba, ...nrl, ...f1Norm, ...golf];
+
+              // 4. INTELLIGENT SORTING (Context > Relevance)
+              const lowerQ = query.toLowerCase();
+              hits.sort((a, b) => {
+                  const na = a.name.toLowerCase();
+                  const nb = b.name.toLowerCase();
+                  
+                  // Priority 1: Context Boost
+                  if (contextSport) {
+                      if (a.sport === contextSport && b.sport !== contextSport) return -1;
+                      if (b.sport === contextSport && a.sport !== contextSport) return 1;
+                  }
+
+                  // Priority 2: Exact Match
+                  if (na === lowerQ && nb !== lowerQ) return -1;
+                  if (nb === lowerQ && na !== lowerQ) return 1;
+                  
+                  // Priority 3: Starts With
+                  const aStart = na.startsWith(lowerQ);
+                  const bStart = nb.startsWith(lowerQ);
+                  if (aStart && !bStart) return -1;
+                  if (bStart && !aStart) return 1;
+
+                  return 0;
+              });
+
+              // 5. SLICE (Top 15)
+              hits = hits.slice(0, 15);
+
+          } else {
+              // GAMING SEARCH
+              const { data } = await supabase
+                .from('items')
+                .select('id, name, category, image_name')
+                .ilike('name', `%${query}%`)
+                .limit(5);
+              
+              hits = (data || []).map(item => ({
+                  ...item,
+                  sport: 'WARFRAME',
+                  team: item.category,
+                  url: `/gaming/build/${item.id}`
+              }));
           }
+
+          setResults(hits);
+      } catch (err) {
+          console.error("Search Error", err);
+      } finally {
+          setLoading(false);
       }
     };
 
-    const timeoutId = setTimeout(() => performSearch(), 300);
+    const timeoutId = setTimeout(() => performSearch(), 400); 
     return () => clearTimeout(timeoutId);
-  }, [query, isSports, isHome]);
+  }, [query, isSports, isHome, isGaming, contextSport]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -101,22 +168,23 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [pathname]);
-
   const handleSelect = (item: any) => {
       setShowDropdown(false);
       setQuery('');
-      if (isSports) {
-          window.location.href = item.url;
-      } else {
-          window.location.href = `/gaming/build/${item.id}`;
-      }
+      setIsNavigating(true);
+      router.push(item.url);
+  };
+
+  const getPlaceholder = () => {
+      if (contextSport) return `SEARCH ${contextSport} ARCHIVES...`;
+      if (isSports) return "SEARCH GLOBAL SPORTS...";
+      return "SEARCH ENTERTAINMENT...";
   };
 
   return (
     <>
+      {isNavigating && <NavigationLoader />}
+
       <header className="sticky top-0 z-50 bg-black/90 backdrop-blur-md border-b border-zinc-800 shadow-sm transition-colors duration-300">
         <div className="max-w-[1600px] mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between gap-4 md:gap-6">
           
@@ -139,8 +207,7 @@ export default function Header() {
           </div>
 
           {/* CENTER: SEARCH */}
-          <div className={`flex-1 max-w-2xl flex justify-center md:justify-start relative transition-opacity duration-500 ${isHome ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-              {!isHome && (
+          <div className={`flex-1 max-w-2xl flex justify-center md:justify-start relative transition-opacity duration-500 ${isGaming && !isHome ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
               <div className="relative w-full group">
                 <div className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-[#DFFF00] transition-colors">
                     {loading ? <Loader2 size={16} className="animate-spin"/> : <Search size={16}/>}
@@ -150,8 +217,8 @@ export default function Header() {
                     type="text" 
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    onFocus={() => { if(results.length > 0) setShowDropdown(true); }}
-                    placeholder={isSports ? "SEARCH ATHLETES..." : "SEARCH ENTERTAINMENT ARCHIVES..."}
+                    onFocus={() => { if(results.length > 0 || query.length > 1) setShowDropdown(true); }}
+                    placeholder={getPlaceholder()}
                     className="w-full h-10 bg-zinc-900 border border-zinc-700 focus:border-[#DFFF00] pl-10 md:pl-12 pr-10 font-mono text-[10px] md:text-xs font-bold uppercase outline-none text-white transition-all placeholder:text-zinc-600 focus:bg-black rounded-none"
                 />
                 {query.length > 0 && (
@@ -166,13 +233,23 @@ export default function Header() {
                 </div>
 
                 {/* DROPDOWN */}
-                {showDropdown && results.length > 0 && (
+                {showDropdown && (results.length > 0 || loading) && (
                   <div ref={dropdownRef} className="absolute top-full left-0 right-0 mt-1 bg-black border border-zinc-700 shadow-2xl z-50 max-h-[60vh] overflow-y-auto">
                       <div className="bg-zinc-900 px-3 py-1.5 border-b border-zinc-800 flex justify-between items-center sticky top-0">
-                          <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Matches Found: {results.length}</span>
+                          <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">
+                              {loading ? "SEARCHING ARCHIVES..." : `MATCHES FOUND: ${results.length}`}
+                          </span>
                           <Command size={10} className="text-zinc-600"/>
                       </div>
-                      {results.map((item) => (
+
+                      {loading && (
+                          <div className="p-4 flex items-center justify-center gap-3 text-zinc-500">
+                              <Loader2 size={16} className="animate-spin text-[#DFFF00]" />
+                              <span className="text-[10px] font-mono font-bold tracking-widest animate-pulse">SCANNING...</span>
+                          </div>
+                      )}
+
+                      {!loading && results.map((item) => (
                           <div
                               key={item.id}
                               onClick={() => handleSelect(item)}
@@ -188,12 +265,10 @@ export default function Header() {
                               <div className="flex-1 min-w-0">
                                   <div className="font-black text-xs uppercase truncate text-zinc-200 group-hover:text-[#DFFF00]">{item.name}</div>
                                   <div className="text-[9px] font-mono text-zinc-500 uppercase">
-                                      {isSports ? (
-                                          <span className="flex items-center gap-1">
-                                              <span className={`px-1 text-white font-bold ${item.sport === 'F1' ? 'bg-red-900' : item.sport === 'NBA' ? 'bg-orange-800' : 'bg-blue-900'}`}>{item.sport}</span>
-                                              {item.team}
-                                          </span>
-                                      ) : item.category}
+                                      <span className="flex items-center gap-1">
+                                          <span className={`px-1 text-white font-bold ${item.sport === 'F1' ? 'bg-red-900' : item.sport === 'NBA' ? 'bg-orange-800' : item.sport === 'NRL' ? 'bg-green-800' : 'bg-blue-900'}`}>{item.sport}</span>
+                                          {item.team}
+                                      </span>
                                   </div>
                               </div>
                               <ChevronRight size={14} className="text-[#DFFF00] opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all"/>
@@ -202,73 +277,29 @@ export default function Header() {
                   </div>
                 )}
               </div>
-              )}
           </div>
 
-          {/* RIGHT: DESKTOP NAV */}
           <div className="hidden lg:flex items-center gap-6">
               <nav className="flex items-center gap-8">
-                  <a 
-                      href="/" 
-                      className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest hover:text-[#DFFF00] transition-colors ${pathname === '/' ? 'text-[#DFFF00]' : 'text-zinc-500'}`}
-                  >
-                      <LayoutGrid size={14} /> HUB
-                  </a>
-                  <a 
-                      href="/gaming" 
-                      className={`text-[10px] font-black uppercase tracking-widest hover:text-[#DFFF00] transition-colors ${isGaming ? 'text-white underline decoration-2 underline-offset-8 decoration-[#DFFF00]' : 'text-zinc-500'}`}
-                  >
-                      ENTERTAINMENT
-                  </a>
-                  <a 
-                      href="/sports" 
-                      className={`text-[10px] font-black uppercase tracking-widest hover:text-[#DFFF00] transition-colors ${isSports ? 'text-white underline decoration-2 underline-offset-8 decoration-[#DFFF00]' : 'text-zinc-500'}`}
-                  >
-                      SPORTS
-                  </a>
+                  <a href="/" className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest hover:text-[#DFFF00] transition-colors ${pathname === '/' ? 'text-[#DFFF00]' : 'text-zinc-500'}`}><LayoutGrid size={14} /> HUB</a>
+                  <a href="/gaming" className={`text-[10px] font-black uppercase tracking-widest hover:text-[#DFFF00] transition-colors ${isGaming ? 'text-white underline decoration-2 underline-offset-8 decoration-[#DFFF00]' : 'text-zinc-500'}`}>ENTERTAINMENT</a>
+                  <a href="/sports" className={`text-[10px] font-black uppercase tracking-widest hover:text-[#DFFF00] transition-colors ${isSports ? 'text-white underline decoration-2 underline-offset-8 decoration-[#DFFF00]' : 'text-zinc-500'}`}>SPORTS</a>
               </nav>
           </div>
 
-          {/* MOBILE MENU TOGGLE */}
-          <button 
-            className="lg:hidden text-zinc-400 hover:text-[#DFFF00] transition-colors"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
+          <button className="lg:hidden text-zinc-400 hover:text-[#DFFF00] transition-colors" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
             {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
 
         </div>
       </header>
-
-      {/* MOBILE MENU OVERLAY */}
+      
       {isMobileMenuOpen && (
         <div className="fixed inset-0 top-16 z-40 bg-black/95 backdrop-blur-xl border-t border-zinc-800 animate-in fade-in slide-in-from-top-4 flex flex-col p-6 lg:hidden">
           <div className="flex flex-col gap-6">
-            <a 
-              href="/" 
-              className={`flex items-center gap-4 text-xl font-black uppercase tracking-widest p-4 border border-zinc-800 bg-zinc-900/50 ${pathname === '/' ? 'text-[#DFFF00] border-[#DFFF00]' : 'text-zinc-500'}`}
-            >
-              <LayoutGrid size={20} /> HUB
-            </a>
-            <a 
-              href="/gaming" 
-              className={`flex items-center gap-4 text-xl font-black uppercase tracking-widest p-4 border border-zinc-800 bg-zinc-900/50 ${isGaming ? 'text-[#DFFF00] border-[#DFFF00]' : 'text-zinc-500'}`}
-            >
-              <Film size={20} /> ENTERTAINMENT
-            </a>
-            <a 
-              href="/sports" 
-              className={`flex items-center gap-4 text-xl font-black uppercase tracking-widest p-4 border border-zinc-800 bg-zinc-900/50 ${isSports ? 'text-[#DFFF00] border-[#DFFF00]' : 'text-zinc-500'}`}
-            >
-              <Trophy size={20} /> SPORTS
-            </a>
-          </div>
-          
-          <div className="mt-auto border-t border-zinc-800 pt-6">
-             <div className="flex items-center gap-2 text-[10px] font-mono font-bold tracking-widest text-zinc-600 uppercase">
-                  <Circle size={8} className="fill-[#DFFF00] text-[#DFFF00]" />
-                  <span>Mobile Uplink Active</span>
-              </div>
+            <a href="/" className="flex items-center gap-4 text-xl font-black uppercase tracking-widest p-4 border border-zinc-800 bg-zinc-900/50 text-zinc-500"><LayoutGrid size={20} /> HUB</a>
+            <a href="/gaming" className="flex items-center gap-4 text-xl font-black uppercase tracking-widest p-4 border border-zinc-800 bg-zinc-900/50 text-zinc-500"><Film size={20} /> ENTERTAINMENT</a>
+            <a href="/sports" className="flex items-center gap-4 text-xl font-black uppercase tracking-widest p-4 border border-zinc-800 bg-zinc-900/50 text-zinc-500"><Trophy size={20} /> SPORTS</a>
           </div>
         </div>
       )}
