@@ -6,7 +6,6 @@ import { NBA_TEAMS } from './data';
 const NBA_API = 'https://stats.nba.com/stats';
 const ESPN_CORE = 'https://site.api.espn.com/apis/v2/sports/basketball/nba';
 const ESPN_SITE = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba';
-const ESPN_WEB = 'https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba';
 
 const SEASON_NBA = '2025-26'; 
 
@@ -187,9 +186,9 @@ export async function getLiveScores() {
     });
 }
 
-// --- 5. SEARCH (RELEVANCE OPTIMIZED) ---
+// --- 5. SEARCH (OPTIMIZED FOR ACTIVE PLAYERS) ---
 export async function searchPlayers(query: string) {
-    if (!query || query.length < 3) return [];
+    if (!query || query.length < 2) return [];
 
     // Search ALL players (Past & Present)
     const url = `${NBA_API}/commonallplayers?IsOnlyCurrentSeason=0&LeagueID=00&Season=2024-25`;
@@ -200,19 +199,25 @@ export async function searchPlayers(query: string) {
     const allPlayers = mapNbaResult(data);
     const lowerQ = query.toLowerCase();
     
-    // FILTER: Includes string
+    // 1. FILTER: Includes string
     const matches = allPlayers.filter((p: any) => 
         p.DISPLAY_FIRST_LAST.toLowerCase().includes(lowerQ)
     );
 
-    // SORT: Exact Matches > Starts With > Others
+    // 2. SORT: Active > Exact > Starts With
     const sorted = matches.sort((a: any, b: any) => {
         const na = a.DISPLAY_FIRST_LAST.toLowerCase();
         const nb = b.DISPLAY_FIRST_LAST.toLowerCase();
         
         // Exact Match Prio
-        if (na === lowerQ) return -1;
-        if (nb === lowerQ) return 1;
+        if (na === lowerQ && nb !== lowerQ) return -1;
+        if (nb === lowerQ && na !== lowerQ) return 1;
+
+        // ACTIVE Player Priority (Current players push to top)
+        const aActive = a.TO_YEAR === '2024' || a.TO_YEAR === '2025';
+        const bActive = b.TO_YEAR === '2024' || b.TO_YEAR === '2025';
+        if (aActive && !bActive) return -1;
+        if (bActive && !aActive) return 1;
         
         // Starts With Prio
         if (na.startsWith(lowerQ) && !nb.startsWith(lowerQ)) return -1;
@@ -224,7 +229,7 @@ export async function searchPlayers(query: string) {
     return sorted.slice(0, 5).map((p: any) => ({
         id: p.PERSON_ID.toString(),
         name: p.DISPLAY_FIRST_LAST,
-        team: p.TEAM_NAME || (p.TO_YEAR ? `Active ${p.FROM_YEAR}-${p.TO_YEAR}` : 'Retired'),
+        team: p.TEAM_NAME || (p.TO_YEAR && parseInt(p.TO_YEAR) >= 2024 ? 'Active' : 'Retired'),
         sport: 'NBA',
         url: `/sports/nba/player/${p.PERSON_ID}`,
     }));

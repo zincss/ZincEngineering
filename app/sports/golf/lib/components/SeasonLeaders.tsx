@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-// FIX: Import from the parent lib folder (../golf-api)
-import { StatLeaderboard } from '../golf-api';
+// FIX: Import from the parent actions (../../actions) to match the data source
+import { StatLeaderboard } from '../../actions';
 import { BarChart3, ChevronRight } from 'lucide-react';
 
 export function SeasonLeaders({ data }: { data: StatLeaderboard[] }) {

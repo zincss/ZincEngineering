@@ -4,15 +4,13 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Flag, Target, MapPin, Trophy, Calendar, Terminal, Activity } from 'lucide-react';
 
-// FIX: Update imports to point to lib/components
 import { LiveLeaderboard } from './lib/components/LiveLeaderboard';
 import { WorldRankings } from './lib/components/WorldRankings';
 import { SeasonLeaders } from './lib/components/SeasonLeaders';
 
-// FIX: Import from lib/golf-api
-import { getRankings, getTournaments, getSeasonLeaders, Golfer, Tournament, StatLeaderboard } from './lib/golf-api';
+// Import from the updated actions file
+import { getRankings, getTournaments, getSeasonLeaders, Golfer, Tournament, StatLeaderboard } from './actions';
 
-// --- LOADER OVERLAY ---
 const NavigationLoader = () => (
     <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
         <div className="relative mb-8">
@@ -42,25 +40,24 @@ export default function GolfHub() {
   const [seasonStats, setSeasonStats] = useState<StatLeaderboard[]>([]);
   const [isNavigating, setIsNavigating] = useState(false);
 
-  // You can pass this handler to sub-components if you update them
-  const handleNavigate = (url: string) => {
-      setIsNavigating(true);
-      router.push(url);
-  };
-
   useEffect(() => {
     const init = async () => {
-       const rData = await getRankings();
-       const tData = await getTournaments();
-       const sData = await getSeasonLeaders();
+       // Parallel Fetching for speed
+       const [rData, tData, sData] = await Promise.all([
+           getRankings(),
+           getTournaments(),
+           getSeasonLeaders()
+       ]);
        
        setRankings(rData);
        setTournaments(tData);
        setSeasonStats(sData);
 
+       // Determine Featured Event (Live > Upcoming > Completed)
        const live = tData.find(t => t.status === 'LIVE');
        const upcoming = tData.find(t => t.status === 'UPCOMING');
-       setFeatured(live || upcoming || tData[0]);
+       const completed = tData.find(t => t.status === 'COMPLETED');
+       setFeatured(live || upcoming || completed || null);
     };
     init();
   }, []);
@@ -68,18 +65,17 @@ export default function GolfHub() {
   return (
     <div className="min-h-screen bg-black pb-20 pt-8">
        
-       {/* NAVIGATION LOADER */}
        {isNavigating && <NavigationLoader />}
 
        {/* LIVE TICKER */}
-       <div className="sticky top-[80px] z-30 mb-8">
+       <div className="sticky top-[64px] z-30 mb-8 shadow-2xl">
           <LiveLeaderboard />
        </div>
 
        <div className="max-w-[1600px] mx-auto px-4 md:px-6">
            
            {/* HERO HEADER */}
-           <div className="flex flex-col md:flex-row items-end justify-between gap-8 mb-12 border-b border-zinc-800 pb-8">
+           <div className="flex flex-col md:flex-row items-end justify-between gap-8 mb-12 border-b border-zinc-800 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                <div>
                    <div className="inline-flex items-center gap-3 text-[#DFFF00] border border-[#DFFF00]/30 px-3 py-1 rounded-sm mb-4">
                        <Flag size={14} fill="#DFFF00" />
@@ -91,19 +87,19 @@ export default function GolfHub() {
                </div>
                <div className="flex gap-4">
                   <div className="text-right">
-                      <div className="text-4xl font-black text-[#DFFF00]">72</div>
-                      <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Global Events</div>
+                      <div className="text-4xl font-black text-[#DFFF00]">{tournaments.length}</div>
+                      <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Active Events</div>
                   </div>
                   <div className="w-px h-12 bg-zinc-800"></div>
                   <div className="text-right">
-                      <div className="text-4xl font-black text-white">400+</div>
-                      <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Tracked Athletes</div>
+                      <div className="text-4xl font-black text-white">{rankings.length}+</div>
+                      <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Ranked Athletes</div>
                   </div>
                </div>
            </div>
 
            {/* MAIN GRID */}
-           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
                
                {/* COL 1: RANKINGS */}
                <div className="lg:col-span-1 flex flex-col gap-8">
@@ -155,7 +151,7 @@ export default function GolfHub() {
                        </div>
                    ) : (
                        <div className="h-96 border border-zinc-800 bg-zinc-900 flex items-center justify-center text-zinc-500 font-mono text-xs">
-                           LOADING SATELLITE IMAGERY...
+                           INITIALIZING EVENT SATELLITE...
                        </div>
                    )}
 

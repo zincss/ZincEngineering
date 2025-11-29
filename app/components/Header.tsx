@@ -69,6 +69,7 @@ export default function Header() {
     if (isGaming && !isHome) return; 
 
     const performSearch = async () => {
+      // Don't search for tiny queries to save API calls
       if (query.length < 3) {
         setResults([]);
         setLoading(false);
@@ -82,25 +83,26 @@ export default function Header() {
           let hits: any[] = [];
 
           if (isSports) {
-              // 1. EXECUTE PARALLEL SEARCHES (All Sports)
+              // 1. SAFELY EXECUTE PARALLEL SEARCHES (Catch errors individually)
+              // If one sport fails, it returns empty array instead of crashing everything
               const [nba, nrl, f1, golf] = await Promise.all([
-                  searchNBA(query).catch(() => []),
-                  searchNRL(query).catch(() => []),
-                  searchF1(query).catch(() => []),
-                  searchGolf(query).catch(() => [])
+                  searchNBA(query).catch(err => { console.error('NBA Search Error:', err); return []; }),
+                  searchNRL(query).catch(err => { console.error('NRL Search Error:', err); return []; }),
+                  searchF1(query).catch(err => { console.error('F1 Search Error:', err); return []; }),
+                  searchGolf(query).catch(err => { console.error('Golf Search Error:', err); return []; })
               ]);
               
-              // 2. NORMALIZE F1 DATA
-              const f1Norm = f1.map((d: any) => ({ 
+              // 2. NORMALIZE F1 DATA (The F1 action returns 'driverId' but we need 'id' for the list)
+              const f1Norm = (f1 || []).map((d: any) => ({ 
                   id: d.driverId, 
                   name: `${d.givenName} ${d.familyName}`, 
                   team: d.nationality, 
                   sport: 'F1', 
-                  url: `/sports/f1/driver/${d.driverId}` 
+                  url: d.url // URL is already correct from action
               }));
 
               // 3. COMBINE ALL RESULTS
-              hits = [...nba, ...nrl, ...f1Norm, ...golf];
+              hits = [...(nba || []), ...(nrl || []), ...f1Norm, ...(golf || [])];
 
               // 4. INTELLIGENT SORTING (Context > Relevance)
               const lowerQ = query.toLowerCase();
@@ -108,7 +110,7 @@ export default function Header() {
                   const na = a.name.toLowerCase();
                   const nb = b.name.toLowerCase();
                   
-                  // Priority 1: Context Boost
+                  // Priority 1: Context Boost (If you are on /nba page, show NBA players first)
                   if (contextSport) {
                       if (a.sport === contextSport && b.sport !== contextSport) return -1;
                       if (b.sport === contextSport && a.sport !== contextSport) return 1;
@@ -127,8 +129,8 @@ export default function Header() {
                   return 0;
               });
 
-              // 5. SLICE (Top 15)
-              hits = hits.slice(0, 15);
+              // 5. SLICE (Top 10)
+              hits = hits.slice(0, 10);
 
           } else {
               // GAMING SEARCH
@@ -148,13 +150,16 @@ export default function Header() {
 
           setResults(hits);
       } catch (err) {
-          console.error("Search Error", err);
+          console.error("Global Search Error", err);
+          // Fallback to empty results instead of breaking UI
+          setResults([]);
       } finally {
           setLoading(false);
       }
     };
 
-    const timeoutId = setTimeout(() => performSearch(), 400); 
+    // Debounce: Wait 500ms after typing stops before searching
+    const timeoutId = setTimeout(() => performSearch(), 500); 
     return () => clearTimeout(timeoutId);
   }, [query, isSports, isHome, isGaming, contextSport]);
 
@@ -233,7 +238,7 @@ export default function Header() {
                 </div>
 
                 {/* DROPDOWN */}
-                {showDropdown && (results.length > 0 || loading) && (
+                {showDropdown && (results.length > 0 || loading || (query.length >= 3 && !loading)) && (
                   <div ref={dropdownRef} className="absolute top-full left-0 right-0 mt-1 bg-black border border-zinc-700 shadow-2xl z-50 max-h-[60vh] overflow-y-auto">
                       <div className="bg-zinc-900 px-3 py-1.5 border-b border-zinc-800 flex justify-between items-center sticky top-0">
                           <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">
@@ -242,6 +247,14 @@ export default function Header() {
                           <Command size={10} className="text-zinc-600"/>
                       </div>
 
+                      {/* NO RESULTS STATE */}
+                      {!loading && results.length === 0 && query.length >= 3 && (
+                          <div className="p-8 text-center text-zinc-500 font-mono text-xs uppercase tracking-widest">
+                              NO MATCHES FOUND IN DATABASE
+                          </div>
+                      )}
+
+                      {/* LOADING STATE */}
                       {loading && (
                           <div className="p-4 flex items-center justify-center gap-3 text-zinc-500">
                               <Loader2 size={16} className="animate-spin text-[#DFFF00]" />
@@ -249,6 +262,7 @@ export default function Header() {
                           </div>
                       )}
 
+                      {/* RESULTS LIST */}
                       {!loading && results.map((item) => (
                           <div
                               key={item.id}
@@ -257,7 +271,11 @@ export default function Header() {
                           >
                               <div className={`h-8 w-8 border border-zinc-700 ${isSports ? 'rounded-full' : ''} bg-black p-0.5 shrink-0 flex items-center justify-center overflow-hidden`}>
                                   {isSports ? (
-                                      <User size={16} className="text-zinc-500"/>
+                                      item.image ? (
+                                        <img src={item.image} className="w-full h-full object-cover rounded-full" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                                      ) : (
+                                        <User size={16} className="text-zinc-500"/>
+                                      )
                                   ) : (
                                       <img src={`${CDN_URL}${item.image_name}`} className="w-full h-full object-contain" />
                                   )}

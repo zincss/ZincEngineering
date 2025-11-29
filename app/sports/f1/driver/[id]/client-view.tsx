@@ -105,7 +105,8 @@ export default function DriverClientView({ data, id }: { data: any, id: string }
                       </div>
                       <div className="bg-black border border-zinc-800 p-3">
                           <span className="text-acid font-bold block mb-1 text-[9px] uppercase tracking-wider">MOST SUCCESSFUL TRACK</span>
-                          <span className="text-white uppercase font-bold text-sm truncate">{highlights.bestTrack.replace(' Circuit', '')}</span>
+                          {/* FIX: SAFETY CHECK HERE */}
+                          <span className="text-white uppercase font-bold text-sm truncate">{(highlights.bestTrack || 'N/A').replace(' Circuit', '')}</span>
                       </div>
                   </div>
 
@@ -126,7 +127,7 @@ export default function DriverClientView({ data, id }: { data: any, id: string }
                               <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">POLE POSITIONS</span>
                           </div>
                           <div className="text-4xl font-black text-white leading-none">
-                              {highlights.poles}
+                              {highlights.poles || 0}
                           </div>
                         </div>
                   </div>

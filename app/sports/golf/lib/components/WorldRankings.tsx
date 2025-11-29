@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-// FIX: Point directly to the parent folder
-import { Golfer } from '../golf-api';
+// FIX: Import from the actions file which is the new source of truth
+import { Golfer } from '../../actions'; 
 import { ChevronUp, ChevronDown, Minus, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
@@ -11,7 +11,7 @@ export function WorldRankings({ data }: { data: Golfer[] }) {
     <div className="bg-zinc-900/30 border border-zinc-800 p-6 backdrop-blur-sm">
       <div className="flex items-center justify-between mb-6">
          <h3 className="text-xl font-black uppercase text-white tracking-tighter">OWGR // TOP 5</h3>
-         <span className="text-[10px] font-mono text-zinc-500">UPDATED: T-MINUS 4HR</span>
+         <span className="text-[10px] font-mono text-zinc-500">UPDATED: LIVE</span>
       </div>
 
       <div className="space-y-2">
