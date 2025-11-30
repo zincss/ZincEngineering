@@ -13,7 +13,12 @@ export default async function PlayerPage({ params }: { params: { id: string } })
   
   // THE MAGIC LINE: Check DB -> Fetch if Missing -> Save -> Return
   const data = await getOrFetchResource(
-    { table: 'nba_profiles', keyField: 'player_id', id: params.id },
+    { 
+      table: 'nba_profiles', 
+      keyField: 'player_id', 
+      id: params.id,
+      expirationHours: 0 // <--- ADDED: Ignores stale DB cache, forces live fetch.
+    },
     () => getPlayerProfile(params.id)
   );
 

@@ -1,155 +1,88 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
-import { Gamepad2, Trophy, ArrowRight, Zap, Activity, Film, Terminal } from "lucide-react";
 import GlobalTicker from './components/GlobalTicker';
+import PersonalLogs from './components/PersonalLogs';
+import Link from 'next/link';
+import { ArrowRight, Trophy, BookOpen, Database, Terminal, Cpu } from 'lucide-react';
 
-export default function Hub() {
-  const [showAck, setShowAck] = useState(false);
-
-  useEffect(() => {
-    const hasAcked = localStorage.getItem('zinc_alpha_ack');
-    if (!hasAcked) {
-      setShowAck(true);
-    }
-  }, []);
-
-  const handleAck = () => {
-    localStorage.setItem('zinc_alpha_ack', 'true');
-    setShowAck(false);
-  };
-
+export default function Home() {
   return (
-    <div className="min-h-[calc(100vh-80px)] flex flex-col items-center justify-center relative px-4 pb-12 md:pb-20 pt-10 md:pt-0">
+    <main className="min-h-screen bg-zinc-950 text-white selection:bg-[#DFFF00] selection:text-black pb-20">
       
-      {/* --- BACKGROUND ENGINE --- */}
-      <div className="bg-starfield">
-          <div className="stars-1"></div>
-          <div className="stars-2"></div>
-          <div className="stars-3"></div>
-      </div>
+      {/* HERO SECTION */}
+      <section className="relative h-[50vh] min-h-[500px] flex items-center overflow-hidden border-b border-zinc-800">
+        <div className="absolute inset-0 z-0">
+           <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-transparent z-10" />
+           <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 grayscale" />
+        </div>
+        
+        <div className="relative z-10 w-full max-w-[1600px] mx-auto px-4 md:px-6">
+          <div className="max-w-4xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-900/50 border border-zinc-800 backdrop-blur-sm rounded-full text-[10px] font-mono text-[#DFFF00] tracking-widest uppercase mb-6 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+              <span className="w-2 h-2 bg-[#DFFF00] rounded-full animate-pulse" />
+              System Operational v2.4
+            </div>
+            
+            <h1 className="text-5xl md:text-8xl font-black tracking-tighter text-white mb-6 uppercase animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-100">
+              Zinc <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 to-zinc-800 text-stroke-white">Engineering</span>
+            </h1>
+            
+            <p className="max-w-xl text-zinc-400 font-mono text-sm md:text-base leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
+              <span className="text-[#DFFF00] mr-2">///</span>
+              Advanced analytics and data archiving for high-performance athletics and digital entertainment protocols.
+            </p>
+          </div>
+        </div>
+      </section>
 
       <GlobalTicker />
 
-      {/* --- ACKNOWLEDGEMENT MODAL --- */}
-      {showAck && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md px-4 animate-in fade-in duration-300">
-            <div className="max-w-md w-full bg-black border border-zinc-800 p-6 md:p-8 shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#DFFF00] to-transparent opacity-50"></div>
-                
-                <div className="flex items-center gap-3 text-[#DFFF00] mb-6">
-                    <Terminal size={24} />
-                    <h2 className="text-xl font-mono font-bold tracking-wider uppercase">INITIALIZING...</h2>
-                </div>
-
-                <div className="font-mono text-xs text-zinc-400 leading-relaxed mb-8 space-y-4">
-                    <p>
-                        Welcome to <span className="text-white font-bold">ZINC ENGINEERING</span>.
-                    </p>
-                    <p>
-                        This interface is currently operating in <span className="text-[#DFFF00]">ALPHA PREVIEW</span> mode. Live telemetry feeds and database connections may fluctuate.
-                    </p>
-                </div>
-
-                <button
-                    onClick={handleAck}
-                    className="w-full py-4 bg-[#DFFF00] text-black font-black font-mono text-sm uppercase tracking-widest hover:bg-white transition-colors flex items-center justify-center gap-2"
-                >
-                    ESTABLISH LINK <ArrowRight size={16} />
-                </button>
-            </div>
-        </div>
-      )}
-
-      {/* --- HERO SECTION --- */}
-      <div className="text-center mb-16 md:mb-24 relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-1000 w-full">
-        
-        {/* Status Badge */}
-        <div className="inline-flex items-center gap-3 text-zinc-500 text-[10px] font-mono font-bold tracking-[0.2em] mb-8 uppercase border border-zinc-800 bg-black/50 backdrop-blur-sm px-4 py-1.5 rounded-sm whitespace-nowrap">
-           <span className="relative flex h-2 w-2 shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#DFFF00] opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#DFFF00]"></span>
-           </span>
-           <span>Orbital Uplink Established</span>
-        </div>
-
-        {/* Title Block */}
-        <div className="flex flex-col items-center">
-            {/* ZINC: Fluid Typography */}
-            <h1 className="text-7xl sm:text-8xl md:text-[10rem] font-black tracking-tighter text-black dark:text-white leading-[0.8] mix-blend-difference">
-              ZINC
-            </h1>
+      {/* QUICK ACCESS MODULES */}
+      <section className="max-w-[1600px] mx-auto px-4 md:px-6 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Link href="/sports" className="group relative h-64 md:h-80 overflow-hidden border border-zinc-800 bg-zinc-900/20 hover:border-[#DFFF00] transition-all duration-500">
+            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-10 grayscale transition-opacity duration-500" />
+            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/50 to-transparent" />
             
-            {/* ENGINEERING: Acid Green, Tactical */}
-            <div className="flex items-center gap-2 md:gap-4 mt-6 w-full justify-center">
-                <div className="h-px w-6 md:w-24 bg-zinc-800 dark:bg-zinc-700"></div>
-                <h2 className="text-base sm:text-xl md:text-3xl font-mono font-bold tracking-[0.2em] md:tracking-[0.4em] text-[#DFFF00] uppercase truncate">
-                  ENGINEERING
-                </h2>
-                <div className="h-px w-6 md:w-24 bg-zinc-800 dark:bg-zinc-700"></div>
+            <div className="absolute bottom-0 left-0 p-8 w-full">
+              <div className="flex items-center justify-between mb-2">
+                <Trophy size={32} className="text-zinc-500 group-hover:text-[#DFFF00] transition-colors" />
+                <ArrowRight size={24} className="text-zinc-500 -translate-x-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-500" />
+              </div>
+              <h2 className="text-3xl font-black uppercase text-white mb-2">Sports Archive</h2>
+              <p className="text-zinc-500 font-mono text-xs max-w-sm group-hover:text-zinc-400 transition-colors">
+                NBA, NRL, F1 & Golf metrics. Real-time tracking and historical data analysis.
+              </p>
             </div>
+          </Link>
+
+          <Link href="/collections" className="group relative h-64 md:h-80 overflow-hidden border border-zinc-800 bg-zinc-900/20 hover:border-[#DFFF00] transition-all duration-500">
+            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-10 grayscale transition-opacity duration-500" />
+            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/50 to-transparent" />
+            
+            <div className="absolute bottom-0 left-0 p-8 w-full">
+              <div className="flex items-center justify-between mb-2">
+                <BookOpen size={32} className="text-zinc-500 group-hover:text-[#DFFF00] transition-colors" />
+                <ArrowRight size={24} className="text-zinc-500 -translate-x-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-500" />
+              </div>
+              <h2 className="text-3xl font-black uppercase text-white mb-2">Collections/Codex</h2>
+              <p className="text-zinc-500 font-mono text-xs max-w-sm group-hover:text-zinc-400 transition-colors">
+                Digital archives, item catalogs, and comprehensive knowledge bases for entertainment protocols.
+              </p>
+            </div>
+          </Link>
         </div>
+      </section>
 
-      </div>
+      {/* PERSONAL LOGS SECTION */}
+      <PersonalLogs />
 
-      {/* --- MODULE SELECTOR --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-5xl relative z-20 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-150">
-        
-        {/* 1. ENTERTAINMENT PROTOCOL */}
-        <a href="/gaming" className="group relative h-56 md:h-64 border border-zinc-300 dark:border-zinc-800 bg-zinc-100 dark:bg-black p-6 md:p-8 flex flex-col justify-between hover:border-[#DFFF00] transition-colors duration-300 overflow-hidden">
-            {/* Background Icon */}
-            <div className="absolute -right-8 -top-8 opacity-[0.03] group-hover:opacity-10 transition-opacity duration-500">
-                <Film size={200} className="md:w-[240px] md:h-[240px]" />
-            </div>
-            
-            <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-4 text-zinc-400 group-hover:text-[#DFFF00] transition-colors">
-                    <Zap size={16} />
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest">PROTOCOL_01</span>
-                </div>
-                <h2 className="text-3xl md:text-4xl font-black uppercase text-black dark:text-white tracking-tighter mb-2">ENTERTAINMENT</h2>
-                <p className="font-mono text-[10px] text-zinc-500 leading-relaxed max-w-[200px]">
-                    Interactive media, tactical databases, and digital experiences.
-                </p>
-            </div>
-
-            <div className="flex items-center justify-between border-t border-zinc-300 dark:border-zinc-800 pt-4 mt-4 group-hover:border-[#DFFF00]/30 transition-colors">
-                <span className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">ACCESS</span>
-                <ArrowRight size={14} className="text-[#DFFF00] -translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-            </div>
-        </a>
-
-        {/* 2. ATHLETICS PROTOCOL */}
-        <a href="/sports" className="group relative h-56 md:h-64 border border-zinc-300 dark:border-zinc-800 bg-zinc-100 dark:bg-black p-6 md:p-8 flex flex-col justify-between hover:border-[#DFFF00] transition-colors duration-300 overflow-hidden">
-            {/* Background Icon */}
-            <div className="absolute -right-8 -top-8 opacity-[0.03] group-hover:opacity-10 transition-opacity duration-500">
-                <Activity size={200} className="md:w-[240px] md:h-[240px]" />
-            </div>
-            
-            <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-4 text-zinc-400 group-hover:text-[#DFFF00] transition-colors">
-                    <Activity size={16} />
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest">PROTOCOL_02</span>
-                </div>
-                <h2 className="text-3xl md:text-4xl font-black uppercase text-black dark:text-white tracking-tighter mb-2">ATHLETICS</h2>
-                <p className="font-mono text-[10px] text-zinc-500 leading-relaxed max-w-[200px]">
-                    Live global sports telemetry & performance archives.
-                </p>
-            </div>
-
-            <div className="flex items-center justify-between border-t border-zinc-300 dark:border-zinc-800 pt-4 mt-4 group-hover:border-[#DFFF00]/30 transition-colors">
-                <span className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">ACCESS</span>
-                <ArrowRight size={14} className="text-[#DFFF00] -translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-            </div>
-        </a>
-
-      </div>
-
-      {/* Footer */}
-      <div className="absolute bottom-6 md:bottom-12 left-0 right-0 flex justify-center opacity-30 pointer-events-none z-0">
-         <div className="h-px w-24 md:w-32 bg-zinc-800"></div>
-      </div>
-
-    </div>
+      {/* FOOTER */}
+      <footer className="py-12 px-6 border-t border-zinc-800 text-center mt-12">
+        <div className="flex items-center justify-center gap-2 text-zinc-600 font-mono text-[10px] uppercase tracking-widest mb-4">
+           <Database size={12} />
+           <span>Secure Connection Est. 2024</span>
+        </div>
+        <p className="text-zinc-800 font-black text-sm uppercase">Zinc Engineering © 2025</p>
+      </footer>
+    </main>
   );
 }
