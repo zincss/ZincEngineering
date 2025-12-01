@@ -1,9 +1,9 @@
 name: NBA Data Sync
 
 on:
-  workflow_dispatch: # Allows triggering via API (from Vercel)
+  workflow_dispatch: # Allows triggering manually or via API
   schedule:
-    - cron: '0 * * * *' # Also runs automatically every hour as backup
+    - cron: '0 * * * *' # Runs every hour
 
 jobs:
   sync:
@@ -20,7 +20,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run NBA Sync
+      - name: Run NBA Sync Script
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
