@@ -4,13 +4,48 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY! 
 );
 
 const NBA_CDN = 'https://cdn.nba.com/static/json/liveData';
-const DEFAULT_HEADSHOT = 'https://a.espncdn.com/combiner/i?img=/i/headshots/nophoto.png';
+const getTeamLogo = (tricode: string) => `https://a.espncdn.com/i/teamlogos/nba/500/${tricode}.png`;
 
-// --- 1. LIVE SCORES ---
+// --- LEADERS ---
+export async function getLeagueLeaders() {
+    const categories = [
+        { key: 'pts', label: 'PTS' },
+        { key: 'ast', label: 'AST' },
+        { key: 'reb', label: 'REB' },
+        { key: 'blk', label: 'BLK' },
+        { key: 'stl', label: 'STL' }
+    ];
+
+    const results = await Promise.all(categories.map(async (cat) => {
+        const { data } = await supabase
+            .from('nba_players')
+            .select('*')
+            .gt(cat.key, 0) // Filter: Must have a stats value greater than 0
+            .order(cat.key, { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (!data) return null;
+
+        return {
+            category: cat.label,
+            player: data.name,
+            team: data.team_abbr || 'NBA',
+            value: data[cat.key]?.toString(),
+            image: data.headshot || `https://a.espncdn.com/combiner/i?img=/i/headshots/nba/players/full/${data.id}.png`
+        };
+    }));
+
+    return results.filter(r => r !== null);
+}
+
+// ... (Rest of the file remains the same: getLiveScores, getStandings, etc.)
+// Re-include the rest of the functions from your previous version or the file below:
+
 export async function getLiveScores() {
     try {
         const res = await fetch(`${NBA_CDN}/scoreboard/todaysScoreboard_00.json`, { next: { revalidate: 30 } });
@@ -22,101 +57,49 @@ export async function getLiveScores() {
             status: g.gameStatus === 2 ? 'LIVE' : g.gameStatusText.trim(),
             period: g.period,
             clock: g.gameClock,
-            isLive: g.gameStatus === 2,
-            home: {
-                name: g.homeTeam.teamTricode,
+            home: { 
+                name: g.homeTeam.teamTricode, 
                 score: g.homeTeam.score,
-                logo: `https://cdn.nba.com/logos/nba/${g.homeTeam.teamId}/global/L/logo.svg`,
-                record: `${g.homeTeam.wins}-${g.homeTeam.losses}`
+                logo: getTeamLogo(g.homeTeam.teamTricode)
             },
-            away: {
-                name: g.awayTeam.teamTricode,
+            away: { 
+                name: g.awayTeam.teamTricode, 
                 score: g.awayTeam.score,
-                logo: `https://cdn.nba.com/logos/nba/${g.awayTeam.teamId}/global/L/logo.svg`,
-                record: `${g.awayTeam.wins}-${g.awayTeam.losses}`
+                logo: getTeamLogo(g.awayTeam.teamTricode)
             },
-            arena: g.arena?.arenaName || 'NBA Arena',
-            seasonLabel: '2025-26 SEASON'
         }));
     } catch { return []; }
 }
 
-// --- 2. STANDINGS (FIXED) ---
 export async function getStandings() {
-    // Fetch all teams; we will sort and rank them manually to ensure accuracy
     const { data } = await supabase.from('nba_teams').select('*');
-    const result: { east: any[], west: any[] } = { east: [], west: [] };
+    if (!data) return { east: [], west: [] };
 
-    if (data) {
-        // Helper: Calculate Winning Percentage
-        const getPct = (w: number, l: number) => {
-            const total = w + l;
-            return total === 0 ? 0 : w / total;
-        };
+    const processConf = (teams: any[]) => {
+        const sorted = teams.sort((a, b) => {
+            const pctA = a.wins / (a.wins + a.losses || 1);
+            const pctB = b.wins / (b.wins + b.losses || 1);
+            return pctB - pctA;
+        });
+        
+        return sorted.map((t, i) => ({
+            id: t.id,
+            rank: i + 1,
+            name: `${t.city} ${t.name}`,
+            logo: t.logo,
+            w: t.wins,
+            l: t.losses,
+            pct: (t.wins / (t.wins + t.losses || 1)).toFixed(3),
+            gb: i === 0 ? '-' : ((sorted[0].wins - t.wins + t.losses - sorted[0].losses) / 2).toFixed(1)
+        }));
+    };
 
-        // 1. Separate Teams by Conference (Case-insensitive check)
-        const eastTeams = data.filter((t: any) => t.conference?.toLowerCase().includes('east'));
-        const westTeams = data.filter((t: any) => t.conference?.toLowerCase().includes('west'));
-
-        // 2. Sort Function (Win % Descending, then Wins Descending)
-        const sortTeams = (teams: any[]) => {
-            return teams.sort((a, b) => {
-                const pctA = getPct(a.wins, a.losses);
-                const pctB = getPct(b.wins, b.losses);
-                if (pctA !== pctB) return pctB - pctA; 
-                return b.wins - a.wins;
-            });
-        };
-
-        const sortedEast = sortTeams(eastTeams);
-        const sortedWest = sortTeams(westTeams);
-
-        // 3. Map Data & Calculate Games Back (GB)
-        const processConference = (teams: any[]) => {
-            const leader = teams[0];
-            return teams.map((t: any, index: number) => {
-                // GB Formula: ((LeaderWins - TeamWins) + (TeamLosses - LeaderLosses)) / 2
-                const gb = leader 
-                    ? ((leader.wins - t.wins) + (t.losses - leader.losses)) / 2 
-                    : 0;
-
-                return {
-                    id: t.id,
-                    rank: index + 1, // Dynamic Rank based on sorted position
-                    name: `${t.city} ${t.name}`,
-                    logo: t.logo,
-                    w: t.wins,
-                    l: t.losses,
-                    pct: getPct(t.wins, t.losses).toFixed(3),
-                    gb: index === 0 ? '-' : gb.toFixed(1), // Leader gets '-'
-                    streak: t.streak || '-'
-                };
-            });
-        };
-
-        result.east = processConference(sortedEast);
-        result.west = processConference(sortedWest);
-    }
-    
-    return result;
+    return {
+        east: processConf(data.filter((t: any) => t.conference === 'east')),
+        west: processConf(data.filter((t: any) => t.conference === 'west'))
+    };
 }
 
-// --- 3. LEADERS (FIXED) ---
-export async function getLeagueLeaders() {
-    const { data } = await supabase.from('nba_players').select('*').order('pts', { ascending: false }).limit(5);
-    
-    return (data || []).map((p: any) => ({
-        category: 'PTS',
-        player: p.name,
-        team: p.team_abbr || 'NBA',
-        value: p.pts.toString(),
-        // FIX: Construct a fresh ESPN image URL using the player ID.
-        // This bypasses potentially broken or expired URLs stored in the DB.
-        image: `https://a.espncdn.com/combiner/i?img=/i/headshots/nba/players/full/${p.id}.png&w=350&h=254`
-    }));
-}
-
-// --- 4. ALL TEAMS ---
 export async function getAllTeams() {
     const { data } = await supabase.from('nba_teams').select('*').order('name');
     return (data || []).map((t: any) => ({
@@ -125,9 +108,6 @@ export async function getAllTeams() {
         logo: t.logo
     }));
 }
-
-// ... Stubs for missing functions
-export async function getGameSummary(id: string) { return null; }
 export async function searchPlayers(query: string) { return []; }
 export async function getTeamData(id: string) { return null; }
 export async function getPlayerProfile(id: string) { return null; }

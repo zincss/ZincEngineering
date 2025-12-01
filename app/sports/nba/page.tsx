@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Activity, Calendar, Trophy, Users, Loader2, Search, LayoutGrid, Flag } from 'lucide-react';
+import { Activity, Calendar, Trophy, Users, Loader2, Search, LayoutGrid, Database, RefreshCw, AlertTriangle } from 'lucide-react';
 import { getLiveScores, getStandings, getLeagueLeaders, getAllTeams, searchPlayers } from './actions';
 import GameTicker from './components/GameTicker';
 
@@ -16,31 +16,55 @@ export default function NBAHub() {
   
   const [activeConf, setActiveConf] = useState<'east' | 'west'>('east');
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [playerSearch, setPlayerSearch] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
 
+  // 1. Initial Data Load (READ ONLY)
+  const loadData = async () => {
+      try {
+          const [s, st, l, t] = await Promise.all([
+              getLiveScores(),
+              getStandings(),
+              getLeagueLeaders(),
+              getAllTeams()
+          ]);
+          setScores(s || []);
+          setStandings(st || { east: [], west: [] });
+          setLeaders(l || []);
+          setAllTeams(t || []);
+      } catch (e) {
+          console.error("Data Load Failed", e);
+      } finally {
+          setLoading(false);
+      }
+  };
+
   useEffect(() => {
-    const init = async () => {
-        try {
-            // Parallel fetch for maximum speed
-            const [s, st, l, t] = await Promise.all([
-                getLiveScores(),
-                getStandings(),
-                getLeagueLeaders(),
-                getAllTeams()
-            ]);
-            setScores(s || []);
-            setStandings(st || { east: [], west: [] });
-            setLeaders(l || []);
-            setAllTeams(t || []);
-        } catch (e) {
-            console.error("NBA Init Failed", e);
-        } finally {
-            setLoading(false);
-        }
-    };
-    init();
+    loadData();
   }, []);
+
+  // 2. Force Update (Triggers the API Route manually)
+  const handleForceUpdate = async () => {
+      setSyncing(true);
+      try {
+          // Hit the Master Sync Route
+          const res = await fetch('/api/cron/nba');
+          const data = await res.json();
+          
+          if (data.success) {
+              await loadData(); // Reload UI with fresh data
+              alert(`SNAPSHOT COMPLETE.\nTeams: ${data.teamsUpdated}\nPlayers: ${data.playersUpdated}`);
+          } else {
+              alert("UPDATE FAILED. Check console.");
+          }
+      } catch (e) {
+          console.error("Manual Sync Error", e);
+          alert("CONNECTION FAILED");
+      } finally {
+          setSyncing(false);
+      }
+  };
 
   // Live Player Search
   useEffect(() => {
@@ -75,6 +99,19 @@ export default function NBAHub() {
               <h1 className="text-5xl md:text-8xl font-black uppercase tracking-tighter text-white leading-none">
                   HARDWOOD <span className="text-zinc-800">OPS</span>
               </h1>
+              
+              {/* FORCE UPDATE BUTTON */}
+              <div className="flex items-center gap-4 mt-4">
+                  <button 
+                    onClick={handleForceUpdate}
+                    disabled={syncing}
+                    className={`flex items-center gap-2 px-4 py-2 border text-[10px] font-black tracking-widest uppercase transition-all ${syncing ? 'bg-zinc-900 border-zinc-800 text-zinc-500' : 'bg-black border-zinc-700 text-white hover:border-[#DFFF00] hover:text-[#DFFF00]'}`}
+                  >
+                      {syncing ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                      {syncing ? 'SYNCING SNAPSHOT...' : 'FORCE UPDATE'}
+                  </button>
+                  {syncing && <span className="text-[9px] font-mono text-zinc-500 animate-pulse">DO NOT CLOSE WINDOW</span>}
+              </div>
           </div>
           
           {/* SEARCH BAR */}
@@ -133,7 +170,6 @@ export default function NBAHub() {
                               <th className="p-3 text-right">L</th>
                               <th className="p-3 text-right">PCT</th>
                               <th className="p-3 text-right">GB</th>
-                              <th className="p-3 text-right pr-4">STRK</th>
                           </tr>
                       </thead>
                       <tbody className="font-mono text-xs">
@@ -150,10 +186,9 @@ export default function NBAHub() {
                                   <td className="p-3 text-right text-zinc-400">{team.l}</td>
                                   <td className="p-3 text-right text-zinc-500">{team.pct}</td>
                                   <td className="p-3 text-right text-zinc-500">{team.gb}</td>
-                                  <td className={`p-3 text-right pr-4 font-bold ${team.streak?.includes('W') ? 'text-green-500' : 'text-red-500'}`}>{team.streak}</td>
                               </tr>
                           )) : (
-                              <tr><td colSpan={7} className="p-8 text-center text-zinc-500 font-mono text-xs">OFF SEASON MODE / DATA UNAVAILABLE</td></tr>
+                              <tr><td colSpan={6} className="p-8 text-center text-zinc-500 font-mono text-xs">OFF SEASON MODE / DATA UNAVAILABLE</td></tr>
                           )}
                       </tbody>
                   </table>
@@ -167,12 +202,13 @@ export default function NBAHub() {
               <div className="bg-zinc-900 border border-zinc-800 p-6">
                   <div className="flex items-center gap-2 mb-6 text-white pb-2 border-b border-zinc-800">
                       <Users size={16} className="text-[#DFFF00]"/>
-                      <span className="text-xs font-black uppercase tracking-widest">TODAY'S STAT LEADERS</span>
+                      <span className="text-xs font-black uppercase tracking-widest">SEASON LEADERS</span>
                   </div>
                   <div className="space-y-4">
                       {leaders.length > 0 ? leaders.map((leader, i) => (
                           <div key={i} className="flex items-center gap-4 bg-black border border-zinc-800 p-3 hover:border-[#DFFF00] transition-colors group cursor-pointer">
-                              <img src={leader.image} className="w-12 h-12 rounded-full bg-zinc-800 object-cover object-top border border-zinc-700" alt={leader.player}/>
+                              <img src={leader.image} className="w-12 h-12 rounded-full bg-zinc-800 object-cover object-top border border-zinc-700" alt={leader.player} 
+                                   onError={(e) => { e.currentTarget.src = 'https://a.espncdn.com/combiner/i?img=/i/headshots/nophoto.png'; }} />
                               <div className="flex-1">
                                   <span className="text-[9px] font-bold text-zinc-500 uppercase block">{leader.category} LEADER</span>
                                   <span className="text-sm font-black text-white uppercase leading-none">{leader.player}</span>
@@ -181,7 +217,10 @@ export default function NBAHub() {
                               <div className="text-xl font-black text-[#DFFF00] font-mono">{leader.value}</div>
                           </div>
                       )) : (
-                          <div className="text-center py-8 text-zinc-500 font-mono text-xs">LEADER DATA SYNCING...</div>
+                          <div className="text-center py-8 text-zinc-500 font-mono text-xs flex flex-col items-center gap-2">
+                              <AlertTriangle size={16} />
+                              <span>NO DATA. CLICK "FORCE UPDATE" ABOVE.</span>
+                          </div>
                       )}
                   </div>
               </div>
