@@ -43,36 +43,61 @@ export async function getLiveScores() {
 
 // --- 2. STANDINGS (FIXED) ---
 export async function getStandings() {
-    const { data } = await supabase.from('nba_teams').select('*').order('rank');
+    // Fetch all teams; we will sort and rank them manually to ensure accuracy
+    const { data } = await supabase.from('nba_teams').select('*');
     const result: { east: any[], west: any[] } = { east: [], west: [] };
 
     if (data) {
-        data.forEach((t: any) => {
-            const team = {
-                id: t.id,
-                rank: t.rank,
-                name: `${t.city} ${t.name}`,
-                logo: t.logo,
-                w: t.wins,
-                l: t.losses,
-                pct: (t.wins / ((t.wins + t.losses) || 1)).toFixed(3),
-                gb: '-',
-                streak: '-'
-            };
-            
-            // FIX: Read 'conference' column, check for 'East' (case insensitive)
-            if (t.conference?.toLowerCase().includes('east')) {
-                result.east.push(team);
-            } else {
-                result.west.push(team);
-            }
-        });
+        // Helper: Calculate Winning Percentage
+        const getPct = (w: number, l: number) => {
+            const total = w + l;
+            return total === 0 ? 0 : w / total;
+        };
+
+        // 1. Separate Teams by Conference (Case-insensitive check)
+        const eastTeams = data.filter((t: any) => t.conference?.toLowerCase().includes('east'));
+        const westTeams = data.filter((t: any) => t.conference?.toLowerCase().includes('west'));
+
+        // 2. Sort Function (Win % Descending, then Wins Descending)
+        const sortTeams = (teams: any[]) => {
+            return teams.sort((a, b) => {
+                const pctA = getPct(a.wins, a.losses);
+                const pctB = getPct(b.wins, b.losses);
+                if (pctA !== pctB) return pctB - pctA; 
+                return b.wins - a.wins;
+            });
+        };
+
+        const sortedEast = sortTeams(eastTeams);
+        const sortedWest = sortTeams(westTeams);
+
+        // 3. Map Data & Calculate Games Back (GB)
+        const processConference = (teams: any[]) => {
+            const leader = teams[0];
+            return teams.map((t: any, index: number) => {
+                // GB Formula: ((LeaderWins - TeamWins) + (TeamLosses - LeaderLosses)) / 2
+                const gb = leader 
+                    ? ((leader.wins - t.wins) + (t.losses - leader.losses)) / 2 
+                    : 0;
+
+                return {
+                    id: t.id,
+                    rank: index + 1, // Dynamic Rank based on sorted position
+                    name: `${t.city} ${t.name}`,
+                    logo: t.logo,
+                    w: t.wins,
+                    l: t.losses,
+                    pct: getPct(t.wins, t.losses).toFixed(3),
+                    gb: index === 0 ? '-' : gb.toFixed(1), // Leader gets '-'
+                    streak: t.streak || '-'
+                };
+            });
+        };
+
+        result.east = processConference(sortedEast);
+        result.west = processConference(sortedWest);
     }
     
-    // Secondary Sort by Wins if Rank isn't perfect
-    result.east.sort((a, b) => b.w - a.w);
-    result.west.sort((a, b) => b.w - a.w);
-
     return result;
 }
 
@@ -83,10 +108,11 @@ export async function getLeagueLeaders() {
     return (data || []).map((p: any) => ({
         category: 'PTS',
         player: p.name,
-        team: p.team_abbr,
+        team: p.team_abbr || 'NBA',
         value: p.pts.toString(),
-        // FIX: Use fallback if headshot is null
-        image: p.headshot || DEFAULT_HEADSHOT
+        // FIX: Construct a fresh ESPN image URL using the player ID.
+        // This bypasses potentially broken or expired URLs stored in the DB.
+        image: `https://a.espncdn.com/combiner/i?img=/i/headshots/nba/players/full/${p.id}.png&w=350&h=254`
     }));
 }
 
@@ -100,7 +126,7 @@ export async function getAllTeams() {
     }));
 }
 
-// ... Other functions remain the same ...
+// ... Stubs for missing functions
 export async function getGameSummary(id: string) { return null; }
 export async function searchPlayers(query: string) { return []; }
 export async function getTeamData(id: string) { return null; }

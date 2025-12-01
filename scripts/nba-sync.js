@@ -9,55 +9,53 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY 
 );
 
+const NBA_CDN_TEAMS = 'https://cdn.nba.com/static/json/liveData/standings/standings_00.json';
+const ESPN_LEADERS = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/statistics?limit=5&category=points';
+
 async function sync() {
-    console.log("🏀 STARTING NBA SYNC...");
+    console.log("🏀 STARTING NBA SYNC [SOURCE: NBA OFFICIAL CDN]...");
 
     try {
-        // 1. FETCH TEAMS (ESPN)
-        console.log("1. Fetching Teams...");
-        const res = await fetch('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams?limit=30');
+        // --- 1. FETCH TEAMS & STANDINGS (OFFICIAL NBA DATA) ---
+        // This solves the 19/11 split and 0-0 record issue by using the official source
+        console.log("1. Fetching Teams & Standings...");
+        const res = await fetch(NBA_CDN_TEAMS);
         const data = await res.json();
         
-        if (data.sports) {
-            const teamEntries = data.sports[0].leagues[0].teams;
-            const teams = teamEntries.map(entry => {
-                const t = entry.team;
-                const record = t.record?.items?.[0]?.summary || "0-0";
-                const [w, l] = record.split('-').map(n => parseInt(n) || 0);
-                
-                // Map conference manually based on known ID or Abbr
-                // ID 1-15: Various. Let's use a known map or default.
-                // Actually, we can infer from group ID if available, but simpler:
-                // Just push them and let frontend sort? No, frontend needs 'conference' column.
-                // We'll default to 'East' if unknown, but typically ESPN group info handles this.
-                // Let's just use a simple list for accuracy.
-                const westAbbrs = ['DAL','DEN','GSW','HOU','LAC','LAL','MEM','MIN','NOP','OKC','PHX','POR','SAC','SAS','UTA'];
-                const conf = westAbbrs.includes(t.abbreviation) ? 'West' : 'East';
+        if (!data?.league?.standard?.conference) throw new Error("Invalid NBA Data Structure");
 
-                return {
-                    id: t.id,
-                    name: t.name, 
-                    city: t.location, 
-                    abbr: t.abbreviation,
-                    wins: w,
-                    losses: l,
-                    conference: conf, // CORRECT COLUMN NAME
-                    rank: 0, 
-                    logo: t.logos?.[0]?.href || ''
-                };
-            });
+        const teamsToUpsert = [];
+
+        // Process both conferences explicitly
+        ['east', 'west'].forEach(confKey => {
+            const confData = data.league.standard.conference[confKey];
             
-            // Sort to assign rank
-            teams.sort((a, b) => b.wins - a.wins);
-            teams.forEach((t, i) => t.rank = i + 1);
+            confData.forEach((t) => {
+                const teamData = {
+                    id: t.teamId.toString(), // Uses Official NBA ID (Matches Live Scores)
+                    name: t.teamSitesOnly.teamNickname, 
+                    city: t.teamSitesOnly.teamName, 
+                    abbr: t.teamSitesOnly.teamTricode,
+                    conference: confKey.charAt(0).toUpperCase() + confKey.slice(1), // 'East' or 'West'
+                    wins: parseInt(t.win) || 0,
+                    losses: parseInt(t.loss) || 0,
+                    rank: t.confRank,
+                    // Construct official NBA Logo URL
+                    logo: `https://cdn.nba.com/logos/nba/${t.teamId}/global/L/logo.svg`
+                };
+                teamsToUpsert.push(teamData);
+            });
+        });
 
-            await supabase.from('nba_teams').upsert(teams);
-            console.log(`✅ Updated ${teams.length} teams.`);
-        }
+        // Upsert Teams
+        const { error: teamError } = await supabase.from('nba_teams').upsert(teamsToUpsert);
+        if (teamError) throw teamError;
+        
+        console.log(`✅ Updated ${teamsToUpsert.length} teams correctly.`);
 
-        // 2. FETCH LEADERS
+        // --- 2. FETCH LEADERS (ESPN) ---
         console.log("2. Fetching Leaders...");
-        const leadRes = await fetch('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/statistics?limit=5&category=points');
+        const leadRes = await fetch(ESPN_LEADERS);
         const leadData = await leadRes.json();
         
         if (leadData.athletes) {
@@ -66,17 +64,20 @@ async function sync() {
                 name: a.athlete.displayName,
                 team_abbr: a.athlete.team.abbreviation,
                 pts: parseFloat(a.statistics[0].displayValue),
-                headshot: a.athlete.headshot?.href || `https://a.espncdn.com/combiner/i?img=/i/headshots/nba/players/full/${a.athlete.id}.png`
+                // Force a valid high-res headshot URL
+                headshot: `https://a.espncdn.com/combiner/i?img=/i/headshots/nba/players/full/${a.athlete.id}.png&w=350&h=254`
             }));
 
-            await supabase.from('nba_players').upsert(players);
+            const { error: playerError } = await supabase.from('nba_players').upsert(players);
+            if (playerError) throw playerError;
+
             console.log(`✅ Updated ${players.length} leaders.`);
         }
 
-        console.log("🏆 SYNC COMPLETE.");
+        console.log("🏆 SYNC COMPLETE. Database is now accurate.");
 
     } catch (e) {
-        console.error("SYNC ERROR:", e);
+        console.error("❌ SYNC ERROR:", e);
     }
 }
 
