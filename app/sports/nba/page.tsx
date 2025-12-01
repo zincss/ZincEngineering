@@ -2,31 +2,52 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Activity, Calendar, Trophy, Users, Loader2, TrendingUp, Flag } from 'lucide-react';
-import { getLiveScores, getStandings, getLeagueLeaders } from './actions';
+import { useRouter } from 'next/navigation';
+import { Activity, Calendar, Trophy, Users, Loader2, TrendingUp, Flag, Search, LayoutGrid } from 'lucide-react';
+import { getLiveScores, getStandings, getLeagueLeaders, getAllTeams } from './actions';
 import GameTicker from './components/GameTicker';
 
 export default function NBAHub() {
+  const router = useRouter();
   const [scores, setScores] = useState<any[]>([]);
   const [standings, setStandings] = useState<any>({ east: [], west: [] });
   const [leaders, setLeaders] = useState<any[]>([]);
+  const [allTeams, setAllTeams] = useState<any[]>([]);
+  
   const [activeConf, setActiveConf] = useState<'east' | 'west'>('east');
   const [loading, setLoading] = useState(true);
+  const [playerSearch, setPlayerSearch] = useState('');
 
   useEffect(() => {
     const init = async () => {
-        const [s, st, l] = await Promise.all([
-            getLiveScores(),
-            getStandings(),
-            getLeagueLeaders()
-        ]);
-        setScores(s);
-        setStandings(st);
-        setLeaders(l);
-        setLoading(false);
+        try {
+            // Parallel fetch for speed
+            const [s, st, l, t] = await Promise.all([
+                getLiveScores(),
+                getStandings(),
+                getLeagueLeaders(),
+                getAllTeams()
+            ]);
+            setScores(s || []);
+            setStandings(st || { east: [], west: [] });
+            setLeaders(l || []);
+            setAllTeams(t || []);
+        } catch (e) {
+            console.error("NBA Init Failed", e);
+        } finally {
+            setLoading(false);
+        }
     };
     init();
   }, []);
+
+  const handleSearch = (e: React.FormEvent) => {
+      e.preventDefault();
+      // Basic ID lookup isn't possible without a full player list on client.
+      // For now, we direct to a search results page or alert.
+      // Since we don't have a dedicated search page yet, we will just alert.
+      alert("Player search requires full database access (Coming Soon). Please use Team Directory.");
+  };
 
   if (loading) return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-black gap-4 text-zinc-500 font-mono text-xs">
@@ -48,15 +69,23 @@ export default function NBAHub() {
                   HARDWOOD <span className="text-zinc-800">OPS</span>
               </h1>
           </div>
-          <div className="flex gap-4">
-              <div className="text-right">
-                  <div className="text-3xl font-black text-[#DFFF00]">{scores.length}</div>
-                  <div className="text-[10px] font-mono text-zinc-500 uppercase">Active Games</div>
-              </div>
+          
+          {/* Quick Search */}
+          <div className="w-full md:w-auto">
+              <form onSubmit={handleSearch} className="relative group">
+                  <input 
+                    type="text" 
+                    placeholder="SEARCH PROTOCOL..." 
+                    className="bg-zinc-900 border border-zinc-800 pl-10 pr-4 py-3 text-xs font-mono text-white outline-none focus:border-[#DFFF00] w-full md:w-64 transition-colors uppercase"
+                    value={playerSearch}
+                    onChange={(e) => setPlayerSearch(e.target.value)}
+                  />
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-[#DFFF00] transition-colors"/>
+              </form>
           </div>
       </div>
 
-      {/* 2. INTERACTIVE TICKER (NEW) */}
+      {/* 2. INTERACTIVE TICKER */}
       <GameTicker scores={scores} />
 
       {/* 3. MAIN GRID */}
@@ -94,7 +123,7 @@ export default function NBAHub() {
                                       <td className="p-3 pl-4 font-bold text-zinc-500 group-hover:text-white">{team.rank}</td>
                                       <td className="p-3">
                                           <Link href={`/sports/nba/team/${team.id}`} className="flex items-center gap-3 group-hover:translate-x-1 transition-transform">
-                                              <img src={team.logo} className="w-6 h-6 object-contain" />
+                                              <img src={team.logo} className="w-6 h-6 object-contain" alt={team.name} />
                                               <span className="font-bold text-white uppercase">{team.name}</span>
                                           </Link>
                                       </td>
@@ -106,7 +135,7 @@ export default function NBAHub() {
                                   </tr>
                               ))
                           ) : (
-                              <tr><td colSpan={7} className="p-8 text-center text-zinc-500">STANDINGS DATA UNAVAILABLE FOR 2025-26</td></tr>
+                              <tr><td colSpan={7} className="p-8 text-center text-zinc-500">STANDINGS OFFLINE. CHECK CONNECTION.</td></tr>
                           )}
                       </tbody>
                   </table>
@@ -120,28 +149,35 @@ export default function NBAHub() {
               <div className="bg-zinc-900 border border-zinc-800 p-6">
                   <div className="flex items-center gap-2 mb-6 text-white pb-2 border-b border-zinc-800">
                       <Users size={16} className="text-[#DFFF00]"/>
-                      <span className="text-xs font-black uppercase tracking-widest">2025-26 STAT LEADERS</span>
+                      <span className="text-xs font-black uppercase tracking-widest">TODAY'S TOP PERFORMERS</span>
                   </div>
                   <div className="space-y-4">
-                      {leaders.map((leader, i) => (
-                          <div key={i} className="flex items-center gap-4 group cursor-pointer hover:bg-black p-2 rounded-sm transition-colors border border-transparent hover:border-zinc-800">
-                              <img src={leader.image} className="w-10 h-10 rounded-full bg-zinc-800 object-cover object-top border border-zinc-700" />
-                              <div className="flex-1">
-                                  <span className="text-[10px] font-bold text-zinc-500 uppercase block">{leader.category} LEADER</span>
-                                  <span className="text-sm font-black text-white uppercase leading-none">{leader.player}</span>
+                      {leaders.length > 0 ? (
+                          leaders.map((leader, i) => (
+                              <div key={i} className="flex items-center gap-4 group cursor-pointer hover:bg-black p-2 rounded-sm transition-colors border border-transparent hover:border-zinc-800">
+                                  <img src={leader.image} className="w-10 h-10 rounded-full bg-zinc-800 object-cover object-top border border-zinc-700" alt={leader.player}/>
+                                  <div className="flex-1">
+                                      <span className="text-[10px] font-bold text-zinc-500 uppercase block">{leader.category}</span>
+                                      <span className="text-sm font-black text-white uppercase leading-none">{leader.player}</span>
+                                      <span className="text-[9px] font-mono text-zinc-600 block mt-0.5">{leader.team}</span>
+                                  </div>
+                                  <div className="text-xl font-black text-[#DFFF00] font-mono">{leader.value}</div>
                               </div>
-                              <div className="text-xl font-black text-[#DFFF00] font-mono">{leader.value}</div>
+                          ))
+                      ) : (
+                          <div className="text-center py-8 border border-dashed border-zinc-800 text-zinc-500 font-mono text-xs">
+                              NO ACTIVE GAMES TODAY.<br/>CHECK BACK GAMEDAY.
                           </div>
-                      ))}
+                      )}
                   </div>
               </div>
 
               {/* QUICK NAV */}
               <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-black border border-zinc-800 p-4 hover:border-[#DFFF00] transition-colors cursor-pointer group">
-                      <Calendar size={24} className="text-zinc-600 group-hover:text-[#DFFF00] mb-2 transition-colors"/>
-                      <span className="text-[10px] font-black uppercase text-zinc-400 group-hover:text-white">FULL SCHEDULE</span>
-                  </div>
+                  <a href="#teams" className="bg-black border border-zinc-800 p-4 hover:border-[#DFFF00] transition-colors cursor-pointer group">
+                      <LayoutGrid size={24} className="text-zinc-600 group-hover:text-[#DFFF00] mb-2 transition-colors"/>
+                      <span className="text-[10px] font-black uppercase text-zinc-400 group-hover:text-white">TEAMS DIRECTORY</span>
+                  </a>
                   <div className="bg-black border border-zinc-800 p-4 hover:border-[#DFFF00] transition-colors cursor-pointer group">
                       <Flag size={24} className="text-zinc-600 group-hover:text-[#DFFF00] mb-2 transition-colors"/>
                       <span className="text-[10px] font-black uppercase text-zinc-400 group-hover:text-white">POWER RANKINGS</span>
@@ -150,6 +186,28 @@ export default function NBAHub() {
 
           </div>
       </div>
+
+      {/* 4. TEAMS DIRECTORY (New Section) */}
+      <div id="teams" className="max-w-[1600px] mx-auto px-6 py-12 border-t border-zinc-800">
+          <div className="flex items-center gap-2 mb-8">
+              <LayoutGrid size={20} className="text-[#DFFF00]"/>
+              <h2 className="text-2xl font-black uppercase text-white tracking-tight">TEAMS DIRECTORY</h2>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {allTeams.length > 0 ? (
+                  allTeams.map((team) => (
+                      <Link key={team.id} href={`/sports/nba/team/${team.id}`} className="flex flex-col items-center justify-center p-6 bg-zinc-900/50 border border-zinc-800 hover:border-[#DFFF00] hover:bg-black transition-all group">
+                          <img src={team.logo} className="w-16 h-16 object-contain mb-4 group-hover:scale-110 transition-transform" alt={team.name} />
+                          <span className="text-xs font-black text-center text-zinc-400 group-hover:text-white uppercase leading-tight">{team.name}</span>
+                      </Link>
+                  ))
+              ) : (
+                  <div className="col-span-full text-center text-zinc-500 font-mono">LOADING TEAMS...</div>
+              )}
+          </div>
+      </div>
+
     </div>
   );
 }
