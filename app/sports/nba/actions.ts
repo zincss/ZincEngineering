@@ -1,3 +1,4 @@
+// app/sports/nba/actions.ts
 'use server'
 
 import { getOrFetchResource } from '@/lib/data-manager';
@@ -7,7 +8,7 @@ import * as ESPN from './lib/espn';
 const CACHE_CONFIG = {
   SCORES: 0.05,    // 3 minutes (Live data)
   STANDINGS: 1,    // 1 hour
-  LEADERS: 12,     // 12 hours
+  LEADERS: 0,      // FIX: Set to 0 temporarily to force refresh on next load
   PROFILES: 24     // 24 hours
 };
 

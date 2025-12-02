@@ -18,11 +18,17 @@ const API = {
 
 // --- HELPER: Format Stats ---
 const formatStat = (val: any) => {
-    if (val === undefined || val === null) return '-';
+    // FIX: Handle undefined, null, or empty string specifically
+    if (val === undefined || val === null || val === '') return '-';
+    
     const num = parseFloat(val);
+    
+    // If it's not a number (and not handled above), return original string
     if (isNaN(num)) return val;
+    
     // If it's an integer (35.0), return "35"
     if (Number.isInteger(num)) return num.toString();
+    
     // Otherwise return 1 decimal place "35.1"
     return num.toFixed(1);
 };
@@ -100,7 +106,8 @@ export async function fetchDailyLeaders() {
        page: '1', limit: '5', sort: cat.sort
     });
     
-    const res = await fetch(`${API.ATHLETES}?${params}`, { headers: HEADERS, next: { revalidate: 3600 }});
+    // FIX: Use cache: 'no-store' to ensure we get fresh data for the DB snapshot
+    const res = await fetch(`${API.ATHLETES}?${params}`, { headers: HEADERS, cache: 'no-store' });
     const data = await res.json();
     
     // Resolve correct stat index dynamically
@@ -124,7 +131,7 @@ export async function fetchDailyLeaders() {
         name: a.athlete.displayName,
         team: a.athlete.team?.abbreviation,
         headshot: a.athlete.headshot?.href,
-        value: formatStat(val) // Updated to use formatter
+        value: formatStat(val) // Updated to use robust formatter
       };
     }) || [];
   }
