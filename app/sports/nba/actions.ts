@@ -61,12 +61,12 @@ export async function getTeamSnapshot(teamId: string) {
   }, () => ESPN.fetchTeamProfile(teamId));
 }
 
-// FIX: Changed ID to 'player_v3_' to bust old cache and force fresh data fetch
+// FIX: Changed ID to 'player_v6_' to bust old cache
 export async function getPlayerProfile(playerId: string) {
     return await getOrFetchResource({
         table: 'nba_snapshots',
         keyField: 'key',
-        id: `player_v3_${playerId}`, // <--- CHANGED THIS TO V3
+        id: `player_v6_${playerId}`, 
         expirationHours: CACHE_CONFIG.PROFILES
     }, () => ESPN.fetchPlayerProfile(playerId));
 }

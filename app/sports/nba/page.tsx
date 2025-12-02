@@ -15,10 +15,8 @@ export default async function NBAHub() {
     <main className="min-h-screen bg-zinc-950 text-white pb-20 selection:bg-[#DFFF00] selection:text-black">
       
       {/* HERO SECTION */}
-      {/* FIX 1: Added z-40 to sit above Ticker. Removed 'overflow-hidden' from here. */}
       <section className="relative pt-24 pb-12 px-6 border-b border-zinc-800 z-40">
         
-        {/* FIX 2: Moved overflow-hidden to this wrapper so the background stays contained, but the dropdown can escape. */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
              <div className="absolute top-0 right-0 w-1/3 h-full bg-[#DFFF00]/5 -skew-x-12" />
         </div>
@@ -144,7 +142,8 @@ function LeaderModule({ title, icon, players }: { title: string, icon: string, p
     return (
         <div className="border border-zinc-800 bg-zinc-900/20 mb-4">
             {/* Top Leader */}
-            <Link href={`/sports/nba/player/${top.id}`} className="block p-4 flex items-center gap-4 bg-zinc-900/40 border-b border-zinc-800 relative overflow-hidden group hover:bg-zinc-900 transition-colors">
+            {/* FIX: Removed 'block' class, kept 'flex' */}
+            <Link href={`/sports/nba/player/${top.id}`} className="flex p-4 items-center gap-4 bg-zinc-900/40 border-b border-zinc-800 relative overflow-hidden group hover:bg-zinc-900 transition-colors">
                 <div className="absolute top-0 right-0 p-2 opacity-10 font-black text-6xl text-white select-none">{icon}</div>
                 <img src={top.headshot} className="w-16 h-16 rounded-full bg-zinc-800 object-cover border border-zinc-700 relative z-10" alt={top.name} />
                 <div className="relative z-10">

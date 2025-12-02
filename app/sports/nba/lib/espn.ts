@@ -26,7 +26,6 @@ const formatStat = (val: any) => {
 };
 
 // --- FETCHERS ---
-// (Keep fetchLiveScoreboard, fetchStandings, fetchDailyLeaders, fetchTeamProfile as is)
 export async function fetchLiveScoreboard() {
   const res = await fetch(API.SCOREBOARD, { headers: HEADERS, cache: 'no-store' });
   if (!res.ok) return [];
@@ -159,7 +158,6 @@ export async function fetchTeamProfile(id: string) {
   };
 }
 
-// --- UPDATE: FETCH PLAYER PROFILE (Robust) ---
 export async function fetchPlayerProfile(id: string) {
     try {
         const res = await fetch(`${API.PLAYER_BASE}/${id}`, { headers: HEADERS, cache: 'no-store' });
@@ -173,20 +171,30 @@ export async function fetchPlayerProfile(id: string) {
             if (ath.draft) {
                 return `${ath.draft.year} • Rd ${ath.draft.round} • Pk ${ath.draft.selection}`;
             }
-            // Sometimes it's in displayDraft
             if (ath.displayDraft) return ath.displayDraft;
             return 'Undrafted';
         };
 
-        // Helper to format Birthplace
+        // Helper to format Birthplace (Handles String or Object)
         const getBirthPlace = () => {
+            if (ath.displayBirthPlace) return ath.displayBirthPlace;
             if (ath.birthPlace) {
+                if (typeof ath.birthPlace === 'string') return ath.birthPlace;
                 const city = ath.birthPlace.city || '';
                 const state = ath.birthPlace.state || ath.birthPlace.country || '';
                 if (city && state) return `${city}, ${state}`;
                 return city || state || 'Unknown';
             }
             return 'Unknown';
+        };
+
+        // Helper for College (Handles String or Object)
+        const getCollege = () => {
+            if (ath.college) {
+                 if (typeof ath.college === 'string') return ath.college;
+                 return ath.college.name || ath.displayCollege || 'None';
+            }
+            return ath.displayCollege || 'None';
         };
 
         return {
@@ -201,10 +209,9 @@ export async function fetchPlayerProfile(id: string) {
             weight: ath.displayWeight,
             experience: ath.experience?.years || 'R',
             
-            // IMPROVED MAPPING
             age: ath.age || '-',
             birthPlace: getBirthPlace(),
-            college: ath.college?.name || ath.displayCollege || 'None',
+            college: getCollege(),
             draft: getDraftInfo(),
             status: ath.status?.name || 'Active',
             
@@ -218,7 +225,7 @@ export async function fetchPlayerProfile(id: string) {
     }
 }
 
-// --- UPDATE: FETCH PLAYER GAME LOG (Deep Search) ---
+// --- UPDATE: FETCH PLAYER GAME LOG (Super Robust) ---
 export async function fetchPlayerGameLog(id: string) {
     try {
         const res = await fetch(`${API.PLAYER_BASE}/${id}/gamelog`, { headers: HEADERS, cache: 'no-store' });
@@ -227,31 +234,76 @@ export async function fetchPlayerGameLog(id: string) {
         
         let events = [];
 
-        // 1. Try flat events
         if (data.events && data.events.length > 0) {
             events = data.events;
         } 
-        // 2. Try nested seasonTypes (Common in NBA API)
         else if (data.seasonTypes) {
-            // Find Regular Season (usually type 2) or Postseason (3)
             const season = data.seasonTypes.find((s: any) => s.id === '2' || s.name === 'Regular Season') 
                         || data.seasonTypes[0];
             
             if (season && season.categories) {
-                // Usually events are inside the first category
                 events = season.categories.flatMap((c: any) => c.events || []);
             } else if (season && season.events) {
                 events = season.events;
             }
         }
 
-        // Get last 5 games
         return events.slice(0, 5).map((e: any) => {
              const stats = e.stats || [];
-             // STANDARD NBA STATS INDEX (Approximate)
-             // 0:MIN, 1:FGM-A, 2:FG%, 3:3PM-A, 4:3P%, 5:FTM-A, 6:FT%, 7:REB, 8:AST, 9:BLK, 10:STL, 11:PF, 12:TO, 13:PTS
-             // We use the last element for PTS to be safe, or specific indices if array length is standard (14-15)
+
+             // --- ROBUST DATE PARSING ---
+             // Check: e.gameDate, e.date, e.game.date, e.eventDate
+             let dateRaw = e.gameDate || e.date || e.eventDate;
+             if (!dateRaw && e.game) dateRaw = e.game.date;
              
+             let dateStr = '-';
+             if (dateRaw) {
+                 const d = new Date(dateRaw);
+                 if (!isNaN(d.getTime())) {
+                     dateStr = d.toLocaleDateString('en-US', {month:'numeric', day:'numeric'});
+                 }
+             }
+
+             // --- ROBUST OPPONENT PARSING ---
+             let opponent = 'OPP';
+             if (e.opponent) {
+                 // Standard: e.opponent is object
+                 opponent = e.opponent.abbreviation || e.opponent.displayName || e.opponent.name;
+                 // Fallback: nested team
+                 if (!opponent && e.opponent.team) {
+                     opponent = e.opponent.team.abbreviation;
+                 }
+                 // Fallback: If string
+                 if (typeof e.opponent === 'string') opponent = e.opponent;
+             } 
+             
+             // Check e.game.opponent
+             if ((!opponent || opponent === 'OPP') && e.game && e.game.opponent) {
+                 opponent = e.game.opponent.abbreviation || e.game.opponent.displayName;
+             }
+
+             // Check e.competitor
+             if ((!opponent || opponent === 'OPP') && e.competitor) {
+                 opponent = e.competitor.abbreviation || e.competitor.name;
+             }
+             
+             // Final fallback: try to find abbreviation in any property ending in 'Abbrev'
+             if (!opponent || opponent === 'OPP') {
+                 // Sometimes it's just 'opp'
+                 if (e.opp) opponent = e.opp.abbreviation || e.opp;
+             }
+             
+             if (!opponent) opponent = 'OPP';
+
+
+             // --- ROBUST RESULT PARSING ---
+             let result = e.gameResult || e.result || '-';
+             if (result === '-' && e.game) {
+                 result = e.game.result || e.game.gameResult || '-';
+             }
+
+             // Stats (approximate mapping)
+             // 13:PTS usually
              const pts = stats.length > 10 ? stats[stats.length - 1] : (stats[13] || '-');
              const reb = stats.length > 7 ? stats[7] : '-';
              const ast = stats.length > 8 ? stats[8] : '-';
@@ -259,9 +311,9 @@ export async function fetchPlayerGameLog(id: string) {
              const stl = stats.length > 10 ? stats[10] : '-';
 
              return {
-                 date: e.gameDate ? new Date(e.gameDate).toLocaleDateString(undefined, {month:'numeric', day:'numeric'}) : '-',
-                 opponent: e.opponent?.abbreviation || 'OPP',
-                 result: e.gameResult || '-',
+                 date: dateStr,
+                 opponent: opponent,
+                 result: result,
                  pts: pts,
                  reb: reb,
                  ast: ast,
