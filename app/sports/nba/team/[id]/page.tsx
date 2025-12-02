@@ -1,76 +1,71 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
+// app/sports/nba/team/[id]/page.tsx
+import React from 'react';
+import { getTeamSnapshot } from '../../actions';
+import { MapPin, Trophy, Calendar, ExternalLink, Database } from 'lucide-react';
 import Link from 'next/link';
-import { ArrowLeft, Users, Calendar, Trophy, Activity, MapPin } from 'lucide-react';
-import { getTeamData } from '../../actions';
 
-export default function TeamPage({ params }: { params: { id: string } }) {
-  const [team, setTeam] = useState<any>(null);
+export default async function TeamPage({ params }: { params: { id: string } }) {
+  const team = await getTeamSnapshot(params.id);
 
-  useEffect(() => {
-    getTeamData(params.id).then(setTeam);
-  }, [params.id]);
-
-  if (!team) return <div className="min-h-screen bg-black flex items-center justify-center text-zinc-500 font-mono text-xs">LOADING TEAM DATA...</div>;
+  if (!team) return <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-zinc-500 font-mono">DATA NOT FOUND</div>;
 
   return (
-    <div className="min-h-screen bg-black pb-20">
-       <div className="relative h-64 overflow-hidden">
-           <div className="absolute inset-0 opacity-20" style={{ backgroundColor: team.color }}></div>
-           <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent"></div>
-           <div className="absolute bottom-0 left-0 p-8 w-full max-w-[1600px] mx-auto flex items-end gap-6">
-               <div className="w-32 h-32 bg-black border-2 border-zinc-800 p-4 flex items-center justify-center shadow-2xl relative z-10">
-                   <img src={team.logo} className="w-full h-full object-contain" />
-               </div>
-               <div className="mb-2">
-                   <h1 className="text-5xl md:text-7xl font-black uppercase text-white tracking-tighter leading-none">{team.name}</h1>
-                   <div className="flex gap-4 mt-2 text-zinc-400 font-mono text-xs font-bold uppercase">
-                       <span>{team.record}</span>
-                       <span className="text-zinc-600">|</span>
-                       <span>{team.standing}</span>
-                   </div>
-               </div>
-           </div>
-       </div>
+    <div className="min-h-screen bg-zinc-950 text-white pb-20">
+      
+      {/* HEADER */}
+      <div className="relative h-64 overflow-hidden border-b border-zinc-800">
+         <div className="absolute inset-0 bg-zinc-900" style={{ backgroundColor: `#${team.color}20` }} />
+         <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent" />
+         
+         <div className="relative z-10 max-w-[1600px] mx-auto px-6 h-full flex items-end pb-8 gap-6">
+             <div className="w-32 h-32 bg-zinc-950 border border-zinc-800 flex items-center justify-center p-4 rounded-xl shadow-2xl">
+                <img src={team.logo} alt={team.name} className="w-full h-full object-contain" />
+             </div>
+             <div>
+                <div className="flex items-center gap-2 text-[#DFFF00] font-mono text-xs uppercase mb-2">
+                    <Database size={12} /> Snapshot ID: {team.id}
+                </div>
+                <h1 className="text-5xl font-black uppercase tracking-tighter leading-none">{team.location} <span className="text-zinc-500">{team.name}</span></h1>
+             </div>
+         </div>
+      </div>
 
-       <div className="max-w-[1600px] mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-12 gap-12">
-           <div className="lg:col-span-8">
-               <div className="flex items-center gap-2 mb-6 pb-2 border-b border-zinc-800">
-                   <Users size={16} className="text-[#DFFF00]"/>
-                   <span className="text-xs font-black tracking-widest uppercase text-white">ACTIVE ROSTER</span>
-               </div>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                   {team.roster.map((p: any) => (
-                       <Link href={`/sports/nba/player/${p.id}`} key={p.id} className="flex items-center gap-4 bg-zinc-900 border border-zinc-800 p-4 hover:border-[#DFFF00] transition-all group">
-                           <img src={p.headshot} className="w-12 h-12 rounded-full bg-black object-cover object-top border border-zinc-700" />
-                           <div>
-                               <h4 className="text-sm font-black text-white uppercase group-hover:text-[#DFFF00] transition-colors">{p.name}</h4>
-                               <div className="text-[10px] font-mono text-zinc-500 uppercase">#{p.number} • {p.pos} • {p.height}</div>
-                           </div>
-                       </Link>
-                   ))}
-               </div>
-           </div>
+      <div className="max-w-[1600px] mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-3 gap-8">
+         
+         {/* INFO CARD */}
+         <div className="bg-zinc-900/20 border border-zinc-800 p-6 space-y-6">
+            <h3 className="text-xl font-black uppercase">Franchise Data</h3>
+            <div className="space-y-4">
+                <div className="flex justify-between border-b border-zinc-800 pb-2">
+                    <span className="text-zinc-500 text-xs font-mono uppercase">Record</span>
+                    <span className="font-bold text-white">{team.record}</span>
+                </div>
+                <div className="flex justify-between border-b border-zinc-800 pb-2">
+                    <span className="text-zinc-500 text-xs font-mono uppercase">Standing</span>
+                    <span className="font-bold text-white">{team.standing}</span>
+                </div>
+                <div className="flex justify-between border-b border-zinc-800 pb-2">
+                     <span className="text-zinc-500 text-xs font-mono uppercase">Abbreviation</span>
+                     <span className="font-bold text-[#DFFF00]">{team.abbr}</span>
+                </div>
+            </div>
+         </div>
 
-           <div className="lg:col-span-4">
-               {team.nextGame && (
-                   <div className="bg-zinc-900 border border-zinc-800 p-6 mb-8">
-                       <div className="flex items-center gap-2 mb-4 pb-2 border-b border-zinc-800">
-                           <Calendar size={16} className="text-[#DFFF00]"/>
-                           <span className="text-xs font-black tracking-widest uppercase text-white">NEXT MATCHUP</span>
-                       </div>
-                       <div className="text-center">
-                           <div className="text-2xl font-black text-white uppercase mb-2">{team.nextGame.name}</div>
-                           <div className="text-xs font-mono text-zinc-500">{new Date(team.nextGame.date).toLocaleString()}</div>
-                       </div>
-                   </div>
-               )}
-               <Link href="/sports/nba" className="block w-full text-center py-4 border border-zinc-800 hover:bg-[#DFFF00] hover:text-black hover:border-[#DFFF00] transition-colors text-xs font-black uppercase tracking-widest text-zinc-500">
-                   RETURN TO HUB
-               </Link>
-           </div>
-       </div>
+         {/* NEXT GAME */}
+         {team.nextEvent && (
+             <div className="bg-zinc-900/20 border border-zinc-800 p-6">
+                 <h3 className="text-xl font-black uppercase mb-4 flex items-center gap-2"><Calendar size={20} /> Next Event</h3>
+                 <div className="text-center py-6 bg-zinc-900/50 border border-zinc-800">
+                     <div className="text-xs font-mono text-zinc-500 mb-2">{new Date(team.nextEvent.date).toLocaleDateString()}</div>
+                     <div className="text-3xl font-black uppercase text-white mb-2">
+                         {team.abbr} <span className="text-zinc-600">vs</span> {team.nextEvent.opponent}
+                     </div>
+                     <div className="text-[10px] uppercase tracking-widest text-[#DFFF00] animate-pulse">Upcoming</div>
+                 </div>
+             </div>
+         )}
+         
+      </div>
     </div>
   );
 }

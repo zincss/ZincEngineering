@@ -1,263 +1,182 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
+// app/sports/nba/page.tsx
+import React from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Activity, Calendar, Trophy, Users, Loader2, Search, LayoutGrid, Database, RefreshCw, AlertTriangle } from 'lucide-react';
-import { getLiveScores, getStandings, getLeagueLeaders, getAllTeams, searchPlayers } from './actions';
-import GameTicker from './components/GameTicker';
+import { Activity, Trophy, Zap, TrendingUp, Calendar, ArrowRight, Database } from 'lucide-react';
+import { getDashboardData } from './actions';
 
-export default function NBAHub() {
-  const router = useRouter();
-  const [scores, setScores] = useState<any[]>([]);
-  const [standings, setStandings] = useState<any>({ east: [], west: [] });
-  const [leaders, setLeaders] = useState<any[]>([]);
-  const [allTeams, setAllTeams] = useState<any[]>([]);
-  
-  const [activeConf, setActiveConf] = useState<'east' | 'west'>('east');
-  const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
-  const [playerSearch, setPlayerSearch] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+export const dynamic = 'force-dynamic'; // Ensure we check snapshots on entry
 
-  // 1. Initial Data Load (READ ONLY)
-  const loadData = async () => {
-      try {
-          const [s, st, l, t] = await Promise.all([
-              getLiveScores(),
-              getStandings(),
-              getLeagueLeaders(),
-              getAllTeams()
-          ]);
-          setScores(s || []);
-          setStandings(st || { east: [], west: [] });
-          setLeaders(l || []);
-          setAllTeams(t || []);
-      } catch (e) {
-          console.error("Data Load Failed", e);
-      } finally {
-          setLoading(false);
-      }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  // 2. Force Update (Triggers the API Route manually)
-  const handleForceUpdate = async () => {
-      setSyncing(true);
-      try {
-          // Hit the Master Sync Route
-          const res = await fetch('/api/cron/nba');
-          const data = await res.json();
-          
-          if (data.success) {
-              await loadData(); // Reload UI with fresh data
-              alert(`SNAPSHOT COMPLETE.\nTeams: ${data.teamsUpdated}\nPlayers: ${data.playersUpdated}`);
-          } else {
-              alert("UPDATE FAILED. Check console.");
-          }
-      } catch (e) {
-          console.error("Manual Sync Error", e);
-          alert("CONNECTION FAILED");
-      } finally {
-          setSyncing(false);
-      }
-  };
-
-  // Live Player Search
-  useEffect(() => {
-      const runSearch = async () => {
-          if (playerSearch.length > 2) {
-              const res = await searchPlayers(playerSearch);
-              setSearchResults(res);
-          } else {
-              setSearchResults([]);
-          }
-      };
-      const debounce = setTimeout(runSearch, 300);
-      return () => clearTimeout(debounce);
-  }, [playerSearch]);
-
-  if (loading) return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-black gap-4 text-zinc-500 font-mono text-xs">
-          <Loader2 className="animate-spin text-[#DFFF00]" size={32}/>
-          ESTABLISHING SECURE UPLINK...
-      </div>
-  );
+export default async function NBAHub() {
+  // 1. AUTO-SNAPSHOT ON LOAD
+  // This automatically checks DB, fetches if stale, and returns fresh data.
+  const { scores, standings, leaders } = await getDashboardData();
 
   return (
-    <div className="min-h-screen bg-black pb-20">
+    <main className="min-h-screen bg-zinc-950 text-white pb-20 selection:bg-[#DFFF00] selection:text-black">
       
-      {/* HERO HEADER */}
-      <div className="pt-24 pb-8 px-6 max-w-[1600px] mx-auto border-b border-zinc-800 flex flex-col md:flex-row justify-between items-end gap-6">
-          <div>
-              <div className="flex items-center gap-2 text-[#DFFF00] font-mono text-[10px] font-bold tracking-widest uppercase mb-2">
-                  <Activity size={14} /> BASKETBALL_OPERATIONS // 2025-26
-              </div>
-              <h1 className="text-5xl md:text-8xl font-black uppercase tracking-tighter text-white leading-none">
-                  HARDWOOD <span className="text-zinc-800">OPS</span>
+      {/* --- HERO SECTION --- */}
+      <section className="relative pt-24 pb-12 px-6 border-b border-zinc-800 overflow-hidden">
+        <div className="absolute top-0 right-0 w-1/3 h-full bg-[#DFFF00]/5 -skew-x-12 pointer-events-none" />
+        
+        <div className="max-w-[1600px] mx-auto relative z-10">
+          <div className="flex items-center gap-2 text-[#DFFF00] font-mono text-[10px] uppercase tracking-widest mb-4">
+             <Activity size={12} className="animate-pulse" />
+             <span>System Status: Monitoring</span>
+          </div>
+          
+          <div className="flex flex-col md:flex-row justify-between items-end gap-6">
+            <div>
+              <h1 className="text-6xl md:text-8xl font-black uppercase tracking-tighter text-white leading-none mb-2">
+                NBA <span className="text-zinc-800 text-stroke-white">NEXUS</span>
               </h1>
-              
-              {/* FORCE UPDATE BUTTON */}
-              <div className="flex items-center gap-4 mt-4">
-                  <button 
-                    onClick={handleForceUpdate}
-                    disabled={syncing}
-                    className={`flex items-center gap-2 px-4 py-2 border text-[10px] font-black tracking-widest uppercase transition-all ${syncing ? 'bg-zinc-900 border-zinc-800 text-zinc-500' : 'bg-black border-zinc-700 text-white hover:border-[#DFFF00] hover:text-[#DFFF00]'}`}
-                  >
-                      {syncing ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-                      {syncing ? 'SYNCING SNAPSHOT...' : 'FORCE UPDATE'}
-                  </button>
-                  {syncing && <span className="text-[9px] font-mono text-zinc-500 animate-pulse">DO NOT CLOSE WINDOW</span>}
+              <p className="font-mono text-zinc-500 text-sm max-w-xl">
+                /// LIVE OPERATIONS DASHBOARD<br/>
+                Real-time ingestion of league telemetry, performance metrics, and tactical data snapshots.
+              </p>
+            </div>
+
+            {/* QUICK STATS */}
+            <div className="flex gap-4">
+              <div className="bg-zinc-900/50 border border-zinc-800 p-4 min-w-[140px]">
+                 <div className="text-[10px] text-zinc-500 font-mono uppercase">Active Games</div>
+                 <div className="text-3xl font-black text-white">{scores?.length || 0}</div>
               </div>
+              <div className="bg-zinc-900/50 border border-zinc-800 p-4 min-w-[140px]">
+                 <div className="text-[10px] text-zinc-500 font-mono uppercase">Season Phase</div>
+                 <div className="text-3xl font-black text-[#DFFF00]">REG</div>
+              </div>
+            </div>
           </div>
-          
-          {/* SEARCH BAR */}
-          <div className="w-full md:w-auto relative group z-30">
-              <input 
-                type="text" 
-                placeholder="SEARCH PLAYER DATABASE..." 
-                className="bg-zinc-900 border border-zinc-800 pl-10 pr-4 py-3 text-xs font-mono text-white outline-none focus:border-[#DFFF00] w-full md:w-72 transition-colors uppercase"
-                value={playerSearch}
-                onChange={(e) => setPlayerSearch(e.target.value)}
-              />
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-[#DFFF00] transition-colors"/>
-              
-              {/* Search Dropdown */}
-              {searchResults.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 bg-black border border-zinc-800 mt-1 shadow-2xl">
-                      {searchResults.map(p => (
-                          <Link href={p.url} key={p.id} className="flex items-center gap-3 p-3 hover:bg-zinc-900 transition-colors border-b border-zinc-900 last:border-0">
-                              <img src={p.image} className="w-8 h-8 rounded-full bg-zinc-800 object-cover object-top" />
-                              <div>
-                                  <div className="text-xs font-bold text-white uppercase">{p.name}</div>
-                                  <div className="text-[9px] text-zinc-500 font-mono">{p.team}</div>
-                              </div>
-                          </Link>
-                      ))}
+        </div>
+      </section>
+
+      {/* --- LIVE TICKER --- */}
+      {scores && scores.length > 0 && (
+        <div className="border-b border-zinc-800 bg-zinc-900/30 overflow-x-auto no-scrollbar">
+          <div className="flex divide-x divide-zinc-800">
+             <div className="px-4 py-3 flex items-center gap-2 text-[10px] font-black uppercase bg-[#DFFF00] text-black whitespace-nowrap">
+                <Zap size={12} fill="black" /> Live Feed
+             </div>
+             {scores.map((game: any) => (
+               <div key={game.id} className="px-6 py-2 min-w-[200px] flex items-center justify-between gap-4 hover:bg-zinc-900 transition-colors shrink-0">
+                  <div className="flex flex-col gap-1">
+                     <div className="flex items-center gap-2 text-xs font-bold">
+                        <img src={game.away.logo} className="w-4 h-4" /> 
+                        <span className={game.away.score > game.home.score ? 'text-white' : 'text-zinc-500'}>{game.away.code}</span>
+                        <span className="font-mono">{game.away.score}</span>
+                     </div>
+                     <div className="flex items-center gap-2 text-xs font-bold">
+                        <img src={game.home.logo} className="w-4 h-4" />
+                        <span className={game.home.score > game.away.score ? 'text-white' : 'text-zinc-500'}>{game.home.code}</span>
+                        <span className="font-mono">{game.home.score}</span>
+                     </div>
                   </div>
-              )}
+                  <div className="text-[9px] font-mono text-[#DFFF00] text-right">
+                     <div>{game.status}</div>
+                     <div>{game.clock}</div>
+                  </div>
+               </div>
+             ))}
           </div>
+        </div>
+      )}
+
+      {/* --- MAIN GRID --- */}
+      <div className="max-w-[1600px] mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        {/* COL 1: STANDINGS (8 Spans) */}
+        <div className="lg:col-span-8 space-y-8">
+            <div className="flex items-center gap-2 mb-4">
+                <Trophy size={16} className="text-[#DFFF00]" />
+                <h3 className="text-lg font-black uppercase text-white tracking-tight">Conference Standings</h3>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8">
+                {/* EAST */}
+                <StandingsTable conference="EASTERN" teams={standings?.east} />
+                {/* WEST */}
+                <StandingsTable conference="WESTERN" teams={standings?.west} />
+            </div>
+        </div>
+
+        {/* COL 2: LEADERS (4 Spans) */}
+        <div className="lg:col-span-4">
+            <div className="flex items-center gap-2 mb-6">
+                <TrendingUp size={16} className="text-[#DFFF00]" />
+                <h3 className="text-lg font-black uppercase text-white tracking-tight">Daily Leaders</h3>
+            </div>
+            
+            <div className="space-y-6">
+                <LeaderModule title="Points" icon="PTS" players={leaders?.pts} />
+                <LeaderModule title="Assists" icon="AST" players={leaders?.ast} />
+                <LeaderModule title="Rebounds" icon="REB" players={leaders?.reb} />
+            </div>
+        </div>
+
       </div>
-
-      {/* TICKER */}
-      <GameTicker scores={scores} />
-
-      {/* MAIN CONTENT */}
-      <div className="max-w-[1600px] mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-12 gap-12">
-          
-          {/* LEFT: STANDINGS */}
-          <div className="lg:col-span-8">
-              <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-black uppercase text-white flex items-center gap-2">
-                      <Trophy size={20} className="text-[#DFFF00]"/> CONFERENCE STANDINGS
-                  </h3>
-                  <div className="flex gap-1 bg-zinc-900 p-1 rounded-sm">
-                      <button onClick={() => setActiveConf('east')} className={`px-4 py-1 text-[10px] font-black uppercase tracking-widest transition-all ${activeConf === 'east' ? 'bg-[#DFFF00] text-black' : 'text-zinc-500 hover:text-white'}`}>EAST</button>
-                      <button onClick={() => setActiveConf('west')} className={`px-4 py-1 text-[10px] font-black uppercase tracking-widest transition-all ${activeConf === 'west' ? 'bg-[#DFFF00] text-black' : 'text-zinc-500 hover:text-white'}`}>WEST</button>
-                  </div>
-              </div>
-
-              <div className="overflow-x-auto border border-zinc-800 bg-zinc-900/20">
-                  <table className="w-full text-left">
-                      <thead>
-                          <tr className="bg-zinc-900/50 text-[9px] font-black text-zinc-500 uppercase tracking-widest border-b border-zinc-800">
-                              <th className="p-3 pl-4">Rank</th>
-                              <th className="p-3">Team</th>
-                              <th className="p-3 text-right">W</th>
-                              <th className="p-3 text-right">L</th>
-                              <th className="p-3 text-right">PCT</th>
-                              <th className="p-3 text-right">GB</th>
-                          </tr>
-                      </thead>
-                      <tbody className="font-mono text-xs">
-                          {standings[activeConf]?.length > 0 ? standings[activeConf].map((team: any) => (
-                              <tr key={team.id} className="border-b border-zinc-800 hover:bg-zinc-900/50 transition-colors group">
-                                  <td className="p-3 pl-4 font-bold text-zinc-500 group-hover:text-white">{team.rank}</td>
-                                  <td className="p-3">
-                                      <Link href={`/sports/nba/team/${team.id}`} className="flex items-center gap-3 group-hover:translate-x-1 transition-transform">
-                                          <img src={team.logo} className="w-6 h-6 object-contain" alt={team.name} />
-                                          <span className="font-bold text-white uppercase">{team.name}</span>
-                                      </Link>
-                                  </td>
-                                  <td className="p-3 text-right text-white font-bold">{team.w}</td>
-                                  <td className="p-3 text-right text-zinc-400">{team.l}</td>
-                                  <td className="p-3 text-right text-zinc-500">{team.pct}</td>
-                                  <td className="p-3 text-right text-zinc-500">{team.gb}</td>
-                              </tr>
-                          )) : (
-                              <tr><td colSpan={6} className="p-8 text-center text-zinc-500 font-mono text-xs">OFF SEASON MODE / DATA UNAVAILABLE</td></tr>
-                          )}
-                      </tbody>
-                  </table>
-              </div>
-          </div>
-
-          {/* RIGHT: LEADERS & NAV */}
-          <div className="lg:col-span-4 flex flex-col gap-8">
-              
-              {/* LEAGUE LEADERS */}
-              <div className="bg-zinc-900 border border-zinc-800 p-6">
-                  <div className="flex items-center gap-2 mb-6 text-white pb-2 border-b border-zinc-800">
-                      <Users size={16} className="text-[#DFFF00]"/>
-                      <span className="text-xs font-black uppercase tracking-widest">SEASON LEADERS</span>
-                  </div>
-                  <div className="space-y-4">
-                      {leaders.length > 0 ? leaders.map((leader, i) => (
-                          <div key={i} className="flex items-center gap-4 bg-black border border-zinc-800 p-3 hover:border-[#DFFF00] transition-colors group cursor-pointer">
-                              <img src={leader.image} className="w-12 h-12 rounded-full bg-zinc-800 object-cover object-top border border-zinc-700" alt={leader.player} 
-                                   onError={(e) => { e.currentTarget.src = 'https://a.espncdn.com/combiner/i?img=/i/headshots/nophoto.png'; }} />
-                              <div className="flex-1">
-                                  <span className="text-[9px] font-bold text-zinc-500 uppercase block">{leader.category} LEADER</span>
-                                  <span className="text-sm font-black text-white uppercase leading-none">{leader.player}</span>
-                                  <span className="text-[9px] font-mono text-zinc-600 block mt-0.5">{leader.team}</span>
-                              </div>
-                              <div className="text-xl font-black text-[#DFFF00] font-mono">{leader.value}</div>
-                          </div>
-                      )) : (
-                          <div className="text-center py-8 text-zinc-500 font-mono text-xs flex flex-col items-center gap-2">
-                              <AlertTriangle size={16} />
-                              <span>NO DATA. CLICK "FORCE UPDATE" ABOVE.</span>
-                          </div>
-                      )}
-                  </div>
-              </div>
-
-              {/* QUICK LINKS */}
-              <div className="grid grid-cols-1 gap-4">
-                  <Link href="#teams" className="bg-black border border-zinc-800 p-4 hover:border-[#DFFF00] transition-colors cursor-pointer group flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                          <LayoutGrid size={24} className="text-zinc-500 group-hover:text-[#DFFF00]"/>
-                          <div>
-                              <div className="text-xs font-black uppercase text-white">TEAMS DIRECTORY</div>
-                              <div className="text-[9px] text-zinc-500 font-mono">{allTeams.length} FRANCHISES ACTIVE</div>
-                          </div>
-                      </div>
-                  </Link>
-              </div>
-
-          </div>
-      </div>
-
-      {/* TEAMS DIRECTORY */}
-      <div id="teams" className="max-w-[1600px] mx-auto px-6 py-12 border-t border-zinc-800">
-          <div className="flex items-center gap-2 mb-8">
-              <LayoutGrid size={20} className="text-[#DFFF00]"/>
-              <h2 className="text-2xl font-black uppercase text-white tracking-tight">FRANCHISE DATABASE</h2>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {allTeams.map((team) => (
-                  <Link key={team.id} href={`/sports/nba/team/${team.id}`} className="flex flex-col items-center justify-center p-6 bg-zinc-900/50 border border-zinc-800 hover:border-[#DFFF00] hover:bg-black transition-all group">
-                      <img src={team.logo} className="w-16 h-16 object-contain mb-4 group-hover:scale-110 transition-transform" alt={team.name} />
-                      <span className="text-xs font-black text-center text-zinc-400 group-hover:text-white uppercase leading-tight">{team.name}</span>
-                  </Link>
-              ))}
-          </div>
-      </div>
-
-    </div>
+    </main>
   );
+}
+
+// --- SUB COMPONENTS (Inlined for simplicity) ---
+
+function StandingsTable({ conference, teams }: { conference: string, teams: any[] }) {
+    if(!teams) return <div className="p-4 border border-zinc-800 text-zinc-500 font-mono text-xs">Loading Data...</div>
+
+    return (
+        <div className="border border-zinc-800 bg-zinc-900/10">
+            <div className="p-3 bg-zinc-900/50 border-b border-zinc-800 text-[10px] font-black text-zinc-400 uppercase tracking-widest">
+                {conference}
+            </div>
+            <div className="divide-y divide-zinc-800/50">
+                {teams.slice(0, 10).map((t) => (
+                    <Link href={`/sports/nba/team/${t.id}`} key={t.id} className="flex items-center justify-between p-3 hover:bg-zinc-900 transition-colors group">
+                        <div className="flex items-center gap-3">
+                            <span className="font-mono text-xs text-zinc-600 w-4">{t.rank}</span>
+                            <img src={t.logo} className="w-6 h-6 object-contain grayscale group-hover:grayscale-0 transition-all" />
+                            <span className="font-bold text-xs text-zinc-300 group-hover:text-white group-hover:translate-x-1 transition-all">{t.abbr}</span>
+                        </div>
+                        <div className="font-mono text-xs text-zinc-500">
+                            <span className="text-white mr-3">{t.stats.w}-{t.stats.l}</span>
+                            <span className="text-zinc-600">{t.stats.gb} GB</span>
+                        </div>
+                    </Link>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+function LeaderModule({ title, icon, players }: { title: string, icon: string, players: any[] }) {
+    if (!players) return null;
+    const top = players[0];
+    const rest = players.slice(1, 5);
+
+    return (
+        <div className="border border-zinc-800 bg-zinc-900/20 mb-4">
+            {/* Top Leader */}
+            <div className="p-4 flex items-center gap-4 bg-zinc-900/40 border-b border-zinc-800 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-2 opacity-10 font-black text-6xl text-white select-none">{icon}</div>
+                <img src={top.headshot} className="w-16 h-16 rounded-full bg-zinc-800 object-cover border border-zinc-700 relative z-10" />
+                <div className="relative z-10">
+                    <div className="text-[#DFFF00] font-mono text-xs mb-1">{title} Leader</div>
+                    <div className="text-lg font-black uppercase leading-none text-white">{top.name}</div>
+                    <div className="text-xs font-bold text-zinc-500 mt-1">{top.team} • <span className="text-white">{top.value}</span></div>
+                </div>
+            </div>
+            {/* List */}
+            <div className="divide-y divide-zinc-800">
+                {rest.map((p, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 text-xs hover:bg-zinc-900 transition-colors">
+                        <div className="flex items-center gap-2">
+                             <span className="font-mono text-zinc-600">{i+2}</span>
+                             <span className="font-bold text-zinc-400">{p.name}</span>
+                             <span className="text-[9px] text-zinc-600 font-mono">{p.team}</span>
+                        </div>
+                        <div className="font-mono text-white">{p.value}</div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
 }
