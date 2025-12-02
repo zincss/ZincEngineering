@@ -1,3 +1,4 @@
+// app/sports/nba/actions.ts
 'use server'
 
 import { getOrFetchResource } from '@/lib/data-manager';
@@ -51,6 +52,16 @@ export async function getDashboardData() {
   return { scores, standings, leaders };
 }
 
+// --- NEW: LIVE SCORES (Fixes GlobalTicker) ---
+export async function getLiveScores() {
+    return await getOrFetchResource({
+      table: 'nba_snapshots', 
+      keyField: 'key', 
+      id: 'live_scores', 
+      expirationHours: CACHE_CONFIG.SCORES
+    }, ESPN.fetchLiveScoreboard);
+}
+
 // 2. TEAM SNAPSHOT
 export async function getTeamSnapshot(teamId: string) {
   return await getOrFetchResource({
@@ -61,7 +72,7 @@ export async function getTeamSnapshot(teamId: string) {
   }, () => ESPN.fetchTeamProfile(teamId));
 }
 
-// 3. PLAYER SNAPSHOT (New Fetch-on-Demand)
+// 3. PLAYER SNAPSHOT
 export async function getPlayerProfile(playerId: string) {
     return await getOrFetchResource({
         table: 'nba_snapshots',

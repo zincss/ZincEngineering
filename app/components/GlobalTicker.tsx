@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { getLiveScores as getNBAScores } from '../sports/nba/actions';
-import { Activity } from 'lucide-react';
 
 const fetchJson = async (url: string) => {
     try {
@@ -24,10 +23,11 @@ export default function GlobalTicker() {
                 const nbaGames = await getNBAScores();
                 if (nbaGames && nbaGames.length > 0) {
                     nbaGames.forEach((g: any) => {
+                        // FIXED: Uses 'code' instead of 'name' to match API response
                         feed.push({
                             sport: 'NBA',
                             color: 'text-[#DFFF00]',
-                            text: `${g.home.name} ${g.home.score} - ${g.away.name} ${g.away.score}`,
+                            text: `${g.home.code} ${g.home.score} - ${g.away.code} ${g.away.score}`,
                             isLive: g.isLive
                         });
                     });
@@ -92,7 +92,7 @@ export default function GlobalTicker() {
                 <span className="text-black dark:text-white">LIVE WIRE</span>
             </div>
 
-            {/* SCROLLING AREA (Clean, No Vignette) */}
+            {/* SCROLLING AREA */}
             <div className="flex-1 overflow-hidden h-full flex items-center">
                 <div className="animate-ticker flex items-center">
                     {loopItems.map((item, i) => (
