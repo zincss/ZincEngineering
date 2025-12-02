@@ -13,6 +13,7 @@ const API = {
   TEAMS: 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams',
   ATHLETES: 'https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/statistics/byathlete',
   PLAYER_BASE: 'https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes',
+  SUMMARY: 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary',
 };
 
 // --- FETCHERS ---
@@ -74,7 +75,6 @@ export async function fetchStandings() {
 }
 
 export async function fetchDailyLeaders() {
-  // Fetches Top 5 PTS/AST/REB
   const categories = [
       { key: 'pts', sort: 'offensive.avgPoints:desc' },
       { key: 'ast', sort: 'offensive.avgAssists:desc' },
@@ -127,7 +127,7 @@ export async function fetchTeamProfile(id: string) {
   };
 }
 
-// --- NEW: FETCH PLAYER PROFILE (On Demand) ---
+// --- NEW: FETCH PLAYER PROFILE ---
 export async function fetchPlayerProfile(id: string) {
     try {
         const res = await fetch(`${API.PLAYER_BASE}/${id}`, { headers: HEADERS, next: { revalidate: 3600 } });
@@ -147,12 +147,59 @@ export async function fetchPlayerProfile(id: string) {
             weight: ath.displayWeight,
             experience: ath.experience?.years || 'R',
             stats: ath.statsSummary?.statistics?.map((s: any) => ({
-                name: s.displayName, // e.g., "PPG"
+                name: s.displayName, 
                 displayValue: s.displayValue
             })) || []
         };
     } catch (e) {
-        console.error("ESPN Player Fetch Error", e);
+        return null;
+    }
+}
+
+// --- NEW: FETCH GAME SUMMARY ---
+export async function fetchGameSummary(gameId: string) {
+    try {
+        const res = await fetch(`${API.SUMMARY}?event=${gameId}`, { headers: HEADERS, cache: 'no-store' });
+        if (!res.ok) return null;
+        
+        const data = await res.json();
+        const header = data.header;
+        const comp = header.competitions[0];
+        const box = data.boxscore;
+        const home = comp.competitors.find((c:any) => c.homeAway === 'home');
+        const away = comp.competitors.find((c:any) => c.homeAway === 'away');
+
+        return {
+            id: header.id,
+            venue: comp.venue?.fullName || 'Unknown Arena',
+            status: header.timeValid ? header.status.type.shortDetail : 'Scheduled',
+            home: {
+                id: home.id,
+                abbreviation: home.team.abbreviation,
+                displayName: home.team.displayName,
+                logo: home.team.logos[0].href,
+                score: home.score,
+                linescores: home.linescores || []
+            },
+            away: {
+                id: away.id,
+                abbreviation: away.team.abbreviation,
+                displayName: away.team.displayName,
+                logo: away.team.logos[0].href,
+                score: away.score,
+                linescores: away.linescores || []
+            },
+            leaders: [
+                { 
+                    label: 'PTS Leader', 
+                    homeLeader: data.leaders?.find((l:any)=>l.team.id === home.id)?.leaders?.[0]?.athlete,
+                    homeValue: data.leaders?.find((l:any)=>l.team.id === home.id)?.leaders?.[0]?.displayValue,
+                    awayLeader: data.leaders?.find((l:any)=>l.team.id === away.id)?.leaders?.[0]?.athlete,
+                    awayValue: data.leaders?.find((l:any)=>l.team.id === away.id)?.leaders?.[0]?.displayValue,
+                }
+            ]
+        };
+    } catch (e) {
         return null;
     }
 }

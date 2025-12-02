@@ -1,4 +1,3 @@
-// app/sports/nba/actions.ts
 'use server'
 
 import { getOrFetchResource } from '@/lib/data-manager';
@@ -15,7 +14,6 @@ const CACHE_CONFIG = {
 // --- SEARCH ACTION ---
 export async function searchPlayers(query: string) {
     if (!query || query.length < 2) return [];
-
     try {
         const res = await fetch(`https://site.web.api.espn.com/apis/common/v3/search?region=us&lang=en&query=${encodeURIComponent(query)}&limit=5&mode=prefix&type=player&sport=basketball&league=nba`);
         const data = await res.json();
@@ -52,7 +50,7 @@ export async function getDashboardData() {
   return { scores, standings, leaders };
 }
 
-// --- NEW: LIVE SCORES (Fixes GlobalTicker) ---
+// --- THIS FIXES YOUR TICKER ERROR ---
 export async function getLiveScores() {
     return await getOrFetchResource({
       table: 'nba_snapshots', 
@@ -72,7 +70,7 @@ export async function getTeamSnapshot(teamId: string) {
   }, () => ESPN.fetchTeamProfile(teamId));
 }
 
-// 3. PLAYER SNAPSHOT
+// 3. PLAYER SNAPSHOT (Fetch-on-Demand)
 export async function getPlayerProfile(playerId: string) {
     return await getOrFetchResource({
         table: 'nba_snapshots',
@@ -82,7 +80,12 @@ export async function getPlayerProfile(playerId: string) {
     }, () => ESPN.fetchPlayerProfile(playerId));
 }
 
-// 4. FORCE REFRESH
+// 4. GAME SUMMARY (For GameTicker)
+export async function getGameSummary(gameId: string) {
+    return await ESPN.fetchGameSummary(gameId);
+}
+
+// 5. FORCE REFRESH
 export async function forceRefreshDashboard() {
   return { success: true, message: "Snapshots Queued" };
 }
