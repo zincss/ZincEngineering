@@ -1,4 +1,3 @@
-// app/sports/nba/actions.ts
 'use server'
 
 import { getOrFetchResource } from '@/lib/data-manager';
@@ -11,6 +10,29 @@ const CACHE_CONFIG = {
   LEADERS: 12,     // 12 hours
   PROFILES: 24     // 24 hours
 };
+
+// --- NEW: SEARCH ACTION (Fixes Header.tsx Import Error) ---
+export async function searchPlayers(query: string) {
+    if (!query || query.length < 2) return [];
+
+    try {
+        // Uses ESPN's common search API
+        const res = await fetch(`https://site.web.api.espn.com/apis/common/v3/search?region=us&lang=en&query=${encodeURIComponent(query)}&limit=5&mode=prefix&type=player&sport=basketball&league=nba`);
+        const data = await res.json();
+
+        return (data.items || []).map((item: any) => ({
+            id: item.id,
+            name: item.displayName,
+            team: item.team?.abbreviation || 'NBA',
+            sport: 'NBA',
+            url: `/sports/nba/player/${item.id}`,
+            image: item.images?.[0]?.url || null
+        }));
+    } catch (e) {
+        console.error("NBA Search Failed", e);
+        return [];
+    }
+}
 
 // 1. DASHBOARD SNAPSHOTS
 export async function getDashboardData() {

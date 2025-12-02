@@ -93,9 +93,9 @@ export default async function NBAHub() {
 
             <div className="grid md:grid-cols-2 gap-8">
                 {/* EAST */}
-                <StandingsTable conference="EASTERN" teams={standings?.east} />
+                <StandingsTable conference="EASTERN" teams={standings?.east || []} />
                 {/* WEST */}
-                <StandingsTable conference="WESTERN" teams={standings?.west} />
+                <StandingsTable conference="WESTERN" teams={standings?.west || []} />
             </div>
         </div>
 
@@ -107,9 +107,9 @@ export default async function NBAHub() {
             </div>
             
             <div className="space-y-6">
-                <LeaderModule title="Points" icon="PTS" players={leaders?.pts} />
-                <LeaderModule title="Assists" icon="AST" players={leaders?.ast} />
-                <LeaderModule title="Rebounds" icon="REB" players={leaders?.reb} />
+                <LeaderModule title="Points" icon="PTS" players={leaders?.pts || []} />
+                <LeaderModule title="Assists" icon="AST" players={leaders?.ast || []} />
+                <LeaderModule title="Rebounds" icon="REB" players={leaders?.reb || []} />
             </div>
         </div>
 
@@ -121,7 +121,7 @@ export default async function NBAHub() {
 // --- SUB COMPONENTS (Inlined for simplicity) ---
 
 function StandingsTable({ conference, teams }: { conference: string, teams: any[] }) {
-    if(!teams) return <div className="p-4 border border-zinc-800 text-zinc-500 font-mono text-xs">Loading Data...</div>
+    if(!teams || teams.length === 0) return <div className="p-4 border border-zinc-800 text-zinc-500 font-mono text-xs">Loading Data...</div>
 
     return (
         <div className="border border-zinc-800 bg-zinc-900/10">
@@ -148,7 +148,7 @@ function StandingsTable({ conference, teams }: { conference: string, teams: any[
 }
 
 function LeaderModule({ title, icon, players }: { title: string, icon: string, players: any[] }) {
-    if (!players) return null;
+    if (!players || players.length === 0) return null;
     const top = players[0];
     const rest = players.slice(1, 5);
 
