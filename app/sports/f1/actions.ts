@@ -1,59 +1,47 @@
 'use server'
 
-// --- ACTION 1: SEARCH (STRICT) ---
-export async function searchF1Archive(query: string) {
-    if (query.length < 2) return [];
+// --- ACTION 1: SEARCH (IMPROVED - USES ESPN API) ---
+export async function searchF1Drivers(query: string) {
+    if (!query || query.length < 2) return [];
     
-    const cleanQuery = query.toLowerCase().trim();
-
     try {
-        const res = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query + " Formula One driver")}&format=json&origin=*`, { cache: 'no-store' });
+        // Use ESPN Search API (Same technique as NBA)
+        const res = await fetch(`https://site.web.api.espn.com/apis/common/v3/search?region=us&lang=en&query=${encodeURIComponent(query)}&limit=10&mode=prefix&type=player&sport=racing&league=f1`, { cache: 'no-store' });
         const data = await res.json();
 
-        if (!data.query?.search) return [];
+        return (data.items || []).map((item: any) => {
+            // Construct a URL-friendly ID for our Ergast resolver
+            // e.g. "Max Verstappen" -> "max_verstappen"
+            const rawName = item.displayName || '';
+            const slug = rawName.toLowerCase().replace(/[.\s]+/g, '_');
 
-        const hits = data.query.search
-            .filter((result: any) => {
-                const title = result.title.toLowerCase();
-                if (title.includes("video game") || title.includes("grand prix") || title.includes("list of") || title.includes("film") || title.includes("team")) return false;
-                return title.includes(cleanQuery);
-            })
-            .map((result: any) => {
-                const title = result.title.replace(/ \(racing driver\)/i, '').replace(/ \(Formula One\)/i, '');
-                const wikiId = title.replace(/\s+/g, '_');
-                
-                return {
-                    driverId: wikiId, 
-                    givenName: title.split(' ')[0],
-                    familyName: title.split(' ').slice(1).join(' '),
-                    nationality: 'F1 History',
-                    url: `/sports/f1/driver/${wikiId}`
-                };
-            });
-        
-        return hits.sort((a: any, b: any) => {
-            const nameA = `${a.givenName} ${a.familyName}`.toLowerCase();
-            const nameB = `${b.givenName} ${b.familyName}`.toLowerCase();
-            if (nameA.startsWith(cleanQuery) && !nameB.startsWith(cleanQuery)) return -1;
-            if (nameB.startsWith(cleanQuery) && !nameA.startsWith(cleanQuery)) return 1;
-            return 0;
-        }).slice(0, 5);
+            return {
+                id: item.id,
+                driverId: item.id, // Ensure this exists for compatibility
+                name: item.displayName,
+                givenName: item.displayName.split(' ')[0], 
+                familyName: item.displayName.split(' ').slice(1).join(' '),
+                team: item.team?.abbreviation || 'F1 Archive',
+                image: item.images?.[0]?.url || null,
+                flag: item.country?.flag?.href || null,
+                url: `/sports/f1/driver/${slug}` // This slug is passed to fetchDriverFullProfile
+            };
+        });
 
     } catch (e) {
+        console.error("F1 Search Error:", e);
         return [];
     }
 }
 
-// --- HELPER: RECURSIVE FETCH (THE FIX) ---
-// Fetches ALL pages because the API caps at 100 results
+// --- HELPER: RECURSIVE FETCH ---
 async function fetchAllRaceResults(driverId: string) {
     let allRaces: any[] = [];
     let offset = 0;
-    let limit = 100; // API Max Limit
+    let limit = 100;
     let total = 0;
     let hasMore = true;
 
-    // Safety Loop (stops at 1000 to prevent infinite loops)
     while (hasMore && offset < 1000) {
         try {
             const res = await fetch(
@@ -75,110 +63,112 @@ async function fetchAllRaceResults(driverId: string) {
             if (allRaces.length >= total) hasMore = false;
             
         } catch (e) {
-            console.error("Pagination Error:", e);
             hasMore = false;
         }
     }
     return allRaces;
 }
 
-// --- ACTION 2: FETCH PROFILE ---
+// --- ACTION 2: FETCH PROFILE (ROBUST ID RESOLVER) ---
 export async function fetchDriverFullProfile(rawId: string) {
     try {
         const cleanId = rawId.toLowerCase().trim();
-        const parts = cleanId.split(/[_\s-]+/);
+        const parts = cleanId.split('_'); // Assumes we passed "max_verstappen" or similar
         
-        let candidates = [];
-        if (parts.length >= 2) {
-             candidates.push(`${parts[0]}_${parts[parts.length - 1]}`); // Priority: max_verstappen
-             candidates.push(cleanId); 
-        } else {
-             candidates.push(cleanId);
-        }
+        // Ergast IDs are inconsistent (e.g., 'max_verstappen', 'perez', 'zhou')
+        // We try multiple candidates to find the driver
+        let candidates = [
+            cleanId,                                   // 1. exact match (max_verstappen)
+            parts[parts.length - 1],                   // 2. lastname only (perez, zhou)
+            `${parts[0]}_${parts[parts.length - 1]}`,  // 3. first_last standard
+            parts[0]                                   // 4. firstname (rare, but possible)
+        ];
 
         let driverInfo = null;
         let validId = null;
 
-        // 1. Resolve ID
+        // 1. Resolve ID against Ergast
         for (const id of candidates) {
+            if (!id || id.length < 2) continue;
             try {
                 const res = await fetch(`https://api.jolpi.ca/ergast/f1/drivers/${id}.json`, { cache: 'no-store' });
                 if (res.ok) {
                     const data = await res.json();
                     if (data.MRData.DriverTable.Drivers.length > 0) {
                         driverInfo = data.MRData.DriverTable.Drivers[0];
-                        validId = id;
+                        validId = id; // Store the ID that actually worked
                         break;
                     }
                 }
             } catch (e) {}
         }
 
+        if (!validId || !driverInfo) return null;
+
+        // 2. Fetch Stats & History
         let stats = { wins: 0, podiums: 0, points: 0, races: 0 };
         let races: any[] = [];
         let highlights = { firstRace: '-', lastRace: '-', milestone: 'Data Unavailable', bestTrack: 'N/A', poles: 0 };
 
-        if (validId) {
-            // 2. Fetch ALL Results (using new helper)
-            const allRaces = await fetchAllRaceResults(validId);
-            
-            // Sort Newest -> Oldest
-            races = allRaces.sort((a: any, b: any) => {
-                const dateA = new Date(`${a.date}T${a.time || '00:00:00'}`).getTime();
-                const dateB = new Date(`${b.date}T${b.time || '00:00:00'}`).getTime();
-                return dateB - dateA;
-            });
+        // Fetch ALL Results
+        const allRaces = await fetchAllRaceResults(validId);
+        
+        races = allRaces.sort((a: any, b: any) => {
+            const dateA = new Date(`${a.date}T${a.time || '00:00:00'}`).getTime();
+            const dateB = new Date(`${b.date}T${b.time || '00:00:00'}`).getTime();
+            return dateB - dateA;
+        });
 
-            stats.races = races.length;
-            
-            const trackMap: Record<string, number> = {};
+        stats.races = races.length;
+        const trackMap: Record<string, number> = {};
 
-            races.forEach((r: any) => {
-                const res = r.Results[0];
-                const pos = parseInt(res.position);
-                const pts = parseFloat(res.points) || 0;
-                const track = r.Circuit.circuitName;
+        races.forEach((r: any) => {
+            const res = r.Results[0];
+            const pos = parseInt(res.position);
+            const pts = parseFloat(res.points) || 0;
+            const track = r.Circuit.circuitName;
 
-                if (pos === 1) stats.wins++;
-                if (pos <= 3) stats.podiums++;
-                stats.points += pts;
-                if (res.grid === "1") highlights.poles++;
+            if (pos === 1) stats.wins++;
+            if (pos <= 3) stats.podiums++;
+            stats.points += pts;
+            if (res.grid === "1") highlights.poles++;
 
-                let trackScore = pts;
-                if (pos === 1) trackScore += 10;
-                trackMap[track] = (trackMap[track] || 0) + trackScore;
-            });
-            
-            // Stats Logic
-            if (races.length > 0) {
-                highlights.firstRace = races[races.length - 1]?.season;
-                highlights.lastRace = races[0]?.season;
-                highlights.bestTrack = Object.keys(trackMap).reduce((a, b) => trackMap[a] > trackMap[b] ? a : b, 'Unknown');
+            let trackScore = pts;
+            if (pos === 1) trackScore += 10;
+            trackMap[track] = (trackMap[track] || 0) + trackScore;
+        });
+        
+        if (races.length > 0) {
+            highlights.firstRace = races[races.length - 1]?.season;
+            highlights.lastRace = races[0]?.season;
+            highlights.bestTrack = Object.keys(trackMap).reduce((a, b) => trackMap[a] > trackMap[b] ? a : b, 'Unknown');
 
-                if (stats.wins > 0) highlights.milestone = `${stats.wins} CAREER VICTORIES`;
-                else highlights.milestone = `HIGHEST FINISH: P${races.reduce((min:number, r:any) => Math.min(min, parseInt(r.Results[0].position) || 99), 99)}`;
-            }
+            if (stats.wins > 0) highlights.milestone = `${stats.wins} CAREER VICTORIES`;
+            else highlights.milestone = `HIGHEST FINISH: P${races.reduce((min:number, r:any) => Math.min(min, parseInt(r.Results[0].position) || 99), 99)}`;
         }
 
+        // 3. Fetch Bio/Image from Wiki (Keep this as fallback/supplement)
         let wikiData = null;
         try {
-            const wikiRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${rawId}`, { cache: 'no-store' });
+            // Use the wiki URL provided by Ergast if available for better accuracy
+            const wikiTitle = driverInfo.url ? driverInfo.url.split('/').pop() : rawId;
+            const wikiRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${wikiTitle}`, { cache: 'no-store' });
             wikiData = await wikiRes.json();
         } catch(e) {}
 
         return {
             profile: {
-                driverId: validId || rawId,
-                givenName: driverInfo?.givenName || rawId.split('_')[0],
-                familyName: driverInfo?.familyName || rawId.split('_')[1] || '',
-                nationality: driverInfo?.nationality || 'Global',
-                team: 'F1 Legend',
-                code: driverInfo?.code || 'LEG',
-                permanentNumber: driverInfo?.permanentNumber || null
+                driverId: validId,
+                givenName: driverInfo.givenName,
+                familyName: driverInfo.familyName,
+                nationality: driverInfo.nationality,
+                team: 'F1 History',
+                code: driverInfo.code || driverInfo.familyName.substring(0,3).toUpperCase(),
+                permanentNumber: driverInfo.permanentNumber || null
             },
             stats,
             highlights,
-            careerRaces: races, // Now contains full history
+            careerRaces: races,
             driverImage: wikiData?.thumbnail?.source || null,
             bio: wikiData?.extract || "Biographical data currently unavailable."
         };

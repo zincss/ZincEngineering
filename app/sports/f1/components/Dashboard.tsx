@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Flag, Loader2, Trophy, AlertTriangle, User, History, Activity, Map, MapPin, Share2, Wrench, Users, Car, LayoutGrid, Shield, Crown, BarChart3, Star, Timer, Terminal } from 'lucide-react';
-import Link from 'next/link';
+import { Flag, Activity, Map, MapPin, User, Terminal } from 'lucide-react';
 import EloLeaderboard from './EloLeaderboard';
-import { searchF1Archive } from '../actions';
+import F1Search from './F1Search'; // Make sure you create this file (see below)
 
 // --- IMAGES & CONFIG ---
 const VERIFIED_IMAGES: Record<string, string> = {
@@ -69,19 +68,14 @@ const NavigationLoader = () => (
 );
 
 // --- MODIFIED CARD COMPONENTS ---
-// Now accepts `onNavigate` to trigger the loader manually
-
-const DriverCard = ({ driver, isHistorical = false, onNavigate }: { driver: any, isHistorical?: boolean, onNavigate: (url: string) => void }) => {
-    const [image, setImage] = useState<string | null>(null);
-
-    useEffect(() => {
-        const did = driver.driverId;
-        if (VERIFIED_IMAGES[did]) { setImage(VERIFIED_IMAGES[did]); }
-    }, [driver]);
+const DriverCard = ({ driver, onNavigate }: { driver: any, onNavigate: (url: string) => void }) => {
+    // FIX: Calculate image directly. No useEffect or useState needed.
+    const did = driver.driverId || driver.id;
+    const image = VERIFIED_IMAGES[did] || null;
 
     const latestPos = driver.stats?.latest?.pos || '-';
     const latestRace = driver.stats?.latest?.race || '-';
-    const targetUrl = `/sports/f1/driver/${driver.driverId}`;
+    const targetUrl = `/sports/f1/driver/${did}`;
 
     return (
         <div 
@@ -99,26 +93,24 @@ const DriverCard = ({ driver, isHistorical = false, onNavigate }: { driver: any,
             <div className="flex-1 p-3 flex flex-col justify-between">
                 <div>
                     <div className="flex justify-between items-start mb-1">
-                        <span className="text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider truncate">{isHistorical ? 'HISTORICAL' : 'ACTIVE GRID'}</span>
+                        <span className="text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider truncate">ACTIVE GRID</span>
                          {driver.nationality && <span className="text-[9px] font-bold bg-zinc-100 dark:bg-zinc-800 px-1 text-zinc-500 border border-zinc-200 dark:border-zinc-700">{driver.nationality.slice(0,3).toUpperCase()}</span>}
                     </div>
                     <h3 className="text-xl font-black uppercase leading-none text-black dark:text-white mb-1 line-clamp-2">{driver.givenName} {driver.familyName}</h3>
                 </div>
-                {!isHistorical && (
-                    <div className="flex divide-x divide-zinc-200 dark:divide-zinc-700 border-t-2 border-zinc-100 dark:border-zinc-800 pt-2 mt-auto">
-                        <div className="flex-1 pr-2 flex flex-col justify-between">
-                            <span className="text-[7px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">POINTS</span>
-                            <span className="text-sm font-black bg-[#DFFF00] text-black px-1.5 py-0.5 leading-none block w-fit">{driver.points}</span>
-                        </div>
-                        <div className="flex-1 px-2 flex flex-col justify-between min-w-0">
-                            <span className="text-[7px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">LATEST</span>
-                            <div>
-                                <span className={`text-sm font-black leading-none block ${latestPos === 'DNF' ? 'text-red-500' : 'text-black dark:text-white'}`}>{latestPos}</span>
-                                <span className="text-[7px] font-mono font-bold text-zinc-400 truncate block mt-0.5 w-full">{latestRace}</span>
-                            </div>
+                <div className="flex divide-x divide-zinc-200 dark:divide-zinc-700 border-t-2 border-zinc-100 dark:border-zinc-800 pt-2 mt-auto">
+                    <div className="flex-1 pr-2 flex flex-col justify-between">
+                        <span className="text-[7px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">POINTS</span>
+                        <span className="text-sm font-black bg-[#DFFF00] text-black px-1.5 py-0.5 leading-none block w-fit">{driver.points || 0}</span>
+                    </div>
+                    <div className="flex-1 px-2 flex flex-col justify-between min-w-0">
+                        <span className="text-[7px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">LATEST</span>
+                        <div>
+                            <span className={`text-sm font-black leading-none block ${latestPos === 'DNF' ? 'text-red-500' : 'text-black dark:text-white'}`}>{latestPos}</span>
+                            <span className="text-[7px] font-mono font-bold text-zinc-400 truncate block mt-0.5 w-full">{latestRace}</span>
                         </div>
                     </div>
-                )}
+                </div>
             </div>
         </div>
     );
@@ -171,9 +163,6 @@ const ManufacturerCard = ({ team, onNavigate }: { team: any, onNavigate: (url: s
 export default function F1Dashboard({ activeDrivers, teams, tracks, season }: { activeDrivers: any[], teams: any[], tracks: any[], season: string }) {
     const router = useRouter();
     const [viewMode, setViewMode] = useState<'drivers' | 'tracks' | 'elo' | 'teams'>('drivers');
-    const [search, setSearch] = useState('');
-    const [historicalDrivers, setHistoricalDrivers] = useState<any[]>([]);
-    const [archiveLoading, setArchiveLoading] = useState(false);
     const [isNavigating, setIsNavigating] = useState(false);
 
     // --- NAVIGATION HANDLER ---
@@ -181,31 +170,6 @@ export default function F1Dashboard({ activeDrivers, teams, tracks, season }: { 
         setIsNavigating(true);
         router.push(url);
     };
-
-    // Historical Search Logic
-    useEffect(() => {
-        const fetchHistory = async () => {
-            if (search.length < 3) return;
-            const alreadyFound = historicalDrivers.some(d => d.familyName.toLowerCase().includes(search.toLowerCase()));
-            if (!alreadyFound && !activeDrivers.some(d => d.familyName.toLowerCase().includes(search.toLowerCase()))) {
-                setArchiveLoading(true);
-                const results = await searchF1Archive(search);
-                setHistoricalDrivers(prev => [...prev, ...results]);
-                setArchiveLoading(false);
-            }
-        };
-        const timeout = setTimeout(fetchHistory, 500);
-        return () => clearTimeout(timeout);
-    }, [search, activeDrivers, historicalDrivers]);
-
-    const filteredActive = activeDrivers.filter(d => d.givenName.toLowerCase().includes(search.toLowerCase()) || d.familyName.toLowerCase().includes(search.toLowerCase()));
-    const filteredHistorical = historicalDrivers.filter(d => 
-        (d.givenName.toLowerCase().includes(search.toLowerCase()) || d.familyName.toLowerCase().includes(search.toLowerCase())) && 
-        !activeDrivers.find(ad => ad.driverId === d.driverId)
-    ).slice(0, 50);
-
-    const filteredTeams = teams.filter(t => t.name.toLowerCase().includes(search.toLowerCase()));
-    const filteredTracks = tracks.filter(t => t.circuitName.toLowerCase().includes(search.toLowerCase()) || t.Location.country.toLowerCase().includes(search.toLowerCase()));
 
     return (
         <div className="min-h-screen max-w-7xl mx-auto px-4 pt-12 pb-20">
@@ -232,13 +196,10 @@ export default function F1Dashboard({ activeDrivers, teams, tracks, season }: { 
                 </div>
             </div>
 
-            {/* SEARCH BAR */}
+            {/* NEW: DEDICATED SEARCH COMPONENT */}
             {viewMode !== 'elo' && (
                 <div className="mb-12 sticky top-24 z-30">
-                    <div className="relative shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.1)]">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400">{archiveLoading ? <Loader2 size={20} className="animate-spin"/> : <Search size={20} />}</div>
-                        <input type="text" placeholder={`SEARCH ${viewMode.toUpperCase()}...`} className="w-full h-16 bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-500 pl-12 pr-4 font-bold font-mono text-base md:text-lg uppercase focus:outline-none focus:border-[#DFFF00] transition-colors text-black dark:text-white placeholder:text-zinc-400" value={search} onChange={(e) => setSearch(e.target.value)} />
-                    </div>
+                     <F1Search />
                 </div>
             )}
 
@@ -248,24 +209,16 @@ export default function F1Dashboard({ activeDrivers, teams, tracks, season }: { 
                      <div className="mb-12">
                         <div className="flex items-center gap-2 mb-4 text-black dark:text-white"><Activity size={16} className="text-[#DFFF00]"/><span className="text-xs font-black tracking-widest uppercase">ACTIVE GRID</span></div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {filteredActive.map((driver) => <DriverCard key={driver.driverId} driver={driver} onNavigate={handleNavigate} />)}
+                            {activeDrivers.map((driver) => <DriverCard key={driver.driverId} driver={driver} onNavigate={handleNavigate} />)}
                         </div>
                     </div>
-                    {filteredHistorical.length > 0 && (
-                        <div>
-                            <div className="flex items-center gap-2 mb-4 text-black dark:text-white"><History size={16} /><span className="text-xs font-black tracking-widest uppercase">HISTORICAL ARCHIVES</span></div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {filteredHistorical.map((driver) => <DriverCard key={driver.driverId} driver={driver} isHistorical={true} onNavigate={handleNavigate} />)}
-                            </div>
-                        </div>
-                    )}
                 </div>
             )}
 
             {viewMode === 'teams' && (
                 <div className="animate-in fade-in slide-in-from-bottom-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {filteredTeams.map(t => <ManufacturerCard key={t.constructorId} team={t} onNavigate={handleNavigate} />)}
+                        {teams.map(t => <ManufacturerCard key={t.constructorId} team={t} onNavigate={handleNavigate} />)}
                     </div>
                 </div>
             )}
@@ -273,7 +226,7 @@ export default function F1Dashboard({ activeDrivers, teams, tracks, season }: { 
             {viewMode === 'tracks' && (
                 <div className="animate-in fade-in slide-in-from-bottom-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {filteredTracks.map(t => <TrackCard key={t.circuitId} circuit={t} onNavigate={handleNavigate} />)}
+                        {tracks.map(t => <TrackCard key={t.circuitId} circuit={t} onNavigate={handleNavigate} />)}
                     </div>
                 </div>
             )}
