@@ -1,9 +1,10 @@
 // app/sports/nba/page.tsx
 import React from 'react';
 import Link from 'next/link';
-import { Activity, Trophy, TrendingUp } from 'lucide-react';
+import { Activity, Trophy, TrendingUp, Search as SearchIcon } from 'lucide-react';
 import { getDashboardData } from './actions';
-import GameTicker from './components/GameTicker'; // Animated Ticker
+import GameTicker from './components/GameTicker';
+import NBASearch from './components/NBASearch';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,8 +15,13 @@ export default async function NBAHub() {
     <main className="min-h-screen bg-zinc-950 text-white pb-20 selection:bg-[#DFFF00] selection:text-black">
       
       {/* HERO SECTION */}
-      <section className="relative pt-24 pb-12 px-6 border-b border-zinc-800 overflow-hidden">
-        <div className="absolute top-0 right-0 w-1/3 h-full bg-[#DFFF00]/5 -skew-x-12 pointer-events-none" />
+      {/* FIX 1: Added z-40 to sit above Ticker. Removed 'overflow-hidden' from here. */}
+      <section className="relative pt-24 pb-12 px-6 border-b border-zinc-800 z-40">
+        
+        {/* FIX 2: Moved overflow-hidden to this wrapper so the background stays contained, but the dropdown can escape. */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+             <div className="absolute top-0 right-0 w-1/3 h-full bg-[#DFFF00]/5 -skew-x-12" />
+        </div>
         
         <div className="max-w-[1600px] mx-auto relative z-10">
           <div className="flex items-center gap-2 text-[#DFFF00] font-mono text-[10px] uppercase tracking-widest mb-4">
@@ -23,15 +29,23 @@ export default async function NBAHub() {
              <span>System Status: Monitoring</span>
           </div>
           
-          <div className="flex flex-col md:flex-row justify-between items-end gap-6">
+          <div className="flex flex-col xl:flex-row justify-between items-end gap-12">
             <div>
               <h1 className="text-6xl md:text-8xl font-black uppercase tracking-tighter text-white leading-none mb-2">
                 NBA <span className="text-zinc-800 text-stroke-white">NEXUS</span>
               </h1>
-              <p className="font-mono text-zinc-500 text-sm max-w-xl">
+              <p className="font-mono text-zinc-500 text-sm max-w-xl mb-8">
                 /// LIVE OPERATIONS DASHBOARD<br/>
                 Real-time ingestion of league telemetry, performance metrics, and tactical data snapshots.
               </p>
+              
+              {/* SEARCH MODULE INTEGRATION */}
+              <div className="flex flex-col gap-2 relative z-50">
+                 <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                    <SearchIcon size={10} /> Database Access
+                 </div>
+                 <NBASearch />
+              </div>
             </div>
 
             {/* QUICK STATS */}
@@ -92,7 +106,6 @@ export default async function NBAHub() {
 function StandingsTable({ conference, teams }: { conference: string, teams: any[] }) {
     if(!teams || teams.length === 0) return <div className="p-4 border border-zinc-800 text-zinc-500 font-mono text-xs">Loading Data...</div>
 
-    // FIX: Sort strictly by Winning Percentage (Descending: High -> Low)
     const sortedTeams = [...teams].sort((a, b) => {
         const pctA = parseFloat(a.stats.pct || '0');
         const pctB = parseFloat(b.stats.pct || '0');
@@ -108,7 +121,6 @@ function StandingsTable({ conference, teams }: { conference: string, teams: any[
                 {sortedTeams.map((t, index) => (
                     <Link href={`/sports/nba/team/${t.id}`} key={t.id} className="flex items-center justify-between p-3 hover:bg-zinc-900 transition-colors group">
                         <div className="flex items-center gap-3">
-                            {/* Display index+1 as rank so it visually matches the sorted order */}
                             <span className="font-mono text-xs text-zinc-600 w-4">{index + 1}</span>
                             <img src={t.logo} className="w-6 h-6 object-contain grayscale group-hover:grayscale-0 transition-all" alt={t.name} />
                             <span className="font-bold text-xs text-zinc-300 group-hover:text-white group-hover:translate-x-1 transition-all">{t.abbr}</span>
@@ -132,7 +144,7 @@ function LeaderModule({ title, icon, players }: { title: string, icon: string, p
     return (
         <div className="border border-zinc-800 bg-zinc-900/20 mb-4">
             {/* Top Leader */}
-            <div className="p-4 flex items-center gap-4 bg-zinc-900/40 border-b border-zinc-800 relative overflow-hidden group">
+            <Link href={`/sports/nba/player/${top.id}`} className="block p-4 flex items-center gap-4 bg-zinc-900/40 border-b border-zinc-800 relative overflow-hidden group hover:bg-zinc-900 transition-colors">
                 <div className="absolute top-0 right-0 p-2 opacity-10 font-black text-6xl text-white select-none">{icon}</div>
                 <img src={top.headshot} className="w-16 h-16 rounded-full bg-zinc-800 object-cover border border-zinc-700 relative z-10" alt={top.name} />
                 <div className="relative z-10">
@@ -140,18 +152,18 @@ function LeaderModule({ title, icon, players }: { title: string, icon: string, p
                     <div className="text-lg font-black uppercase leading-none text-white">{top.name}</div>
                     <div className="text-xs font-bold text-zinc-500 mt-1">{top.team} • <span className="text-white">{top.value}</span></div>
                 </div>
-            </div>
+            </Link>
             {/* List */}
             <div className="divide-y divide-zinc-800">
                 {rest.map((p, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 text-xs hover:bg-zinc-900 transition-colors">
+                    <Link href={`/sports/nba/player/${p.id}`} key={i} className="flex items-center justify-between p-3 text-xs hover:bg-zinc-900 transition-colors group">
                         <div className="flex items-center gap-2">
                              <span className="font-mono text-zinc-600">{i+2}</span>
-                             <span className="font-bold text-zinc-400">{p.name}</span>
+                             <span className="font-bold text-zinc-400 group-hover:text-white transition-colors">{p.name}</span>
                              <span className="text-[9px] text-zinc-600 font-mono">{p.team}</span>
                         </div>
                         <div className="font-mono text-white">{p.value}</div>
-                    </div>
+                    </Link>
                 ))}
             </div>
         </div>

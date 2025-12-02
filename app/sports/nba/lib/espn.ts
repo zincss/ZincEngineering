@@ -18,23 +18,15 @@ const API = {
 
 // --- HELPER: Format Stats ---
 const formatStat = (val: any) => {
-    // FIX: Handle undefined, null, or empty string specifically
     if (val === undefined || val === null || val === '') return '-';
-    
     const num = parseFloat(val);
-    
-    // If it's not a number (and not handled above), return original string
     if (isNaN(num)) return val;
-    
-    // If it's an integer (35.0), return "35"
     if (Number.isInteger(num)) return num.toString();
-    
-    // Otherwise return 1 decimal place "35.1"
     return num.toFixed(1);
 };
 
 // --- FETCHERS ---
-
+// (Keep fetchLiveScoreboard, fetchStandings, fetchDailyLeaders, fetchTeamProfile as is)
 export async function fetchLiveScoreboard() {
   const res = await fetch(API.SCOREBOARD, { headers: HEADERS, cache: 'no-store' });
   if (!res.ok) return [];
@@ -106,12 +98,10 @@ export async function fetchDailyLeaders() {
        page: '1', limit: '5', sort: cat.sort
     });
     
-    // FIX: Use cache: 'no-store' to ensure we get fresh data for the DB snapshot
     const res = await fetch(`${API.ATHLETES}?${params}`, { headers: HEADERS, cache: 'no-store' });
     const data = await res.json();
     
-    // Resolve correct stat index dynamically
-    const sortKey = cat.sort.split(':')[0]; // e.g. "offensive.avgPoints"
+    const sortKey = cat.sort.split(':')[0]; 
     const [catName, statName] = sortKey.split('.'); 
     
     const categoryMeta = data.categories?.find((c: any) => c.name === catName);
@@ -120,7 +110,6 @@ export async function fetchDailyLeaders() {
     results[cat.key] = data.athletes?.map((a: any) => {
       let val = a.statistics?.[0]?.displayValue;
 
-      // Fallback: Read raw value from categories array if displayValue is missing
       if (!val && statIndex !== undefined && statIndex !== -1) {
           const athleteCat = a.categories?.find((c: any) => c.name === catName);
           val = athleteCat?.values?.[statIndex];
@@ -131,7 +120,7 @@ export async function fetchDailyLeaders() {
         name: a.athlete.displayName,
         team: a.athlete.team?.abbreviation,
         headshot: a.athlete.headshot?.href,
-        value: formatStat(val) // Updated to use robust formatter
+        value: formatStat(val) 
       };
     }) || [];
   }
@@ -139,7 +128,7 @@ export async function fetchDailyLeaders() {
 }
 
 export async function fetchTeamProfile(id: string) {
-  const res = await fetch(`${API.TEAMS}/${id}`, { headers: HEADERS });
+  const res = await fetch(`${API.TEAMS}/${id}?enable=roster`, { headers: HEADERS });
   if (!res.ok) return null;
   const data = await res.json();
   const t = data.team;
@@ -158,29 +147,67 @@ export async function fetchTeamProfile(id: string) {
       date: t.nextEvent[0].date,
       opponent: t.nextEvent[0].competitions?.[0]?.competitors?.find((c:any) => c.team.id !== t.id)?.team?.abbreviation
     } : null,
+    roster: t.roster?.entries?.map((e: any) => ({
+        id: e.athlete.id,
+        name: e.athlete.displayName,
+        jersey: e.athlete.jersey,
+        pos: e.athlete.position?.abbreviation,
+        height: e.athlete.displayHeight,
+        headshot: e.athlete.headshot?.href
+    })) || [],
     links: t.links?.map((l:any) => ({ text: l.text, href: l.href }))
   };
 }
 
-// --- NEW: FETCH PLAYER PROFILE ---
+// --- UPDATE: FETCH PLAYER PROFILE (Robust) ---
 export async function fetchPlayerProfile(id: string) {
     try {
-        const res = await fetch(`${API.PLAYER_BASE}/${id}`, { headers: HEADERS, next: { revalidate: 3600 } });
+        const res = await fetch(`${API.PLAYER_BASE}/${id}`, { headers: HEADERS, cache: 'no-store' });
         if (!res.ok) return null;
         
         const data = await res.json();
         const ath = data.athlete;
+
+        // Helper to format draft string
+        const getDraftInfo = () => {
+            if (ath.draft) {
+                return `${ath.draft.year} • Rd ${ath.draft.round} • Pk ${ath.draft.selection}`;
+            }
+            // Sometimes it's in displayDraft
+            if (ath.displayDraft) return ath.displayDraft;
+            return 'Undrafted';
+        };
+
+        // Helper to format Birthplace
+        const getBirthPlace = () => {
+            if (ath.birthPlace) {
+                const city = ath.birthPlace.city || '';
+                const state = ath.birthPlace.state || ath.birthPlace.country || '';
+                if (city && state) return `${city}, ${state}`;
+                return city || state || 'Unknown';
+            }
+            return 'Unknown';
+        };
 
         return {
             id: ath.id,
             name: ath.displayName,
             headshot: ath.headshot?.href,
             team: ath.team?.abbreviation || 'NBA',
+            teamId: ath.team?.id,
             number: ath.jersey,
             pos: ath.position?.abbreviation,
             height: ath.displayHeight,
             weight: ath.displayWeight,
             experience: ath.experience?.years || 'R',
+            
+            // IMPROVED MAPPING
+            age: ath.age || '-',
+            birthPlace: getBirthPlace(),
+            college: ath.college?.name || ath.displayCollege || 'None',
+            draft: getDraftInfo(),
+            status: ath.status?.name || 'Active',
+            
             stats: ath.statsSummary?.statistics?.map((s: any) => ({
                 name: s.displayName, 
                 displayValue: s.displayValue
@@ -191,7 +218,63 @@ export async function fetchPlayerProfile(id: string) {
     }
 }
 
-// --- NEW: FETCH GAME SUMMARY ---
+// --- UPDATE: FETCH PLAYER GAME LOG (Deep Search) ---
+export async function fetchPlayerGameLog(id: string) {
+    try {
+        const res = await fetch(`${API.PLAYER_BASE}/${id}/gamelog`, { headers: HEADERS, cache: 'no-store' });
+        if (!res.ok) return [];
+        const data = await res.json();
+        
+        let events = [];
+
+        // 1. Try flat events
+        if (data.events && data.events.length > 0) {
+            events = data.events;
+        } 
+        // 2. Try nested seasonTypes (Common in NBA API)
+        else if (data.seasonTypes) {
+            // Find Regular Season (usually type 2) or Postseason (3)
+            const season = data.seasonTypes.find((s: any) => s.id === '2' || s.name === 'Regular Season') 
+                        || data.seasonTypes[0];
+            
+            if (season && season.categories) {
+                // Usually events are inside the first category
+                events = season.categories.flatMap((c: any) => c.events || []);
+            } else if (season && season.events) {
+                events = season.events;
+            }
+        }
+
+        // Get last 5 games
+        return events.slice(0, 5).map((e: any) => {
+             const stats = e.stats || [];
+             // STANDARD NBA STATS INDEX (Approximate)
+             // 0:MIN, 1:FGM-A, 2:FG%, 3:3PM-A, 4:3P%, 5:FTM-A, 6:FT%, 7:REB, 8:AST, 9:BLK, 10:STL, 11:PF, 12:TO, 13:PTS
+             // We use the last element for PTS to be safe, or specific indices if array length is standard (14-15)
+             
+             const pts = stats.length > 10 ? stats[stats.length - 1] : (stats[13] || '-');
+             const reb = stats.length > 7 ? stats[7] : '-';
+             const ast = stats.length > 8 ? stats[8] : '-';
+             const blk = stats.length > 9 ? stats[9] : '-';
+             const stl = stats.length > 10 ? stats[10] : '-';
+
+             return {
+                 date: e.gameDate ? new Date(e.gameDate).toLocaleDateString(undefined, {month:'numeric', day:'numeric'}) : '-',
+                 opponent: e.opponent?.abbreviation || 'OPP',
+                 result: e.gameResult || '-',
+                 pts: pts,
+                 reb: reb,
+                 ast: ast,
+                 blk: blk,
+                 stl: stl,
+             };
+        });
+    } catch (e) {
+        console.error("Game Log Error:", e);
+        return [];
+    }
+}
+
 export async function fetchGameSummary(gameId: string) {
     try {
         const res = await fetch(`${API.SUMMARY}?event=${gameId}`, { headers: HEADERS, cache: 'no-store' });
@@ -200,7 +283,6 @@ export async function fetchGameSummary(gameId: string) {
         const data = await res.json();
         const header = data.header;
         const comp = header.competitions[0];
-        const box = data.boxscore;
         const home = comp.competitors.find((c:any) => c.homeAway === 'home');
         const away = comp.competitors.find((c:any) => c.homeAway === 'away');
 

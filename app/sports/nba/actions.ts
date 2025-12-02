@@ -6,13 +6,12 @@ import * as ESPN from './lib/espn';
 
 // CONFIG: How long (in hours) do we trust the DB snapshot?
 const CACHE_CONFIG = {
-  SCORES: 0.05,    // 3 minutes (Live data)
-  STANDINGS: 1,    // 1 hour
-  LEADERS: 0,      // FIX: Set to 0 temporarily to force refresh on next load
-  PROFILES: 24     // 24 hours
+  SCORES: 0.05,    
+  STANDINGS: 1,    
+  LEADERS: 12,     
+  PROFILES: 24     
 };
 
-// --- SEARCH ACTION ---
 export async function searchPlayers(query: string) {
     if (!query || query.length < 2) return [];
     try {
@@ -32,7 +31,6 @@ export async function searchPlayers(query: string) {
     }
 }
 
-// 1. DASHBOARD SNAPSHOTS
 export async function getDashboardData() {
   const [scores, standings, leaders] = await Promise.all([
     getOrFetchResource({
@@ -51,42 +49,36 @@ export async function getDashboardData() {
   return { scores, standings, leaders };
 }
 
-// --- THIS FIXES YOUR TICKER ERROR ---
 export async function getLiveScores() {
     return await getOrFetchResource({
-      table: 'nba_snapshots', 
-      keyField: 'key', 
-      id: 'live_scores', 
-      expirationHours: CACHE_CONFIG.SCORES
+      table: 'nba_snapshots', keyField: 'key', id: 'live_scores', expirationHours: CACHE_CONFIG.SCORES
     }, ESPN.fetchLiveScoreboard);
 }
 
-// 2. TEAM SNAPSHOT
 export async function getTeamSnapshot(teamId: string) {
   return await getOrFetchResource({
-    table: 'nba_snapshots', 
-    keyField: 'key', 
-    id: `team_${teamId}`, 
-    expirationHours: CACHE_CONFIG.PROFILES
+    table: 'nba_snapshots', keyField: 'key', id: `team_${teamId}`, expirationHours: CACHE_CONFIG.PROFILES
   }, () => ESPN.fetchTeamProfile(teamId));
 }
 
-// 3. PLAYER SNAPSHOT (Fetch-on-Demand)
+// FIX: Changed ID to 'player_v3_' to bust old cache and force fresh data fetch
 export async function getPlayerProfile(playerId: string) {
     return await getOrFetchResource({
         table: 'nba_snapshots',
         keyField: 'key',
-        id: `player_${playerId}`,
+        id: `player_v3_${playerId}`, // <--- CHANGED THIS TO V3
         expirationHours: CACHE_CONFIG.PROFILES
     }, () => ESPN.fetchPlayerProfile(playerId));
 }
 
-// 4. GAME SUMMARY (For GameTicker)
+export async function getPlayerGameLog(playerId: string) {
+    return await ESPN.fetchPlayerGameLog(playerId);
+}
+
 export async function getGameSummary(gameId: string) {
     return await ESPN.fetchGameSummary(gameId);
 }
 
-// 5. FORCE REFRESH
 export async function forceRefreshDashboard() {
   return { success: true, message: "Snapshots Queued" };
 }

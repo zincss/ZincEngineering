@@ -1,7 +1,7 @@
 // app/sports/nba/team/[id]/page.tsx
 import React from 'react';
 import { getTeamSnapshot } from '../../actions';
-import { MapPin, Trophy, Calendar, ExternalLink, Database } from 'lucide-react';
+import { MapPin, Trophy, Calendar, ExternalLink, Database, Users } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function TeamPage({ params }: { params: { id: string } }) {
@@ -30,41 +30,70 @@ export default async function TeamPage({ params }: { params: { id: string } }) {
          </div>
       </div>
 
-      <div className="max-w-[1600px] mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="max-w-[1600px] mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-4 gap-8">
          
-         {/* INFO CARD */}
-         <div className="bg-zinc-900/20 border border-zinc-800 p-6 space-y-6">
-            <h3 className="text-xl font-black uppercase">Franchise Data</h3>
-            <div className="space-y-4">
-                <div className="flex justify-between border-b border-zinc-800 pb-2">
-                    <span className="text-zinc-500 text-xs font-mono uppercase">Record</span>
-                    <span className="font-bold text-white">{team.record}</span>
+         {/* LEFT COL: INFO */}
+         <div className="lg:col-span-1 space-y-6">
+             {/* STATS */}
+             <div className="bg-zinc-900/20 border border-zinc-800 p-6 space-y-6">
+                <h3 className="text-xl font-black uppercase">Franchise Data</h3>
+                <div className="space-y-4">
+                    <div className="flex justify-between border-b border-zinc-800 pb-2">
+                        <span className="text-zinc-500 text-xs font-mono uppercase">Record</span>
+                        <span className="font-bold text-white">{team.record}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-zinc-800 pb-2">
+                        <span className="text-zinc-500 text-xs font-mono uppercase">Standing</span>
+                        <span className="font-bold text-white">{team.standing}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-zinc-800 pb-2">
+                        <span className="text-zinc-500 text-xs font-mono uppercase">Abbreviation</span>
+                        <span className="font-bold text-[#DFFF00]">{team.abbr}</span>
+                    </div>
                 </div>
-                <div className="flex justify-between border-b border-zinc-800 pb-2">
-                    <span className="text-zinc-500 text-xs font-mono uppercase">Standing</span>
-                    <span className="font-bold text-white">{team.standing}</span>
+             </div>
+
+            {/* NEXT GAME */}
+            {team.nextEvent && (
+                <div className="bg-zinc-900/20 border border-zinc-800 p-6">
+                    <h3 className="text-xl font-black uppercase mb-4 flex items-center gap-2"><Calendar size={20} /> Next Event</h3>
+                    <div className="text-center py-6 bg-zinc-900/50 border border-zinc-800">
+                        <div className="text-xs font-mono text-zinc-500 mb-2">{new Date(team.nextEvent.date).toLocaleDateString()}</div>
+                        <div className="text-3xl font-black uppercase text-white mb-2">
+                            {team.abbr} <span className="text-zinc-600">vs</span> {team.nextEvent.opponent}
+                        </div>
+                        <div className="text-[10px] uppercase tracking-widest text-[#DFFF00] animate-pulse">Upcoming</div>
+                    </div>
                 </div>
-                <div className="flex justify-between border-b border-zinc-800 pb-2">
-                     <span className="text-zinc-500 text-xs font-mono uppercase">Abbreviation</span>
-                     <span className="font-bold text-[#DFFF00]">{team.abbr}</span>
-                </div>
-            </div>
+            )}
          </div>
 
-         {/* NEXT GAME */}
-         {team.nextEvent && (
-             <div className="bg-zinc-900/20 border border-zinc-800 p-6">
-                 <h3 className="text-xl font-black uppercase mb-4 flex items-center gap-2"><Calendar size={20} /> Next Event</h3>
-                 <div className="text-center py-6 bg-zinc-900/50 border border-zinc-800">
-                     <div className="text-xs font-mono text-zinc-500 mb-2">{new Date(team.nextEvent.date).toLocaleDateString()}</div>
-                     <div className="text-3xl font-black uppercase text-white mb-2">
-                         {team.abbr} <span className="text-zinc-600">vs</span> {team.nextEvent.opponent}
-                     </div>
-                     <div className="text-[10px] uppercase tracking-widest text-[#DFFF00] animate-pulse">Upcoming</div>
-                 </div>
+         {/* RIGHT COL: ROSTER */}
+         <div className="lg:col-span-3">
+             <div className="flex items-center gap-2 mb-6">
+                 <Users size={16} className="text-[#DFFF00]" />
+                 <h3 className="text-lg font-black uppercase text-white tracking-tight">Active Roster</h3>
              </div>
-         )}
-         
+             
+             {team.roster && team.roster.length > 0 ? (
+                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                     {team.roster.map((player: any) => (
+                         <Link href={`/sports/nba/player/${player.id}`} key={player.id} className="flex items-center gap-4 p-4 border border-zinc-800 bg-zinc-900/30 hover:bg-zinc-900 transition-colors group">
+                             <div className="w-12 h-12 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
+                                 <img src={player.headshot} alt={player.name} className="w-full h-full object-cover scale-110 pt-2" />
+                             </div>
+                             <div>
+                                 <div className="text-[10px] font-mono text-zinc-500">#{player.jersey} • {player.pos} • {player.height}</div>
+                                 <div className="font-bold text-sm uppercase text-white group-hover:text-[#DFFF00] transition-colors">{player.name}</div>
+                             </div>
+                         </Link>
+                     ))}
+                 </div>
+             ) : (
+                 <div className="p-12 border border-zinc-800 text-center text-zinc-600 font-mono text-xs">ROSTER DATA NOT AVAILABLE</div>
+             )}
+         </div>
+
       </div>
     </div>
   );
