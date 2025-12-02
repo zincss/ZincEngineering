@@ -8,7 +8,7 @@ import { supabase } from '../../lib/supabaseClient';
 // Import search actions
 import { searchPlayers as searchNBA } from '../sports/nba/actions';
 import { searchPlayers as searchNRL } from '../sports/nrl/actions';
-import { searchF1Archive as searchF1 } from '../sports/f1/actions';
+import { searchF1Drivers as searchF1 } from '../sports/f1/actions';
 import { searchPlayers as searchGolf } from '../sports/golf/actions';
 
 const CDN_URL = "https://cdn.warframestat.us/img/";
