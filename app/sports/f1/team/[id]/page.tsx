@@ -186,14 +186,15 @@ export default function TeamPage() {
                                   <img src={images.logo} className="w-full h-full object-contain filter invert" alt="Logo" />
                               </div>
                           )}
-                          <h1 className="text-5xl lg:text-8xl font-black tracking-tighter uppercase leading-[0.85] text-white">
+                          {/* OPTIMIZED TEXT SIZE FOR MOBILE */}
+                          <h1 className="text-4xl lg:text-8xl font-black tracking-tighter uppercase leading-[0.85] text-white">
                               {team.name}
                           </h1>
                       </div>
                   </div>
                   
-                  {/* HERO STATS */}
-                  <div className="flex gap-12 border-t lg:border-t-0 border-zinc-800 pt-6 lg:pt-0">
+                  {/* HERO STATS - WRAPS ON MOBILE */}
+                  <div className="flex flex-wrap gap-8 md:gap-12 border-t lg:border-t-0 border-zinc-800 pt-6 lg:pt-0">
                       <div>
                           <span className="block text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-1">Constructors Titles</span>
                           <span className="block text-5xl font-black text-[#DFFF00]">{stats.titles}</span>

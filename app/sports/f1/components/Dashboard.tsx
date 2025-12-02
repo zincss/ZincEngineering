@@ -94,34 +94,52 @@ const TRACK_SPECS: Record<string, { len: string, turns: number, record: string, 
     'yas_marina': { len: '5.281 km', turns: 16, record: '1:26.103', laps: 58 },
 };
 
+// --- HIGH QUALITY DRIVER DATABASE (2025 & LEGENDS) ---
 const DRIVER_HEADSHOTS: Record<string, string> = {
-    'max_verstappen': 'https://media.formula1.com/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png.transform/2col/image.png',
-    'verstappen': 'https://media.formula1.com/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png.transform/2col/image.png',
-    'perez': 'https://media.formula1.com/content/dam/fom-website/drivers/S/SERPER01_Sergio_Perez/serper01.png.transform/2col/image.png',
-    'lawson': 'https://media.formula1.com/content/dam/fom-website/drivers/L/LIALAW01_Liam_Lawson/lialaw01.png.transform/2col/image.png',
-    'hamilton': 'https://media.formula1.com/content/dam/fom-website/drivers/L/LEWHAM01_Lewis_Hamilton/lewham01.png.transform/2col/image.png',
-    'russell': 'https://media.formula1.com/content/dam/fom-website/drivers/G/GEORUS01_George_Russell/georus01.png.transform/2col/image.png',
-    'antonelli': 'https://media.formula1.com/content/dam/fom-website/drivers/K/KIMANT01_Kimi_Antonelli/kimant01.png.transform/2col/image.png',
-    'leclerc': 'https://media.formula1.com/content/dam/fom-website/drivers/C/CHALEC01_Charles_Leclerc/chalec01.png.transform/2col/image.png',
-    'sainz': 'https://media.formula1.com/content/dam/fom-website/drivers/C/CARSAI01_Carlos_Sainz/carsai01.png.transform/2col/image.png',
-    'norris': 'https://media.formula1.com/content/dam/fom-website/drivers/L/LANNOR01_Lando_Norris/lannor01.png.transform/2col/image.png',
-    'piastri': 'https://media.formula1.com/content/dam/fom-website/drivers/O/OSCPIA01_Oscar_Piastri/oscpia01.png.transform/2col/image.png',
-    'alonso': 'https://media.formula1.com/content/dam/fom-website/drivers/F/FERALO01_Fernando_Alonso/feralo01.png.transform/2col/image.png',
-    'stroll': 'https://media.formula1.com/content/dam/fom-website/drivers/L/LANSTR01_Lance_Stroll/lanstr01.png.transform/2col/image.png',
-    'gasly': 'https://media.formula1.com/content/dam/fom-website/drivers/P/PIEGAS01_Pierre_Gasly/piegas01.png.transform/2col/image.png',
-    'ocon': 'https://media.formula1.com/content/dam/fom-website/drivers/E/ESTOCO01_Esteban_Ocon/estoco01.png.transform/2col/image.png',
-    'doohan': 'https://media.formula1.com/content/dam/fom-website/drivers/J/JACDOO01_Jack_Doohan/jacdoo01.png.transform/2col/image.png',
-    'albon': 'https://media.formula1.com/content/dam/fom-website/drivers/A/ALEALB01_Alexander_Albon/alealb01.png.transform/2col/image.png',
-    'colapinto': 'https://media.formula1.com/content/dam/fom-website/drivers/F/FRACOL01_Franco_Colapinto/fracol01.png.transform/2col/image.png',
-    'tsunoda': 'https://media.formula1.com/content/dam/fom-website/drivers/Y/YUKTSU01_Yuki_Tsunoda/yuktsu01.png.transform/2col/image.png',
-    'ricciardo': 'https://media.formula1.com/content/dam/fom-website/drivers/D/DANRIC01_Daniel_Ricciardo/danric01.png.transform/2col/image.png',
-    'hadjar': 'https://media.formula1.com/content/dam/fom-website/drivers/I/ISAHAD01_Isack_Hadjar/isahad01.png.transform/2col/image.png',
-    'bottas': 'https://media.formula1.com/content/dam/fom-website/drivers/V/VALBOT01_Valtteri_Bottas/valbot01.png.transform/2col/image.png',
-    'zhou': 'https://media.formula1.com/content/dam/fom-website/drivers/G/GUAZHO01_Guanyu_Zhou/guazho01.png.transform/2col/image.png',
-    'hulkenberg': 'https://media.formula1.com/content/dam/fom-website/drivers/N/NICHUL01_Nico_Hulkenberg/nichul01.png.transform/2col/image.png',
-    'bortoleto': 'https://media.formula1.com/content/dam/fom-website/drivers/G/GABBOR01_Gabriel_Bortoleto/gabbor01.png.transform/2col/image.png',
-    'magnussen': 'https://media.formula1.com/content/dam/fom-website/drivers/K/KEVMAG01_Kevin_Magnussen/kevmag01.png.transform/2col/image.png',
-    'bearman': 'https://media.formula1.com/content/dam/fom-website/drivers/O/OLIBEA01_Oliver_Bearman/olibea01.png.transform/2col/image.png',
+    // --- 2025 GRID (High-Res Sources) ---
+    'max_verstappen': 'https://media.formula1.com/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png',
+    'verstappen': 'https://media.formula1.com/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png',
+    'perez': 'https://media.formula1.com/content/dam/fom-website/drivers/S/SERPER01_Sergio_Perez/serper01.png',
+    'lawson': 'https://media.formula1.com/content/dam/fom-website/drivers/L/LIALAW01_Liam_Lawson/lialaw01.png',
+    'hamilton': 'https://media.formula1.com/content/dam/fom-website/drivers/L/LEWHAM01_Lewis_Hamilton/lewham01.png',
+    'russell': 'https://media.formula1.com/content/dam/fom-website/drivers/G/GEORUS01_George_Russell/georus01.png',
+    'antonelli': 'https://media.formula1.com/content/dam/fom-website/drivers/K/KIMANT01_Kimi_Antonelli/kimant01.png',
+    'leclerc': 'https://media.formula1.com/content/dam/fom-website/drivers/C/CHALEC01_Charles_Leclerc/chalec01.png',
+    'sainz': 'https://media.formula1.com/content/dam/fom-website/drivers/C/CARSAI01_Carlos_Sainz/carsai01.png',
+    'norris': 'https://media.formula1.com/content/dam/fom-website/drivers/L/LANNOR01_Lando_Norris/lannor01.png',
+    'piastri': 'https://media.formula1.com/content/dam/fom-website/drivers/O/OSCPIA01_Oscar_Piastri/oscpia01.png',
+    'alonso': 'https://media.formula1.com/content/dam/fom-website/drivers/F/FERALO01_Fernando_Alonso/feralo01.png',
+    'stroll': 'https://media.formula1.com/content/dam/fom-website/drivers/L/LANSTR01_Lance_Stroll/lanstr01.png',
+    'gasly': 'https://media.formula1.com/content/dam/fom-website/drivers/P/PIEGAS01_Pierre_Gasly/piegas01.png',
+    'ocon': 'https://media.formula1.com/content/dam/fom-website/drivers/E/ESTOCO01_Esteban_Ocon/estoco01.png',
+    'doohan': 'https://media.formula1.com/content/dam/fom-website/drivers/J/JACDOO01_Jack_Doohan/jacdoo01.png',
+    'albon': 'https://media.formula1.com/content/dam/fom-website/drivers/A/ALEALB01_Alexander_Albon/alealb01.png',
+    'colapinto': 'https://media.formula1.com/content/dam/fom-website/drivers/F/FRACOL01_Franco_Colapinto/fracol01.png',
+    'tsunoda': 'https://media.formula1.com/content/dam/fom-website/drivers/Y/YUKTSU01_Yuki_Tsunoda/yuktsu01.png',
+    'ricciardo': 'https://media.formula1.com/content/dam/fom-website/drivers/D/DANRIC01_Daniel_Ricciardo/danric01.png',
+    'hadjar': 'https://media.formula1.com/content/dam/fom-website/drivers/I/ISAHAD01_Isack_Hadjar/isahad01.png',
+    'bottas': 'https://media.formula1.com/content/dam/fom-website/drivers/V/VALBOT01_Valtteri_Bottas/valbot01.png',
+    'zhou': 'https://media.formula1.com/content/dam/fom-website/drivers/G/GUAZHO01_Guanyu_Zhou/guazho01.png',
+    'hulkenberg': 'https://media.formula1.com/content/dam/fom-website/drivers/N/NICHUL01_Nico_Hulkenberg/nichul01.png',
+    'bortoleto': 'https://media.formula1.com/content/dam/fom-website/drivers/G/GABBOR01_Gabriel_Bortoleto/gabbor01.png',
+    'magnussen': 'https://media.formula1.com/content/dam/fom-website/drivers/K/KEVMAG01_Kevin_Magnussen/kevmag01.png',
+    'bearman': 'https://media.formula1.com/content/dam/fom-website/drivers/O/OLIBEA01_Oliver_Bearman/olibea01.png',
+
+    // --- LEGENDS (Wikimedia High-Quality Archives) ---
+    'michael_schumacher': 'https://upload.wikimedia.org/wikipedia/commons/2/2c/Michael_Schumacher_2005_United_States_GP.jpg',
+    'ayrton_senna': 'https://upload.wikimedia.org/wikipedia/commons/4/4e/Ayrton_Senna_1991.jpg',
+    'senna': 'https://upload.wikimedia.org/wikipedia/commons/4/4e/Ayrton_Senna_1991.jpg',
+    'prost': 'https://upload.wikimedia.org/wikipedia/commons/6/6d/Alain_Prost_1993.jpg',
+    'vettel': 'https://upload.wikimedia.org/wikipedia/commons/4/42/Sebastian_Vettel_2012_Bahrain_GP.jpg',
+    'lauda': 'https://upload.wikimedia.org/wikipedia/commons/1/1a/Niki_Lauda_1975.jpg',
+    'fangio': 'https://upload.wikimedia.org/wikipedia/commons/4/43/Juan_Manuel_Fangio_1955.jpg',
+    'clark': 'https://upload.wikimedia.org/wikipedia/commons/6/67/Jim_Clark_1966.jpg',
+    'stewart': 'https://upload.wikimedia.org/wikipedia/commons/e/e0/Jackie_Stewart_1969.jpg',
+    'mansell': 'https://upload.wikimedia.org/wikipedia/commons/7/7d/Nigel_Mansell_1991.jpg',
+    'raikkonen': 'https://upload.wikimedia.org/wikipedia/commons/e/e3/Kimi_Raikkonen_2012.jpg',
+    'hakkinen': 'https://upload.wikimedia.org/wikipedia/commons/6/6d/Mika_Hakkinen_2001.jpg',
+    'rosberg': 'https://upload.wikimedia.org/wikipedia/commons/a/a2/Nico_Rosberg_2016.jpg',
+    'button': 'https://upload.wikimedia.org/wikipedia/commons/4/4d/Jenson_Button_2009.jpg',
 };
 
 const NATIONALITY_CODES: Record<string, string> = {
@@ -149,7 +167,7 @@ const NavigationLoader = () => (
 );
 
 // --- DRIVER CARD COMPONENT ---
-const DriverCard = ({ driver, onNavigate, variant = 'standard' }: { driver: any, onNavigate: (url: string) => void, variant?: 'standard' | 'compact' }) => {
+const DriverCard = ({ driver, onNavigate, variant = 'standard', rank }: { driver: any, onNavigate: (url: string) => void, variant?: 'standard' | 'compact', rank?: number }) => {
     const did = driver.driverId || driver.id || '';
     const image = DRIVER_HEADSHOTS[did] || DRIVER_HEADSHOTS[did.toLowerCase()] || null;
     const teamName = driver.constructors?.[0]?.name || 'Unknown';
@@ -173,6 +191,13 @@ const DriverCard = ({ driver, onNavigate, variant = 'standard' }: { driver: any,
         >
              <div className="absolute inset-0 bg-gradient-to-b from-zinc-800/30 via-zinc-900/80 to-zinc-950 z-0" />
             
+             {/* RANK BADGE FOR MOBILE */}
+             {rank && (
+                 <div className="absolute top-4 left-4 z-30 md:hidden">
+                    <span className="text-4xl font-black text-white/10">{rank}</span>
+                 </div>
+             )}
+
             {/* BIG TEAM NUMBER */}
             {driver.permanentNumber && (
                 <div className="absolute top-0 right-[-10px] text-[140px] font-black text-zinc-800/20 z-0 leading-none select-none group-hover:text-zinc-800/40 transition-colors duration-500">
@@ -361,43 +386,63 @@ const ManufacturerCard = ({ team, onNavigate }: { team: any, onNavigate: (url: s
 
 // --- STARTING GRID VISUALIZATION ---
 const StartingGrid = ({ drivers, onNavigate }: { drivers: any[], onNavigate: (url: string) => void }) => {
+    // DESKTOP: Split logic for staggered grid
     const leftSide = drivers.filter((_, i) => i % 2 === 0);
     const rightSide = drivers.filter((_, i) => i % 2 !== 0);
 
     return (
-        <div className="relative max-w-6xl mx-auto py-12 px-4">
-            <div className="absolute left-1/2 top-0 bottom-0 w-px bg-zinc-800 -translate-x-1/2 hidden md:block" />
-            <div className="absolute left-1/2 top-0 w-24 h-full border-l border-r border-zinc-800/30 -translate-x-1/2 hidden md:block" />
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-4 bg-[repeating-linear-gradient(90deg,white,white_20px,transparent_20px,transparent_40px)] opacity-20" />
+        <div className="relative max-w-6xl mx-auto py-4 md:py-12 px-0 md:px-4">
+            
+            {/* DESKTOP VIEW: STAGGERED GRID */}
+            <div className="hidden md:block">
+                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-zinc-800 -translate-x-1/2" />
+                <div className="absolute left-1/2 top-0 w-24 h-full border-l border-r border-zinc-800/30 -translate-x-1/2" />
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-4 bg-[repeating-linear-gradient(90deg,white,white_20px,transparent_20px,transparent_40px)] opacity-20" />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 relative z-10">
-                <div className="flex flex-col gap-12">
-                    {leftSide.map((driver, i) => (
-                        <div key={driver.driverId} className="relative group">
-                            <div className="absolute -left-12 top-10 font-black text-6xl text-zinc-800/20 rotate-[-90deg] hidden md:block">
-                                P{i * 2 + 1}
-                            </div>
-                            <DriverCard driver={driver} onNavigate={onNavigate} variant="standard" />
-                            {i === 0 && (
-                                <div className="absolute -top-6 left-0 bg-[#DFFF00] text-black text-[10px] font-black uppercase px-3 py-1 tracking-widest shadow-[0_0_15px_#DFFF00]">
-                                    POLE POSITION
+                <div className="grid grid-cols-2 gap-12 relative z-10">
+                    <div className="flex flex-col gap-12">
+                        {leftSide.map((driver, i) => (
+                            <div key={driver.driverId} className="relative group">
+                                <div className="absolute -left-12 top-10 font-black text-6xl text-zinc-800/20 rotate-[-90deg]">
+                                    P{i * 2 + 1}
                                 </div>
-                            )}
-                        </div>
-                    ))}
-                </div>
-
-                <div className="flex flex-col gap-12 md:pt-32">
-                    {rightSide.map((driver, i) => (
-                        <div key={driver.driverId} className="relative group">
-                             <div className="absolute -right-12 top-10 font-black text-6xl text-zinc-800/20 rotate-[90deg] hidden md:block">
-                                P{i * 2 + 2}
+                                <DriverCard driver={driver} onNavigate={onNavigate} variant="standard" />
+                                {i === 0 && (
+                                    <div className="absolute -top-6 left-0 bg-[#DFFF00] text-black text-[10px] font-black uppercase px-3 py-1 tracking-widest shadow-[0_0_15px_#DFFF00]">
+                                        POLE POSITION
+                                    </div>
+                                )}
                             </div>
-                            <DriverCard driver={driver} onNavigate={onNavigate} variant="standard" />
-                        </div>
-                    ))}
+                        ))}
+                    </div>
+
+                    <div className="flex flex-col gap-12 pt-32">
+                        {rightSide.map((driver, i) => (
+                            <div key={driver.driverId} className="relative group">
+                                <div className="absolute -right-12 top-10 font-black text-6xl text-zinc-800/20 rotate-[90deg]">
+                                    P{i * 2 + 2}
+                                </div>
+                                <DriverCard driver={driver} onNavigate={onNavigate} variant="standard" />
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
+
+            {/* MOBILE VIEW: LINEAR LIST */}
+            <div className="md:hidden flex flex-col gap-6">
+                {drivers.map((driver, i) => (
+                    <div key={driver.driverId} className="relative">
+                        {i === 0 && (
+                            <div className="mb-2 inline-block bg-[#DFFF00] text-black text-[10px] font-black uppercase px-3 py-1 tracking-widest">
+                                POLE POSITION
+                            </div>
+                        )}
+                        <DriverCard driver={driver} onNavigate={onNavigate} variant="standard" rank={i + 1} />
+                    </div>
+                ))}
+            </div>
+
         </div>
     );
 };
@@ -419,32 +464,36 @@ export default function F1Dashboard({ activeDrivers, teams, tracks, season }: { 
             {isNavigating && <NavigationLoader />}
 
             <div className="pt-24 pb-12 px-6 max-w-[1600px] mx-auto border-b border-zinc-800 mb-12">
-                <div className="flex flex-col md:flex-row items-end justify-between gap-8">
+                <div className="flex flex-col xl:flex-row items-end justify-between gap-8">
                     <div>
                         <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-full text-[10px] font-mono text-[#DFFF00] tracking-widest uppercase mb-6">
                            <Flag size={12} />
                            <span>F1 INTELLIGENCE HUB // {season}</span>
                         </div>
-                        <h1 className="text-5xl md:text-8xl font-black tracking-tighter text-white uppercase mb-2">
+                        {/* Responsive Text Size */}
+                        <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter text-white uppercase mb-2">
                            Formula <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 to-zinc-800 text-stroke-white">One</span>
                         </h1>
                     </div>
 
-                    <div className="flex gap-2 bg-zinc-900/50 p-1 border border-zinc-800 rounded-lg backdrop-blur-sm">
-                        {['drivers', 'teams', 'tracks', 'elo'].map((mode) => (
-                            <button 
-                                key={mode} 
-                                onClick={() => setViewMode(mode as any)} 
-                                className={`
-                                    px-6 py-3 font-mono text-[10px] font-bold uppercase tracking-widest transition-all rounded-md
-                                    ${viewMode === mode 
-                                        ? 'bg-[#DFFF00] text-black shadow-[0_0_20px_rgba(223,255,0,0.2)]' 
-                                        : 'text-zinc-500 hover:text-white hover:bg-zinc-800'}
-                                `}
-                            >
-                                {mode}
-                            </button>
-                        ))}
+                    {/* Scrollable Navigation for Mobile */}
+                    <div className="w-full xl:w-auto overflow-x-auto pb-2 xl:pb-0 no-scrollbar">
+                        <div className="flex gap-2 bg-zinc-900/50 p-1 border border-zinc-800 rounded-lg backdrop-blur-sm min-w-max">
+                            {['drivers', 'teams', 'tracks', 'elo'].map((mode) => (
+                                <button 
+                                    key={mode} 
+                                    onClick={() => setViewMode(mode as any)} 
+                                    className={`
+                                        px-6 py-3 font-mono text-[10px] font-bold uppercase tracking-widest transition-all rounded-md whitespace-nowrap
+                                        ${viewMode === mode 
+                                            ? 'bg-[#DFFF00] text-black shadow-[0_0_20px_rgba(223,255,0,0.2)]' 
+                                            : 'text-zinc-500 hover:text-white hover:bg-zinc-800'}
+                                    `}
+                                >
+                                    {mode}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>

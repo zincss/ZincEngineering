@@ -165,7 +165,8 @@ export default function CircuitPage() {
                           <span className="px-2 py-1 bg-[#DFFF00] text-black text-[10px] font-black font-mono uppercase tracking-widest">FIA GRADE 1</span>
                           <span className="px-2 py-1 border border-zinc-800 text-[10px] font-bold font-mono uppercase text-zinc-400">{circuit.Location.locality}, {circuit.Location.country}</span>
                       </div>
-                      <h1 className="text-5xl lg:text-9xl font-black tracking-tighter uppercase leading-[0.85] text-white">
+                      {/* OPTIMIZED TEXT SIZE FOR MOBILE */}
+                      <h1 className="text-4xl lg:text-9xl font-black tracking-tighter uppercase leading-[0.85] text-white">
                           {circuit.circuitName.replace('International', '').replace('Circuit', '').trim()}
                       </h1>
                   </div>

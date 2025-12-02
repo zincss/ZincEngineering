@@ -4,9 +4,62 @@ import React, { useState } from 'react';
 import { ArrowLeft, Terminal, BarChart3, Flag, Loader2, History, Crown, Star, Calendar, Trophy, Zap, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
+// --- HIGH QUALITY DRIVER DATABASE (SAME AS DASHBOARD) ---
+const DRIVER_HEADSHOTS: Record<string, string> = {
+    // --- 2025 GRID (High-Res Sources) ---
+    'max_verstappen': 'https://media.formula1.com/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png',
+    'verstappen': 'https://media.formula1.com/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png',
+    'perez': 'https://media.formula1.com/content/dam/fom-website/drivers/S/SERPER01_Sergio_Perez/serper01.png',
+    'lawson': 'https://media.formula1.com/content/dam/fom-website/drivers/L/LIALAW01_Liam_Lawson/lialaw01.png',
+    'hamilton': 'https://media.formula1.com/content/dam/fom-website/drivers/L/LEWHAM01_Lewis_Hamilton/lewham01.png',
+    'russell': 'https://media.formula1.com/content/dam/fom-website/drivers/G/GEORUS01_George_Russell/georus01.png',
+    'antonelli': 'https://media.formula1.com/content/dam/fom-website/drivers/K/KIMANT01_Kimi_Antonelli/kimant01.png',
+    'leclerc': 'https://media.formula1.com/content/dam/fom-website/drivers/C/CHALEC01_Charles_Leclerc/chalec01.png',
+    'sainz': 'https://media.formula1.com/content/dam/fom-website/drivers/C/CARSAI01_Carlos_Sainz/carsai01.png',
+    'norris': 'https://media.formula1.com/content/dam/fom-website/drivers/L/LANNOR01_Lando_Norris/lannor01.png',
+    'piastri': 'https://media.formula1.com/content/dam/fom-website/drivers/O/OSCPIA01_Oscar_Piastri/oscpia01.png',
+    'alonso': 'https://media.formula1.com/content/dam/fom-website/drivers/F/FERALO01_Fernando_Alonso/feralo01.png',
+    'stroll': 'https://media.formula1.com/content/dam/fom-website/drivers/L/LANSTR01_Lance_Stroll/lanstr01.png',
+    'gasly': 'https://media.formula1.com/content/dam/fom-website/drivers/P/PIEGAS01_Pierre_Gasly/piegas01.png',
+    'ocon': 'https://media.formula1.com/content/dam/fom-website/drivers/E/ESTOCO01_Esteban_Ocon/estoco01.png',
+    'doohan': 'https://media.formula1.com/content/dam/fom-website/drivers/J/JACDOO01_Jack_Doohan/jacdoo01.png',
+    'albon': 'https://media.formula1.com/content/dam/fom-website/drivers/A/ALEALB01_Alexander_Albon/alealb01.png',
+    'colapinto': 'https://media.formula1.com/content/dam/fom-website/drivers/F/FRACOL01_Franco_Colapinto/fracol01.png',
+    'tsunoda': 'https://media.formula1.com/content/dam/fom-website/drivers/Y/YUKTSU01_Yuki_Tsunoda/yuktsu01.png',
+    'ricciardo': 'https://media.formula1.com/content/dam/fom-website/drivers/D/DANRIC01_Daniel_Ricciardo/danric01.png',
+    'hadjar': 'https://media.formula1.com/content/dam/fom-website/drivers/I/ISAHAD01_Isack_Hadjar/isahad01.png',
+    'bottas': 'https://media.formula1.com/content/dam/fom-website/drivers/V/VALBOT01_Valtteri_Bottas/valbot01.png',
+    'zhou': 'https://media.formula1.com/content/dam/fom-website/drivers/G/GUAZHO01_Guanyu_Zhou/guazho01.png',
+    'hulkenberg': 'https://media.formula1.com/content/dam/fom-website/drivers/N/NICHUL01_Nico_Hulkenberg/nichul01.png',
+    'bortoleto': 'https://media.formula1.com/content/dam/fom-website/drivers/G/GABBOR01_Gabriel_Bortoleto/gabbor01.png',
+    'magnussen': 'https://media.formula1.com/content/dam/fom-website/drivers/K/KEVMAG01_Kevin_Magnussen/kevmag01.png',
+    'bearman': 'https://media.formula1.com/content/dam/fom-website/drivers/O/OLIBEA01_Oliver_Bearman/olibea01.png',
+
+    // --- LEGENDS (Wikimedia High-Quality Archives) ---
+    'michael_schumacher': 'https://upload.wikimedia.org/wikipedia/commons/2/2c/Michael_Schumacher_2005_United_States_GP.jpg',
+    'ayrton_senna': 'https://upload.wikimedia.org/wikipedia/commons/4/4e/Ayrton_Senna_1991.jpg',
+    'senna': 'https://upload.wikimedia.org/wikipedia/commons/4/4e/Ayrton_Senna_1991.jpg',
+    'prost': 'https://upload.wikimedia.org/wikipedia/commons/6/6d/Alain_Prost_1993.jpg',
+    'vettel': 'https://upload.wikimedia.org/wikipedia/commons/4/42/Sebastian_Vettel_2012_Bahrain_GP.jpg',
+    'lauda': 'https://upload.wikimedia.org/wikipedia/commons/1/1a/Niki_Lauda_1975.jpg',
+    'fangio': 'https://upload.wikimedia.org/wikipedia/commons/4/43/Juan_Manuel_Fangio_1955.jpg',
+    'clark': 'https://upload.wikimedia.org/wikipedia/commons/6/67/Jim_Clark_1966.jpg',
+    'stewart': 'https://upload.wikimedia.org/wikipedia/commons/e/e0/Jackie_Stewart_1969.jpg',
+    'mansell': 'https://upload.wikimedia.org/wikipedia/commons/7/7d/Nigel_Mansell_1991.jpg',
+    'raikkonen': 'https://upload.wikimedia.org/wikipedia/commons/e/e3/Kimi_Raikkonen_2012.jpg',
+    'hakkinen': 'https://upload.wikimedia.org/wikipedia/commons/6/6d/Mika_Hakkinen_2001.jpg',
+    'rosberg': 'https://upload.wikimedia.org/wikipedia/commons/a/a2/Nico_Rosberg_2016.jpg',
+    'button': 'https://upload.wikimedia.org/wikipedia/commons/4/4d/Jenson_Button_2009.jpg',
+};
+
 export default function DriverClientView({ data, id }: { data: any, id: string }) {
-  const { profile, stats, highlights, driverImage, careerRaces } = data;
+  const { profile, stats, highlights, driverImage: apiImage, careerRaces } = data;
   
+  // --- RESOLVE IMAGE (Use High-Res if available, else API fallback) ---
+  const did = profile.driverId || id;
+  const highResImage = DRIVER_HEADSHOTS[did] || DRIVER_HEADSHOTS[did.toLowerCase()];
+  const displayImage = highResImage || apiImage;
+
   // Interactive State
   const [selectedSeason, setSelectedSeason] = useState<string>(careerRaces[0]?.season || '2025');
 
@@ -41,14 +94,14 @@ export default function DriverClientView({ data, id }: { data: any, id: string }
                           <span className="px-2 py-1 bg-[#DFFF00] text-black text-[10px] font-black font-mono uppercase tracking-widest">{profile.team}</span>
                           <span className="px-2 py-1 border border-zinc-800 text-[10px] font-bold font-mono uppercase text-zinc-400">{profile.nationality}</span>
                       </div>
-                      <h1 className="text-6xl md:text-9xl font-black tracking-tighter uppercase leading-[0.85] text-white">
+                      <h1 className="text-4xl md:text-9xl font-black tracking-tighter uppercase leading-[0.85] text-white">
                           {profile.givenName}<br/>
                           <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-600 to-zinc-800 text-stroke-white">{profile.familyName}</span>
                       </h1>
                   </div>
                   
                   {/* HERO STATS */}
-                  <div className="flex gap-8 md:gap-16 border-t md:border-t-0 border-zinc-800 pt-6 md:pt-0">
+                  <div className="flex flex-wrap gap-8 md:gap-16 border-t md:border-t-0 border-zinc-800 pt-6 md:pt-0">
                       <div>
                           <span className="block text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-1">Career Points</span>
                           <span className="block text-4xl font-black text-white">{stats.points}</span>
@@ -78,8 +131,14 @@ export default function DriverClientView({ data, id }: { data: any, id: string }
               <div className="lg:col-span-4 space-y-8">
                   <div className="aspect-[3/4] relative border border-zinc-800 bg-zinc-900 overflow-hidden group">
                       <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
-                      {driverImage ? (
-                          <img src={driverImage} className="w-full h-full object-cover object-top grayscale group-hover:grayscale-0 transition-all duration-700" alt="Driver" />
+                      
+                      {/* DRIVER IMAGE (High Res Preferred) */}
+                      {displayImage ? (
+                          <img 
+                            src={displayImage} 
+                            className="w-full h-full object-cover object-top grayscale group-hover:grayscale-0 transition-all duration-700" 
+                            alt="Driver" 
+                          />
                       ) : (
                           <div className="w-full h-full flex items-center justify-center bg-zinc-900">
                               <span className="text-zinc-800 font-black text-9xl">{profile.code}</span>
