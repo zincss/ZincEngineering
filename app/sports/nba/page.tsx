@@ -1,10 +1,11 @@
 // app/sports/nba/page.tsx
 import React from 'react';
 import Link from 'next/link';
-import { Activity, Trophy, TrendingUp, Search as SearchIcon } from 'lucide-react';
+import { Activity, TrendingUp, Search as SearchIcon } from 'lucide-react'; // Removed Trophy import
 import { getDashboardData } from './actions';
 import GameTicker from './components/GameTicker';
 import NBASearch from './components/NBASearch';
+import ConferenceStandings from './components/ConferenceStandings'; // Import New Component
 
 export const dynamic = 'force-dynamic';
 
@@ -68,16 +69,9 @@ export default async function NBAHub() {
       <div className="max-w-[1600px] mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* COL 1: STANDINGS (8 Spans) */}
-        <div className="lg:col-span-8 space-y-8">
-            <div className="flex items-center gap-2 mb-4">
-                <Trophy size={16} className="text-[#DFFF00]" />
-                <h3 className="text-lg font-black uppercase text-white tracking-tight">Conference Standings</h3>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-8">
-                <StandingsTable conference="EASTERN" teams={standings?.east || []} />
-                <StandingsTable conference="WESTERN" teams={standings?.west || []} />
-            </div>
+        <div className="lg:col-span-8">
+             {/* REPLACED OLD LOGIC WITH NEW COMPONENT */}
+            <ConferenceStandings east={standings?.east || []} west={standings?.west || []} />
         </div>
 
         {/* COL 2: LEADERS (4 Spans) */}
@@ -101,39 +95,6 @@ export default async function NBAHub() {
 
 // --- SUB COMPONENTS ---
 
-function StandingsTable({ conference, teams }: { conference: string, teams: any[] }) {
-    if(!teams || teams.length === 0) return <div className="p-4 border border-zinc-800 text-zinc-500 font-mono text-xs">Loading Data...</div>
-
-    const sortedTeams = [...teams].sort((a, b) => {
-        const pctA = parseFloat(a.stats.pct || '0');
-        const pctB = parseFloat(b.stats.pct || '0');
-        return pctB - pctA; 
-    });
-
-    return (
-        <div className="border border-zinc-800 bg-zinc-900/10">
-            <div className="p-3 bg-zinc-900/50 border-b border-zinc-800 text-[10px] font-black text-zinc-400 uppercase tracking-widest">
-                {conference}
-            </div>
-            <div className="divide-y divide-zinc-800/50">
-                {sortedTeams.map((t, index) => (
-                    <Link href={`/sports/nba/team/${t.id}`} key={t.id} className="flex items-center justify-between p-3 hover:bg-zinc-900 transition-colors group">
-                        <div className="flex items-center gap-3">
-                            <span className="font-mono text-xs text-zinc-600 w-4">{index + 1}</span>
-                            <img src={t.logo} className="w-6 h-6 object-contain grayscale group-hover:grayscale-0 transition-all" alt={t.name} />
-                            <span className="font-bold text-xs text-zinc-300 group-hover:text-white group-hover:translate-x-1 transition-all">{t.abbr}</span>
-                        </div>
-                        <div className="font-mono text-xs text-zinc-500">
-                            <span className="text-white mr-3">{t.stats.w}-{t.stats.l}</span>
-                            <span className="text-zinc-600">{t.stats.gb} GB</span>
-                        </div>
-                    </Link>
-                ))}
-            </div>
-        </div>
-    )
-}
-
 function LeaderModule({ title, icon, players }: { title: string, icon: string, players: any[] }) {
     if (!players || players.length === 0) return null;
     const top = players[0];
@@ -142,7 +103,6 @@ function LeaderModule({ title, icon, players }: { title: string, icon: string, p
     return (
         <div className="border border-zinc-800 bg-zinc-900/20 mb-4">
             {/* Top Leader */}
-            {/* FIX: Removed 'block' class, kept 'flex' */}
             <Link href={`/sports/nba/player/${top.id}`} className="flex p-4 items-center gap-4 bg-zinc-900/40 border-b border-zinc-800 relative overflow-hidden group hover:bg-zinc-900 transition-colors">
                 <div className="absolute top-0 right-0 p-2 opacity-10 font-black text-6xl text-white select-none">{icon}</div>
                 <img src={top.headshot} className="w-16 h-16 rounded-full bg-zinc-800 object-cover border border-zinc-700 relative z-10" alt={top.name} />

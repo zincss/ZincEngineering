@@ -42,7 +42,7 @@ export async function getDashboardData() {
     }, ESPN.fetchStandings),
 
     getOrFetchResource({
-      table: 'nba_snapshots', keyField: 'key', id: 'season_leaders', expirationHours: CACHE_CONFIG.LEADERS
+      table: 'nba_snapshots', keyField: 'key', id: 'season_leaders_v2', expirationHours: CACHE_CONFIG.LEADERS
     }, ESPN.fetchDailyLeaders),
   ]);
 
@@ -55,13 +55,13 @@ export async function getLiveScores() {
     }, ESPN.fetchLiveScoreboard);
 }
 
+// FIX: Updated ID to 'team_v3_' to force fresh roster fetch
 export async function getTeamSnapshot(teamId: string) {
   return await getOrFetchResource({
-    table: 'nba_snapshots', keyField: 'key', id: `team_${teamId}`, expirationHours: CACHE_CONFIG.PROFILES
+    table: 'nba_snapshots', keyField: 'key', id: `team_v3_${teamId}`, expirationHours: CACHE_CONFIG.PROFILES
   }, () => ESPN.fetchTeamProfile(teamId));
 }
 
-// FIX: Changed ID to 'player_v6_' to bust old cache
 export async function getPlayerProfile(playerId: string) {
     return await getOrFetchResource({
         table: 'nba_snapshots',

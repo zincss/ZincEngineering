@@ -113,6 +113,10 @@ export async function fetchDailyLeaders() {
           const athleteCat = a.categories?.find((c: any) => c.name === catName);
           val = athleteCat?.values?.[statIndex];
       }
+      
+      if (!val) {
+          val = a.displayValue;
+      }
 
       return {
         id: a.athlete.id,
@@ -126,11 +130,28 @@ export async function fetchDailyLeaders() {
   return results;
 }
 
+// FIX: ROSTER FETCHING LOGIC
 export async function fetchTeamProfile(id: string) {
-  const res = await fetch(`${API.TEAMS}/${id}?enable=roster`, { headers: HEADERS });
+  // 1. Fetch Basic Team Info
+  const res = await fetch(`${API.TEAMS}/${id}`, { headers: HEADERS, cache: 'no-store' });
   if (!res.ok) return null;
   const data = await res.json();
   const t = data.team;
+
+  // 2. Fetch Roster (Dedicated Endpoint)
+  let roster = [];
+  try {
+      const rosterRes = await fetch(`${API.TEAMS}/${id}/roster`, { headers: HEADERS, cache: 'no-store' });
+      if (rosterRes.ok) {
+           const rosterData = await rosterRes.json();
+           // The roster endpoint usually returns { athletes: [ ... ] } directly
+           if (rosterData.athletes) {
+               roster = rosterData.athletes;
+           }
+      }
+  } catch (e) {
+      console.error("Roster Fetch Failed", e);
+  }
 
   return {
     id: t.id,
@@ -146,14 +167,14 @@ export async function fetchTeamProfile(id: string) {
       date: t.nextEvent[0].date,
       opponent: t.nextEvent[0].competitions?.[0]?.competitors?.find((c:any) => c.team.id !== t.id)?.team?.abbreviation
     } : null,
-    roster: t.roster?.entries?.map((e: any) => ({
-        id: e.athlete.id,
-        name: e.athlete.displayName,
-        jersey: e.athlete.jersey,
-        pos: e.athlete.position?.abbreviation,
-        height: e.athlete.displayHeight,
-        headshot: e.athlete.headshot?.href
-    })) || [],
+    roster: roster.map((p: any) => ({
+        id: p.id,
+        name: p.displayName,
+        jersey: p.jersey,
+        pos: p.position?.abbreviation,
+        height: p.displayHeight,
+        headshot: p.headshot?.href
+    })),
     links: t.links?.map((l:any) => ({ text: l.text, href: l.href }))
   };
 }
@@ -166,7 +187,6 @@ export async function fetchPlayerProfile(id: string) {
         const data = await res.json();
         const ath = data.athlete;
 
-        // Helper to format draft string
         const getDraftInfo = () => {
             if (ath.draft) {
                 return `${ath.draft.year} • Rd ${ath.draft.round} • Pk ${ath.draft.selection}`;
@@ -175,26 +195,14 @@ export async function fetchPlayerProfile(id: string) {
             return 'Undrafted';
         };
 
-        // Helper to format Birthplace (Handles String or Object)
         const getBirthPlace = () => {
-            if (ath.displayBirthPlace) return ath.displayBirthPlace;
             if (ath.birthPlace) {
-                if (typeof ath.birthPlace === 'string') return ath.birthPlace;
                 const city = ath.birthPlace.city || '';
                 const state = ath.birthPlace.state || ath.birthPlace.country || '';
                 if (city && state) return `${city}, ${state}`;
                 return city || state || 'Unknown';
             }
             return 'Unknown';
-        };
-
-        // Helper for College (Handles String or Object)
-        const getCollege = () => {
-            if (ath.college) {
-                 if (typeof ath.college === 'string') return ath.college;
-                 return ath.college.name || ath.displayCollege || 'None';
-            }
-            return ath.displayCollege || 'None';
         };
 
         return {
@@ -211,7 +219,7 @@ export async function fetchPlayerProfile(id: string) {
             
             age: ath.age || '-',
             birthPlace: getBirthPlace(),
-            college: getCollege(),
+            college: ath.college?.name || ath.displayCollege || 'None',
             draft: getDraftInfo(),
             status: ath.status?.name || 'Active',
             
@@ -225,7 +233,6 @@ export async function fetchPlayerProfile(id: string) {
     }
 }
 
-// --- UPDATE: FETCH PLAYER GAME LOG (Super Robust) ---
 export async function fetchPlayerGameLog(id: string) {
     try {
         const res = await fetch(`${API.PLAYER_BASE}/${id}/gamelog`, { headers: HEADERS, cache: 'no-store' });
@@ -251,8 +258,7 @@ export async function fetchPlayerGameLog(id: string) {
         return events.slice(0, 5).map((e: any) => {
              const stats = e.stats || [];
 
-             // --- ROBUST DATE PARSING ---
-             // Check: e.gameDate, e.date, e.game.date, e.eventDate
+             // ROBUST DATE
              let dateRaw = e.gameDate || e.date || e.eventDate;
              if (!dateRaw && e.game) dateRaw = e.game.date;
              
@@ -264,46 +270,31 @@ export async function fetchPlayerGameLog(id: string) {
                  }
              }
 
-             // --- ROBUST OPPONENT PARSING ---
+             // ROBUST OPPONENT
              let opponent = 'OPP';
              if (e.opponent) {
-                 // Standard: e.opponent is object
                  opponent = e.opponent.abbreviation || e.opponent.displayName || e.opponent.name;
-                 // Fallback: nested team
-                 if (!opponent && e.opponent.team) {
-                     opponent = e.opponent.team.abbreviation;
-                 }
-                 // Fallback: If string
+                 if (!opponent && e.opponent.team) opponent = e.opponent.team.abbreviation;
                  if (typeof e.opponent === 'string') opponent = e.opponent;
              } 
-             
-             // Check e.game.opponent
              if ((!opponent || opponent === 'OPP') && e.game && e.game.opponent) {
                  opponent = e.game.opponent.abbreviation || e.game.opponent.displayName;
              }
-
-             // Check e.competitor
              if ((!opponent || opponent === 'OPP') && e.competitor) {
                  opponent = e.competitor.abbreviation || e.competitor.name;
              }
-             
-             // Final fallback: try to find abbreviation in any property ending in 'Abbrev'
              if (!opponent || opponent === 'OPP') {
-                 // Sometimes it's just 'opp'
                  if (e.opp) opponent = e.opp.abbreviation || e.opp;
              }
-             
              if (!opponent) opponent = 'OPP';
 
-
-             // --- ROBUST RESULT PARSING ---
+             // ROBUST RESULT
              let result = e.gameResult || e.result || '-';
              if (result === '-' && e.game) {
                  result = e.game.result || e.game.gameResult || '-';
              }
 
-             // Stats (approximate mapping)
-             // 13:PTS usually
+             // Stats
              const pts = stats.length > 10 ? stats[stats.length - 1] : (stats[13] || '-');
              const reb = stats.length > 7 ? stats[7] : '-';
              const ast = stats.length > 8 ? stats[8] : '-';
