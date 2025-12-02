@@ -12,6 +12,7 @@ const API = {
   STANDINGS: 'https://site.api.espn.com/apis/v2/sports/basketball/nba/standings',
   TEAMS: 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams',
   ATHLETES: 'https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/statistics/byathlete',
+  PLAYER_BASE: 'https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes',
 };
 
 // --- FETCHERS ---
@@ -124,4 +125,34 @@ export async function fetchTeamProfile(id: string) {
     } : null,
     links: t.links?.map((l:any) => ({ text: l.text, href: l.href }))
   };
+}
+
+// --- NEW: FETCH PLAYER PROFILE (On Demand) ---
+export async function fetchPlayerProfile(id: string) {
+    try {
+        const res = await fetch(`${API.PLAYER_BASE}/${id}`, { headers: HEADERS, next: { revalidate: 3600 } });
+        if (!res.ok) return null;
+        
+        const data = await res.json();
+        const ath = data.athlete;
+
+        return {
+            id: ath.id,
+            name: ath.displayName,
+            headshot: ath.headshot?.href,
+            team: ath.team?.abbreviation || 'NBA',
+            number: ath.jersey,
+            pos: ath.position?.abbreviation,
+            height: ath.displayHeight,
+            weight: ath.displayWeight,
+            experience: ath.experience?.years || 'R',
+            stats: ath.statsSummary?.statistics?.map((s: any) => ({
+                name: s.displayName, // e.g., "PPG"
+                displayValue: s.displayValue
+            })) || []
+        };
+    } catch (e) {
+        console.error("ESPN Player Fetch Error", e);
+        return null;
+    }
 }
