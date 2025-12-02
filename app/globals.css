@@ -2,37 +2,42 @@
 @tailwind components;
 @tailwind utilities;
 
-/* GLOBAL: High-Vis Selection */
-/* REMOVED: The custom ::selection CSS block, as it is already defined 
-   using the Tailwind utility class 'selection:bg-[#DFFF00]' in app/layout.tsx.
-   This prevents redundancy and keeps the layout definition clean. */
-
 html, body {
-  /* Good: Prevents unwanted horizontal scroll on mobile */
   overflow-x: hidden;
   width: 100%;
   height: 100%;
 }
 
-/* UTILITY: PARALLAX STARFIELD BACKGROUND */
+/* --- FORCE TICKER ANIMATION --- */
+@keyframes ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-ticker {
+  display: flex;
+  width: max-content;
+  /* Force the animation here to guarantee it runs */
+  animation: ticker 80s linear infinite;
+  will-change: transform;
+}
+
+.animate-ticker:hover {
+  animation-play-state: paused;
+}
+
+/* --- STARFIELD BACKGROUND --- */
 .bg-starfield {
-  background-color: #09090b; /* Zinc-950 Base */
+  background-color: #09090b;
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: 0; left: 0; width: 100%; height: 100%;
   z-index: -1;
   overflow: hidden;
 }
 
-/* Star Layers */
 .stars-1, .stars-2, .stars-3 {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   background-image: 
     radial-gradient(1px 1px at 20px 30px, #eee, rgba(0,0,0,0)),
     radial-gradient(1px 1px at 40px 70px, #fff, rgba(0,0,0,0)),
@@ -42,65 +47,29 @@ html, body {
     radial-gradient(1px 1px at 160px 120px, #ddd, rgba(0,0,0,0));
   background-size: 200px 200px;
   opacity: 0;
-  /* OPTIMIZATION: Use will-change to hint to the browser that these properties will animate */
   will-change: transform, opacity; 
 }
 
-.stars-1 {
-  background-size: 200px 200px;
-  animation: stars-move 100s linear infinite;
-  opacity: 0.3;
-}
+.stars-1 { animation: stars-move 100s linear infinite; opacity: 0.3; }
+.stars-2 { background-size: 300px 300px; animation: stars-move 150s linear infinite; opacity: 0.2; }
+.stars-3 { background-size: 500px 500px; animation: stars-move 200s linear infinite; opacity: 0.1; }
 
-.stars-2 {
-  background-size: 300px 300px;
-  animation: stars-move 150s linear infinite;
-  opacity: 0.2;
-}
-
-.stars-3 {
-  background-size: 500px 500px;
-  animation: stars-move 200s linear infinite;
-  opacity: 0.1;
-}
-
-/* Light Mode Override: Subtle Grid instead of Stars */
 @media (prefers-color-scheme: light) {
-  .bg-starfield {
-    background-color: #f4f4f5; /* Zinc-100 */
-  }
+  .bg-starfield { background-color: #f4f4f5; }
   .stars-1, .stars-2, .stars-3 {
     background-image: radial-gradient(#ccc 1px, transparent 1px);
     background-size: 20px 20px;
     opacity: 0.5;
     animation: none;
-    /* Reset will-change when not animating */
     will-change: auto; 
   }
 }
 
-.dark .bg-starfield {
-  background-color: #000000;
-}
+.dark .bg-starfield { background-color: #000000; }
 
-/* ANIMATIONS */
 @keyframes stars-move {
-  /* OPTIMIZATION: Use translate3d for guaranteed hardware acceleration on the animation */
   from { transform: translate3d(0, 0, 0); }
   to { transform: translate3d(0, -1000px, 0); }
-}
-
-/* Ticker: Removed redundant @keyframes ticker. The keyframes/speed 
-   are now defined/centralized in tailwind.config.js as 'ticker' */
-
-.animate-ticker {
-  /* Now relies on the 'animate-ticker' utility class (from config) for the animation, */
-  /* and just sets the necessary container properties: */
-  width: max-content;
-  will-change: transform;
-}
-.animate-ticker:hover {
-  animation-play-state: paused;
 }
 
 /* SCROLLBARS */

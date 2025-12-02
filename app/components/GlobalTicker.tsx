@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+// Correct import path for the global component location
 import { getLiveScores as getNBAScores } from '../sports/nba/actions';
 
 const fetchJson = async (url: string) => {
@@ -23,7 +24,6 @@ export default function GlobalTicker() {
                 const nbaGames = await getNBAScores();
                 if (nbaGames && nbaGames.length > 0) {
                     nbaGames.forEach((g: any) => {
-                        // FIXED: Uses 'code' instead of 'name' to match API response
                         feed.push({
                             sport: 'NBA',
                             color: 'text-[#DFFF00]',
@@ -78,7 +78,8 @@ export default function GlobalTicker() {
 
     if (loading || items.length === 0) return null;
 
-    const loopItems = [...items, ...items, ...items, ...items];
+    // Duplicate enough items to ensure smooth scrolling
+    const loopItems = [...items, ...items, ...items, ...items, ...items, ...items];
 
     return (
         <div className="fixed bottom-0 left-0 right-0 h-10 bg-white dark:bg-black border-t border-zinc-200 dark:border-zinc-800 z-50 flex items-center">

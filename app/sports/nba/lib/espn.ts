@@ -16,6 +16,17 @@ const API = {
   SUMMARY: 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary',
 };
 
+// --- HELPER: Format Stats ---
+const formatStat = (val: any) => {
+    if (val === undefined || val === null) return '-';
+    const num = parseFloat(val);
+    if (isNaN(num)) return val;
+    // If it's an integer (35.0), return "35"
+    if (Number.isInteger(num)) return num.toString();
+    // Otherwise return 1 decimal place "35.1"
+    return num.toFixed(1);
+};
+
 // --- FETCHERS ---
 
 export async function fetchLiveScoreboard() {
@@ -92,13 +103,30 @@ export async function fetchDailyLeaders() {
     const res = await fetch(`${API.ATHLETES}?${params}`, { headers: HEADERS, next: { revalidate: 3600 }});
     const data = await res.json();
     
-    results[cat.key] = data.athletes?.map((a: any) => ({
-      id: a.athlete.id,
-      name: a.athlete.displayName,
-      team: a.athlete.team?.abbreviation,
-      headshot: a.athlete.headshot?.href,
-      value: a.statistics?.[0]?.displayValue
-    })) || [];
+    // Resolve correct stat index dynamically
+    const sortKey = cat.sort.split(':')[0]; // e.g. "offensive.avgPoints"
+    const [catName, statName] = sortKey.split('.'); 
+    
+    const categoryMeta = data.categories?.find((c: any) => c.name === catName);
+    const statIndex = categoryMeta?.names?.indexOf(statName);
+
+    results[cat.key] = data.athletes?.map((a: any) => {
+      let val = a.statistics?.[0]?.displayValue;
+
+      // Fallback: Read raw value from categories array if displayValue is missing
+      if (!val && statIndex !== undefined && statIndex !== -1) {
+          const athleteCat = a.categories?.find((c: any) => c.name === catName);
+          val = athleteCat?.values?.[statIndex];
+      }
+
+      return {
+        id: a.athlete.id,
+        name: a.athlete.displayName,
+        team: a.athlete.team?.abbreviation,
+        headshot: a.athlete.headshot?.href,
+        value: formatStat(val) // Updated to use formatter
+      };
+    }) || [];
   }
   return results;
 }
