@@ -1,30 +1,72 @@
 'use server'
 
-// --- ACTION 1: SEARCH (IMPROVED - USES ESPN API) ---
+// --- CONSTANTS: IMAGE FALLBACK DATABASE ---
+// This ensures search results have images even if the external API fails.
+const DRIVER_IMAGE_MAP: Record<string, string> = {
+    // --- 2024/2025 GRID (Transparent Cutouts) ---
+    'max_verstappen': 'https://media.formula1.com/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png.transform/2col/image.png',
+    'sergio_perez': 'https://media.formula1.com/content/dam/fom-website/drivers/S/SERPER01_Sergio_Perez/serper01.png.transform/2col/image.png',
+    'lewis_hamilton': 'https://media.formula1.com/content/dam/fom-website/drivers/L/LEWHAM01_Lewis_Hamilton/lewham01.png.transform/2col/image.png',
+    'george_russell': 'https://media.formula1.com/content/dam/fom-website/drivers/G/GEORUS01_George_Russell/georus01.png.transform/2col/image.png',
+    'charles_leclerc': 'https://media.formula1.com/content/dam/fom-website/drivers/C/CHALEC01_Charles_Leclerc/chalec01.png.transform/2col/image.png',
+    'carlos_sainz': 'https://media.formula1.com/content/dam/fom-website/drivers/C/CARSAI01_Carlos_Sainz/carsai01.png.transform/2col/image.png',
+    'lando_norris': 'https://media.formula1.com/content/dam/fom-website/drivers/L/LANNOR01_Lando_Norris/lannor01.png.transform/2col/image.png',
+    'oscar_piastri': 'https://media.formula1.com/content/dam/fom-website/drivers/O/OSCPIA01_Oscar_Piastri/oscpia01.png.transform/2col/image.png',
+    'fernando_alonso': 'https://media.formula1.com/content/dam/fom-website/drivers/F/FERALO01_Fernando_Alonso/feralo01.png.transform/2col/image.png',
+    'lance_stroll': 'https://media.formula1.com/content/dam/fom-website/drivers/L/LANSTR01_Lance_Stroll/lanstr01.png.transform/2col/image.png',
+    'pierre_gasly': 'https://media.formula1.com/content/dam/fom-website/drivers/P/PIEGAS01_Pierre_Gasly/piegas01.png.transform/2col/image.png',
+    'esteban_ocon': 'https://media.formula1.com/content/dam/fom-website/drivers/E/ESTOCO01_Esteban_Ocon/estoco01.png.transform/2col/image.png',
+    'alexander_albon': 'https://media.formula1.com/content/dam/fom-website/drivers/A/ALEALB01_Alexander_Albon/alealb01.png.transform/2col/image.png',
+    'yuki_tsunoda': 'https://media.formula1.com/content/dam/fom-website/drivers/Y/YUKTSU01_Yuki_Tsunoda/yuktsu01.png.transform/2col/image.png',
+    'daniel_ricciardo': 'https://media.formula1.com/content/dam/fom-website/drivers/D/DANRIC01_Daniel_Ricciardo/danric01.png.transform/2col/image.png',
+    'valtteri_bottas': 'https://media.formula1.com/content/dam/fom-website/drivers/V/VALBOT01_Valtteri_Bottas/valbot01.png.transform/2col/image.png',
+    'guanyu_zhou': 'https://media.formula1.com/content/dam/fom-website/drivers/G/GUAZHO01_Guanyu_Zhou/guazho01.png.transform/2col/image.png',
+    'nico_hulkenberg': 'https://media.formula1.com/content/dam/fom-website/drivers/N/NICHUL01_Nico_Hulkenberg/nichul01.png.transform/2col/image.png',
+    'kevin_magnussen': 'https://media.formula1.com/content/dam/fom-website/drivers/K/KEVMAG01_Kevin_Magnussen/kevmag01.png.transform/2col/image.png',
+    'liam_lawson': 'https://media.formula1.com/content/dam/fom-website/drivers/L/LIALAW01_Liam_Lawson/lialaw01.png.transform/2col/image.png',
+    'franco_colapinto': 'https://media.formula1.com/content/dam/fom-website/drivers/F/FRACOL01_Franco_Colapinto/fracol01.png.transform/2col/image.png',
+    'oliver_bearman': 'https://media.formula1.com/content/dam/fom-website/drivers/O/OLIBEA01_Oliver_Bearman/olibea01.png.transform/2col/image.png',
+    'jack_doohan': 'https://media.formula1.com/content/dam/fom-website/drivers/J/JACDOO01_Jack_Doohan/jacdoo01.png.transform/2col/image.png',
+    'kimi_antonelli': 'https://media.formula1.com/content/dam/fom-website/drivers/K/KIMANT01_Kimi_Antonelli/kimant01.png.transform/2col/image.png',
+    
+    // --- LEGENDS & NOTABLE OTHERS ---
+    'michael_schumacher': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Michael_Schumacher_2010_Malaysia_qualify.jpg/576px-Michael_Schumacher_2010_Malaysia_qualify.jpg',
+    'mick_schumacher': 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Mick_Schumacher_-_2019_Formula_2_Austria_-_Red_Bull_Ring_%28cropped%29.jpg/500px-Mick_Schumacher_-_2019_Formula_2_Austria_-_Red_Bull_Ring_%28cropped%29.jpg',
+    'sebastian_vettel': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Sebastian_Vettel_2015_Malaysia_podium_2.jpg/500px-Sebastian_Vettel_2015_Malaysia_podium_2.jpg',
+    'ayrton_senna': 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Ayrton_Senna_1989_Test_Rio_02.jpg/560px-Ayrton_Senna_1989_Test_Rio_02.jpg',
+    'alain_prost': 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Prost_Goodwood_2011_2.jpg/640px-Prost_Goodwood_2011_2.jpg',
+    'niki_lauda': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Niki_Lauda_2011.jpg/480px-Niki_Lauda_2011.jpg',
+    'kimi_raikkonen': 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Kimi_Raikkonen_2018.jpg/480px-Kimi_Raikkonen_2018.jpg',
+};
+
+// --- ACTION 1: SEARCH (IMPROVED - USES ESPN API + LOCAL FALLBACK) ---
 export async function searchF1Drivers(query: string) {
     if (!query || query.length < 2) return [];
     
     try {
-        // Use ESPN Search API (Same technique as NBA)
         const res = await fetch(`https://site.web.api.espn.com/apis/common/v3/search?region=us&lang=en&query=${encodeURIComponent(query)}&limit=10&mode=prefix&type=player&sport=racing&league=f1`, { cache: 'no-store' });
         const data = await res.json();
 
         return (data.items || []).map((item: any) => {
-            // Construct a URL-friendly ID for our Ergast resolver
-            // e.g. "Max Verstappen" -> "max_verstappen"
             const rawName = item.displayName || '';
-            const slug = rawName.toLowerCase().replace(/[.\s]+/g, '_');
+            const slug = rawName.toLowerCase().replace(/[.\s]+/g, '_'); // e.g. "Michael Schumacher" -> "michael_schumacher"
+
+            // Fallback Image Logic: API -> Local Map -> Null
+            let imageUrl = item.images?.[0]?.url || null;
+            if (!imageUrl) {
+                imageUrl = DRIVER_IMAGE_MAP[slug] || null;
+            }
 
             return {
                 id: item.id,
-                driverId: item.id, // Ensure this exists for compatibility
+                driverId: item.id,
                 name: item.displayName,
                 givenName: item.displayName.split(' ')[0], 
                 familyName: item.displayName.split(' ').slice(1).join(' '),
                 team: item.team?.abbreviation || 'F1 Archive',
-                image: item.images?.[0]?.url || null,
+                image: imageUrl,
                 flag: item.country?.flag?.href || null,
-                url: `/sports/f1/driver/${slug}` // This slug is passed to fetchDriverFullProfile
+                url: `/sports/f1/driver/${slug}`
             };
         });
 
@@ -73,21 +115,18 @@ async function fetchAllRaceResults(driverId: string) {
 export async function fetchDriverFullProfile(rawId: string) {
     try {
         const cleanId = rawId.toLowerCase().trim();
-        const parts = cleanId.split('_'); // Assumes we passed "max_verstappen" or similar
+        const parts = cleanId.split('_'); 
         
-        // Ergast IDs are inconsistent (e.g., 'max_verstappen', 'perez', 'zhou')
-        // We try multiple candidates to find the driver
         let candidates = [
-            cleanId,                                   // 1. exact match (max_verstappen)
-            parts[parts.length - 1],                   // 2. lastname only (perez, zhou)
-            `${parts[0]}_${parts[parts.length - 1]}`,  // 3. first_last standard
-            parts[0]                                   // 4. firstname (rare, but possible)
+            cleanId,
+            parts[parts.length - 1],
+            `${parts[0]}_${parts[parts.length - 1]}`,
+            parts[0]
         ];
 
         let driverInfo = null;
         let validId = null;
 
-        // 1. Resolve ID against Ergast
         for (const id of candidates) {
             if (!id || id.length < 2) continue;
             try {
@@ -96,7 +135,7 @@ export async function fetchDriverFullProfile(rawId: string) {
                     const data = await res.json();
                     if (data.MRData.DriverTable.Drivers.length > 0) {
                         driverInfo = data.MRData.DriverTable.Drivers[0];
-                        validId = id; // Store the ID that actually worked
+                        validId = id;
                         break;
                     }
                 }
@@ -105,12 +144,10 @@ export async function fetchDriverFullProfile(rawId: string) {
 
         if (!validId || !driverInfo) return null;
 
-        // 2. Fetch Stats & History
         let stats = { wins: 0, podiums: 0, points: 0, races: 0 };
         let races: any[] = [];
         let highlights = { firstRace: '-', lastRace: '-', milestone: 'Data Unavailable', bestTrack: 'N/A', poles: 0 };
 
-        // Fetch ALL Results
         const allRaces = await fetchAllRaceResults(validId);
         
         races = allRaces.sort((a: any, b: any) => {
@@ -147,14 +184,17 @@ export async function fetchDriverFullProfile(rawId: string) {
             else highlights.milestone = `HIGHEST FINISH: P${races.reduce((min:number, r:any) => Math.min(min, parseInt(r.Results[0].position) || 99), 99)}`;
         }
 
-        // 3. Fetch Bio/Image from Wiki (Keep this as fallback/supplement)
+        // Wiki Data Fetch
         let wikiData = null;
         try {
-            // Use the wiki URL provided by Ergast if available for better accuracy
             const wikiTitle = driverInfo.url ? driverInfo.url.split('/').pop() : rawId;
             const wikiRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${wikiTitle}`, { cache: 'no-store' });
             wikiData = await wikiRes.json();
         } catch(e) {}
+
+        // Enhanced Image Resolver for Profile
+        const slug = `${driverInfo.givenName}_${driverInfo.familyName}`.toLowerCase().replace(/[.\s]+/g, '_');
+        const finalImage = DRIVER_IMAGE_MAP[slug] || wikiData?.thumbnail?.source || null;
 
         return {
             profile: {
@@ -169,7 +209,7 @@ export async function fetchDriverFullProfile(rawId: string) {
             stats,
             highlights,
             careerRaces: races,
-            driverImage: wikiData?.thumbnail?.source || null,
+            driverImage: finalImage,
             bio: wikiData?.extract || "Biographical data currently unavailable."
         };
 
@@ -181,27 +221,63 @@ export async function fetchDriverFullProfile(rawId: string) {
 // --- ACTION 3: DASHBOARD ---
 export async function getF1DashboardData() {
     try {
-        const [scheduleRes, standingsRes, teamRes, tracksRes] = await Promise.all([
+        const [scheduleRes, standingsRes, teamRes, tracksRes, lastRaceRes] = await Promise.all([
             fetch('https://api.jolpi.ca/ergast/f1/current.json', { next: { revalidate: 3600 } }), 
             fetch('https://api.jolpi.ca/ergast/f1/current/driverStandings.json', { next: { revalidate: 3600 } }),
             fetch('https://api.jolpi.ca/ergast/f1/current/constructorStandings.json', { next: { revalidate: 3600 } }),
-            fetch('https://api.jolpi.ca/ergast/f1/circuits.json?limit=100', { next: { revalidate: 86400 } }) 
+            fetch('https://api.jolpi.ca/ergast/f1/circuits.json?limit=100', { next: { revalidate: 86400 } }),
+            fetch('https://api.jolpi.ca/ergast/f1/current/last/results.json', { next: { revalidate: 3600 } })
         ]);
 
         const scheduleData = await scheduleRes.json();
         const standingsData = await standingsRes.json();
         const teamData = await teamRes.json();
         const tracksData = await tracksRes.json();
+        
+        const lastRaceData = await lastRaceRes.json();
+        const lastRace = lastRaceData.MRData.RaceTable.Races[0];
+        const lastRaceName = lastRace ? lastRace.raceName : 'Season Start';
+        
+        const latestResultsMap: Record<string, string> = {};
+        if (lastRace) {
+            lastRace.Results.forEach((r: any) => {
+                latestResultsMap[r.Driver.driverId] = r.positionText === 'R' ? 'DNF' : `P${r.position}`;
+            });
+        }
+
+        // Sort Tracks
+        const allTracks = tracksData.MRData.CircuitTable.Circuits;
+        const calendarRaces = scheduleData.MRData.RaceTable.Races;
+        const calendarMap = new Map();
+        calendarRaces.forEach((race: any, index: number) => {
+            calendarMap.set(race.Circuit.circuitId, index);
+        });
+
+        const sortedTracks = allTracks.sort((a: any, b: any) => {
+            const indexA = calendarMap.has(a.circuitId) ? calendarMap.get(a.circuitId) : 999;
+            const indexB = calendarMap.has(b.circuitId) ? calendarMap.get(b.circuitId) : 999;
+            if (indexA === 999 && indexB === 999) return a.circuitName.localeCompare(b.circuitName);
+            return indexA - indexB;
+        });
 
         return { 
             drivers: standingsData.MRData.StandingsTable.StandingsLists[0]?.DriverStandings.map((ds: any) => ({
-                ...ds.Driver, points: ds.points, teamName: ds.Constructors[0]?.name,
-                stats: { best: ds.wins > 0 ? 1 : '-', latest: { pos: '-', race: 'Active' } }
+                ...ds.Driver, 
+                points: ds.points, 
+                teamName: ds.Constructors[0]?.name,
+                constructors: ds.Constructors,
+                stats: { 
+                    best: ds.wins > 0 ? 1 : '-', 
+                    latest: { 
+                        pos: latestResultsMap[ds.Driver.driverId] || '-', 
+                        race: lastRaceName 
+                    } 
+                }
             })) || [],
             teams: teamData.MRData.StandingsTable.StandingsLists[0]?.ConstructorStandings.map((cs: any) => ({
                 ...cs.Constructor, points: cs.points, wins: cs.wins
             })) || [],
-            tracks: tracksData.MRData.CircuitTable.Circuits, 
+            tracks: sortedTracks, 
             season: scheduleData.MRData.RaceTable.season 
         };
     } catch (e) { return null; }

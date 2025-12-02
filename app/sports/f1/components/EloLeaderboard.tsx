@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Loader2, TrendingUp, Crown, Medal, Info, ChevronDown, Percent } from 'lucide-react';
 
 // --- THE GOLDEN ARCHIVE: VERIFIED CAREER STATS ---
-// Hardcoded to prevent API timeouts/truncation for legends.
+// (Keep the existing LEGEND_STATS object exactly as is to save space in this response)
 const LEGEND_STATS: Record<string, any> = {
     'michael_schumacher': { name: 'Michael Schumacher', wins: 91, podiums: 155, poles: 68, entries: 308, titles: 7 },
     'hamilton': { name: 'Lewis Hamilton', wins: 105, podiums: 201, poles: 104, entries: 350, titles: 7 },
@@ -110,13 +110,13 @@ export default function EloLeaderboard() {
         <div className="animate-in fade-in slide-in-from-bottom-4">
             
             {/* HEADER */}
-            <div className="bg-zinc-900 border-2 border-black dark:border-zinc-700 p-6 mb-8">
-                <div className="flex items-center gap-2 text-acid mb-2">
+            <div className="bg-zinc-900 border border-zinc-800 p-8 mb-8">
+                <div className="flex items-center gap-2 text-[#DFFF00] mb-2">
                     <Info size={14}/>
                     <span className="font-bold font-mono text-xs tracking-widest">ZINC ELO ENGINE // 1.0 BETA</span>
                 </div>
                 <p className="text-zinc-400 font-mono text-xs max-w-3xl leading-relaxed">
-                    <span className="text-acid font-bold">WORK IN PROGRESS.</span> This experimental system calculates a Skill Rating based on weighted factors: 
+                    <span className="text-[#DFFF00] font-bold">WORK IN PROGRESS.</span> This experimental system calculates a Skill Rating based on weighted factors: 
                     <span className="text-white"> Championships (2500)</span>, <span className="text-white">Win Dominance (6000)</span>, <span className="text-white">Wins (75)</span>, and <span className="text-white">Poles (40)</span>. 
                     Includes logic to boost 'Uncrowned Kings' like Stirling Moss.
                 </p>
@@ -125,40 +125,40 @@ export default function EloLeaderboard() {
             {/* LOADING STATE */}
             {loading && (
                  <div className="flex flex-col items-center justify-center py-20 gap-4">
-                     <Loader2 className="animate-spin text-acid" size={32}/>
+                     <Loader2 className="animate-spin text-[#DFFF00]" size={32}/>
                      <span className="font-mono text-xs animate-pulse text-zinc-500">CALCULATING LEGACY RATINGS...</span>
                  </div>
             )}
 
             {/* GRID */}
-            <div className="grid gap-2">
+            <div className="flex flex-col gap-2">
                 {ratings.slice(0, visibleCount).map((r, i) => (
                     <Link 
                         href={`/sports/f1/driver/${r.id}`} 
                         key={r.id} 
-                        className="flex items-center justify-between bg-white dark:bg-zinc-900 border-2 border-transparent hover:border-black dark:hover:border-white p-4 group transition-all shadow-sm hover:shadow-md cursor-pointer"
+                        className="flex items-center justify-between bg-zinc-900/50 border border-transparent hover:border-[#DFFF00] hover:bg-zinc-900 p-4 group transition-all duration-300"
                     >
                         {/* Left: Rank & Name */}
-                        <div className="flex items-center gap-4">
-                            <div className={`w-8 h-8 flex items-center justify-center font-black font-mono text-sm ${i < 3 ? 'bg-acid text-black' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'}`}>
+                        <div className="flex items-center gap-6">
+                            <div className={`w-10 h-10 flex items-center justify-center font-black font-mono text-lg ${i < 3 ? 'bg-[#DFFF00] text-black' : 'bg-zinc-800 text-zinc-500'}`}>
                                 {i + 1}
                             </div>
                             <div>
-                                <h3 className="font-black text-lg uppercase leading-none text-black dark:text-white mb-1">
+                                <h3 className="font-black text-xl uppercase leading-none text-white mb-1 group-hover:text-[#DFFF00] transition-colors">
                                     {r.name}
                                 </h3>
-                                <div className="flex gap-2 items-center">
-                                    <span className={`text-[9px] font-bold font-mono uppercase tracking-widest ${r.tier === 'GOD TIER' ? 'text-acid bg-black px-1' : r.tier === 'GRANDMASTER' ? 'text-yellow-600' : 'text-zinc-400'}`}>
+                                <div className="flex gap-3 items-center">
+                                    <span className={`text-[10px] font-bold font-mono uppercase tracking-widest ${r.tier === 'GOD TIER' ? 'text-[#DFFF00] bg-black border border-[#DFFF00] px-1' : r.tier === 'GRANDMASTER' ? 'text-yellow-500' : 'text-zinc-500'}`}>
                                         {r.tier}
                                     </span>
                                     {r.titles > 0 && (
-                                        <span className="text-[9px] font-bold font-mono text-yellow-600 flex items-center gap-1">
-                                            <Crown size={10} /> {r.titles}x WDC
+                                        <span className="text-[10px] font-bold font-mono text-yellow-500 flex items-center gap-1">
+                                            <Crown size={12} /> {r.titles}x WDC
                                         </span>
                                     )}
                                     {r.titles === 0 && r.wins >= 10 && (
-                                        <span className="text-[9px] font-bold font-mono text-zinc-500 flex items-center gap-1">
-                                            <Medal size={10} /> UNCROWNED KING
+                                        <span className="text-[10px] font-bold font-mono text-zinc-500 flex items-center gap-1">
+                                            <Medal size={12} /> UNCROWNED KING
                                         </span>
                                     )}
                                 </div>
@@ -167,19 +167,19 @@ export default function EloLeaderboard() {
 
                         {/* Right: Stats */}
                         <div className="text-right">
-                            <div className="flex items-center gap-2 justify-end text-black dark:text-white mb-1">
-                                <TrendingUp size={16} className={i < 3 ? "text-green-500" : "text-zinc-300"} />
-                                <span className="text-2xl font-black font-mono">{r.elo.toLocaleString()}</span>
+                            <div className="flex items-center gap-2 justify-end text-white mb-1">
+                                <TrendingUp size={20} className={i < 3 ? "text-[#DFFF00]" : "text-zinc-600"} />
+                                <span className="text-3xl font-black font-mono">{r.elo.toLocaleString()}</span>
                             </div>
                             
                             {/* CLEARER STATS LABEL */}
-                            <div className="flex gap-3 justify-end text-[9px] font-mono text-zinc-500 font-bold">
+                            <div className="flex gap-3 justify-end text-[10px] font-mono text-zinc-500 font-bold">
                                 <span className="flex items-center gap-1">
                                     {r.wins} CAREER WINS
                                 </span>
-                                <span className="text-zinc-300">|</span>
+                                <span className="text-zinc-700">|</span>
                                 <span className="flex items-center gap-1">
-                                    <Percent size={8}/> {r.winRate}% WIN RATE
+                                    <Percent size={10}/> {r.winRate}% WIN RATE
                                 </span>
                             </div>
                         </div>
@@ -188,7 +188,7 @@ export default function EloLeaderboard() {
             </div>
             
             {ratings.length > visibleCount && (
-                <button onClick={handleLoadMore} className="w-full py-4 mt-4 bg-zinc-100 dark:bg-zinc-900 border-2 border-transparent hover:border-black dark:hover:border-zinc-700 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all">
+                <button onClick={handleLoadMore} className="w-full py-4 mt-4 bg-zinc-900 border border-zinc-800 hover:border-[#DFFF00] hover:text-[#DFFF00] text-zinc-500 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all">
                     LOAD MORE DRIVERS <ChevronDown size={14}/>
                 </button>
             )}
