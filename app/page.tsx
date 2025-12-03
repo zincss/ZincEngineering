@@ -1,7 +1,7 @@
 import GlobalTicker from './components/GlobalTicker';
 import PersonalLogs from './components/PersonalLogs';
 import Link from 'next/link';
-import { ArrowRight, Trophy, BookOpen, Database, Terminal, Cpu } from 'lucide-react';
+import { ArrowRight, Trophy, BookOpen, Database } from 'lucide-react';
 
 export default function Home() {
   return (
@@ -10,8 +10,20 @@ export default function Home() {
       {/* HERO SECTION */}
       <section className="relative h-[50vh] min-h-[500px] flex items-center overflow-hidden border-b border-zinc-800">
         <div className="absolute inset-0 z-0">
+           {/* GRADIENT OVERLAY (Keeps text readable) */}
            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-transparent z-10" />
-           <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 grayscale" />
+           
+           {/* VIDEO BACKGROUND */}
+           <video 
+             autoPlay 
+             loop 
+             muted 
+             playsInline
+             poster="https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=2670&auto=format&fit=crop"
+             className="absolute inset-0 w-full h-full object-cover opacity-40 grayscale"
+           >
+             <source src="/rocket.mp4" type="video/mp4" />
+           </video>
         </div>
         
         <div className="relative z-10 w-full max-w-[1600px] mx-auto px-4 md:px-6">
