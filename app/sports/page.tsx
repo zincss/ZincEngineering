@@ -1,11 +1,14 @@
+// app/sports/page.tsx
 'use client';
 
 import Link from 'next/link';
 import { ArrowRight, Trophy, Wind, Shield, Flag, Zap } from 'lucide-react';
+import BackButton from '../components/BackButton';
 
 export default function SportsHub() {
   return (
     <main className="min-h-screen bg-zinc-950 text-white selection:bg-[#DFFF00] selection:text-black pb-20">
+      <BackButton href="/" label="HOME" />
       
       {/* HERO SECTION */}
       <section className="relative h-[40vh] min-h-[400px] flex items-center overflow-hidden border-b border-zinc-800">

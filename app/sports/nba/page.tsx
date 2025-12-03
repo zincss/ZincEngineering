@@ -1,11 +1,12 @@
 // app/sports/nba/page.tsx
 import React from 'react';
 import Link from 'next/link';
-import { Activity, TrendingUp, Search as SearchIcon } from 'lucide-react'; // Removed Trophy import
+import { Activity, TrendingUp, Search as SearchIcon } from 'lucide-react';
 import { getDashboardData } from './actions';
 import GameTicker from './components/GameTicker';
 import NBASearch from './components/NBASearch';
-import ConferenceStandings from './components/ConferenceStandings'; // Import New Component
+import ConferenceStandings from './components/ConferenceStandings';
+import BackButton from '../../components/BackButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,7 @@ export default async function NBAHub() {
 
   return (
     <main className="min-h-screen bg-zinc-950 text-white pb-20 selection:bg-[#DFFF00] selection:text-black">
+      <BackButton href="/sports" />
       
       {/* HERO SECTION */}
       <section className="relative pt-24 pb-12 px-6 border-b border-zinc-800 z-40">
@@ -70,7 +72,6 @@ export default async function NBAHub() {
         
         {/* COL 1: STANDINGS (8 Spans) */}
         <div className="lg:col-span-8">
-             {/* REPLACED OLD LOGIC WITH NEW COMPONENT */}
             <ConferenceStandings east={standings?.east || []} west={standings?.west || []} />
         </div>
 
@@ -93,8 +94,7 @@ export default async function NBAHub() {
   );
 }
 
-// --- SUB COMPONENTS ---
-
+// ... LeaderModule component stays the same
 function LeaderModule({ title, icon, players }: { title: string, icon: string, players: any[] }) {
     if (!players || players.length === 0) return null;
     const top = players[0];
@@ -102,7 +102,6 @@ function LeaderModule({ title, icon, players }: { title: string, icon: string, p
 
     return (
         <div className="border border-zinc-800 bg-zinc-900/20 mb-4">
-            {/* Top Leader */}
             <Link href={`/sports/nba/player/${top.id}`} className="flex p-4 items-center gap-4 bg-zinc-900/40 border-b border-zinc-800 relative overflow-hidden group hover:bg-zinc-900 transition-colors">
                 <div className="absolute top-0 right-0 p-2 opacity-10 font-black text-6xl text-white select-none">{icon}</div>
                 <img src={top.headshot} className="w-16 h-16 rounded-full bg-zinc-800 object-cover border border-zinc-700 relative z-10" alt={top.name} />
@@ -112,7 +111,6 @@ function LeaderModule({ title, icon, players }: { title: string, icon: string, p
                     <div className="text-xs font-bold text-zinc-500 mt-1">{top.team} • <span className="text-white">{top.value}</span></div>
                 </div>
             </Link>
-            {/* List */}
             <div className="divide-y divide-zinc-800">
                 {rest.map((p, i) => (
                     <Link href={`/sports/nba/player/${p.id}`} key={i} className="flex items-center justify-between p-3 text-xs hover:bg-zinc-900 transition-colors group">

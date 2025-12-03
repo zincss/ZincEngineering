@@ -6,6 +6,7 @@ import { Trophy, Loader2, AlertTriangle, TrendingUp, LayoutGrid, Users, Activity
 import Link from 'next/link';
 import { NRL_TEAMS, TEAM_LOGOS } from './data';
 import { getLiveScores, getStandings, getLeagueLeaders } from './actions'; 
+import BackButton from '../../components/BackButton';
 
 // --- LOADER OVERLAY ---
 const NavigationLoader = () => (
@@ -29,7 +30,7 @@ const NavigationLoader = () => (
     </div>
 );
 
-// --- COMPONENT: LIVE FIXTURES (Redesigned) ---
+// --- COMPONENT: LIVE FIXTURES ---
 const LiveScoreboard = () => {
     const [games, setGames] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -45,12 +46,14 @@ const LiveScoreboard = () => {
 
     return (
         <div className="mb-12 border-b border-zinc-800 bg-black/50 backdrop-blur-sm overflow-hidden relative flex items-center h-20">
-            <div className="absolute left-0 top-0 bottom-0 z-20 flex items-center px-6 bg-black border-r border-zinc-800">
+            {/* Hidden on mobile to avoid clashing with BackButton */}
+            <div className="absolute left-0 top-0 bottom-0 z-20 hidden md:flex items-center px-6 bg-black border-r border-zinc-800">
                 <div className="flex items-center gap-2 text-[#DFFF00] font-black text-[10px] uppercase tracking-widest">
                     <Calendar size={14} /> ROUND 1
                 </div>
             </div>
-            <div className="flex overflow-x-auto no-scrollbar pl-32 items-center h-full">
+            {/* Padding adjusted for mobile vs desktop */}
+            <div className="flex overflow-x-auto no-scrollbar pl-6 md:pl-32 items-center h-full">
                 <div className="flex divide-x divide-zinc-800 h-full">
                     {games.map((game: any, i: number) => (
                         <div key={`${game.id}-${i}`} className="px-8 py-2 flex flex-col justify-center min-w-[240px] hover:bg-zinc-900 transition-colors group cursor-default h-full">
@@ -79,7 +82,7 @@ const LiveScoreboard = () => {
     );
 };
 
-// --- COMPONENT: ROUND 1 FIXTURE LIST (Replaces Bracket) ---
+// --- COMPONENT: ROUND 1 FIXTURE LIST ---
 const FixtureModule = () => {
     const [games, setGames] = useState<any[]>([]);
 
@@ -229,13 +232,17 @@ export default function NRLHub() {
     };
 
     return (
-        <div className="min-h-screen max-w-7xl mx-auto px-4 pt-0 pb-20">
+        // Added pt-20 to accommodate the fixed BackButton on mobile
+        <div className="min-h-screen max-w-7xl mx-auto px-4 pt-20 pb-20">
             {/* BACKGROUND */}
             <div className="bg-starfield">
                 <div className="stars-1"></div>
                 <div className="stars-2"></div>
                 <div className="stars-3"></div>
             </div>
+
+            {/* BACK BUTTON INTEGRATION */}
+            <BackButton href="/sports" />
 
             {/* NAVIGATION LOADER */}
             {isNavigating && <NavigationLoader />}
