@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Cpu, Gauge, History, Wind, Zap, Loader2, Lock, Unlock, Edit3, Save, X, Image as ImageIcon } from 'lucide-react';
+import { Cpu, Gauge, History, Wind, Zap, Loader2, Lock, Unlock, Edit3, Save, X, Image as ImageIcon } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { CARS } from '../../data';
 import { getDatabaseCars, updateCar } from '../../actions';
+import BackButton from '../../../components/BackButton';
 
 export default function CarDetail() {
   const params = useParams();
@@ -180,12 +181,8 @@ export default function CarDetail() {
           )}
       </div>
 
-      {/* BACK BUTTON (FIXED Top Left) - UPDATED STYLE */}
-      <div className="fixed top-24 left-6 z-50">
-         <Link href="/automotive" className="flex items-center gap-2 text-zinc-300 hover:text-[#DFFF00] transition-colors text-xs font-mono uppercase tracking-widest bg-black/50 backdrop-blur p-2 rounded w-fit border border-zinc-800 hover:border-[#DFFF00]">
-            <ArrowLeft size={14} /> Back to Index
-         </Link>
-      </div>
+      {/* NEW SHARED BACK BUTTON */}
+      <BackButton href="/automotive" label="BACK TO INDEX" />
 
       {/* HERO */}
       <div className="relative w-full h-[70vh] flex items-end group">

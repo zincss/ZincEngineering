@@ -1,16 +1,20 @@
+'use client';
+
+import React from 'react';
 import Link from 'next/link';
 import { ArrowLeft, CarFront, Gamepad2, ChevronRight, Flag } from 'lucide-react';
+import BackButton from '../components/BackButton';
 
 export default function CollectionsHub() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white selection:bg-[#DFFF00] selection:text-black">
       
+      {/* GLOBAL BACK BUTTON */}
+      <BackButton href="/" label="MAIN TERMINAL" />
+
       {/* HEADER SECTION */}
       <div className="pt-24 pb-12 px-6 max-w-[1600px] mx-auto border-b border-zinc-800">
         <div className="flex items-center gap-2 text-[#DFFF00] font-mono text-sm font-black tracking-widest uppercase mb-4">
-            <Link href="/" className="hover:underline flex items-center gap-2">
-                <ArrowLeft size={14} /> HOME
-            </Link>
             <span className="text-zinc-600">/</span>
             <span>COLLECTIONS_CODEX</span>
         </div>
@@ -74,7 +78,7 @@ export default function CollectionsHub() {
                 </div>
             </Link>
 
-            {/* LINK 3: GOLF TRACKER (NEW) */}
+            {/* LINK 3: SCORECARD */}
             <Link 
                 href="/collections/golf" 
                 className="group relative border border-zinc-800 bg-zinc-900/20 hover:border-[#DFFF00] transition-colors duration-300 min-h-[300px] flex flex-col"
@@ -87,7 +91,7 @@ export default function CollectionsHub() {
                         <Flag size={40} />
                     </div>
                     <h3 className="text-3xl font-black uppercase tracking-tight text-white mb-2 group-hover:text-[#DFFF00] transition-colors">
-                        Field Ops: Golf
+                        Scorecard
                     </h3>
                     <p className="text-zinc-400 font-mono text-sm mb-6 max-w-md">
                         Tactical round tracker. 4-Operative capacity. Real-time stat tracking.
