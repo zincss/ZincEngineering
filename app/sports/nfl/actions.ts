@@ -4,12 +4,11 @@
 import { getOrFetchResource } from '@/lib/data-manager';
 import * as ESPN from './lib/espn';
 
-// CONFIG: Cache times in hours
 const CACHE_CONFIG = {
-  SCORES: 0.05,    // 3 minutes
-  STANDINGS: 1,    // 1 hour
-  LEADERS: 6,      // 6 hours
-  PROFILES: 24     // 24 hours
+  SCORES: 0.05,    
+  STANDINGS: 1,    
+  LEADERS: 6,      
+  PROFILES: 24     
 };
 
 export async function getDashboardData() {
@@ -18,14 +17,14 @@ export async function getDashboardData() {
       table: 'nfl_snapshots', keyField: 'key', id: 'live_scores', expirationHours: CACHE_CONFIG.SCORES
     }, ESPN.fetchLiveScoreboard),
 
-    // UPDATED ID to 'season_standings_v3' to force cache refresh
+    // Updated to v6 to force fresh fetch with corrected API URL
     getOrFetchResource({
-      table: 'nfl_snapshots', keyField: 'key', id: 'season_standings_v3', expirationHours: CACHE_CONFIG.STANDINGS
+      table: 'nfl_snapshots', keyField: 'key', id: 'season_standings_v6', expirationHours: CACHE_CONFIG.STANDINGS
     }, ESPN.fetchStandings),
 
-    // UPDATED ID to 'season_leaders_v2' to force cache refresh
+    // Updated to v6 to force fresh fetch
     getOrFetchResource({
-      table: 'nfl_snapshots', keyField: 'key', id: 'season_leaders_v2', expirationHours: CACHE_CONFIG.LEADERS
+      table: 'nfl_snapshots', keyField: 'key', id: 'season_leaders_v6', expirationHours: CACHE_CONFIG.LEADERS
     }, ESPN.fetchDailyLeaders),
   ]);
 
@@ -39,10 +38,13 @@ export async function getTeamSnapshot(teamId: string) {
 }
 
 export async function getPlayerProfile(playerId: string) {
-    // UPDATED to 'player_full_v1' to force fresh rich data
     return await getOrFetchResource({
-        table: 'nfl_snapshots', keyField: 'key', id: `player_full_v1_${playerId}`, expirationHours: CACHE_CONFIG.PROFILES
-    }, () => ESPN.fetchPlayerFullProfile(playerId));
+        table: 'nfl_snapshots', keyField: 'key', id: `player_bio_v6_${playerId}`, expirationHours: CACHE_CONFIG.PROFILES
+    }, () => ESPN.fetchPlayerProfile(playerId));
+}
+
+export async function getPlayerGameLog(playerId: string) {
+    return await ESPN.fetchPlayerGameLog(playerId);
 }
 
 export async function searchPlayers(query: string) {

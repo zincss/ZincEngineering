@@ -1,5 +1,6 @@
+// app/sports/nfl/page.tsx
 import React from 'react';
-import { Activity, Zap, Shield } from 'lucide-react';
+import { Activity, Zap } from 'lucide-react';
 import { getDashboardData } from './actions';
 import GameTicker from './components/GameTicker';
 import NFLStandings from './components/NFLStandings';
