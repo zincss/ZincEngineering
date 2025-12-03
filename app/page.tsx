@@ -26,7 +26,8 @@ export default function Home() {
            </video>
         </div>
         
-        <div className="relative z-10 w-full max-w-[1600px] mx-auto px-4 md:px-6">
+        {/* Added pt-24 on mobile to prevent Header overlap */}
+        <div className="relative z-10 w-full max-w-[1600px] mx-auto px-4 md:px-6 pt-24 md:pt-0">
           
           {/* BADGE MOVED TO RIGHT SIDE */}
           <div className="absolute top-0 right-4 md:right-6 animate-in fade-in slide-in-from-right-4 duration-1000">
@@ -41,13 +42,12 @@ export default function Home() {
               Zinc <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 to-zinc-800 text-stroke-white">Engineering</span>
             </h1>
             
-            {/* UPDATED TEXT DESCRIPTION */}
             <p className="max-w-xl text-zinc-400 font-mono text-sm md:text-base leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
               <span className="text-[#DFFF00] mr-2">///</span>
               Advanced analytics and data archiving for high-performance athletics and digital collections.
             </p>
 
-            {/* NEW SECTION: WHAT'S NEW */}
+            {/* WHAT'S NEW SECTION */}
             <div className="mt-8 animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-300">
                <div className="inline-flex flex-col md:flex-row items-start md:items-center gap-4 p-4 border border-zinc-800 bg-zinc-950/80 backdrop-blur-sm rounded-lg hover:border-zinc-700 transition-colors">
                   <div className="flex items-center gap-2">
@@ -121,7 +121,7 @@ export default function Home() {
       <footer className="py-12 px-6 border-t border-zinc-800 text-center mt-12">
         <div className="flex items-center justify-center gap-2 text-zinc-600 font-mono text-[10px] uppercase tracking-widest mb-4">
            <Database size={12} />
-           <span>Secure Connection Est. 2025</span>
+           <span>Secure Connection Est. 2024</span>
         </div>
         <p className="text-zinc-800 font-black text-sm uppercase">Zinc Engineering © 2025</p>
       </footer>
