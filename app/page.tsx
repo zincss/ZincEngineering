@@ -10,7 +10,7 @@ export default function Home() {
       {/* HERO SECTION */}
       <section className="relative h-[50vh] min-h-[500px] flex items-center overflow-hidden border-b border-zinc-800">
         <div className="absolute inset-0 z-0">
-           {/* GRADIENT OVERLAY (Keeps text readable) */}
+           {/* GRADIENT OVERLAY */}
            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-transparent z-10" />
            
            {/* VIDEO BACKGROUND */}
@@ -26,11 +26,11 @@ export default function Home() {
            </video>
         </div>
         
-        {/* Added pt-24 on mobile to prevent Header overlap */}
-        <div className="relative z-10 w-full max-w-[1600px] mx-auto px-4 md:px-6 pt-24 md:pt-0">
+        {/* OPTIMIZATION: Changed md:pt-0 to md:pt-28 to clear header on tablets */}
+        <div className="relative z-10 w-full max-w-[1600px] mx-auto px-4 md:px-6 pt-24 md:pt-28">
           
-          {/* BADGE MOVED TO RIGHT SIDE */}
-          <div className="absolute top-0 right-4 md:right-6 animate-in fade-in slide-in-from-right-4 duration-1000">
+          {/* OPTIMIZATION: Moved badge down (top-24/28) so it's not behind the header */}
+          <div className="absolute top-24 right-4 md:top-28 md:right-6 animate-in fade-in slide-in-from-right-4 duration-1000">
              <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-900/50 border border-zinc-800 backdrop-blur-sm rounded-full text-[10px] font-mono text-[#DFFF00] tracking-widest uppercase">
                 <span className="w-2 h-2 bg-[#DFFF00] rounded-full animate-pulse" />
                 System Operational v2.4

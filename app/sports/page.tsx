@@ -18,11 +18,11 @@ export default function SportsHub() {
            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1522778119026-d647f0565c6a?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 grayscale" />
         </div>
         
-        {/* Added pt-24 on mobile to prevent BackButton overlap */}
-        <div className="relative z-10 w-full max-w-[1600px] mx-auto px-4 md:px-6 pt-24 md:pt-0">
+        {/* OPTIMIZATION: Updated pt-0 to pt-28 for tablet header clearance */}
+        <div className="relative z-10 w-full max-w-[1600px] mx-auto px-4 md:px-6 pt-24 md:pt-28">
           
-          {/* BADGE MOVED TO RIGHT SIDE */}
-          <div className="absolute top-0 right-4 md:right-6 animate-in fade-in slide-in-from-right-4 duration-1000">
+          {/* OPTIMIZATION: Moved badge to top-24/28 to avoid header overlap */}
+          <div className="absolute top-24 right-4 md:top-28 md:right-6 animate-in fade-in slide-in-from-right-4 duration-1000">
              <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-900/50 border border-zinc-800 backdrop-blur-sm rounded-full text-[10px] font-mono text-[#DFFF00] tracking-widest uppercase">
                <span className="w-2 h-2 bg-[#DFFF00] rounded-full animate-pulse" />
                Athletics Division

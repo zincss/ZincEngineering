@@ -13,11 +13,11 @@ export default function CollectionsHub() {
       <BackButton href="/" label="MAIN TERMINAL" />
 
       {/* HEADER SECTION */}
-      {/* Increased pt-24 to pt-40 on mobile to clear the lowered BackButton */}
-      <div className="pt-40 md:pt-24 pb-12 px-6 max-w-[1600px] mx-auto border-b border-zinc-800 relative">
+      {/* OPTIMIZATION: Increased md:pt-24 to md:pt-32 for better tablet clearance */}
+      <div className="pt-40 md:pt-32 pb-12 px-6 max-w-[1600px] mx-auto border-b border-zinc-800 relative">
         
-        {/* MOVED LABEL TO RIGHT SIDE */}
-        <div className="absolute top-0 right-6 mt-24 flex items-center gap-2 text-[#DFFF00] font-mono text-sm font-black tracking-widest uppercase animate-in fade-in slide-in-from-right-4 duration-1000">
+        {/* OPTIMIZATION: Moved label down (top-32) to match new padding */}
+        <div className="absolute top-32 right-6 flex items-center gap-2 text-[#DFFF00] font-mono text-sm font-black tracking-widest uppercase animate-in fade-in slide-in-from-right-4 duration-1000">
             <span className="text-zinc-600">/</span>
             <span>COLLECTIONS_CODEX</span>
         </div>
