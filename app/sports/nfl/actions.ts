@@ -18,9 +18,9 @@ export async function getDashboardData() {
       table: 'nfl_snapshots', keyField: 'key', id: 'live_scores', expirationHours: CACHE_CONFIG.SCORES
     }, ESPN.fetchLiveScoreboard),
 
-    // UPDATED ID to 'season_standings_v2' to force cache refresh
+    // UPDATED ID to 'season_standings_v3' to force cache refresh
     getOrFetchResource({
-      table: 'nfl_snapshots', keyField: 'key', id: 'season_standings_v2', expirationHours: CACHE_CONFIG.STANDINGS
+      table: 'nfl_snapshots', keyField: 'key', id: 'season_standings_v3', expirationHours: CACHE_CONFIG.STANDINGS
     }, ESPN.fetchStandings),
 
     // UPDATED ID to 'season_leaders_v2' to force cache refresh
@@ -39,9 +39,10 @@ export async function getTeamSnapshot(teamId: string) {
 }
 
 export async function getPlayerProfile(playerId: string) {
+    // UPDATED to 'player_full_v1' to force fresh rich data
     return await getOrFetchResource({
-        table: 'nfl_snapshots', keyField: 'key', id: `player_${playerId}`, expirationHours: CACHE_CONFIG.PROFILES
-    }, () => ESPN.fetchPlayerProfile(playerId));
+        table: 'nfl_snapshots', keyField: 'key', id: `player_full_v1_${playerId}`, expirationHours: CACHE_CONFIG.PROFILES
+    }, () => ESPN.fetchPlayerFullProfile(playerId));
 }
 
 export async function searchPlayers(query: string) {
