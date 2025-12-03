@@ -167,7 +167,7 @@ const NavigationLoader = () => (
 );
 
 // --- DRIVER CARD COMPONENT ---
-const DriverCard = ({ driver, onNavigate, variant = 'standard', rank }: { driver: any, onNavigate: (url: string) => void, variant?: 'standard' | 'compact', rank?: number }) => {
+const DriverCard = ({ driver, onNavigate, variant = 'standard', rank }: { driver: any, onNavigate: (url: string) => void, variant?: 'standard' | 'compact' | 'mobile', rank?: number }) => {
     const did = driver.driverId || driver.id || '';
     const image = DRIVER_HEADSHOTS[did] || DRIVER_HEADSHOTS[did.toLowerCase()] || null;
     const teamName = driver.constructors?.[0]?.name || 'Unknown';
@@ -180,19 +180,25 @@ const DriverCard = ({ driver, onNavigate, variant = 'standard', rank }: { driver
     const targetUrl = `/sports/f1/driver/${did}`;
     const [imgError, setImgError] = useState(false);
 
+    // Dynamic Sizing Based on Variant
+    const heightClass = variant === 'compact' ? 'h-[280px]' : variant === 'mobile' ? 'h-[200px]' : 'h-[360px]';
+    const titleSize = variant === 'compact' ? 'text-2xl' : variant === 'mobile' ? 'text-lg' : 'text-4xl';
+    const padding = variant === 'mobile' ? 'p-2' : 'p-4';
+    const numberSize = variant === 'mobile' ? 'text-[80px]' : 'text-[140px]';
+
     return (
         <div 
             onClick={() => onNavigate(targetUrl)}
             className={`
                 group cursor-pointer relative border border-zinc-800 bg-zinc-900 overflow-hidden flex flex-col transition-all duration-500 hover:border-white hover:shadow-[0_0_30px_rgba(0,0,0,0.5)]
-                ${variant === 'compact' ? 'h-[280px]' : 'h-[360px]'}
+                ${heightClass}
             `}
             style={{ borderBottomWidth: '2px', borderBottomColor: teamColor }}
         >
              <div className="absolute inset-0 bg-gradient-to-b from-zinc-800/30 via-zinc-900/80 to-zinc-950 z-0" />
             
-             {/* RANK BADGE FOR MOBILE */}
-             {rank && (
+             {/* RANK BADGE FOR MOBILE LIST (Legacy support, usually overridden by grid labels now) */}
+             {rank && variant !== 'mobile' && (
                  <div className="absolute top-4 left-4 z-30 md:hidden">
                     <span className="text-4xl font-black text-white/10">{rank}</span>
                  </div>
@@ -200,7 +206,7 @@ const DriverCard = ({ driver, onNavigate, variant = 'standard', rank }: { driver
 
             {/* BIG TEAM NUMBER */}
             {driver.permanentNumber && (
-                <div className="absolute top-0 right-[-10px] text-[140px] font-black text-zinc-800/20 z-0 leading-none select-none group-hover:text-zinc-800/40 transition-colors duration-500">
+                <div className={`absolute top-0 right-[-10px] ${numberSize} font-black text-zinc-800/20 z-0 leading-none select-none group-hover:text-zinc-800/40 transition-colors duration-500`}>
                     {driver.permanentNumber}
                 </div>
             )}
@@ -221,7 +227,7 @@ const DriverCard = ({ driver, onNavigate, variant = 'standard', rank }: { driver
             </div>
 
             {/* INFO LAYER */}
-            <div className="absolute bottom-0 left-0 w-full p-4 z-20">
+            <div className={`absolute bottom-0 left-0 w-full z-20 ${padding}`}>
                 <div className="flex justify-between items-end mb-2">
                     <div>
                         <div className="flex items-center gap-2 mb-1">
@@ -231,7 +237,7 @@ const DriverCard = ({ driver, onNavigate, variant = 'standard', rank }: { driver
                                 </span>
                             )}
                         </div>
-                        <h3 className={`font-black uppercase italic tracking-tighter text-white leading-[0.85] ${variant === 'compact' ? 'text-2xl' : 'text-4xl'}`}>
+                        <h3 className={`font-black uppercase italic tracking-tighter text-white leading-[0.85] ${titleSize}`}>
                             {driver.givenName}<br/>
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-500 group-hover:to-white transition-all">
                                 {driver.familyName}
@@ -429,18 +435,44 @@ const StartingGrid = ({ drivers, onNavigate }: { drivers: any[], onNavigate: (ur
                 </div>
             </div>
 
-            {/* MOBILE VIEW: LINEAR LIST */}
-            <div className="md:hidden flex flex-col gap-6">
-                {drivers.map((driver, i) => (
-                    <div key={driver.driverId} className="relative">
-                        {i === 0 && (
-                            <div className="mb-2 inline-block bg-[#DFFF00] text-black text-[10px] font-black uppercase px-3 py-1 tracking-widest">
-                                POLE POSITION
-                            </div>
-                        )}
-                        <DriverCard driver={driver} onNavigate={onNavigate} variant="standard" rank={i + 1} />
+            {/* MOBILE VIEW: STAGGERED GRID (SCALED DOWN) */}
+            <div className="md:hidden block relative px-1">
+                {/* Central Line */}
+                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-zinc-800 -translate-x-1/2" />
+                
+                <div className="grid grid-cols-2 gap-3">
+                    {/* Left Column (P1, P3, P5...) */}
+                    <div className="flex flex-col gap-3">
+                        {leftSide.map((driver, i) => (
+                             <div key={driver.driverId} className="relative group">
+                                {/* Position Label - Scaled */}
+                                <div className="absolute -left-2 top-2 font-black text-2xl text-zinc-800/30 rotate-[-90deg] z-0">
+                                    P{i * 2 + 1}
+                                </div>
+                                
+                                {i === 0 && (
+                                    <div className="absolute -top-3 left-0 z-30 bg-[#DFFF00] text-black text-[8px] font-black uppercase px-2 py-0.5 tracking-widest shadow-[0_0_10px_rgba(223,255,0,0.4)]">
+                                        POLE
+                                    </div>
+                                )}
+                                
+                                <DriverCard driver={driver} onNavigate={onNavigate} variant="mobile" />
+                             </div>
+                        ))}
                     </div>
-                ))}
+
+                    {/* Right Column (P2, P4, P6...) */}
+                    <div className="flex flex-col gap-3 pt-12">
+                         {rightSide.map((driver, i) => (
+                             <div key={driver.driverId} className="relative group">
+                                <div className="absolute -right-2 top-2 font-black text-2xl text-zinc-800/30 rotate-[90deg] z-0">
+                                    P{i * 2 + 2}
+                                </div>
+                                <DriverCard driver={driver} onNavigate={onNavigate} variant="mobile" />
+                             </div>
+                        ))}
+                    </div>
+                </div>
             </div>
 
         </div>
