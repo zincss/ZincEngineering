@@ -183,8 +183,8 @@ const DriverCard = ({ driver, onNavigate, variant = 'standard', rank }: { driver
     const isMobile = variant === 'mobile';
 
     // Dynamic Sizing Based on Variant
-    // UPDATED: Increased mobile height from 200px to 280px to prevent face cutoff
-    const heightClass = variant === 'compact' ? 'h-[280px]' : isMobile ? 'h-[280px]' : 'h-[360px]';
+    // REVERTED: Mobile height back to h-[200px] (standardizing grid look)
+    const heightClass = variant === 'compact' ? 'h-[280px]' : isMobile ? 'h-[200px]' : 'h-[360px]';
     // Changed text-lg to text-base for mobile as requested ("tiny bit smaller")
     const titleSize = variant === 'compact' ? 'text-2xl' : isMobile ? 'text-base' : 'text-4xl';
     const padding = isMobile ? 'p-2' : 'p-4';
@@ -215,12 +215,18 @@ const DriverCard = ({ driver, onNavigate, variant = 'standard', rank }: { driver
                 </div>
             )}
 
-            {/* MOBILE ONLY: NATIONALITY TOP LEFT */}
-            {isMobile && driver.nationality && (
-                <div className="absolute top-2 left-2 z-30">
-                    <span className="text-[9px] font-mono font-bold text-[#DFFF00] uppercase tracking-widest bg-black/60 px-2 py-0.5 rounded-sm backdrop-blur-md border border-zinc-800 shadow-sm">
-                        {driver.nationality}
-                    </span>
+            {/* MOBILE ONLY: STATS MOVED TO TOP LEFT (PILLS) */}
+            {isMobile && (
+                <div className="absolute top-2 left-2 flex gap-2 z-30">
+                     <div className="flex flex-col bg-black/60 backdrop-blur-md px-2 py-1 rounded-sm border border-zinc-800/50">
+                        <span className="text-[7px] text-zinc-500 font-mono uppercase leading-none mb-0.5">PTS</span>
+                        <span className="text-xs font-bold text-white font-mono leading-none">{driver.points || 0}</span>
+                     </div>
+                     <div className="flex flex-col bg-black/60 backdrop-blur-md px-2 py-1 rounded-sm border border-zinc-800/50">
+                        {/* UPDATED: Changed label from POS to LAST RACE POS per user request */}
+                        <span className="text-[7px] text-zinc-500 font-mono uppercase leading-none mb-0.5">LAST RACE POS</span>
+                        <span className={`text-xs font-bold font-mono leading-none ${latestPos.includes('DNF') ? 'text-red-500' : 'text-[#DFFF00]'}`}>{latestPos}</span>
+                     </div>
                 </div>
             )}
 
@@ -241,7 +247,7 @@ const DriverCard = ({ driver, onNavigate, variant = 'standard', rank }: { driver
 
             {/* INFO LAYER */}
             <div className={`absolute bottom-0 left-0 w-full z-20 ${padding}`}>
-                <div className="flex justify-between items-end mb-2">
+                <div className="flex justify-between items-end mb-1">
                     <div>
                         {/* DESKTOP NATIONALITY: ABOVE NAME (Hidden on mobile) */}
                         {!isMobile && (
@@ -260,27 +266,38 @@ const DriverCard = ({ driver, onNavigate, variant = 'standard', rank }: { driver
                                 {driver.familyName}
                             </span>
                         </h3>
+
+                        {/* MOBILE ONLY: NATIONALITY MOVED UNDER NAME */}
+                        {isMobile && driver.nationality && (
+                            <div className="mt-1">
+                                <span className="text-[9px] font-mono font-bold text-[#DFFF00] uppercase tracking-widest">
+                                    {driver.nationality}
+                                </span>
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* UPDATED STATS GRID WITH EXPLICIT LAST RACE */}
-                <div className="grid grid-cols-2 gap-px bg-zinc-800 border border-zinc-800">
-                    <div className="bg-zinc-900 p-2 flex flex-col items-center justify-center group-hover:bg-zinc-800 transition-colors">
-                        <span className="text-[8px] text-zinc-500 font-mono uppercase">Season Pts</span>
-                        <span className="text-sm font-bold text-white font-mono">{driver.points || 0}</span>
-                    </div>
-                    <div className="bg-zinc-900 p-2 flex flex-col items-center justify-center group-hover:bg-zinc-800 transition-colors relative overflow-hidden">
-                        <span className="text-[8px] text-zinc-500 font-mono uppercase relative z-10">Last Result</span>
-                        <div className="flex items-baseline gap-1 relative z-10">
-                            <span className={`text-sm font-bold font-mono ${latestPos.includes('DNF') ? 'text-red-500' : 'text-[#DFFF00]'}`}>
-                                {latestPos}
-                            </span>
-                            <span className="text-[8px] font-mono text-zinc-600 uppercase truncate max-w-[50px]">
-                                {latestRace}
-                            </span>
+                {/* DESKTOP ONLY: STATS GRID (Hidden on mobile) */}
+                {!isMobile && (
+                    <div className="grid grid-cols-2 gap-px bg-zinc-800 border border-zinc-800">
+                        <div className="bg-zinc-900 p-2 flex flex-col items-center justify-center group-hover:bg-zinc-800 transition-colors">
+                            <span className="text-[8px] text-zinc-500 font-mono uppercase">Season Pts</span>
+                            <span className="text-sm font-bold text-white font-mono">{driver.points || 0}</span>
+                        </div>
+                        <div className="bg-zinc-900 p-2 flex flex-col items-center justify-center group-hover:bg-zinc-800 transition-colors relative overflow-hidden">
+                            <span className="text-[8px] text-zinc-500 font-mono uppercase relative z-10">Last Result</span>
+                            <div className="flex items-baseline gap-1 relative z-10">
+                                <span className={`text-sm font-bold font-mono ${latestPos.includes('DNF') ? 'text-red-500' : 'text-[#DFFF00]'}`}>
+                                    {latestPos}
+                                </span>
+                                <span className="text-[8px] font-mono text-zinc-600 uppercase truncate max-w-[50px]">
+                                    {latestRace}
+                                </span>
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
             </div>
         </div>
     );
@@ -512,11 +529,10 @@ export default function F1Dashboard({ activeDrivers, teams, tracks, season }: { 
         <div className="min-h-screen bg-zinc-950 text-white selection:bg-[#DFFF00] selection:text-black pb-20">
             {isNavigating && <NavigationLoader />}
 
-            {/* UPDATED: Increased top padding from pt-24 to pt-36 on mobile to clear fixed Back Button */}
+            {/* INCREASED TOP PADDING ON MOBILE TO CLEAR FIXED BACK BUTTON */}
             <div className="pt-36 md:pt-24 pb-12 px-6 max-w-[1600px] mx-auto border-b border-zinc-800 mb-12 relative">
                 
-                {/* BADGE MOVED TO RELATIVE FLEX ON MOBILE TO AVOID OVERLAP */}
-                {/* UPDATED: Changed absolute to static flex on mobile, absolute on desktop */}
+                {/* RELATIVE BADGE ON MOBILE TO AVOID OVERLAP */}
                 <div className="flex justify-end mb-4 md:mb-0 md:absolute md:top-0 md:right-4 md:mt-24 lg:mt-24 xl:right-6">
                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-full text-[10px] font-mono text-[#DFFF00] tracking-widest uppercase">
                       <Flag size={12} />
