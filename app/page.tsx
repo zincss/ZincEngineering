@@ -1,7 +1,7 @@
 import GlobalTicker from './components/GlobalTicker';
 import PersonalLogs from './components/PersonalLogs';
 import Link from 'next/link';
-import { ArrowRight, Trophy, BookOpen, Database } from 'lucide-react';
+import { ArrowRight, Trophy, BookOpen, Database, Sparkles } from 'lucide-react';
 
 export default function Home() {
   return (
@@ -41,10 +41,36 @@ export default function Home() {
               Zinc <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 to-zinc-800 text-stroke-white">Engineering</span>
             </h1>
             
+            {/* UPDATED TEXT DESCRIPTION */}
             <p className="max-w-xl text-zinc-400 font-mono text-sm md:text-base leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
               <span className="text-[#DFFF00] mr-2">///</span>
-              Advanced analytics and data archiving for high-performance athletics and digital entertainment protocols.
+              Advanced analytics and data archiving for high-performance athletics and digital collections.
             </p>
+
+            {/* NEW SECTION: WHAT'S NEW */}
+            <div className="mt-8 animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-300">
+               <div className="inline-flex flex-col md:flex-row items-start md:items-center gap-4 p-4 border border-zinc-800 bg-zinc-950/80 backdrop-blur-sm rounded-lg hover:border-zinc-700 transition-colors">
+                  <div className="flex items-center gap-2">
+                     <Sparkles size={14} className="text-[#DFFF00]" />
+                     <span className="text-[#DFFF00] font-mono text-xs font-bold uppercase tracking-widest">WHAT'S NEW:</span>
+                  </div>
+                  
+                  <div className="flex-1 flex flex-col md:flex-row items-start md:items-center gap-4">
+                     <span className="text-zinc-300 text-xs md:text-sm font-mono">
+                        Tactical Scorecard Protocol now available for deployment.
+                     </span>
+                     
+                     <Link 
+                        href="/collections/golf" 
+                        className="group flex items-center gap-2 px-4 py-2 bg-[#DFFF00] hover:bg-white text-black text-[10px] font-black uppercase tracking-widest rounded-sm transition-all shadow-[0_0_15px_rgba(223,255,0,0.1)] hover:shadow-[0_0_20px_rgba(223,255,0,0.4)]"
+                     >
+                        <span>Launch Scorecard</span>
+                        <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform"/>
+                     </Link>
+                  </div>
+               </div>
+            </div>
+
           </div>
         </div>
       </section>
@@ -95,7 +121,7 @@ export default function Home() {
       <footer className="py-12 px-6 border-t border-zinc-800 text-center mt-12">
         <div className="flex items-center justify-center gap-2 text-zinc-600 font-mono text-[10px] uppercase tracking-widest mb-4">
            <Database size={12} />
-           <span>Secure Connection Est. 2024</span>
+           <span>Secure Connection Est. 2025</span>
         </div>
         <p className="text-zinc-800 font-black text-sm uppercase">Zinc Engineering © 2025</p>
       </footer>
