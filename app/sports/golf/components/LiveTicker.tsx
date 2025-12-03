@@ -24,14 +24,15 @@ export default function LiveTicker({ data }: { data: GolfLeaderboard | null }) {
     return (
         <div className="w-full bg-zinc-950 border-b border-zinc-800 h-14 flex items-center z-20 relative overflow-hidden group">
             
-            {/* 1. STATIC LABEL: Tournament Info */}
-            <div className="h-full bg-black px-6 flex items-center border-r border-zinc-800 shadow-[10px_0_20px_rgba(0,0,0,1)] z-30 shrink-0 gap-3">
+            {/* 1. STATIC LABEL: Tournament Info - Mobile Optimized */}
+            <div className="h-full bg-black px-3 md:px-6 flex items-center border-r border-zinc-800 shadow-[10px_0_20px_rgba(0,0,0,1)] z-30 shrink-0 gap-3">
                 <div className="flex flex-col items-end justify-center">
                     <div className="flex items-center gap-2 text-[#DFFF00] font-black text-[10px] uppercase tracking-widest">
                         <Activity size={12} className="animate-pulse" />
-                        <span>LIVE FEED</span>
+                        <span className="hidden md:inline">LIVE FEED</span>
                     </div>
-                    <span className="text-[9px] text-zinc-500 font-mono uppercase max-w-[100px] truncate text-right">
+                    {/* Hide tournament name on very small screens if needed, or truncate heavier */}
+                    <span className="hidden md:inline text-[9px] text-zinc-500 font-mono uppercase max-w-[100px] truncate text-right">
                         {data.tournament.name}
                     </span>
                 </div>
@@ -44,15 +45,16 @@ export default function LiveTicker({ data }: { data: GolfLeaderboard | null }) {
                         <button 
                             key={`${player.id}-${i}`}
                             onClick={() => router.push(`/sports/golf/player/${player.id}`)}
-                            className="flex items-center gap-4 px-6 border-r border-zinc-900 h-14 hover:bg-zinc-900/50 transition-colors shrink-0 group/item text-left"
+                            // Responsive padding/gap
+                            className="flex items-center gap-2 md:gap-4 px-3 md:px-6 border-r border-zinc-900 h-14 hover:bg-zinc-900/50 transition-colors shrink-0 group/item text-left"
                         >
                             {/* Rank */}
-                            <span className="font-mono text-xs font-bold text-zinc-600 min-w-[24px]">
+                            <span className="font-mono text-xs font-bold text-zinc-600 min-w-[20px] md:min-w-[24px]">
                                 {player.rank}
                             </span>
 
                             {/* Avatar & Name */}
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 md:gap-3">
                                 {player.image ? (
                                     <img src={player.image} alt={player.name} className="w-8 h-8 rounded-full border border-zinc-800 object-cover bg-zinc-900" />
                                 ) : (
@@ -84,10 +86,11 @@ export default function LiveTicker({ data }: { data: GolfLeaderboard | null }) {
                 </div>
             </div>
             
-            {/* 3. TAIL INFO (Optional) */}
-            <div className="h-full bg-black px-4 flex items-center border-l border-zinc-800 z-30 shrink-0">
+            {/* 3. TAIL INFO (Hidden on mobile) */}
+            <div className="hidden md:flex h-full bg-black px-4 items-center border-l border-zinc-800 z-30 shrink-0">
                  <div className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest">
-                     Defending: <span className="text-zinc-400">{data.tournament.defendingChampion || '-'}</span>
+                     {/* Cast to any to fix missing property error */}
+                     Defending: <span className="text-zinc-400">{(data.tournament as any).defendingChampion || '-'}</span>
                  </div>
             </div>
         </div>

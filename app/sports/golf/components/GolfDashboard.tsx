@@ -2,7 +2,10 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Trophy, Globe, Activity, ArrowUpRight, Minus, ArrowDownRight, TrendingUp, Calendar, MapPin, Clock } from 'lucide-react';
+import { 
+    Trophy, Globe, Activity, ArrowUpRight, ArrowDownRight, Minus, 
+    Calendar, MapPin, ChevronRight, Star, TrendingUp, Flag
+} from 'lucide-react';
 import type { Golfer, GolfLeaderboard, GolfEvent } from '../lib/golf-api';
 import GolfSearch from './GolfSearch';
 
@@ -14,211 +17,270 @@ interface DashboardProps {
 }
 
 export default function GolfDashboard({ rankings, fedex, leaderboard, schedule }: DashboardProps) {
-    const [view, setView] = useState<'rankings' | 'fedex' | 'leaderboard'>('rankings');
     const router = useRouter();
+    const [statView, setStatView] = useState<'owgr' | 'fedex'>('owgr');
 
-    // Determine the "Next" or "Live" event from schedule
-    const activeEvent = schedule?.find(e => e.status.includes('Live') || e.status.includes('Progress')) || schedule?.[0];
+    // --- DERIVED STATE ---
+    const worldNo1 = rankings?.[0];
+    
+    // Check Status
+    const status = leaderboard?.tournament.status?.toLowerCase() || '';
+    const isLive = status.includes('live') || status.includes('progress') || status.includes('play');
+    const isFinal = status.includes('final');
+    
+    // Sort schedule to show upcoming first (excluding the one we might be showing as 'last result')
+    const upcomingEvents = schedule
+        ?.filter(e => !e.status.includes('Final'))
+        .sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()) || [];
 
+    // Helper for trend arrows
     const renderTrend = (movement: number) => {
-        if (!movement || movement === 0) return <span className="text-zinc-600 flex items-center gap-1"><Minus size={12}/> EVEN</span>;
-        if (movement > 0) return <span className="text-[#DFFF00] flex items-center gap-1"><ArrowUpRight size={12}/> +{movement}</span>;
-        return <span className="text-red-500 flex items-center gap-1"><ArrowDownRight size={12}/> {movement}</span>;
+        if (!movement || movement === 0) return <span className="text-zinc-600 flex items-center gap-1 text-[10px]"><Minus size={10}/></span>;
+        if (movement > 0) return <span className="text-[#DFFF00] flex items-center gap-1 text-[10px]"><ArrowUpRight size={10}/> +{movement}</span>;
+        return <span className="text-red-500 flex items-center gap-1 text-[10px]"><ArrowDownRight size={10}/> {Math.abs(movement)}</span>;
     };
 
     return (
-        <div>
-            {/* CONTROLS ROW */}
-            <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-6">
-                <div className="flex gap-2 bg-zinc-900/50 p-1 border border-zinc-800 rounded-lg backdrop-blur-sm overflow-x-auto max-w-full">
-                    <button onClick={() => setView('rankings')} className={`px-6 py-2 font-mono text-[10px] font-bold uppercase tracking-widest transition-all rounded-md whitespace-nowrap ${view === 'rankings' ? 'bg-[#DFFF00] text-black shadow-[0_0_15px_rgba(223,255,0,0.3)]' : 'text-zinc-500 hover:text-white'}`}>
-                        OWGR Rankings
-                    </button>
-                    {/* Only show FedEx if we have data */}
-                    {fedex && fedex.length > 0 && (
-                        <button onClick={() => setView('fedex')} className={`px-6 py-2 font-mono text-[10px] font-bold uppercase tracking-widest transition-all rounded-md whitespace-nowrap ${view === 'fedex' ? 'bg-[#DFFF00] text-black shadow-[0_0_15px_rgba(223,255,0,0.3)]' : 'text-zinc-500 hover:text-white'}`}>
-                            FedEx Cup
-                        </button>
-                    )}
-                    <button onClick={() => setView('leaderboard')} className={`px-6 py-2 font-mono text-[10px] font-bold uppercase tracking-widest transition-all rounded-md whitespace-nowrap ${view === 'leaderboard' ? 'bg-[#DFFF00] text-black shadow-[0_0_15px_rgba(223,255,0,0.3)]' : 'text-zinc-500 hover:text-white'}`}>
-                        Live Tournament
-                    </button>
-                </div>
-
-                <GolfSearch />
-            </div>
-
-            {/* DASHBOARD CONTENT */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div className="space-y-8 animate-in fade-in duration-700">
+            
+            {/* --- TOP ROW: HERO & LIVE ACTION --- */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 
-                {/* LEFT COL: Main Content (Rankings/FedEx/Leaderboard) */}
-                <div className="lg:col-span-3">
-                    
-                    {/* VIEW: LEADERBOARD TABLE */}
-                    {view === 'leaderboard' && (
-                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            {leaderboard ? (
-                                <div className="bg-zinc-900 border border-zinc-800 overflow-hidden rounded-lg">
-                                    <div className="p-6 border-b border-zinc-800 flex flex-col md:flex-row justify-between items-center bg-black/40 gap-4">
-                                        <div className="flex items-center gap-4">
-                                            <div className="h-3 w-3 rounded-full bg-red-500 animate-pulse box-shadow-[0_0_10px_red]"></div>
-                                            <div>
-                                                <h3 className="text-xl font-black text-white uppercase tracking-tighter">{leaderboard.tournament.name}</h3>
-                                                <div className="flex items-center gap-2 text-xs text-zinc-500 font-mono uppercase mt-1">
-                                                    <Globe size={12}/> {leaderboard.tournament.course}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="text-[9px] text-zinc-600 uppercase font-bold tracking-widest">Leader</div>
-                                            <div className="text-[#DFFF00] font-mono text-lg font-bold">{leaderboard.players[0]?.name || 'TBD'}</div>
-                                        </div>
-                                    </div>
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-left border-collapse min-w-[600px]">
-                                            <thead>
-                                                <tr className="bg-zinc-950/50 text-[9px] font-mono text-zinc-500 uppercase tracking-widest border-b border-zinc-800">
-                                                    <th className="p-4 w-20 text-center">Pos</th>
-                                                    <th className="p-4">Player</th>
-                                                    <th className="p-4 text-center">Thru</th>
-                                                    <th className="p-4 text-center">Round</th>
-                                                    <th className="p-4 text-right pr-6">Total</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-zinc-800">
-                                                {leaderboard.players.map((p: any) => (
-                                                    <tr key={p.id} onClick={() => router.push(`/sports/golf/player/${p.id}`)} className="group hover:bg-zinc-800/50 cursor-pointer transition-colors">
-                                                        <td className="p-4 text-center font-mono text-lg font-bold text-zinc-500 group-hover:text-white transition-colors">{p.rank}</td>
-                                                        <td className="p-4">
-                                                            <div className="flex items-center gap-4">
-                                                                {p.image ? (
-                                                                    <img src={p.image} className="w-10 h-10 rounded-full bg-zinc-950 border border-zinc-800 object-cover" />
-                                                                ) : (
-                                                                    <div className="w-10 h-10 rounded-full bg-zinc-950 border border-zinc-800 flex items-center justify-center text-zinc-600"><Trophy size={16}/></div>
-                                                                )}
-                                                                <div>
-                                                                    <div className="font-black text-zinc-300 group-hover:text-[#DFFF00] uppercase text-sm transition-colors">{p.name}</div>
-                                                                    {p.flag && <img src={p.flag} className="w-4 h-3 mt-1 opacity-50" />}
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        <td className="p-4 text-center font-mono text-sm text-zinc-500">{p.thru}</td>
-                                                        <td className="p-4 text-center font-mono text-sm text-zinc-400">{p.today}</td>
-                                                        <td className={`p-4 text-right pr-6 font-mono text-xl font-black ${p.isUnderPar ? 'text-red-500' : 'text-zinc-300'}`}>{p.score}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                {/* HERO: WORLD NO. 1 */}
+                {worldNo1 && (
+                    <div 
+                        onClick={() => router.push(`/sports/golf/player/${worldNo1.id}`)}
+                        className="lg:col-span-7 relative h-[400px] bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden group cursor-pointer hover:border-zinc-600 transition-all"
+                    >
+                        {/* Background Gradient */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-900/80 to-transparent z-10"></div>
+                        
+                        {/* Player Image (Right aligned) */}
+                        {worldNo1.image && (
+                            <img 
+                                src={worldNo1.image} 
+                                alt={worldNo1.name} 
+                                className="absolute right-[-20px] bottom-0 h-[110%] w-auto object-contain z-0 group-hover:scale-105 transition-transform duration-700 drop-shadow-2xl"
+                            />
+                        )}
+
+                        {/* Content */}
+                        <div className="absolute inset-0 z-20 p-8 flex flex-col justify-center">
+                            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#DFFF00] text-black text-[10px] font-mono font-bold uppercase tracking-widest rounded-full w-fit mb-6">
+                                <Star size={10} fill="black" /> World Number One
+                            </div>
+                            
+                            <h2 className="text-5xl md:text-7xl font-black text-white uppercase italic tracking-tighter mb-2 leading-[0.85]">
+                                {worldNo1.name.split(' ')[0]}<br/>
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-200 to-zinc-600">
+                                    {worldNo1.name.split(' ').slice(1).join(' ')}
+                                </span>
+                            </h2>
+                            
+                            <div className="flex items-center gap-6 mt-6">
+                                <div className="flex items-center gap-2">
+                                    {worldNo1.flag && <img src={worldNo1.flag} className="w-6 h-4 rounded-[2px]" />}
+                                    <span className="text-sm font-mono text-zinc-400 uppercase tracking-widest">{worldNo1.country}</span>
                                 </div>
+                                <div className="w-px h-8 bg-zinc-800"></div>
+                                <div>
+                                    <div className="text-[9px] text-zinc-500 uppercase tracking-widest">Points</div>
+                                    <div className="text-xl font-bold font-mono text-[#DFFF00]">{worldNo1.displayValue}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* SIDE: LIVE OR RECENT EVENT */}
+                <div className="lg:col-span-5 flex flex-col gap-6">
+                    {/* SEARCH BAR */}
+                    <div className="w-full">
+                        <GolfSearch />
+                    </div>
+
+                    {/* EVENT CARD */}
+                    <div className="flex-1 bg-zinc-900 border border-zinc-800 rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between">
+                        {/* Header Row */}
+                        <div className="flex justify-between items-start z-10">
+                            {isLive ? (
+                                <div className="flex items-center gap-2">
+                                    <span className="relative flex h-3 w-3">
+                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                      <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                                    </span>
+                                    <span className="text-red-500 font-mono text-xs font-bold uppercase tracking-widest">Live Now</span>
+                                </div>
+                            ) : isFinal ? (
+                                <span className="text-[#DFFF00] font-mono text-xs font-bold uppercase tracking-widest">Recent Result</span>
                             ) : (
-                                <div className="h-64 flex flex-col items-center justify-center border border-zinc-800 bg-zinc-900/50 border-dashed rounded-lg">
-                                    <Activity className="text-zinc-700 mb-4" size={48} />
-                                    <span className="text-zinc-500 font-mono text-xs uppercase tracking-widest">No Live Data</span>
-                                </div>
+                                <span className="text-zinc-500 font-mono text-xs font-bold uppercase tracking-widest">Upcoming Event</span>
+                            )}
+                            
+                            {leaderboard?.tournament.purse && (
+                                <span className="text-zinc-500 font-mono text-xs">{leaderboard.tournament.purse}</span>
                             )}
                         </div>
-                    )}
+                        
+                        {/* Event Info */}
+                        <div className="z-10 mt-4">
+                            <h3 className="text-2xl font-black text-white uppercase leading-none mb-1">
+                                {leaderboard?.tournament.name || 'PGA Tour'}
+                            </h3>
+                            <p className="text-zinc-500 font-mono text-xs uppercase flex items-center gap-1">
+                                <MapPin size={12}/> {leaderboard?.tournament.location || 'TBD'}
+                            </p>
+                        </div>
 
-                    {/* VIEW: RANKINGS / FEDEX */}
-                    {(view === 'rankings' || view === 'fedex') && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            {(view === 'rankings' ? rankings : fedex).map((golfer) => (
-                                <div key={golfer.id} onClick={() => router.push(`/sports/golf/player/${golfer.id}`)} className="group relative bg-zinc-900 border border-zinc-800 hover:border-zinc-600 transition-all cursor-pointer overflow-hidden p-0 flex flex-col h-40">
-                                    <div className="absolute -right-2 -bottom-6 text-[120px] font-black text-black/40 leading-none select-none z-0 group-hover:text-[#DFFF00]/10 transition-colors">{golfer.rank}</div>
-                                    <div className="relative z-10 flex h-full">
-                                        <div className="flex-1 p-5 flex flex-col justify-between">
-                                            <div>
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    {golfer.flag && <img src={golfer.flag} alt={golfer.country} className="w-4 h-3 rounded-[1px] object-cover opacity-80" />}
-                                                    <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest">{golfer.country}</span>
-                                                </div>
-                                                <h3 className="text-xl font-black text-white uppercase italic leading-none group-hover:text-[#DFFF00] transition-colors truncate max-w-[200px]">{golfer.name}</h3>
-                                            </div>
-                                            <div className="flex items-center gap-4 border-t border-zinc-800 pt-3">
-                                                <div>
-                                                    <div className="text-[8px] text-zinc-500 font-mono uppercase">Points</div>
-                                                    <div className="text-sm font-bold text-white font-mono">{golfer.displayValue}</div>
-                                                </div>
-                                                <div className="flex flex-col items-center">
-                                                    <div className="text-[8px] text-zinc-500 font-mono uppercase">Trend</div>
-                                                    <div className="text-xs font-bold font-mono">{renderTrend(golfer.movement || 0)}</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="w-32 relative overflow-hidden bg-gradient-to-l from-zinc-800/50 to-transparent">
-                                            {golfer.image ? (
-                                                <img src={golfer.image} alt={golfer.name} className="absolute bottom-0 right-0 h-[110%] w-auto object-contain object-bottom group-hover:scale-105 transition-transform duration-500 drop-shadow-xl" />
-                                            ) : (
-                                                <div className="absolute inset-0 flex items-center justify-center text-zinc-700"><Trophy size={48} strokeWidth={1} /></div>
+                        {/* Leader/Winner Section */}
+                        {leaderboard && leaderboard.players.length > 0 && (
+                            <div className="mt-6 bg-black/40 rounded-xl p-4 border border-zinc-800/50 backdrop-blur-sm z-10">
+                                <div className="text-[10px] text-zinc-500 uppercase tracking-widest mb-2">
+                                    {isFinal ? 'Winner' : 'Current Leader'}
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <div className="flex items-center gap-3">
+                                        {leaderboard.players[0].image && (
+                                            <img src={leaderboard.players[0].image} className="w-10 h-10 rounded-full bg-zinc-800 object-cover border border-zinc-700" />
+                                        )}
+                                        <div>
+                                            <span className="font-bold text-white block leading-none">{leaderboard.players[0].name}</span>
+                                            {leaderboard.players[0].flag && (
+                                                <img src={leaderboard.players[0].flag} className="w-3 h-2 opacity-50 mt-1" />
                                             )}
                                         </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                {/* RIGHT COL: SCHEDULE & INFO */}
-                <div className="space-y-6">
-                    
-                    {/* ACTIVE EVENT CARD */}
-                    {activeEvent && (
-                        <div className="bg-[#DFFF00] text-black p-6 rounded-lg shadow-xl relative overflow-hidden group">
-                            <div className="relative z-10">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <Activity size={16} className="animate-pulse"/>
-                                    <span className="font-mono text-xs font-bold uppercase tracking-widest">Active Tournament</span>
-                                </div>
-                                <h3 className="text-2xl font-black uppercase leading-none mb-2">{activeEvent.name}</h3>
-                                <div className="text-xs font-bold opacity-80 mb-6 flex items-center gap-1">
-                                    <MapPin size={12}/> {activeEvent.location}
-                                </div>
-                                <div className="flex justify-between items-end border-t border-black/10 pt-4">
-                                    <div>
-                                        <div className="text-[9px] font-mono uppercase tracking-widest opacity-60">Status</div>
-                                        <div className="font-bold text-sm">{activeEvent.status}</div>
-                                    </div>
                                     <div className="text-right">
-                                        <div className="text-[9px] font-mono uppercase tracking-widest opacity-60">Purse</div>
-                                        <div className="font-bold text-sm">{activeEvent.purse || 'TBD'}</div>
+                                        <span className="font-mono text-xl font-black text-[#DFFF00] block leading-none">{leaderboard.players[0].score}</span>
+                                        {isFinal && (
+                                            <span className="text-[9px] text-zinc-500 uppercase">Final</span>
+                                        )}
                                     </div>
                                 </div>
                             </div>
-                            <div className="absolute -right-6 -bottom-6 opacity-10 scale-150 group-hover:scale-125 transition-transform duration-700">
-                                <Trophy size={120} />
-                            </div>
-                        </div>
-                    )}
+                        )}
+                        
+                        <Activity className="absolute -right-6 -bottom-6 text-zinc-800/50 w-48 h-48 z-0 pointer-events-none" />
+                    </div>
+                </div>
+            </div>
 
-                    {/* SCHEDULE LIST */}
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
-                        <div className="p-4 border-b border-zinc-800 bg-black/40">
-                            <h4 className="flex items-center gap-2 text-white font-bold uppercase text-xs tracking-wider">
-                                <Calendar size={14} className="text-[#DFFF00]" /> Season Schedule
-                            </h4>
-                        </div>
-                        <div className="divide-y divide-zinc-800 max-h-[600px] overflow-y-auto">
-                            {schedule?.map(event => (
-                                <div key={event.id} className="p-4 hover:bg-zinc-800/50 transition-colors">
-                                    <div className="flex justify-between items-start mb-1">
-                                        <span className="text-[9px] font-mono text-[#DFFF00] uppercase tracking-wider">
-                                            {new Date(event.date).toLocaleDateString('en-US', {month:'short', day:'numeric'})}
-                                        </span>
-                                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-sm uppercase ${event.status.includes('Final') ? 'bg-zinc-800 text-zinc-500' : 'bg-red-900/20 text-red-500'}`}>
-                                            {event.status}
-                                        </span>
-                                    </div>
-                                    <div className="font-bold text-zinc-200 text-sm uppercase leading-tight mb-1">{event.name}</div>
-                                    <div className="text-[10px] text-zinc-500 font-mono truncate">{event.location}</div>
-                                </div>
-                            ))}
+            {/* --- MIDDLE ROW: STATS & RANKINGS --- */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 border-t border-zinc-800 pt-8">
+                
+                {/* LEFT COL: RANKINGS TOGGLE & LIST */}
+                <div className="lg:col-span-2 space-y-6">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-xl font-black text-white uppercase tracking-tighter flex items-center gap-2">
+                            <Trophy className="text-[#DFFF00]" size={20} /> Statistical Leaders
+                        </h3>
+                        <div className="flex gap-1 bg-zinc-900 p-1 rounded-lg border border-zinc-800">
+                            <button 
+                                onClick={() => setStatView('owgr')}
+                                className={`px-4 py-1.5 text-[10px] font-mono font-bold uppercase rounded-md transition-all ${statView === 'owgr' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                            >
+                                World Ranking
+                            </button>
+                            <button 
+                                onClick={() => setStatView('fedex')}
+                                className={`px-4 py-1.5 text-[10px] font-mono font-bold uppercase rounded-md transition-all ${statView === 'fedex' ? 'bg-[#DFFF00] text-black shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                            >
+                                FedEx Cup
+                            </button>
                         </div>
                     </div>
 
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden min-h-[300px]">
+                        {(statView === 'owgr' ? rankings : fedex)?.length > 0 ? (
+                            <table className="w-full text-left">
+                                <thead>
+                                    <tr className="border-b border-zinc-800 bg-black/20 text-[9px] font-mono text-zinc-500 uppercase tracking-widest">
+                                        <th className="p-4 w-16 text-center">Rank</th>
+                                        <th className="p-4">Golfer</th>
+                                        <th className="p-4 text-center">Trend</th>
+                                        <th className="p-4 text-right">Points</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-zinc-800/50">
+                                    {(statView === 'owgr' ? rankings : fedex).slice(0, 10).map((player) => (
+                                        <tr 
+                                            key={player.id} 
+                                            onClick={() => router.push(`/sports/golf/player/${player.id}`)}
+                                            className="hover:bg-zinc-800/50 cursor-pointer transition-colors group"
+                                        >
+                                            <td className="p-4 text-center font-mono font-bold text-zinc-400 group-hover:text-white">
+                                                {player.rank}
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-3">
+                                                    {player.image ? (
+                                                        <img src={player.image} className="w-8 h-8 rounded-full bg-zinc-950 object-cover" />
+                                                    ) : (
+                                                        <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-[10px]">{player.name.charAt(0)}</div>
+                                                    )}
+                                                    <div>
+                                                        <div className="font-bold text-zinc-300 group-hover:text-[#DFFF00] transition-colors">{player.name}</div>
+                                                        <div className="flex items-center gap-1.5 mt-0.5">
+                                                            {player.flag && <img src={player.flag} className="w-3 h-2 opacity-60" />}
+                                                            <span className="text-[9px] text-zinc-600 font-mono uppercase">{player.country}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                <div className="flex justify-center">{renderTrend(player.movement || 0)}</div>
+                                            </td>
+                                            <td className="p-4 text-right font-mono text-zinc-400 text-sm">
+                                                {player.displayValue}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-full py-12 text-zinc-500">
+                                <Activity size={32} className="mb-2 opacity-50" />
+                                <span className="text-xs font-mono uppercase tracking-widest">Ranking Data Unavailable</span>
+                            </div>
+                        )}
+                        <div className="p-3 bg-black/20 border-t border-zinc-800 text-center">
+                            <button className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest hover:text-white transition-colors flex items-center justify-center gap-1 w-full">
+                                View Full Standings <ChevronRight size={10} />
+                            </button>
+                        </div>
+                    </div>
                 </div>
+
+                {/* RIGHT COL: UPCOMING SCHEDULE (VERTICAL LIST) */}
+                <div className="lg:col-span-1 space-y-6">
+                    <h3 className="text-xl font-black text-white uppercase tracking-tighter flex items-center gap-2">
+                        <Calendar className="text-zinc-600" size={20} /> Upcoming
+                    </h3>
+                    
+                    <div className="space-y-3">
+                        {upcomingEvents.length > 0 ? upcomingEvents.slice(0, 5).map((event) => (
+                            <div key={event.id} className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl hover:border-zinc-600 transition-colors">
+                                <div className="flex justify-between items-start mb-2">
+                                    <span className="text-[9px] font-mono text-[#DFFF00] uppercase tracking-wider bg-[#DFFF00]/10 px-2 py-0.5 rounded-full">
+                                        {new Date(event.date).toLocaleDateString('en-US', {month:'short', day:'numeric'})}
+                                    </span>
+                                    {event.purse && <span className="text-[9px] text-zinc-500 font-mono">{event.purse}</span>}
+                                </div>
+                                <div className="font-bold text-zinc-200 text-sm uppercase leading-tight mb-2">{event.name}</div>
+                                <div className="flex items-center gap-1 text-[10px] text-zinc-500 font-mono">
+                                    <MapPin size={10} /> {event.location}
+                                </div>
+                            </div>
+                        )) : (
+                             <div className="text-zinc-500 text-xs font-mono uppercase tracking-widest border border-zinc-800 rounded-xl p-6 text-center">
+                                No Upcoming Events
+                            </div>
+                        )}
+                    </div>
+                </div>
+
             </div>
+
         </div>
     );
 }

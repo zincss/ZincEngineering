@@ -22,19 +22,14 @@ export default function GameTicker({ scores }: { scores: any[] }) {
         setGameData(null);
     };
 
-    // LOGIC: Create a "Base Strip" that is wide enough, then duplicate it exactly ONCE.
-    // This creates [Strip A][Strip A]. The animation moves -50% (the width of Strip A),
-    // causing Strip 2 to replace Strip 1 perfectly, creating a seamless loop.
     const tickerItems = useMemo(() => {
         if (!scores || scores.length === 0) return [];
         
         let baseList = [...scores];
-        // Ensure the base strip is long enough (min 10 items) to cover 4k screens
         while (baseList.length < 10) {
             baseList = [...baseList, ...scores];
         }
         
-        // Return exactly two copies of the robust base strip
         return [...baseList, ...baseList];
     }, [scores]);
 
@@ -42,38 +37,37 @@ export default function GameTicker({ scores }: { scores: any[] }) {
 
     return (
         <>
-            {/* Ticker Container - Using Flexbox instead of Absolute Positioning */}
+            {/* Ticker Container */}
             <div className="w-full bg-black/80 backdrop-blur-md border-b border-zinc-800 h-16 flex items-center z-20 relative">
                 
-                {/* 1. STATIC LABEL (No longer absolute) */}
-                {/* This sits naturally in the flex flow, pushing the ticker to the right */}
-                <div className="h-full bg-black px-6 flex items-center border-r border-zinc-800 shadow-[10px_0_20px_rgba(0,0,0,1)] z-30 shrink-0">
+                {/* 1. STATIC LABEL: Responsive Width */}
+                <div className="h-full bg-black px-3 md:px-6 flex items-center border-r border-zinc-800 shadow-[10px_0_20px_rgba(0,0,0,1)] z-30 shrink-0">
                     <div className="flex items-center gap-2 text-[#DFFF00] font-black text-[10px] uppercase tracking-widest">
                         <Activity size={14} className={scores.some(s => s.isLive) ? "animate-pulse" : ""} />
-                        <span>LIVE WIRE</span>
+                        <span className="hidden md:inline">LIVE WIRE</span>
                     </div>
                 </div>
 
-                {/* 2. SCROLLING AREA (Takes remaining width) */}
+                {/* 2. SCROLLING AREA */}
                 <div className="flex-1 overflow-hidden h-full flex items-center relative z-10">
                     
                     {/* 3. MOVING TRACK */}
-                    {/* Hover pause included */}
                     <div className="flex animate-ticker hover:[animation-play-state:paused]">
                         {tickerItems.map((game, i) => (
                             <button 
                                 key={`${game.id}-${i}`}
                                 onClick={() => handleGameClick(game.id)}
-                                className="flex items-center gap-6 px-8 border-r border-zinc-900 h-16 hover:bg-zinc-900/50 transition-colors shrink-0 group/item text-left whitespace-nowrap"
+                                // Responsive padding and gap
+                                className="flex items-center gap-3 md:gap-6 px-4 md:px-8 border-r border-zinc-900 h-16 hover:bg-zinc-900/50 transition-colors shrink-0 group/item text-left whitespace-nowrap"
                             >
-                                <div className="flex flex-col items-center min-w-[60px]">
+                                <div className="flex flex-col items-center min-w-[50px] md:min-w-[60px]">
                                     <span className={`text-[9px] font-mono font-bold uppercase tracking-widest ${game.isLive ? 'text-red-500 animate-pulse' : 'text-zinc-500'}`}>
                                         {game.status}
                                     </span>
                                     {game.isLive && <span className="text-[9px] font-mono text-zinc-300">{game.clock}</span>}
                                 </div>
 
-                                <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-3 md:gap-4">
                                     <div className="flex items-center gap-2">
                                         <img src={game.home.logo} className="w-6 h-6 object-contain" alt={game.home.name}/>
                                         <span className={`font-black text-sm ${parseInt(game.home.score) > parseInt(game.away.score) ? 'text-white' : 'text-zinc-400'}`}>
