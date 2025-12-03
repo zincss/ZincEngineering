@@ -10,6 +10,7 @@ const API = {
   SCHEDULE: 'https://site.web.api.espn.com/apis/site/v2/sports/golf/pga/tours/schedule',
   SCOREBOARD: 'https://site.web.api.espn.com/apis/site/v2/sports/golf/leaderboard?league=pga',
   RANKINGS: 'https://site.web.api.espn.com/apis/site/v2/sports/golf/rankings',
+  PLAYER_STATS: 'https://site.web.api.espn.com/apis/common/v3/sports/golf/pga/statistics/byathlete',
   PLAYER_BASE: 'https://site.web.api.espn.com/apis/common/v3/sports/golf/athletes',
   SEARCH: 'https://site.web.api.espn.com/apis/common/v3/search?region=us&lang=en&sport=golf&limit=5&mode=prefix&type=player',
 };
@@ -28,63 +29,25 @@ export interface GolfLeaderboard {
     players: any[];
 }
 
-// --- IMAGE RESOLVER ---
-// Uses ESPN's combiner for high-quality, consistent resizing
 const resolveImage = (id: string) => {
     if (!id) return 'https://a.espncdn.com/i/headshots/golf/players/full/default.png';
     return `https://a.espncdn.com/combiner/i?img=/i/headshots/golf/players/full/${id}.png&w=350&h=350&scale=crop`;
-};
-
-// --- STATIC FALLBACK STATS (Restored) ---
-const FALLBACK_STATS = {
-    // 2025 Official Money List
-    earnings: [
-        { id: '9478', rank: '1', name: 'Scottie Scheffler', value: '$29,228,357' },
-        { id: '10140', rank: '2', name: 'Xander Schauffele', value: '$18,355,910' },
-        { id: '3470', rank: '3', name: 'Rory McIlroy', value: '$10,992,418' },
-        { id: '8961', rank: '4', name: 'Collin Morikawa', value: '$8,707,570' },
-        { id: '46970', rank: '5', name: 'Ludvig Aberg', value: '$7,278,222' }
-    ],
-    // Driving Distance Leaders
-    driving: [
-        { id: '3470', rank: '1', name: 'Rory McIlroy', value: '320.2' }, 
-        { id: '4425906', rank: '2', name: 'Cameron Young', value: '315.8' },
-        { id: '11099', rank: '3', name: 'Wyndham Clark', value: '314.5' },
-        { id: '9258', rank: '4', name: 'Byeong Hun An', value: '313.2' },
-        { id: '46970', rank: '5', name: 'Ludvig Aberg', value: '311.9' }
-    ],
-    // Scoring Average
-    scoring: [
-        { id: '9478', rank: '1', name: 'Scottie Scheffler', value: '68.63' },
-        { id: '10140', rank: '2', name: 'Xander Schauffele', value: '68.95' },
-        { id: '3470', rank: '3', name: 'Rory McIlroy', value: '69.32' },
-        { id: '8961', rank: '4', name: 'Collin Morikawa', value: '69.45' },
-        { id: '46970', rank: '5', name: 'Ludvig Aberg', value: '69.51' }
-    ],
-    // SG: Putting
-    putting: [
-        { id: '6013', rank: '1', name: 'Russell Henley', value: '0.881' },
-        { id: '12513', rank: '2', name: 'Taylor Montgomery', value: '0.854' },
-        { id: '10140', rank: '3', name: 'Xander Schauffele', value: '0.812' },
-        { id: '3669', rank: '4', name: 'Harris English', value: '0.783' },
-        { id: '5539', rank: '5', name: 'Tommy Fleetwood', value: '0.740' }
-    ]
 };
 
 // --- DATA FETCHERS ---
 
 export async function fetchLiveLeaderboard(): Promise<GolfLeaderboard | null> {
     try {
-        const res = await fetch(API.SCOREBOARD, { headers: HEADERS, next: { revalidate: 60 } });
+        const res = await fetch(API.SCOREBOARD, { headers: HEADERS, cache: 'no-store' });
         if (!res.ok) throw new Error("Leaderboard Fetch Failed");
         const data = await res.json();
         
         const event = data.events?.[0];
         
-        // Fallback: If no active/recent event, grab the next one from schedule
         if (!event || event.status?.type?.state === 'pre') {
              const schedule = await fetchSchedule();
-             const nextEvent = schedule.find((e: any) => new Date(e.rawDate) > new Date());
+             const now = new Date();
+             const nextEvent = schedule.find((e: any) => new Date(e.rawDate) > now);
              
              if (nextEvent) {
                  return {
@@ -104,7 +67,6 @@ export async function fetchLiveLeaderboard(): Promise<GolfLeaderboard | null> {
         }
 
         if (!event) return null;
-
         const comp = event.competitions?.[0];
         
         return {
@@ -131,27 +93,13 @@ export async function fetchLiveLeaderboard(): Promise<GolfLeaderboard | null> {
             })) || []
         };
     } catch (e) {
-        console.error("Golf Leaderboard Error", e);
-        // Return a safe fallback object to prevent dashboard crash
-        return {
-            id: 'fallback',
-            tournament: {
-                name: 'PGA Tour',
-                course: '-',
-                location: '-',
-                dates: new Date().toISOString(),
-                status: 'Offline',
-                defendingChampion: '-'
-            },
-            isLive: false,
-            players: []
-        };
+        return null;
     }
 }
 
 export async function fetchRankings() {
     try {
-        const res = await fetch(API.RANKINGS, { headers: HEADERS, next: { revalidate: 86400 } });
+        const res = await fetch(API.RANKINGS, { headers: HEADERS, cache: 'no-store' });
         const data = await res.json();
         
         const processRankings = (ranks: any[]) => {
@@ -161,7 +109,8 @@ export async function fetchRankings() {
                 name: r.athlete.displayName,
                 points: r.points?.toFixed(2) || '-',
                 flag: r.athlete.flag?.href,
-                image: resolveImage(r.athlete.id)
+                image: resolveImage(r.athlete.id),
+                value: `${r.points?.toFixed(2) || '0'} PTS` 
             })) || [];
         };
 
@@ -180,7 +129,8 @@ export async function fetchRankings() {
 
 export async function fetchSchedule() {
     try {
-        const res = await fetch(API.SCHEDULE, { headers: HEADERS, next: { revalidate: 3600 } });
+        // Updated to search for 2025/2026 coverage
+        const res = await fetch(`${API.SCHEDULE}?season=2025`, { headers: HEADERS, cache: 'no-store' });
         if (!res.ok) return [];
         const data = await res.json();
         
@@ -199,32 +149,61 @@ export async function fetchSchedule() {
     }
 }
 
-// FIX: Restored fetchSeasonStats with fallback data so components render
+// FIX: Robust Fetcher (Removed 'active: true' to fix off-season data loss)
 export async function fetchSeasonStats() {
-    const process = (list: any[]) => list.map(p => ({
-        ...p,
-        image: resolveImage(p.id)
-    }));
-
-    return [
-        { id: 'earnings', title: 'Money List', players: process(FALLBACK_STATS.earnings) },
-        { id: 'driving', title: 'Driving Distance', players: process(FALLBACK_STATS.driving) },
-        { id: 'scoring', title: 'Scoring Average', players: process(FALLBACK_STATS.scoring) },
-        { id: 'putting', title: 'SG: Putting', players: process(FALLBACK_STATS.putting) }
+    const categories = [
+        { id: 'earnings', title: 'Money List', sort: 'statistics.earnings:desc' },
+        { id: 'scoring', title: 'Scoring Average', sort: 'statistics.scoringAverage:asc' },
+        { id: 'driving', title: 'Driving Distance', sort: 'statistics.drivingDistance:desc' },
+        { id: 'putting', title: 'SG: Putting', sort: 'statistics.sgPutting:desc' }
     ];
+
+    const fetchForSeason = async (season: string) => {
+        const seasonResults = [];
+        for (const cat of categories) {
+            try {
+                // FIXED: Removed 'active: true' to ensure data returns even if season is over
+                const params = new URLSearchParams({
+                    region: 'us', lang: 'en', sort: cat.sort, limit: '5', season: season
+                });
+                const res = await fetch(`${API.PLAYER_STATS}?${params.toString()}`, { headers: HEADERS, cache: 'no-store' });
+                if (res.ok) {
+                    const data = await res.json();
+                    const players = (data.athletes || []).map((a: any) => ({
+                        id: a.athlete.id,
+                        name: a.athlete.displayName,
+                        image: resolveImage(a.athlete.id),
+                        value: a.statistics?.[0]?.displayValue || a.displayValue || '-'
+                    }));
+                    if (players.length > 0) seasonResults.push({ id: cat.id, title: cat.title, players, season });
+                }
+            } catch (e) { console.warn(`Error fetching ${season} stats`, e); }
+        }
+        return seasonResults;
+    };
+
+    // 1. Try 2025 (Current/Just Finished)
+    let results = await fetchForSeason('2025');
+
+    // 2. Fallback to 2024 if 2025 is empty
+    if (results.length === 0) {
+        console.log("⛳ [GOLF] 2025 Stats Empty. Falling back to 2024...");
+        results = await fetchForSeason('2024');
+    }
+
+    return results;
 }
 
 export async function fetchGolferProfile(id: string) {
     try {
-        const res = await fetch(`${API.PLAYER_BASE}/${id}`, { headers: HEADERS, next: { revalidate: 3600 } });
+        const res = await fetch(`${API.PLAYER_BASE}/${id}`, { headers: HEADERS, cache: 'no-store' });
         if (!res.ok) return null;
-
         const data = await res.json();
         const ath = data.athlete;
 
         let history = [];
         try {
-             const logRes = await fetch(`${API.PLAYER_BASE}/${id}/eventlog`, { headers: HEADERS, next: { revalidate: 3600 } });
+             const logRes = await fetch(`${API.PLAYER_BASE}/${id}/eventlog?season=2025`, { headers: HEADERS, cache: 'no-store' });
              if (logRes.ok) {
                  const logData = await logRes.json();
                  history = (logData.events || []).slice(0, 5).map((e: any) => ({
@@ -235,7 +214,7 @@ export async function fetchGolferProfile(id: string) {
                      earnings: e.earnings ? `$${Math.round(e.earnings).toLocaleString()}` : '-'
                 }));
              }
-        } catch(e) { console.error("Log fetch failed", e); }
+        } catch(e) {}
 
         return {
             id: ath.id,
@@ -252,9 +231,7 @@ export async function fetchGolferProfile(id: string) {
             history,
             bio: ath.bio || `Professional golfer from ${ath.birthPlace?.city || 'Unknown'}.`
         };
-    } catch (e) { 
-        return null; 
-    }
+    } catch (e) { return null; }
 }
 
 export async function searchGolfers(query: string) {

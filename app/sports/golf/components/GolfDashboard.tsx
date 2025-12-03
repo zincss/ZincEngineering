@@ -1,10 +1,10 @@
+// app/sports/golf/components/GolfDashboard.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trophy, Calendar, Flag, MapPin, BarChart2, RefreshCw, Award, Clock, DollarSign } from 'lucide-react';
 import GolfSearch from './GolfSearch';
-import { getGolfDashboard } from '../actions';
 import LiveTicker from './LiveTicker';
 
 const Countdown = ({ targetDate }: { targetDate?: string }) => {
@@ -52,22 +52,26 @@ const StatCard = ({ title, players, router }: any) => (
             <BarChart2 size={12} className="text-zinc-500" />
         </div>
         <div className="flex-1 divide-y divide-zinc-800/50">
-            {players.slice(0, 5).map((p: any, i: number) => (
-                <div 
-                    key={p.id} 
-                    onClick={() => router.push(`/sports/golf/player/${p.id}`)}
-                    className="flex items-center justify-between p-3 hover:bg-zinc-800 transition-colors cursor-pointer group"
-                >
-                    <div className="flex items-center gap-3">
-                        <span className="text-[10px] font-mono text-zinc-600 w-3">{i + 1}</span>
-                        <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden border border-zinc-800 group-hover:border-zinc-600">
-                            {p.image && <img src={p.image} className="w-full h-full object-cover" alt={p.name} />}
+            {players && players.length > 0 ? (
+                players.slice(0, 5).map((p: any, i: number) => (
+                    <div 
+                        key={p.id} 
+                        onClick={() => router.push(`/sports/golf/player/${p.id}`)}
+                        className="flex items-center justify-between p-3 hover:bg-zinc-800 transition-colors cursor-pointer group"
+                    >
+                        <div className="flex items-center gap-3">
+                            <span className="text-[10px] font-mono text-zinc-600 w-3">{i + 1}</span>
+                            <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden border border-zinc-800 group-hover:border-zinc-600">
+                                {p.image && <img src={p.image} className="w-full h-full object-cover" alt={p.name} />}
+                            </div>
+                            <span className="text-sm font-bold text-white group-hover:text-[#DFFF00] transition-colors">{p.name}</span>
                         </div>
-                        <span className="text-sm font-bold text-white group-hover:text-[#DFFF00] transition-colors">{p.name}</span>
+                        <span className="font-mono text-xs font-bold text-white">{p.value}</span>
                     </div>
-                    <span className="font-mono text-xs font-bold text-white">{p.value}</span>
-                </div>
-            ))}
+                ))
+            ) : (
+                <div className="p-4 text-center text-zinc-600 text-[10px] font-mono uppercase">Data Unavailable</div>
+            )}
         </div>
     </div>
 );
@@ -104,58 +108,27 @@ const EventCard = ({ event }: any) => {
     );
 };
 
-export default function GolfDashboard() {
+export default function GolfDashboard({ initialData }: { initialData: any }) {
     const router = useRouter();
     const [view, setView] = useState<'overview' | 'rankings' | 'schedule'>('overview');
     const [leaderTab, setLeaderTab] = useState('earnings');
     const [rankingTab, setRankingTab] = useState<'owgr' | 'fedex'>('owgr');
     
-    const [data, setData] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(false);
-
-    useEffect(() => {
-        async function loadData() {
-            setLoading(true);
-            try {
-                const res = await getGolfDashboard();
-                if (res && res.success) {
-                    setData(res);
-                } else {
-                    setError(true);
-                }
-            } catch (e) {
-                setError(true);
-            }
-            setLoading(false);
-        }
-        loadData();
-    }, []);
-
-    if (loading) {
-        return (
-            <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 animate-in fade-in">
-                <div className="w-16 h-16 border-4 border-zinc-800 border-t-[#DFFF00] rounded-full animate-spin"></div>
-                <div className="text-[#DFFF00] font-mono text-xs uppercase tracking-widest animate-pulse">Establishing Uplink...</div>
-            </div>
-        );
-    }
-
-    if (error || !data) {
-        return (
-            <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
-                <div className="text-zinc-500 font-mono text-xs uppercase">Connection Failed</div>
-                <button onClick={() => window.location.reload()} className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 px-4 py-2 hover:border-[#DFFF00] text-white text-xs font-bold uppercase transition-colors">
-                    <RefreshCw size={14}/> Retry Uplink
-                </button>
-            </div>
-        );
-    }
-
+    const data = initialData || { owgr: [], fedex: [], schedule: [], stats: [], live: null };
+    
     const activeEvent = data.live;
     const activeStats = data.stats?.find((s: any) => s.id === leaderTab) || data.stats?.[0];
     const topGridStats = data.stats?.filter((s: any) => s.id !== 'earnings') || []; 
     const rankingsList = rankingTab === 'owgr' ? data.owgr : data.fedex;
+    
+    // DYNAMIC SEASON: Grabs the season from the data, defaults to 2025
+    const displaySeason = data.stats?.[0]?.season || '2025';
+
+    const formattedDate = activeEvent?.tournament?.dates 
+        ? new Date(activeEvent.tournament.dates).toLocaleDateString('en-US', {
+            month: 'long', day: 'numeric', year: 'numeric'
+          })
+        : 'TBD';
 
     return (
         <div className="max-w-[1600px] mx-auto px-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -184,7 +157,7 @@ export default function GolfDashboard() {
                             {activeEvent?.tournament?.name || 'Season Overview'}
                         </h1>
                         <div className="flex items-center gap-4 text-xs font-mono text-zinc-400 uppercase">
-                            <span className="flex items-center gap-1"><Calendar size={12} /> {activeEvent?.tournament?.dates ? new Date(activeEvent.tournament.dates).toLocaleDateString() : 'TBD'}</span>
+                            <span className="flex items-center gap-1"><Calendar size={12} /> {formattedDate}</span>
                             <span className="flex items-center gap-1"><MapPin size={12} /> {activeEvent?.tournament?.location || activeEvent?.tournament?.course || 'Location TBD'}</span>
                         </div>
                     </div>
@@ -262,7 +235,8 @@ export default function GolfDashboard() {
                          <div className="flex flex-col md:flex-row md:items-center justify-between p-2 bg-zinc-950/50 border-b border-zinc-800 gap-2">
                             <div className="px-3 py-2 flex items-center gap-2">
                                 <DollarSign size={14} className="text-[#DFFF00]" />
-                                <h3 className="font-black text-white uppercase italic tracking-tight hidden md:block">Season Statistics</h3>
+                                {/* UPDATED: Uses displaySeason variable */}
+                                <h3 className="font-black text-white uppercase italic tracking-tight hidden md:block">Season Statistics <span className="text-zinc-600 not-italic">({displaySeason})</span></h3>
                             </div>
                             <div className="flex bg-zinc-900 p-1 rounded border border-zinc-800 overflow-x-auto no-scrollbar">
                                 <button onClick={() => setLeaderTab('earnings')} className={`px-3 py-1 text-[9px] font-bold uppercase rounded ${leaderTab === 'earnings' ? 'bg-[#DFFF00] text-black' : 'text-zinc-500 hover:text-white'}`}>Earnings</button>
@@ -273,19 +247,21 @@ export default function GolfDashboard() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-zinc-800/50">
-                            {activeStats ? activeStats.players.slice(0, 10).map((p: any, i: number) => (
-                                <div key={p.id} onClick={() => router.push(`/sports/golf/player/${p.id}`)} className="flex items-center p-3 hover:bg-zinc-800 cursor-pointer gap-4 group">
-                                    <div className="w-8 font-mono text-lg font-black text-zinc-600 text-center group-hover:text-[#DFFF00]">{i + 1}</div>
-                                    <div className="flex-1 flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden border border-zinc-800 group-hover:border-zinc-600">
-                                            {p.image && <img src={p.image} className="w-full h-full object-cover" alt={p.name} />}
+                            {activeStats && activeStats.players && activeStats.players.length > 0 ? (
+                                activeStats.players.slice(0, 10).map((p: any, i: number) => (
+                                    <div key={p.id} onClick={() => router.push(`/sports/golf/player/${p.id}`)} className="flex items-center p-3 hover:bg-zinc-800 cursor-pointer gap-4 group">
+                                        <div className="w-8 font-mono text-lg font-black text-zinc-600 text-center group-hover:text-[#DFFF00]">{i + 1}</div>
+                                        <div className="flex-1 flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden border border-zinc-800 group-hover:border-zinc-600">
+                                                {p.image && <img src={p.image} className="w-full h-full object-cover" alt={p.name} />}
+                                            </div>
+                                            <div className="font-bold text-white text-sm">{p.name}</div>
                                         </div>
-                                        <div className="font-bold text-white text-sm">{p.name}</div>
+                                        <div className="text-xs font-mono font-bold text-[#DFFF00]">{p.value}</div>
                                     </div>
-                                    <div className="text-xs font-mono font-bold text-[#DFFF00]">{p.value}</div>
-                                </div>
-                            )) : (
-                                <div className="p-8 text-center text-zinc-500 font-mono text-xs col-span-2">Data unavailable.</div>
+                                ))
+                            ) : (
+                                <div className="p-8 text-center text-zinc-500 font-mono text-xs col-span-2">Data Unavailable for {displaySeason} Season.</div>
                             )}
                         </div>
                     </div>
