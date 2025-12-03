@@ -183,7 +183,8 @@ const DriverCard = ({ driver, onNavigate, variant = 'standard', rank }: { driver
     const isMobile = variant === 'mobile';
 
     // Dynamic Sizing Based on Variant
-    const heightClass = variant === 'compact' ? 'h-[280px]' : isMobile ? 'h-[200px]' : 'h-[360px]';
+    // UPDATED: Increased mobile height from 200px to 280px to prevent face cutoff
+    const heightClass = variant === 'compact' ? 'h-[280px]' : isMobile ? 'h-[280px]' : 'h-[360px]';
     // Changed text-lg to text-base for mobile as requested ("tiny bit smaller")
     const titleSize = variant === 'compact' ? 'text-2xl' : isMobile ? 'text-base' : 'text-4xl';
     const padding = isMobile ? 'p-2' : 'p-4';
@@ -511,10 +512,12 @@ export default function F1Dashboard({ activeDrivers, teams, tracks, season }: { 
         <div className="min-h-screen bg-zinc-950 text-white selection:bg-[#DFFF00] selection:text-black pb-20">
             {isNavigating && <NavigationLoader />}
 
-            <div className="pt-24 pb-12 px-6 max-w-[1600px] mx-auto border-b border-zinc-800 mb-12 relative">
+            {/* UPDATED: Increased top padding from pt-24 to pt-36 on mobile to clear fixed Back Button */}
+            <div className="pt-36 md:pt-24 pb-12 px-6 max-w-[1600px] mx-auto border-b border-zinc-800 mb-12 relative">
                 
-                {/* BADGE MOVED TO RIGHT SIDE */}
-                <div className="absolute top-0 right-4 md:right-6 mt-24 md:mt-0 lg:mt-24">
+                {/* BADGE MOVED TO RELATIVE FLEX ON MOBILE TO AVOID OVERLAP */}
+                {/* UPDATED: Changed absolute to static flex on mobile, absolute on desktop */}
+                <div className="flex justify-end mb-4 md:mb-0 md:absolute md:top-0 md:right-4 md:mt-24 lg:mt-24 xl:right-6">
                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-full text-[10px] font-mono text-[#DFFF00] tracking-widest uppercase">
                       <Flag size={12} />
                       <span>F1 INTELLIGENCE HUB // {season}</span>
