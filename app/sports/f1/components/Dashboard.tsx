@@ -180,11 +180,14 @@ const DriverCard = ({ driver, onNavigate, variant = 'standard', rank }: { driver
     const targetUrl = `/sports/f1/driver/${did}`;
     const [imgError, setImgError] = useState(false);
 
+    const isMobile = variant === 'mobile';
+
     // Dynamic Sizing Based on Variant
-    const heightClass = variant === 'compact' ? 'h-[280px]' : variant === 'mobile' ? 'h-[200px]' : 'h-[360px]';
-    const titleSize = variant === 'compact' ? 'text-2xl' : variant === 'mobile' ? 'text-lg' : 'text-4xl';
-    const padding = variant === 'mobile' ? 'p-2' : 'p-4';
-    const numberSize = variant === 'mobile' ? 'text-[80px]' : 'text-[140px]';
+    const heightClass = variant === 'compact' ? 'h-[280px]' : isMobile ? 'h-[200px]' : 'h-[360px]';
+    // Changed text-lg to text-base for mobile as requested ("tiny bit smaller")
+    const titleSize = variant === 'compact' ? 'text-2xl' : isMobile ? 'text-base' : 'text-4xl';
+    const padding = isMobile ? 'p-2' : 'p-4';
+    const numberSize = isMobile ? 'text-[80px]' : 'text-[140px]';
 
     return (
         <div 
@@ -211,6 +214,15 @@ const DriverCard = ({ driver, onNavigate, variant = 'standard', rank }: { driver
                 </div>
             )}
 
+            {/* MOBILE ONLY: NATIONALITY TOP LEFT */}
+            {isMobile && driver.nationality && (
+                <div className="absolute top-2 left-2 z-30">
+                    <span className="text-[9px] font-mono font-bold text-[#DFFF00] uppercase tracking-widest bg-black/60 px-2 py-0.5 rounded-sm backdrop-blur-md border border-zinc-800 shadow-sm">
+                        {driver.nationality}
+                    </span>
+                </div>
+            )}
+
             {/* DRIVER IMAGE */}
             <div className="absolute inset-0 z-10 flex items-end justify-center overflow-hidden">
                 {!imgError && image ? (
@@ -230,13 +242,17 @@ const DriverCard = ({ driver, onNavigate, variant = 'standard', rank }: { driver
             <div className={`absolute bottom-0 left-0 w-full z-20 ${padding}`}>
                 <div className="flex justify-between items-end mb-2">
                     <div>
-                        <div className="flex items-center gap-2 mb-1">
-                            {driver.nationality && (
-                                <span className="text-[9px] font-mono font-bold text-[#DFFF00] uppercase tracking-widest bg-black/50 px-2 py-0.5 rounded-sm backdrop-blur-sm border border-zinc-800">
-                                    {driver.nationality}
-                                </span>
-                            )}
-                        </div>
+                        {/* DESKTOP NATIONALITY: ABOVE NAME (Hidden on mobile) */}
+                        {!isMobile && (
+                            <div className="flex items-center gap-2 mb-1">
+                                {driver.nationality && (
+                                    <span className="text-[9px] font-mono font-bold text-[#DFFF00] uppercase tracking-widest bg-black/50 px-2 py-0.5 rounded-sm backdrop-blur-sm border border-zinc-800">
+                                        {driver.nationality}
+                                    </span>
+                                )}
+                            </div>
+                        )}
+                        
                         <h3 className={`font-black uppercase italic tracking-tighter text-white leading-[0.85] ${titleSize}`}>
                             {driver.givenName}<br/>
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-500 group-hover:to-white transition-all">
@@ -495,13 +511,18 @@ export default function F1Dashboard({ activeDrivers, teams, tracks, season }: { 
         <div className="min-h-screen bg-zinc-950 text-white selection:bg-[#DFFF00] selection:text-black pb-20">
             {isNavigating && <NavigationLoader />}
 
-            <div className="pt-24 pb-12 px-6 max-w-[1600px] mx-auto border-b border-zinc-800 mb-12">
+            <div className="pt-24 pb-12 px-6 max-w-[1600px] mx-auto border-b border-zinc-800 mb-12 relative">
+                
+                {/* BADGE MOVED TO RIGHT SIDE */}
+                <div className="absolute top-0 right-4 md:right-6 mt-24 md:mt-0 lg:mt-24">
+                   <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-full text-[10px] font-mono text-[#DFFF00] tracking-widest uppercase">
+                      <Flag size={12} />
+                      <span>F1 INTELLIGENCE HUB // {season}</span>
+                   </div>
+                </div>
+
                 <div className="flex flex-col xl:flex-row items-end justify-between gap-8">
                     <div>
-                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-full text-[10px] font-mono text-[#DFFF00] tracking-widest uppercase mb-6">
-                           <Flag size={12} />
-                           <span>F1 INTELLIGENCE HUB // {season}</span>
-                        </div>
                         {/* Responsive Text Size */}
                         <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter text-white uppercase mb-2">
                            Formula <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 to-zinc-800 text-stroke-white">One</span>

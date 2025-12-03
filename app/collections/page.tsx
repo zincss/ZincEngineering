@@ -13,11 +13,15 @@ export default function CollectionsHub() {
       <BackButton href="/" label="MAIN TERMINAL" />
 
       {/* HEADER SECTION */}
-      <div className="pt-24 pb-12 px-6 max-w-[1600px] mx-auto border-b border-zinc-800">
-        <div className="flex items-center gap-2 text-[#DFFF00] font-mono text-sm font-black tracking-widest uppercase mb-4">
+      {/* Added 'relative' to container to support absolute positioning of the label */}
+      <div className="pt-24 pb-12 px-6 max-w-[1600px] mx-auto border-b border-zinc-800 relative">
+        
+        {/* MOVED LABEL TO RIGHT SIDE */}
+        <div className="absolute top-0 right-6 mt-24 flex items-center gap-2 text-[#DFFF00] font-mono text-sm font-black tracking-widest uppercase animate-in fade-in slide-in-from-right-4 duration-1000">
             <span className="text-zinc-600">/</span>
             <span>COLLECTIONS_CODEX</span>
         </div>
+
         <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter mb-4">
             Digital <span className="text-zinc-700">Archives</span>
         </h1>

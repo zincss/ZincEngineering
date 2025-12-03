@@ -27,12 +27,16 @@ export default function Home() {
         </div>
         
         <div className="relative z-10 w-full max-w-[1600px] mx-auto px-4 md:px-6">
+          
+          {/* BADGE MOVED TO RIGHT SIDE */}
+          <div className="absolute top-0 right-4 md:right-6 animate-in fade-in slide-in-from-right-4 duration-1000">
+             <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-900/50 border border-zinc-800 backdrop-blur-sm rounded-full text-[10px] font-mono text-[#DFFF00] tracking-widest uppercase">
+                <span className="w-2 h-2 bg-[#DFFF00] rounded-full animate-pulse" />
+                System Operational v2.4
+             </div>
+          </div>
+
           <div className="max-w-4xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-900/50 border border-zinc-800 backdrop-blur-sm rounded-full text-[10px] font-mono text-[#DFFF00] tracking-widest uppercase mb-6 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-              <span className="w-2 h-2 bg-[#DFFF00] rounded-full animate-pulse" />
-              System Operational v2.4
-            </div>
-            
             <h1 className="text-5xl md:text-8xl font-black tracking-tighter text-white mb-6 uppercase animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-100">
               Zinc <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 to-zinc-800 text-stroke-white">Engineering</span>
             </h1>
