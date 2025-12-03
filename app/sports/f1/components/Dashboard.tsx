@@ -530,7 +530,8 @@ export default function F1Dashboard({ activeDrivers, teams, tracks, season }: { 
             {isNavigating && <NavigationLoader />}
 
             {/* INCREASED TOP PADDING ON MOBILE TO CLEAR FIXED BACK BUTTON */}
-            <div className="pt-36 md:pt-24 pb-12 px-6 max-w-[1600px] mx-auto border-b border-zinc-800 mb-12 relative">
+            {/* Bumped pt-36 to pt-44 to clear new top-28 button position */}
+            <div className="pt-44 md:pt-24 pb-12 px-6 max-w-[1600px] mx-auto border-b border-zinc-800 mb-12 relative">
                 
                 {/* RELATIVE BADGE ON MOBILE TO AVOID OVERLAP */}
                 <div className="flex justify-end mb-4 md:mb-0 md:absolute md:top-0 md:right-4 md:mt-24 lg:mt-24 xl:right-6">
@@ -556,7 +557,7 @@ export default function F1Dashboard({ activeDrivers, teams, tracks, season }: { 
                                     key={mode} 
                                     onClick={() => setViewMode(mode as any)} 
                                     className={`
-                                        px-6 py-3 font-mono text-[10px] font-bold uppercase tracking-widest transition-all rounded-md whitespace-nowrap
+                                        px-3 py-2 md:px-6 md:py-3 font-mono text-[10px] font-bold uppercase tracking-widest transition-all rounded-md whitespace-nowrap
                                         ${viewMode === mode 
                                             ? 'bg-[#DFFF00] text-black shadow-[0_0_20px_rgba(223,255,0,0.2)]' 
                                             : 'text-zinc-500 hover:text-white hover:bg-zinc-800'}

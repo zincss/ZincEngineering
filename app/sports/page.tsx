@@ -18,7 +18,8 @@ export default function SportsHub() {
            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1522778119026-d647f0565c6a?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 grayscale" />
         </div>
         
-        <div className="relative z-10 w-full max-w-[1600px] mx-auto px-4 md:px-6">
+        {/* Added pt-24 on mobile to prevent BackButton overlap */}
+        <div className="relative z-10 w-full max-w-[1600px] mx-auto px-4 md:px-6 pt-24 md:pt-0">
           
           {/* BADGE MOVED TO RIGHT SIDE */}
           <div className="absolute top-0 right-4 md:right-6 animate-in fade-in slide-in-from-right-4 duration-1000">

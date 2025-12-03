@@ -13,7 +13,8 @@ interface BackButtonProps {
 
 export default function BackButton({ href, label = 'RETURN', className = '' }: BackButtonProps) {
   return (
-    <div className={`fixed top-20 left-4 md:top-24 md:left-6 z-50 animate-in fade-in slide-in-from-left-4 duration-700 pointer-events-auto ${className}`}>
+    // Changed top-20 to top-28 for mobile to give space from header
+    <div className={`fixed top-28 left-4 md:top-24 md:left-6 z-50 animate-in fade-in slide-in-from-left-4 duration-700 pointer-events-auto ${className}`}>
          <Link 
             href={href} 
             // Changed rounded-full to rounded-md
