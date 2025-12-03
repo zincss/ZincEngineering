@@ -1,286 +1,329 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-    Trophy, Globe, Activity, ArrowUpRight, ArrowDownRight, Minus, 
-    Calendar, MapPin, ChevronRight, Star, TrendingUp, Flag
-} from 'lucide-react';
-import type { Golfer, GolfLeaderboard, GolfEvent } from '../lib/golf-api';
+import { Trophy, Calendar, Flag, MapPin, BarChart2, RefreshCw, Award, Clock, DollarSign } from 'lucide-react';
 import GolfSearch from './GolfSearch';
+import { getGolfDashboard } from '../actions';
+import LiveTicker from './LiveTicker';
 
-interface DashboardProps {
-    rankings: Golfer[];
-    fedex: Golfer[];
-    schedule: GolfEvent[];
-    leaderboard: GolfLeaderboard | null;
-}
+const Countdown = ({ targetDate }: { targetDate?: string }) => {
+    const [timeLeft, setTimeLeft] = useState({ d: 0, h: 0, m: 0, s: 0 });
 
-export default function GolfDashboard({ rankings, fedex, leaderboard, schedule }: DashboardProps) {
-    const router = useRouter();
-    const [statView, setStatView] = useState<'owgr' | 'fedex'>('owgr');
+    useEffect(() => {
+        if (!targetDate) return;
+        const target = new Date(targetDate).getTime();
+        if (isNaN(target)) return;
 
-    // --- DERIVED STATE ---
-    const worldNo1 = rankings?.[0];
-    
-    // Check Status
-    const status = leaderboard?.tournament.status?.toLowerCase() || '';
-    const isLive = status.includes('live') || status.includes('progress') || status.includes('play');
-    const isFinal = status.includes('final');
-    
-    // Sort schedule to show upcoming first (excluding the one we might be showing as 'last result')
-    const upcomingEvents = schedule
-        ?.filter(e => !e.status.includes('Final'))
-        .sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()) || [];
+        const interval = setInterval(() => {
+            const now = new Date().getTime();
+            const distance = target - now;
+            
+            if (distance < 0) {
+                clearInterval(interval);
+                return;
+            }
 
-    // Helper for trend arrows
-    const renderTrend = (movement: number) => {
-        if (!movement || movement === 0) return <span className="text-zinc-600 flex items-center gap-1 text-[10px]"><Minus size={10}/></span>;
-        if (movement > 0) return <span className="text-[#DFFF00] flex items-center gap-1 text-[10px]"><ArrowUpRight size={10}/> +{movement}</span>;
-        return <span className="text-red-500 flex items-center gap-1 text-[10px]"><ArrowDownRight size={10}/> {Math.abs(movement)}</span>;
-    };
+            setTimeLeft({
+                d: Math.floor(distance / (1000 * 60 * 60 * 24)),
+                h: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+                m: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+                s: Math.floor((distance % (1000 * 60)) / 1000)
+            });
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [targetDate]);
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-700">
-            
-            {/* --- TOP ROW: HERO & LIVE ACTION --- */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                
-                {/* HERO: WORLD NO. 1 */}
-                {worldNo1 && (
-                    <div 
-                        onClick={() => router.push(`/sports/golf/player/${worldNo1.id}`)}
-                        className="lg:col-span-7 relative h-[400px] bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden group cursor-pointer hover:border-zinc-600 transition-all"
-                    >
-                        {/* Background Gradient */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-900/80 to-transparent z-10"></div>
-                        
-                        {/* Player Image (Right aligned) */}
-                        {worldNo1.image && (
-                            <img 
-                                src={worldNo1.image} 
-                                alt={worldNo1.name} 
-                                className="absolute right-[-20px] bottom-0 h-[110%] w-auto object-contain z-0 group-hover:scale-105 transition-transform duration-700 drop-shadow-2xl"
-                            />
-                        )}
+        <div className="flex gap-4 font-mono text-[#DFFF00]">
+            <div className="flex flex-col items-center"><span className="text-2xl font-black">{timeLeft.d}</span><span className="text-[9px] uppercase text-zinc-500">Day</span></div>
+            <div className="text-2xl font-black">:</div>
+            <div className="flex flex-col items-center"><span className="text-2xl font-black">{timeLeft.h.toString().padStart(2, '0')}</span><span className="text-[9px] uppercase text-zinc-500">Hr</span></div>
+            <div className="text-2xl font-black">:</div>
+            <div className="flex flex-col items-center"><span className="text-2xl font-black">{timeLeft.m.toString().padStart(2, '0')}</span><span className="text-[9px] uppercase text-zinc-500">Min</span></div>
+        </div>
+    );
+};
 
-                        {/* Content */}
-                        <div className="absolute inset-0 z-20 p-8 flex flex-col justify-center">
-                            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#DFFF00] text-black text-[10px] font-mono font-bold uppercase tracking-widest rounded-full w-fit mb-6">
-                                <Star size={10} fill="black" /> World Number One
-                            </div>
-                            
-                            <h2 className="text-5xl md:text-7xl font-black text-white uppercase italic tracking-tighter mb-2 leading-[0.85]">
-                                {worldNo1.name.split(' ')[0]}<br/>
-                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-200 to-zinc-600">
-                                    {worldNo1.name.split(' ').slice(1).join(' ')}
-                                </span>
-                            </h2>
-                            
-                            <div className="flex items-center gap-6 mt-6">
-                                <div className="flex items-center gap-2">
-                                    {worldNo1.flag && <img src={worldNo1.flag} className="w-6 h-4 rounded-[2px]" />}
-                                    <span className="text-sm font-mono text-zinc-400 uppercase tracking-widest">{worldNo1.country}</span>
-                                </div>
-                                <div className="w-px h-8 bg-zinc-800"></div>
-                                <div>
-                                    <div className="text-[9px] text-zinc-500 uppercase tracking-widest">Points</div>
-                                    <div className="text-xl font-bold font-mono text-[#DFFF00]">{worldNo1.displayValue}</div>
-                                </div>
-                            </div>
+const StatCard = ({ title, players, router }: any) => (
+    <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden flex flex-col h-full">
+        <div className="p-4 border-b border-zinc-800 bg-zinc-950/50 flex justify-between items-center">
+            <h3 className="text-xs font-mono font-bold text-[#DFFF00] uppercase tracking-widest">{title}</h3>
+            <BarChart2 size={12} className="text-zinc-500" />
+        </div>
+        <div className="flex-1 divide-y divide-zinc-800/50">
+            {players.slice(0, 5).map((p: any, i: number) => (
+                <div 
+                    key={p.id} 
+                    onClick={() => router.push(`/sports/golf/player/${p.id}`)}
+                    className="flex items-center justify-between p-3 hover:bg-zinc-800 transition-colors cursor-pointer group"
+                >
+                    <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-mono text-zinc-600 w-3">{i + 1}</span>
+                        <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden border border-zinc-800 group-hover:border-zinc-600">
+                            {p.image && <img src={p.image} className="w-full h-full object-cover" alt={p.name} />}
                         </div>
+                        <span className="text-sm font-bold text-white group-hover:text-[#DFFF00] transition-colors">{p.name}</span>
+                    </div>
+                    <span className="font-mono text-xs font-bold text-white">{p.value}</span>
+                </div>
+            ))}
+        </div>
+    </div>
+);
+
+const EventCard = ({ event }: any) => {
+    const isFinished = event.status === 'Final' || event.winner;
+    return (
+        <div className="flex flex-col bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-zinc-600 transition-colors">
+            <div className="flex justify-between items-start mb-2">
+                <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest ${isFinished ? 'bg-zinc-800 text-zinc-500' : 'bg-[#DFFF00] text-black'}`}>
+                    {isFinished ? 'FINISHED' : 'UPCOMING'}
+                </span>
+                <span className="text-[10px] font-mono text-zinc-500 uppercase">{event.date}</span>
+            </div>
+            <h3 className="font-bold text-base text-white mb-1 line-clamp-1">{event.name}</h3>
+            <div className="flex items-center gap-1 text-[10px] text-zinc-400 uppercase mb-4">
+                <MapPin size={10} /> {event.location || 'TBD'}
+            </div>
+            
+            <div className="mt-auto pt-3 border-t border-zinc-800">
+                {isFinished ? (
+                    <div className="flex justify-between items-center">
+                        <span className="text-[10px] text-zinc-500 uppercase">Winner</span>
+                        <span className="text-xs font-bold text-[#DFFF00]">{event.winner}</span>
+                    </div>
+                ) : (
+                    <div className="flex justify-between items-center">
+                        <span className="text-[10px] text-zinc-500 uppercase">Purse</span>
+                        <span className="text-xs font-mono text-white">{event.purse || '-'}</span>
                     </div>
                 )}
+            </div>
+        </div>
+    );
+};
 
-                {/* SIDE: LIVE OR RECENT EVENT */}
-                <div className="lg:col-span-5 flex flex-col gap-6">
-                    {/* SEARCH BAR */}
-                    <div className="w-full">
-                        <GolfSearch />
-                    </div>
+export default function GolfDashboard() {
+    const router = useRouter();
+    const [view, setView] = useState<'overview' | 'rankings' | 'schedule'>('overview');
+    const [leaderTab, setLeaderTab] = useState('earnings');
+    const [rankingTab, setRankingTab] = useState<'owgr' | 'fedex'>('owgr');
+    
+    const [data, setData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
 
-                    {/* EVENT CARD */}
-                    <div className="flex-1 bg-zinc-900 border border-zinc-800 rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between">
-                        {/* Header Row */}
-                        <div className="flex justify-between items-start z-10">
-                            {isLive ? (
-                                <div className="flex items-center gap-2">
-                                    <span className="relative flex h-3 w-3">
-                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                      <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                                    </span>
-                                    <span className="text-red-500 font-mono text-xs font-bold uppercase tracking-widest">Live Now</span>
-                                </div>
-                            ) : isFinal ? (
-                                <span className="text-[#DFFF00] font-mono text-xs font-bold uppercase tracking-widest">Recent Result</span>
+    useEffect(() => {
+        async function loadData() {
+            setLoading(true);
+            try {
+                const res = await getGolfDashboard();
+                if (res && res.success) {
+                    setData(res);
+                } else {
+                    setError(true);
+                }
+            } catch (e) {
+                setError(true);
+            }
+            setLoading(false);
+        }
+        loadData();
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 animate-in fade-in">
+                <div className="w-16 h-16 border-4 border-zinc-800 border-t-[#DFFF00] rounded-full animate-spin"></div>
+                <div className="text-[#DFFF00] font-mono text-xs uppercase tracking-widest animate-pulse">Establishing Uplink...</div>
+            </div>
+        );
+    }
+
+    if (error || !data) {
+        return (
+            <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
+                <div className="text-zinc-500 font-mono text-xs uppercase">Connection Failed</div>
+                <button onClick={() => window.location.reload()} className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 px-4 py-2 hover:border-[#DFFF00] text-white text-xs font-bold uppercase transition-colors">
+                    <RefreshCw size={14}/> Retry Uplink
+                </button>
+            </div>
+        );
+    }
+
+    const activeEvent = data.live;
+    const activeStats = data.stats?.find((s: any) => s.id === leaderTab) || data.stats?.[0];
+    const topGridStats = data.stats?.filter((s: any) => s.id !== 'earnings') || []; 
+    const rankingsList = rankingTab === 'owgr' ? data.owgr : data.fedex;
+
+    return (
+        <div className="max-w-[1600px] mx-auto px-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            
+            {/* HERO / LIVE HEADER */}
+            <div className="mb-12 border border-zinc-800 rounded-2xl overflow-hidden bg-zinc-900 relative group">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-green-900/20 via-zinc-950 to-zinc-950"></div>
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
+
+                <div className="relative z-10 p-6 md:p-10 flex flex-col md:flex-row gap-8 justify-between">
+                    <div className="flex flex-col justify-center">
+                        <div className="flex items-center gap-2 mb-3">
+                            {activeEvent?.status === 'Upcoming' ? (
+                                <span className="flex items-center gap-2 px-2 py-1 bg-zinc-800 border border-zinc-700 rounded text-zinc-400 text-[10px] font-mono uppercase tracking-widest">
+                                    <Clock size={12} /> UPCOMING
+                                </span>
                             ) : (
-                                <span className="text-zinc-500 font-mono text-xs font-bold uppercase tracking-widest">Upcoming Event</span>
+                                <span className="flex items-center gap-2 px-2 py-1 bg-red-600/20 border border-red-500/50 rounded text-red-500 text-[10px] font-black uppercase tracking-widest animate-pulse">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span> LIVE NOW
+                                </span>
                             )}
-                            
-                            {leaderboard?.tournament.purse && (
-                                <span className="text-zinc-500 font-mono text-xs">{leaderboard.tournament.purse}</span>
-                            )}
+                            <span className="text-zinc-500 text-[10px] font-mono uppercase">PGA TOUR</span>
                         </div>
                         
-                        {/* Event Info */}
-                        <div className="z-10 mt-4">
-                            <h3 className="text-2xl font-black text-white uppercase leading-none mb-1">
-                                {leaderboard?.tournament.name || 'PGA Tour'}
-                            </h3>
-                            <p className="text-zinc-500 font-mono text-xs uppercase flex items-center gap-1">
-                                <MapPin size={12}/> {leaderboard?.tournament.location || 'TBD'}
-                            </p>
+                        <h1 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter text-white mb-2 leading-[0.9]">
+                            {activeEvent?.tournament?.name || 'Season Overview'}
+                        </h1>
+                        <div className="flex items-center gap-4 text-xs font-mono text-zinc-400 uppercase">
+                            <span className="flex items-center gap-1"><Calendar size={12} /> {activeEvent?.tournament?.dates ? new Date(activeEvent.tournament.dates).toLocaleDateString() : 'TBD'}</span>
+                            <span className="flex items-center gap-1"><MapPin size={12} /> {activeEvent?.tournament?.location || activeEvent?.tournament?.course || 'Location TBD'}</span>
                         </div>
+                    </div>
 
-                        {/* Leader/Winner Section */}
-                        {leaderboard && leaderboard.players.length > 0 && (
-                            <div className="mt-6 bg-black/40 rounded-xl p-4 border border-zinc-800/50 backdrop-blur-sm z-10">
-                                <div className="text-[10px] text-zinc-500 uppercase tracking-widest mb-2">
-                                    {isFinal ? 'Winner' : 'Current Leader'}
+                    <div className="w-full md:w-auto min-w-[300px]">
+                        {activeEvent?.status === 'Upcoming' ? (
+                            <div className="bg-zinc-950/80 border border-zinc-800 rounded-xl p-6 flex flex-col gap-4">
+                                <div>
+                                    <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase block mb-1">T-Minus to Tee Off</span>
+                                    <Countdown targetDate={activeEvent.tournament?.dates} />
                                 </div>
-                                <div className="flex justify-between items-center">
-                                    <div className="flex items-center gap-3">
-                                        {leaderboard.players[0].image && (
-                                            <img src={leaderboard.players[0].image} className="w-10 h-10 rounded-full bg-zinc-800 object-cover border border-zinc-700" />
-                                        )}
-                                        <div>
-                                            <span className="font-bold text-white block leading-none">{leaderboard.players[0].name}</span>
-                                            {leaderboard.players[0].flag && (
-                                                <img src={leaderboard.players[0].flag} className="w-3 h-2 opacity-50 mt-1" />
-                                            )}
+                            </div>
+                        ) : activeEvent?.players?.length > 0 ? (
+                            <div className="bg-black/40 backdrop-blur-sm border border-zinc-800 rounded-xl p-4">
+                                <h3 className="text-[10px] font-mono font-bold text-[#DFFF00] uppercase mb-3 flex items-center justify-between">
+                                    <span>Leaderboard</span>
+                                    <span className="w-2 h-2 bg-[#DFFF00] rounded-full animate-pulse"></span>
+                                </h3>
+                                <div className="space-y-2">
+                                    {activeEvent.players.slice(0, 3).map((l: any) => (
+                                        <div key={l.id} className="flex items-center justify-between text-sm">
+                                            <div className="flex items-center gap-3">
+                                                <span className="font-mono text-zinc-500 w-4">{l.rank}</span>
+                                                <span className="font-bold text-white">{l.name}</span>
+                                            </div>
+                                            <span className="font-mono font-bold text-[#DFFF00]">{l.score}</span>
                                         </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <span className="font-mono text-xl font-black text-[#DFFF00] block leading-none">{leaderboard.players[0].score}</span>
-                                        {isFinal && (
-                                            <span className="text-[9px] text-zinc-500 uppercase">Final</span>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        
-                        <Activity className="absolute -right-6 -bottom-6 text-zinc-800/50 w-48 h-48 z-0 pointer-events-none" />
-                    </div>
-                </div>
-            </div>
-
-            {/* --- MIDDLE ROW: STATS & RANKINGS --- */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 border-t border-zinc-800 pt-8">
-                
-                {/* LEFT COL: RANKINGS TOGGLE & LIST */}
-                <div className="lg:col-span-2 space-y-6">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-xl font-black text-white uppercase tracking-tighter flex items-center gap-2">
-                            <Trophy className="text-[#DFFF00]" size={20} /> Statistical Leaders
-                        </h3>
-                        <div className="flex gap-1 bg-zinc-900 p-1 rounded-lg border border-zinc-800">
-                            <button 
-                                onClick={() => setStatView('owgr')}
-                                className={`px-4 py-1.5 text-[10px] font-mono font-bold uppercase rounded-md transition-all ${statView === 'owgr' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
-                            >
-                                World Ranking
-                            </button>
-                            <button 
-                                onClick={() => setStatView('fedex')}
-                                className={`px-4 py-1.5 text-[10px] font-mono font-bold uppercase rounded-md transition-all ${statView === 'fedex' ? 'bg-[#DFFF00] text-black shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
-                            >
-                                FedEx Cup
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden min-h-[300px]">
-                        {(statView === 'owgr' ? rankings : fedex)?.length > 0 ? (
-                            <table className="w-full text-left">
-                                <thead>
-                                    <tr className="border-b border-zinc-800 bg-black/20 text-[9px] font-mono text-zinc-500 uppercase tracking-widest">
-                                        <th className="p-4 w-16 text-center">Rank</th>
-                                        <th className="p-4">Golfer</th>
-                                        <th className="p-4 text-center">Trend</th>
-                                        <th className="p-4 text-right">Points</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-zinc-800/50">
-                                    {(statView === 'owgr' ? rankings : fedex).slice(0, 10).map((player) => (
-                                        <tr 
-                                            key={player.id} 
-                                            onClick={() => router.push(`/sports/golf/player/${player.id}`)}
-                                            className="hover:bg-zinc-800/50 cursor-pointer transition-colors group"
-                                        >
-                                            <td className="p-4 text-center font-mono font-bold text-zinc-400 group-hover:text-white">
-                                                {player.rank}
-                                            </td>
-                                            <td className="p-4">
-                                                <div className="flex items-center gap-3">
-                                                    {player.image ? (
-                                                        <img src={player.image} className="w-8 h-8 rounded-full bg-zinc-950 object-cover" />
-                                                    ) : (
-                                                        <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-[10px]">{player.name.charAt(0)}</div>
-                                                    )}
-                                                    <div>
-                                                        <div className="font-bold text-zinc-300 group-hover:text-[#DFFF00] transition-colors">{player.name}</div>
-                                                        <div className="flex items-center gap-1.5 mt-0.5">
-                                                            {player.flag && <img src={player.flag} className="w-3 h-2 opacity-60" />}
-                                                            <span className="text-[9px] text-zinc-600 font-mono uppercase">{player.country}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="p-4 text-center">
-                                                <div className="flex justify-center">{renderTrend(player.movement || 0)}</div>
-                                            </td>
-                                            <td className="p-4 text-right font-mono text-zinc-400 text-sm">
-                                                {player.displayValue}
-                                            </td>
-                                        </tr>
                                     ))}
-                                </tbody>
-                            </table>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center h-full py-12 text-zinc-500">
-                                <Activity size={32} className="mb-2 opacity-50" />
-                                <span className="text-xs font-mono uppercase tracking-widest">Ranking Data Unavailable</span>
+                                </div>
                             </div>
-                        )}
-                        <div className="p-3 bg-black/20 border-t border-zinc-800 text-center">
-                            <button className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest hover:text-white transition-colors flex items-center justify-center gap-1 w-full">
-                                View Full Standings <ChevronRight size={10} />
-                            </button>
+                        ) : null}
+                    </div>
+                </div>
+                
+                {/* LIVE TICKER COMPONENT */}
+                <div className="border-t border-zinc-800">
+                    <LiveTicker data={activeEvent} />
+                </div>
+            </div>
+
+            {/* CONTROLS */}
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
+                <div className="flex gap-2 bg-zinc-900 p-1 rounded-lg border border-zinc-800">
+                    {['overview', 'rankings', 'schedule'].map((t) => (
+                        <button
+                            key={t}
+                            onClick={() => setView(t as any)}
+                            className={`px-4 py-2 text-[10px] font-bold uppercase tracking-widest rounded transition-all ${
+                                view === t ? 'bg-[#DFFF00] text-black shadow-lg' : 'text-zinc-500 hover:text-white'
+                            }`}
+                        >
+                            {t}
+                        </button>
+                    ))}
+                </div>
+                <GolfSearch />
+            </div>
+
+            {/* VIEWS */}
+            
+            {view === 'overview' && (
+                <div className="space-y-8 animate-in fade-in duration-500">
+                    
+                    {/* TOP STATS GRID */}
+                    {topGridStats.length > 0 && (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {topGridStats.map((cat: any, i: number) => (
+                                <StatCard key={i} title={cat.title} players={cat.players} router={router} />
+                            ))}
+                        </div>
+                    )}
+
+                    {/* STATS LEADERBOARD (FULL WIDTH) */}
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+                         <div className="flex flex-col md:flex-row md:items-center justify-between p-2 bg-zinc-950/50 border-b border-zinc-800 gap-2">
+                            <div className="px-3 py-2 flex items-center gap-2">
+                                <DollarSign size={14} className="text-[#DFFF00]" />
+                                <h3 className="font-black text-white uppercase italic tracking-tight hidden md:block">Season Statistics</h3>
+                            </div>
+                            <div className="flex bg-zinc-900 p-1 rounded border border-zinc-800 overflow-x-auto no-scrollbar">
+                                <button onClick={() => setLeaderTab('earnings')} className={`px-3 py-1 text-[9px] font-bold uppercase rounded ${leaderTab === 'earnings' ? 'bg-[#DFFF00] text-black' : 'text-zinc-500 hover:text-white'}`}>Earnings</button>
+                                <button onClick={() => setLeaderTab('driving')} className={`px-3 py-1 text-[9px] font-bold uppercase rounded ${leaderTab === 'driving' ? 'bg-[#DFFF00] text-black' : 'text-zinc-500 hover:text-white'}`}>Driving</button>
+                                <button onClick={() => setLeaderTab('scoring')} className={`px-3 py-1 text-[9px] font-bold uppercase rounded ${leaderTab === 'scoring' ? 'bg-[#DFFF00] text-black' : 'text-zinc-500 hover:text-white'}`}>Scoring</button>
+                                <button onClick={() => setLeaderTab('putting')} className={`px-3 py-1 text-[9px] font-bold uppercase rounded ${leaderTab === 'putting' ? 'bg-[#DFFF00] text-black' : 'text-zinc-500 hover:text-white'}`}>Putting</button>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-zinc-800/50">
+                            {activeStats ? activeStats.players.slice(0, 10).map((p: any, i: number) => (
+                                <div key={p.id} onClick={() => router.push(`/sports/golf/player/${p.id}`)} className="flex items-center p-3 hover:bg-zinc-800 cursor-pointer gap-4 group">
+                                    <div className="w-8 font-mono text-lg font-black text-zinc-600 text-center group-hover:text-[#DFFF00]">{i + 1}</div>
+                                    <div className="flex-1 flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden border border-zinc-800 group-hover:border-zinc-600">
+                                            {p.image && <img src={p.image} className="w-full h-full object-cover" alt={p.name} />}
+                                        </div>
+                                        <div className="font-bold text-white text-sm">{p.name}</div>
+                                    </div>
+                                    <div className="text-xs font-mono font-bold text-[#DFFF00]">{p.value}</div>
+                                </div>
+                            )) : (
+                                <div className="p-8 text-center text-zinc-500 font-mono text-xs col-span-2">Data unavailable.</div>
+                            )}
                         </div>
                     </div>
                 </div>
+            )}
 
-                {/* RIGHT COL: UPCOMING SCHEDULE (VERTICAL LIST) */}
-                <div className="lg:col-span-1 space-y-6">
-                    <h3 className="text-xl font-black text-white uppercase tracking-tighter flex items-center gap-2">
-                        <Calendar className="text-zinc-600" size={20} /> Upcoming
-                    </h3>
-                    
-                    <div className="space-y-3">
-                        {upcomingEvents.length > 0 ? upcomingEvents.slice(0, 5).map((event) => (
-                            <div key={event.id} className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl hover:border-zinc-600 transition-colors">
-                                <div className="flex justify-between items-start mb-2">
-                                    <span className="text-[9px] font-mono text-[#DFFF00] uppercase tracking-wider bg-[#DFFF00]/10 px-2 py-0.5 rounded-full">
-                                        {new Date(event.date).toLocaleDateString('en-US', {month:'short', day:'numeric'})}
-                                    </span>
-                                    {event.purse && <span className="text-[9px] text-zinc-500 font-mono">{event.purse}</span>}
-                                </div>
-                                <div className="font-bold text-zinc-200 text-sm uppercase leading-tight mb-2">{event.name}</div>
-                                <div className="flex items-center gap-1 text-[10px] text-zinc-500 font-mono">
-                                    <MapPin size={10} /> {event.location}
-                                </div>
-                            </div>
-                        )) : (
-                             <div className="text-zinc-500 text-xs font-mono uppercase tracking-widest border border-zinc-800 rounded-xl p-6 text-center">
-                                No Upcoming Events
-                            </div>
-                        )}
-                    </div>
+            {view === 'schedule' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-500">
+                    {data.schedule?.map((e: any) => (
+                        <EventCard key={e.id} event={e} />
+                    ))}
                 </div>
+            )}
 
-            </div>
-
+            {view === 'rankings' && (
+                <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+                     <div className="flex items-center gap-2 p-4 border-b border-zinc-800 bg-zinc-950/50">
+                        <div className="flex bg-zinc-800 p-1 rounded border border-zinc-700">
+                            <button onClick={() => setRankingTab('owgr')} className={`px-4 py-1 text-[10px] font-bold uppercase rounded ${rankingTab === 'owgr' ? 'bg-[#DFFF00] text-black' : 'text-zinc-400 hover:text-white'}`}>OWGR</button>
+                            <button onClick={() => setRankingTab('fedex')} className={`px-4 py-1 text-[10px] font-bold uppercase rounded ${rankingTab === 'fedex' ? 'bg-[#DFFF00] text-black' : 'text-zinc-400 hover:text-white'}`}>FedEx Cup</button>
+                        </div>
+                     </div>
+                     <div className="divide-y divide-zinc-800/50">
+                        {rankingsList?.map((p: any) => (
+                            <div key={p.id} onClick={() => router.push(`/sports/golf/player/${p.id}`)} className="flex items-center p-3 hover:bg-zinc-800 cursor-pointer gap-4 group">
+                                <div className="w-12 font-mono text-xl font-black text-zinc-600 text-center group-hover:text-[#DFFF00]">{p.rank}</div>
+                                <div className="flex-1 flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-full bg-zinc-800 overflow-hidden border border-zinc-800 group-hover:border-white transition-colors">
+                                        {p.image && <img src={p.image} className="w-full h-full object-cover" alt={p.name} />}
+                                    </div>
+                                    <div className="font-bold text-white text-lg">{p.name}</div>
+                                </div>
+                                <div className="text-sm font-mono font-bold text-[#DFFF00] pr-4">{p.points} PTS</div>
+                            </div>
+                        ))}
+                     </div>
+                </div>
+            )}
         </div>
     );
 }

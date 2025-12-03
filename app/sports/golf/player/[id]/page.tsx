@@ -1,139 +1,117 @@
-// app/sports/golf/player/[id]/page.tsx
 import React from 'react';
 import { getGolferProfile } from '../../actions';
 import { notFound } from 'next/navigation';
-import { ChevronLeft, MapPin, Trophy, User, Activity, BarChart2 } from 'lucide-react';
+import { ChevronLeft, MapPin, Trophy, BarChart2, Calendar, DollarSign } from 'lucide-react';
 import Link from 'next/link';
-import Scorecard from '../../components/Scorecard';
 
 export default async function PlayerProfile({ params }: { params: { id: string } }) {
     const player = await getGolferProfile(params.id);
 
-    if (!player) {
-        return notFound();
-    }
+    if (!player) return notFound();
 
     return (
-        <div className="min-h-screen bg-zinc-950 text-white pb-20">
+        <div className="min-h-screen bg-zinc-950 text-white pb-20 pt-24">
             
-            {/* 1. HERO SECTION */}
-            <div className="relative h-[400px] w-full overflow-hidden border-b border-zinc-800 bg-zinc-900">
-                {/* Background Pattern */}
-                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-green-900 via-zinc-950 to-zinc-950"></div>
-                
-                <div className="max-w-6xl mx-auto h-full px-6 relative z-10 flex items-end pb-12">
-                     <Link href="/sports/golf" className="absolute top-8 left-6 flex items-center gap-2 text-xs font-mono text-zinc-500 hover:text-[#DFFF00] transition-colors uppercase tracking-widest">
-                        <ChevronLeft size={14} /> Back to Dashboard
-                     </Link>
+            <div className="max-w-6xl mx-auto px-6">
+                <Link href="/sports/golf" className="inline-flex items-center gap-2 text-xs font-mono text-zinc-500 hover:text-[#DFFF00] uppercase tracking-widest mb-8">
+                    <ChevronLeft size={14} /> Back to Golf Hub
+                </Link>
 
-                     <div className="flex flex-col md:flex-row items-end gap-8 w-full">
-                        {/* Profile Image */}
-                        <div className="relative">
-                            <div className="w-40 h-40 md:w-56 md:h-56 rounded-full border-4 border-zinc-950 bg-zinc-800 overflow-hidden shadow-2xl relative z-20">
-                                {player.image ? (
-                                    <img src={player.image} alt={player.name} className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-zinc-600">
-                                        <User size={64} />
-                                    </div>
-                                )}
-                            </div>
-                            {player.flag && (
-                                <img src={player.flag} className="absolute bottom-4 right-4 w-10 h-8 rounded border-2 border-zinc-950 z-30 shadow-lg" alt="Flag" />
-                            )}
+                {/* HERO CARD */}
+                <div className="relative bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden mb-12">
+                    <div className="absolute inset-0 bg-gradient-to-r from-zinc-900 via-zinc-900/90 to-transparent z-10"></div>
+                    
+                    {player.image && (
+                        <div className="absolute right-0 top-0 bottom-0 w-1/2 opacity-20 z-0">
+                            <img src={player.image} className="w-full h-full object-cover grayscale" />
                         </div>
+                    )}
 
-                        {/* Name & Info */}
-                        <div className="flex-1 mb-4">
-                            <div className="flex items-center gap-3 mb-2">
-                                <span className="px-2 py-1 bg-[#DFFF00] text-black text-[10px] font-black uppercase tracking-widest rounded-sm">
-                                    PRO GOLFER
-                                </span>
-                                <span className="flex items-center gap-1 text-[10px] font-mono text-zinc-400 uppercase tracking-wider">
-                                    <MapPin size={10} /> {player.country}
-                                </span>
+                    <div className="relative z-20 p-8 md:p-12 flex flex-col md:flex-row gap-8 items-center md:items-end">
+                        <div className="w-40 h-40 rounded-full border-4 border-[#DFFF00] overflow-hidden bg-zinc-800 shadow-2xl">
+                             {player.image && <img src={player.image} className="w-full h-full object-cover" />}
+                        </div>
+                        <div className="flex-1 text-center md:text-left">
+                            <div className="flex items-center justify-center md:justify-start gap-3 mb-3">
+                                {player.flag && <img src={player.flag} className="w-6 h-4 rounded shadow-sm" />}
+                                <span className="text-zinc-400 font-mono text-xs uppercase tracking-wider">{player.country}</span>
                             </div>
-                            <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter text-white leading-none">
+                            <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter text-white leading-none mb-4">
                                 {player.name}
                             </h1>
-                        </div>
-
-                        {/* Quick Stats (Rank) */}
-                        <div className="mb-4 text-right">
-                            <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-1">World Rank</div>
-                            <div className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-600">
-                                #{player.stats?.find((s:any) => s.label === 'Official World Golf Ranking')?.value || '-'}
-                            </div>
-                        </div>
-                     </div>
-                </div>
-            </div>
-
-            {/* 2. MAIN CONTENT GRID */}
-            <div className="max-w-6xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-3 gap-12">
-                
-                {/* LEFT COL: BIO & PHYSICAL */}
-                <div className="space-y-8">
-                    <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-lg">
-                        <h3 className="flex items-center gap-2 text-[#DFFF00] font-mono text-xs font-bold uppercase tracking-widest mb-6">
-                            <User size={14} /> Athlete Profile
-                        </h3>
-                        <div className="space-y-4">
-                            <div className="flex justify-between border-b border-zinc-800 pb-2">
-                                <span className="text-zinc-500 text-xs uppercase">Age</span>
-                                <span className="text-white font-mono text-sm">{player.age || 'N/A'}</span>
-                            </div>
-                            <div className="flex justify-between border-b border-zinc-800 pb-2">
-                                <span className="text-zinc-500 text-xs uppercase">Height</span>
-                                <span className="text-white font-mono text-sm">{player.height || '-'}</span>
-                            </div>
-                            <div className="flex justify-between border-b border-zinc-800 pb-2">
-                                <span className="text-zinc-500 text-xs uppercase">Weight</span>
-                                <span className="text-white font-mono text-sm">{player.weight || '-'}</span>
-                            </div>
-                            <div className="flex justify-between border-b border-zinc-800 pb-2">
-                                <span className="text-zinc-500 text-xs uppercase">Turned Pro</span>
-                                <span className="text-white font-mono text-sm">{player.turnedPro || '-'}</span>
-                            </div>
-                        </div>
-                        <div className="mt-6 text-xs text-zinc-400 leading-relaxed italic border-l-2 border-[#DFFF00] pl-4">
-                            "{player.bio}"
+                            <p className="text-zinc-400 text-sm max-w-xl italic border-l-2 border-[#DFFF00] pl-4">
+                                {player.bio}
+                            </p>
                         </div>
                     </div>
                 </div>
 
-                {/* RIGHT COL: PERFORMANCE & STATS */}
-                <div className="lg:col-span-2 space-y-8">
-                    
-                    {/* SEASON STATS */}
-                    <div>
-                        <h3 className="flex items-center gap-2 text-white font-black uppercase text-xl mb-6">
-                            <BarChart2 size={20} className="text-[#DFFF00]" /> Season Statistics
-                        </h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {player.stats.slice(0, 8).map((stat: any, i: number) => (
-                                <div key={i} className="bg-zinc-900 p-4 border border-zinc-800 flex flex-col justify-between hover:border-zinc-600 transition-colors">
-                                    <div className="text-[9px] text-zinc-500 font-mono uppercase tracking-wider mb-2 truncate" title={stat.label}>
-                                        {stat.label}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* LEFT COL: SEASON STATS */}
+                    <div className="space-y-8">
+                        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+                            <div className="p-4 bg-zinc-950/50 border-b border-zinc-800 flex items-center gap-2">
+                                <BarChart2 size={16} className="text-[#DFFF00]" />
+                                <h3 className="text-xs font-bold font-mono uppercase text-white">Season Stats</h3>
+                            </div>
+                            <div className="divide-y divide-zinc-800">
+                                {player.stats && player.stats.length > 0 ? player.stats.map((stat: any, i: number) => (
+                                    <div key={i} className="flex justify-between items-center p-4 hover:bg-zinc-800/50 transition-colors">
+                                        <span className="text-xs text-zinc-400 uppercase font-mono">{stat.label}</span>
+                                        <div className="text-right">
+                                            <div className="font-bold text-white">{stat.value}</div>
+                                            {stat.rank && <div className="text-[10px] text-[#DFFF00] font-mono">Rank: #{stat.rank}</div>}
+                                        </div>
                                     </div>
-                                    <div className="flex items-baseline gap-2">
-                                        <span className="text-2xl font-bold text-white font-mono">{stat.value}</span>
-                                        {stat.rank && <span className="text-[10px] text-[#DFFF00]">#{stat.rank}</span>}
-                                    </div>
-                                </div>
-                            ))}
+                                )) : (
+                                    <div className="p-6 text-center text-zinc-500 text-xs font-mono">No stats available for current season.</div>
+                                )}
+                            </div>
                         </div>
                     </div>
 
-                    {/* LATEST SCORECARD (Mock/Visual Only for now) */}
-                    <div>
-                        <h3 className="flex items-center gap-2 text-white font-black uppercase text-xl mb-6">
-                            <Activity size={20} className="text-[#DFFF00]" /> Recent Form
-                        </h3>
-                        <Scorecard />
+                    {/* RIGHT COL: TOURNAMENT LOG */}
+                    <div className="lg:col-span-2">
+                        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+                            <div className="p-4 bg-zinc-950/50 border-b border-zinc-800 flex items-center gap-2">
+                                <Calendar size={16} className="text-[#DFFF00]" />
+                                <h3 className="text-xs font-bold font-mono uppercase text-white">Recent Tournaments</h3>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead className="bg-zinc-950/30 text-[10px] text-zinc-500 font-mono uppercase">
+                                        <tr>
+                                            <th className="p-4">Date</th>
+                                            <th className="p-4">Event</th>
+                                            <th className="p-4 text-right">Finish</th>
+                                            <th className="p-4 text-right">Score</th>
+                                            <th className="p-4 text-right">Earnings</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-zinc-800">
+                                        {player.history && player.history.length > 0 ? player.history.map((e: any, i: number) => (
+                                            <tr key={i} className="hover:bg-zinc-800/50 transition-colors">
+                                                <td className="p-4 text-xs font-mono text-zinc-500">{e.date}</td>
+                                                <td className="p-4 text-sm font-bold text-white">{e.name}</td>
+                                                <td className={`p-4 text-sm font-mono font-bold text-right ${['1', 'T1'].includes(e.finish) ? 'text-[#DFFF00]' : 'text-white'}`}>
+                                                    {['1', 'T1'].includes(e.finish) && <Trophy size={12} className="inline mr-1 text-[#DFFF00]"/>}
+                                                    {e.finish}
+                                                </td>
+                                                <td className="p-4 text-sm font-mono text-zinc-400 text-right">{e.score}</td>
+                                                <td className="p-4 text-sm font-mono text-[#DFFF00] text-right">{e.earnings}</td>
+                                            </tr>
+                                        )) : (
+                                            <tr>
+                                                <td colSpan={5} className="p-8 text-center text-zinc-500 font-mono text-xs">No recent tournament data found.</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
-
                 </div>
+
             </div>
         </div>
     );
