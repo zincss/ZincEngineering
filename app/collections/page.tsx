@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ArrowLeft, CarFront, Gamepad2, ChevronRight, Flag, Brain } from 'lucide-react';
+import { CarFront, Gamepad2, ChevronRight, Flag, Brain } from 'lucide-react';
 import BackButton from '../components/BackButton';
 
 export default function CollectionsHub() {
@@ -104,7 +104,7 @@ export default function CollectionsHub() {
                 </div>
             </Link>
 
-            {/* LINK 4: TRIVIA MATRIX (NEW) */}
+            {/* LINK 4: TRIVIA */}
             <Link 
                 href="/collections/trivia" 
                 className="group relative border border-zinc-800 bg-zinc-900/20 hover:border-[#DFFF00] transition-colors duration-300 min-h-[300px] flex flex-col"
@@ -117,10 +117,10 @@ export default function CollectionsHub() {
                         <Brain size={40} />
                     </div>
                     <h3 className="text-3xl font-black uppercase tracking-tight text-white mb-2 group-hover:text-[#DFFF00] transition-colors">
-                        Trivia Matrix
+                        Trivia?
                     </h3>
                     <p className="text-zinc-400 font-mono text-sm mb-6 max-w-md">
-                        Procedural knowledge assessment. Multiple categories and difficulty vectors.
+                        Procedural knowledge assessment. Can you beat the system?
                     </p>
                     <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500 group-hover:text-white transition-colors">
                         RUN GENERATOR <ChevronRight size={12} />
