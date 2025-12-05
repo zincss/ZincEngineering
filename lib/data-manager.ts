@@ -1,10 +1,10 @@
-import { supabase } from './supabaseClient';
+import { supabase } from '@/lib/supabaseClient';
 
 export interface DataFetchOptions {
-  table: string;      // e.g., 'nba_profiles'
-  keyField: string;   // e.g., 'espn_id' or 'player_id'
-  id: string;         // The ID we are looking for
-  expirationHours?: number; // How long until we consider data "stale"?
+  table: string;      // e.g. 'golf_snapshots'
+  keyField: string;   // e.g. 'key'
+  id: string;         // e.g. 'pga_schedule_reliable'
+  expirationHours?: number; 
 }
 
 export async function getOrFetchResource<T>(
@@ -12,11 +12,10 @@ export async function getOrFetchResource<T>(
   fetcher: () => Promise<T | null>
 ): Promise<T | null> {
   const { table, keyField, id, expirationHours = 24 } = options;
-
-  console.log(`[ZINC_DB] Checking ${table} for ${id}...`);
+  let cachedData: T | null = null;
 
   try {
-    // 1. CHECK LOCAL DB (If table exists)
+    // 1. CHECK DB (Snapshot)
     const { data: local, error } = await supabase
         .from(table)
         .select('data, last_updated')
@@ -24,48 +23,42 @@ export async function getOrFetchResource<T>(
         .single();
 
     if (!error && local) {
+      cachedData = local.data as T;
       const lastUpdate = new Date(local.last_updated).getTime();
-      const now = new Date().getTime();
-      const hoursDiff = (now - lastUpdate) / (1000 * 60 * 60);
+      const hoursDiff = (new Date().getTime() - lastUpdate) / (1000 * 60 * 60);
 
+      // If fresh, return immediately
       if (hoursDiff < expirationHours) {
-        console.log(`[ZINC_DB] HIT: Returning cached data for ${id}`);
-        return local.data as T;
+        console.log(`[DATA] HIT: ${id} is fresh (${hoursDiff.toFixed(1)}h old).`);
+        return cachedData; 
       }
-      console.log(`[ZINC_DB] STALE: Data for ${id} is ${hoursDiff.toFixed(1)}h old. Refetching...`);
+      console.log(`[DATA] STALE: ${id} is ${hoursDiff.toFixed(1)}h old. Refreshing...`);
     }
-  } catch (dbError) {
-    // Ignore DB errors (like missing tables) and proceed to fetch live
-    console.warn(`[ZINC_DB] DB SKIP: ${dbError}`);
-  }
+  } catch (e) { /* Ignore DB errors */ }
 
-  // 2. FETCH EXTERNAL
-  console.log(`[ZINC_DB] MISS: Fetching external data...`);
-  const freshData = await fetcher();
-
-  if (!freshData) {
-    console.warn(`[ZINC_DB] ERROR: External fetch failed for ${id}`);
-    return null;
-  }
-
-  // 3. UPSERT TO SUPABASE (Fire and Forget)
+  // 2. FETCH NEW DATA (If missing or stale)
   try {
-      const payload: any = {
+    console.log(`[DATA] FETCHING: ${id} from source...`);
+    const freshData = await fetcher();
+
+    if (freshData) {
+      // Save Snapshot
+      await supabase.from(table).upsert({
         [keyField]: id,
         data: freshData,
         last_updated: new Date().toISOString()
-      };
-
-      const { error: saveError } = await supabase
-        .from(table)
-        .upsert(payload, { onConflict: keyField });
-
-      if (saveError) console.warn(`[ZINC_DB] SAVE WARNING: Could not save to ${table} (Check if table exists)`);
-      else console.log(`[ZINC_DB] SNAPSHOT: Saved fresh data for ${id}`);
+      }, { onConflict: keyField });
       
-  } catch (saveError) {
-      console.warn(`[ZINC_DB] SAVE FAILED:`, saveError);
-  }
+      console.log(`[DATA] SAVED: ${id} updated.`);
+      return freshData;
+    } 
+    
+    throw new Error("Fetcher returned null/empty");
 
-  return freshData;
+  } catch (fetchError) {
+    console.error(`[DATA] FETCH FAILED for ${id}:`, fetchError);
+    // 3. FAILSAFE: If scrape fails, return old data so UI doesn't break
+    if (cachedData) return cachedData;
+    return null;
+  }
 }

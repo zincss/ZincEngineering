@@ -19,10 +19,9 @@ module.exports = {
         }
       },
       keyframes: {
-        // CONSOLIDATION: Renamed 'scroll' to 'ticker' and set to -50% for standard marquee effect
-        ticker: { 
+        scroll: {
           '0%': { transform: 'translateX(0)' },
-          '100%': { transform: 'translateX(-50%)' }, 
+          '100%': { transform: 'translateX(-100%)' },
         },
         "accordion-down": {
           from: { height: 0 },
@@ -34,8 +33,7 @@ module.exports = {
         },
       },
       animation: {
-        // CONSOLIDATION: Renamed 'scroll' to 'ticker'. 80s is good for performance.
-        ticker: 'ticker 80s linear infinite', 
+        scroll: 'scroll 80s linear infinite', // SLOWED DOWN FROM 40s
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
       },
