@@ -1,19 +1,28 @@
 'use client';
 
 import React from 'react';
-import { Trophy, MapPin, Activity, Calendar, Flag, Hash, User, Crown } from 'lucide-react';
+import { Trophy, MapPin, Activity, Calendar, Flag, Hash, User, Crown, Globe } from 'lucide-react';
 
-export default function LiveTournament({ data }: { data: any }) {
+export default function LiveTournament({ data, fallbackData }: { data: any, fallbackData: any[] }) {
   if (!data) return null;
 
   const isLive = data.status === 'in';
   const isPost = data.status === 'post';
   const isPre = data.status === 'pre';
   
+  // --- SMART DATA LOGIC ---
+  // Check if we have live scores. If not, fall back to the provided rankings (OWGR)
+  const hasLiveScores = data.leaderboard && data.leaderboard.length > 0;
+  const activeList = hasLiveScores ? data.leaderboard : fallbackData;
+  const listType = hasLiveScores ? 'LEADERBOARD' : 'OWGR RANKING';
+
+  // Determine Featured Player
   const leader = data.leaderboard?.[0];
-  const featured = isPre && data.defendingChamp ? data.defendingChamp : leader;
+  const featured = isPre && data.defendingChamp 
+      ? data.defendingChamp 
+      : (leader || fallbackData?.[0]); // Fallback to World #1 if no leader
   
-  // Dynamic Labels based on state
+  // Dynamic Labels
   let featuredRank = `LEADER // ${leader?.position || 'P1'}`;
   let featuredScore = leader?.toPar;
   let statusLabel = 'LIVE BROADCAST';
@@ -26,40 +35,54 @@ export default function LiveTournament({ data }: { data: any }) {
       featuredRank = 'DEFENDING CHAMPION';
       featuredScore = 'PREVIOUS';
       statusLabel = 'UPCOMING EVENT';
+  } else if (!hasLiveScores) {
+      // Fallback state
+      featuredRank = `WORLD RANKING // #${featured?.rank || 1}`;
+      featuredScore = `${featured?.points || 0} PTS`;
+      statusLabel = 'WAITING FOR TEE OFF';
   }
 
-  const tickerItems = data.leaderboard && data.leaderboard.length > 0 
-    ? [...data.leaderboard, ...data.leaderboard, ...data.leaderboard] 
+  // Duplicate for smooth infinite ticker
+  const tickerItems = activeList && activeList.length > 0 
+    ? [...activeList, ...activeList, ...activeList] 
     : [];
 
   return (
     <div className="relative w-full h-full bg-black border border-zinc-800/50 rounded-2xl shadow-2xl overflow-hidden flex flex-col backdrop-blur-xl">
         
-        {/* --- 1. TOP TICKER --- */}
+        {/* --- 1. SMART TICKER --- */}
         <div className="h-14 bg-black/80 border-b border-zinc-800 flex items-center overflow-hidden relative z-30 shrink-0 backdrop-blur-md">
-            <div className="bg-[#DFFF00] h-full px-5 flex items-center justify-center z-20 shrink-0 shadow-[0_0_30px_rgba(223,255,0,0.15)]">
-                <Hash size={18} className="text-black"/>
+            
+            {/* Ticker Label */}
+            <div className="bg-[#DFFF00] h-full px-6 flex items-center justify-center z-20 shrink-0 shadow-[0_0_30px_rgba(223,255,0,0.15)] gap-2 text-black font-black text-xs tracking-widest uppercase">
+                {hasLiveScores ? <Hash size={14}/> : <Globe size={14}/>}
+                <span>{listType}</span>
             </div>
             
             {tickerItems.length > 0 ? (
                 <div className="flex animate-ticker hover:[animation-play-state:paused] items-center h-full">
                     {tickerItems.map((p: any, i: number) => (
-                        <div key={`${p.id}-${i}`} className="flex items-center gap-4 px-8 border-r border-zinc-800/50 h-full shrink-0">
-                            <span className={`font-mono font-black text-sm ${p.position === '1' ? 'text-[#DFFF00]' : 'text-zinc-500'}`}>
-                                {p.position}
+                        <div key={`${p.id || p.name}-${i}`} className="flex items-center gap-4 px-8 border-r border-zinc-800/50 h-full shrink-0">
+                            {/* Rank / Pos */}
+                            <span className={`font-mono font-black text-sm ${i % 30 === 0 ? 'text-[#DFFF00]' : 'text-zinc-500'}`}>
+                                {hasLiveScores ? p.position : `#${p.rank}`}
                             </span>
+                            
+                            {/* Name */}
                             <span className="text-xs font-bold text-white uppercase tracking-wider whitespace-nowrap">
                                 {p.name}
                             </span>
-                            <span className={`text-xs font-mono font-bold ${p.toPar.includes('-') ? 'text-[#DFFF00]' : 'text-white'}`}>
-                                {p.toPar}
+                            
+                            {/* Score / Points */}
+                            <span className={`text-xs font-mono font-bold ${p.toPar?.includes('-') ? 'text-[#DFFF00]' : 'text-white'}`}>
+                                {hasLiveScores ? p.toPar : p.points}
                             </span>
                         </div>
                     ))}
                 </div>
             ) : (
                 <div className="px-6 text-zinc-500 font-mono text-xs uppercase tracking-widest flex items-center gap-2">
-                    <Activity size={12} className="animate-pulse"/> WAITING FOR DATA...
+                    <Activity size={12} className="animate-pulse"/> INITIALIZING DATA STREAM...
                 </div>
             )}
         </div>
@@ -84,7 +107,7 @@ export default function LiveTournament({ data }: { data: any }) {
             {/* Ambient Glow */}
             <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full blur-[180px] opacity-20 pointer-events-none z-0 ${isLive ? 'bg-[#DFFF00]' : 'bg-emerald-500'}`} />
 
-            {/* LEFT: INTEL */}
+            {/* LEFT: TOURNAMENT INTEL */}
             <div className="flex-1 text-center md:text-left z-20 space-y-10 animate-in slide-in-from-left-8 duration-1000 ease-out">
                 
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-zinc-700/50 bg-black/60 backdrop-blur-md text-[10px] font-mono uppercase tracking-[0.2em] text-zinc-300 shadow-lg">
@@ -118,10 +141,11 @@ export default function LiveTournament({ data }: { data: any }) {
                 )}
             </div>
 
-            {/* RIGHT: PLAYER CARD */}
+            {/* RIGHT: FEATURED PLAYER CARD */}
             <div className="relative z-20 w-full max-w-[420px] animate-in slide-in-from-right-8 duration-1000 delay-100">
                 <div className="border border-zinc-800 bg-black rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.8)] group relative">
                     
+                    {/* Header Bar */}
                     <div className="absolute top-0 left-0 w-full p-6 z-30 flex justify-between items-start bg-gradient-to-b from-black/90 to-transparent">
                         <div className="flex flex-col">
                             <span className="text-[9px] font-black text-[#DFFF00] uppercase tracking-[0.2em] flex items-center gap-2 mb-1">
@@ -136,7 +160,9 @@ export default function LiveTournament({ data }: { data: any }) {
                         )}
                     </div>
 
+                    {/* IMAGE CONTAINER with BLEND FIX */}
                     <div className="h-[500px] relative flex items-end justify-center overflow-hidden bg-zinc-900">
+                        {/* Background Noise */}
                         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none z-0"></div>
                         
                         {/* Player Image */}
@@ -155,6 +181,7 @@ export default function LiveTournament({ data }: { data: any }) {
                         <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-black to-transparent z-20 opacity-80"></div>
                     </div>
 
+                    {/* Footer Stats Overlay */}
                     <div className="absolute bottom-0 left-0 w-full p-6 z-30">
                         <div className="flex justify-between items-end border-t border-white/10 pt-4">
                             <div>
