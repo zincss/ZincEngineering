@@ -3,14 +3,14 @@
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/app/context/AuthContext';
-import { Package, Zap, Info, Star, ChevronDown, ChevronUp, Layers, Grid3X3 } from 'lucide-react';
+import { Package, Zap, Info, ChevronDown, ChevronUp, Layers, Grid3X3, Loader2, Wallet } from 'lucide-react';
 import BackButton from '@/app/components/BackButton';
 
 // --- 1. CONFIGURATION ---
 const REEL_ITEMS_SOURCE = [
   { name: 'Plastic Spork', rarity: 'COMMON', description: 'Barely functional. The apex of disposable cutlery.' }, 
   { name: 'AA Battery', rarity: 'COMMON', description: 'Not included. Probably dead anyway.' },
-  { name: 'Red Brick', rarity: 'COMMON', description: 'It\'s a brick. Good for throwing.' }, 
+  { name: 'Red Brick', rarity: 'COMMON', description: "It's a brick. Good for throwing." }, 
   { name: 'Left Sock', rarity: 'COMMON', description: 'Where is the right one? A mystery.' },
   { name: 'Vintage Toaster', rarity: 'UNCOMMON', description: 'A fire hazard that occasionally browns bread.' }, 
   { name: 'Lava Lamp', rarity: 'UNCOMMON', description: 'Distracting goo. Do not drink.' },
@@ -53,8 +53,12 @@ const ItemImage = ({ name, rarity, className = "" }: { name: string, rarity: str
   const [loaded, setLoaded] = useState(false);
 
   return (
-    <div className={`relative overflow-hidden rounded-xl bg-zinc-900 ${className}`}>
-        <div className="absolute inset-0 bg-zinc-800 animate-pulse -z-10" />
+    <div className={`relative overflow-hidden rounded-xl bg-zinc-900 border border-zinc-800 ${className}`}>
+        {!loaded && (
+            <div className="absolute inset-0 flex items-center justify-center bg-zinc-900 z-10">
+                <Loader2 className="animate-spin text-zinc-700" size={24} />
+            </div>
+        )}
         <img 
             src={imageUrl} 
             alt={name}
@@ -144,7 +148,7 @@ const animationStyles = `
 `;
 
 export default function MarketPage() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, loading: authLoading, refreshProfile } = useAuth();
   
   // States
   const [stage, setStage] = useState<'IDLE' | 'RUMBLE' | 'SCROLLING' | 'REVEAL'>('IDLE');
@@ -158,7 +162,11 @@ export default function MarketPage() {
 
   const handleOpenPack = async () => {
     const cost = packQuantity * 100;
+    
+    if (authLoading) return; // Prevent action while loading
+    
     if (!profile || profile.credits < cost) {
+        // Fallback check, though button should be disabled
         alert("INSUFFICIENT FUNDS");
         return;
     }
@@ -179,7 +187,7 @@ export default function MarketPage() {
             tempResults.push(res.data);
         }
 
-        // Patch: Fetch missing IDs (still useful for internal consistency, even if we don't sell here)
+        // Patch: Fetch missing IDs
         let patchedResults = [...tempResults];
         
         if (user?.id) {
@@ -192,7 +200,7 @@ export default function MarketPage() {
 
             if (latestItems && latestItems.length > 0) {
                  const pool = [...latestItems];
-                 patchedResults = tempResults.map(rpcItem => {
+                 patchedResults = tempResults.map((rpcItem: any) => {
                      const matchIndex = pool.findIndex(dbItem => {
                          const itemData = dbItem.item as any; 
                          const dbName = Array.isArray(itemData) ? itemData[0]?.name : itemData?.name;
@@ -240,6 +248,16 @@ export default function MarketPage() {
       setStage('IDLE');
   };
 
+  // --- BUTTON LOGIC ---
+  const cost = packQuantity * 100;
+  const canAfford = (profile?.credits || 0) >= cost;
+  const isReady = !authLoading && user;
+
+  let buttonText = `Authorize Payment (${cost})`;
+  if (authLoading) buttonText = "CONNECTING...";
+  else if (!user) buttonText = "LOGIN REQUIRED";
+  else if (!canAfford) buttonText = "INSUFFICIENT CREDITS";
+
   return (
     <div className="min-h-screen bg-zinc-950 text-white selection:bg-[#DFFF00] selection:text-black flex flex-col relative overflow-hidden">
       <AssetPreloader />
@@ -251,14 +269,27 @@ export default function MarketPage() {
           ${stage !== 'IDLE' ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'}
       `}>
           <BackButton href="/play" label="ARCADE HUB" />
-          <div className="pt-24 pb-8 px-4 md:pt-32 md:pb-12 md:px-6 max-w-[1600px] mx-auto border-b border-zinc-800">
-            <div className="flex items-center gap-2 text-[#DFFF00] font-mono text-xs md:text-sm font-black tracking-widest uppercase mb-4">
-                <Package size={16} />
-                <span>GLOBAL_MARKET // PACK_OPENING</span>
+          
+          {/* UPDATED HEADER LAYOUT */}
+          <div className="pt-24 pb-8 px-4 md:pt-32 md:pb-12 md:px-6 max-w-[1600px] mx-auto border-b border-zinc-800 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+            <div>
+                <div className="flex items-center gap-2 text-[#DFFF00] font-mono text-xs md:text-sm font-black tracking-widest uppercase mb-4">
+                    <Package size={16} />
+                    <span>GLOBAL_MARKET // PACK_OPENING</span>
+                </div>
+                <h1 className="text-4xl md:text-7xl font-black uppercase tracking-tighter">
+                    Asset <span className="text-zinc-700">Acquisition</span>
+                </h1>
             </div>
-            <h1 className="text-4xl md:text-7xl font-black uppercase tracking-tighter mb-4">
-                Asset <span className="text-zinc-700">Acquisition</span>
-            </h1>
+
+            {/* BALANCE DISPLAY IN HEADER */}
+            <div className="text-right w-full md:w-auto border-t md:border-t-0 border-zinc-800 pt-4 md:pt-0">
+                <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Current Balance</div>
+                <div className="text-2xl font-mono font-black text-[#DFFF00] flex items-center gap-2 justify-end">
+                    <Wallet size={20} />
+                    {profile?.credits?.toLocaleString() || 0}
+                </div>
+            </div>
           </div>
       </div>
 
@@ -267,10 +298,11 @@ export default function MarketPage() {
         
         {/* PACK CARD */}
         <div className={`
-            w-full max-w-md transition-all duration-500 ease-in-out
+            w-full max-w-md transition-all duration-500 ease-in-out px-4
             ${stage !== 'IDLE' ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-100 scale-100'}
         `}>
-            <div className="group relative border border-zinc-800 bg-zinc-900/30 rounded-3xl p-6 md:p-8 hover:border-[#DFFF00] transition-all duration-500">
+            {/* Increased Opacity for Mobile visibility (bg-zinc-900/80) */}
+            <div className="group relative border border-zinc-800 bg-zinc-900/80 backdrop-blur-md rounded-3xl p-6 md:p-8 hover:border-[#DFFF00] transition-all duration-500 shadow-2xl">
                 <div className="absolute top-4 right-4 bg-[#DFFF00] text-black font-bold font-mono text-[10px] px-3 py-1 rounded uppercase shadow-[0_0_15px_rgba(223,255,0,0.4)] z-20">
                     Series 1
                 </div>
@@ -336,14 +368,23 @@ export default function MarketPage() {
                     </div>
                 </div>
 
-                <button 
-                    onClick={handleOpenPack}
-                    disabled={(profile?.credits || 0) < (packQuantity * 100)}
-                    className="w-full mt-6 bg-white text-black font-black uppercase py-4 rounded-xl hover:bg-[#DFFF00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
-                >
-                    <span>Authorize ({packQuantity * 100})</span>
-                    <Zap size={16} fill="currentColor" />
-                </button>
+                {/* PURCHASE BUTTON AREA */}
+                <div className="mt-6">
+                    <div className="flex justify-between items-center mb-2 px-1">
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase">Wallet Available</span>
+                        <span className={`text-xs font-mono font-bold ${canAfford ? 'text-[#DFFF00]' : 'text-red-500'}`}>
+                            {profile?.credits?.toLocaleString() || 0} CR
+                        </span>
+                    </div>
+                    <button 
+                        onClick={handleOpenPack}
+                        disabled={!isReady || !canAfford}
+                        className="w-full bg-white text-black font-black uppercase py-4 rounded-xl hover:bg-[#DFFF00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
+                    >
+                        {authLoading ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} fill="currentColor" />}
+                        <span>{buttonText}</span>
+                    </button>
+                </div>
                 {error && <div className="text-red-500 text-center text-xs font-mono mt-4">{error}</div>}
             </div>
         </div>
