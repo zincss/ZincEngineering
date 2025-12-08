@@ -1,7 +1,7 @@
 import GlobalTicker from './components/GlobalTicker';
 import PersonalLogs from './components/PersonalLogs';
 import Link from 'next/link';
-import { ArrowRight, Trophy, BookOpen, Database, Sparkles } from 'lucide-react';
+import { ArrowRight, Trophy, BookOpen, Database, Sparkles, Gamepad2, Package } from 'lucide-react';
 
 export default function Home() {
   return (
@@ -26,14 +26,12 @@ export default function Home() {
            </video>
         </div>
         
-        {/* OPTIMIZATION: Changed md:pt-0 to md:pt-28 to clear header on tablets */}
         <div className="relative z-10 w-full max-w-[1600px] mx-auto px-4 md:px-6 pt-24 md:pt-28">
           
-          {/* OPTIMIZATION: Moved badge down (top-24/28) so it's not behind the header */}
           <div className="absolute top-24 right-4 md:top-28 md:right-6 animate-in fade-in slide-in-from-right-4 duration-1000">
              <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-900/50 border border-zinc-800 backdrop-blur-sm rounded-full text-[10px] font-mono text-[#DFFF00] tracking-widest uppercase">
                 <span className="w-2 h-2 bg-[#DFFF00] rounded-full animate-pulse" />
-                System Operational v2.4
+                System Operational v2.6
              </div>
           </div>
 
@@ -47,7 +45,7 @@ export default function Home() {
               Advanced analytics and data archiving for high-performance athletics and digital collections.
             </p>
 
-            {/* WHAT'S NEW SECTION */}
+            {/* WHAT'S NEW SECTION (UPDATED) */}
             <div className="mt-8 animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-300">
                <div className="inline-flex flex-col md:flex-row items-start md:items-center gap-4 p-4 border border-zinc-800 bg-zinc-950/80 backdrop-blur-sm rounded-lg hover:border-zinc-700 transition-colors">
                   <div className="flex items-center gap-2">
@@ -57,14 +55,15 @@ export default function Home() {
                   
                   <div className="flex-1 flex flex-col md:flex-row items-start md:items-center gap-4">
                      <span className="text-zinc-300 text-xs md:text-sm font-mono">
-                        Tactical Scorecard Protocol now available for deployment.
+                        Black Market Exchange is now open. Acquire serialized assets.
                      </span>
                      
                      <Link 
-                        href="/collections/golf" 
+                        href="/play/market" 
                         className="group flex items-center gap-2 px-4 py-2 bg-[#DFFF00] hover:bg-white text-black text-[10px] font-black uppercase tracking-widest rounded-sm transition-all shadow-[0_0_15px_rgba(223,255,0,0.1)] hover:shadow-[0_0_20px_rgba(223,255,0,0.4)]"
                      >
-                        <span>Launch Scorecard</span>
+                        <Package size={14} />
+                        <span>ENTER MARKET</span>
                         <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform"/>
                      </Link>
                   </div>
@@ -79,7 +78,9 @@ export default function Home() {
 
       {/* QUICK ACCESS MODULES */}
       <section className="max-w-[1600px] mx-auto px-4 md:px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          {/* CARD 1: SPORTS */}
           <Link href="/sports" className="group relative h-64 md:h-80 overflow-hidden border border-zinc-800 bg-zinc-900/20 hover:border-[#DFFF00] transition-all duration-500">
             <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-10 grayscale transition-opacity duration-500" />
             <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/50 to-transparent" />
@@ -91,11 +92,29 @@ export default function Home() {
               </div>
               <h2 className="text-3xl font-black uppercase text-white mb-2">Sports Archive</h2>
               <p className="text-zinc-500 font-mono text-xs max-w-sm group-hover:text-zinc-400 transition-colors">
-                NBA, NRL, F1 & Golf metrics. Real-time tracking and historical data analysis.
+                NBA, NRL, F1 & Golf metrics. Real-time tracking.
               </p>
             </div>
           </Link>
 
+          {/* CARD 2: PLAY */}
+          <Link href="/play" className="group relative h-64 md:h-80 overflow-hidden border border-zinc-800 bg-zinc-900/20 hover:border-[#DFFF00] transition-all duration-500">
+            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-10 grayscale transition-opacity duration-500" />
+            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/50 to-transparent" />
+            
+            <div className="absolute bottom-0 left-0 p-8 w-full">
+              <div className="flex items-center justify-between mb-2">
+                <Gamepad2 size={32} className="text-zinc-500 group-hover:text-[#DFFF00] transition-colors" />
+                <ArrowRight size={24} className="text-zinc-500 -translate-x-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-500" />
+              </div>
+              <h2 className="text-3xl font-black uppercase text-white mb-2">Play / Arcade</h2>
+              <p className="text-zinc-500 font-mono text-xs max-w-sm group-hover:text-zinc-400 transition-colors">
+                Trivia generation, interactive modules, and casual protocols.
+              </p>
+            </div>
+          </Link>
+
+          {/* CARD 3: COLLECTIONS */}
           <Link href="/collections" className="group relative h-64 md:h-80 overflow-hidden border border-zinc-800 bg-zinc-900/20 hover:border-[#DFFF00] transition-all duration-500">
             <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-10 grayscale transition-opacity duration-500" />
             <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/50 to-transparent" />
@@ -105,12 +124,13 @@ export default function Home() {
                 <BookOpen size={32} className="text-zinc-500 group-hover:text-[#DFFF00] transition-colors" />
                 <ArrowRight size={24} className="text-zinc-500 -translate-x-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-500" />
               </div>
-              <h2 className="text-3xl font-black uppercase text-white mb-2">Collections/Codex</h2>
+              <h2 className="text-3xl font-black uppercase text-white mb-2">Collections</h2>
               <p className="text-zinc-500 font-mono text-xs max-w-sm group-hover:text-zinc-400 transition-colors">
-                Digital archives, item catalogs, and comprehensive knowledge bases for entertainment protocols.
+                Digital archives, Warframe database, and item catalogs.
               </p>
             </div>
           </Link>
+
         </div>
       </section>
 

@@ -1,13 +1,15 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Brain, Trophy, Check, X, RefreshCw, Settings2, Loader2, Play, Users, UserPlus, Trash2, User, Shield, Clock, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Brain, Trophy, Check, X, RefreshCw, Settings2, Loader2, Play, Users, UserPlus, Trash2, User, Shield, Clock, AlertTriangle, ArrowRight, Dna, Zap, Globe, Cpu, Music, Film, Book, Crown, ListOrdered, Lock, LogIn } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/app/context/AuthContext';
+import Link from 'next/link';
 
 // --- TYPES ---
-type GameState = 'SETUP' | 'LOADING' | 'PLAYING' | 'GAME_OVER' | 'ERROR';
+type GameState = 'SETUP' | 'ROULETTE' | 'LOADING' | 'PLAYING' | 'GAME_OVER' | 'ERROR';
 type Difficulty = 'easy' | 'medium' | 'hard';
 type ParticipantType = 'player' | 'team';
-type TimerOption = '10s' | '20s' | 'off';
 
 interface Participant {
   id: string;
@@ -23,12 +25,19 @@ interface Question {
   question: string;
   correct_answer: string;
   incorrect_answers: string[];
-  all_answers?: string[]; // Shuffled
+  all_answers?: string[];
 }
 
 interface Category {
   id: number;
   name: string;
+}
+
+interface LeaderboardEntry {
+  id: string;
+  username: string;
+  score: number;
+  game_date: string;
 }
 
 // --- UTILS ---
@@ -42,15 +51,40 @@ const shuffleArray = (array: any[]) => {
   return [...array].sort(() => Math.random() - 0.5);
 };
 
+const getCategoryIcon = (name: string) => {
+    if (name.includes('Science')) return <Dna size={24} />;
+    if (name.includes('Entertainment')) return <Film size={24} />;
+    if (name.includes('Music')) return <Music size={24} />;
+    if (name.includes('Computers') || name.includes('Video')) return <Cpu size={24} />;
+    if (name.includes('History') || name.includes('Books')) return <Book size={24} />;
+    if (name.includes('Geography')) return <Globe size={24} />;
+    return <Brain size={24} />;
+};
+
+// --- ANIMATION STYLES ---
+const animationStyles = `
+  @keyframes scroll-horizontal {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(calc(-100% + 250px)); }
+  }
+  .animate-scroll-x {
+    animation: scroll-horizontal 4s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+  }
+`;
+
 export default function TriviaGame() {
+  const { user, profile, refreshProfile, loading: authLoading } = useAuth();
+  
   const [gameState, setGameState] = useState<GameState>('SETUP');
   const [categories, setCategories] = useState<Category[]>([]);
   
   // Settings
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [rounds, setRounds] = useState(5);
-  const [timerSetting, setTimerSetting] = useState<TimerOption>('off');
+
+  // Roulette State
+  const [reelCategories, setReelCategories] = useState<Category[]>([]);
+  const [targetCategory, setTargetCategory] = useState<Category | null>(null);
 
   // Roster State
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -69,7 +103,13 @@ export default function TriviaGame() {
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [isTimerActive, setIsTimerActive] = useState(false);
 
-  // Fetch Categories on Mount
+  // Leaderboard State
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+
+  // Guest Prompt State
+  const [showGuestPrompt, setShowGuestPrompt] = useState(false);
+
+  // --- INITIALIZATION ---
   useEffect(() => {
     fetch('https://opentdb.com/api_category.php')
       .then(res => res.json())
@@ -79,13 +119,51 @@ export default function TriviaGame() {
         setCategories(filtered);
       })
       .catch(err => console.error("Failed to load categories", err));
+
+    fetchLeaderboard();
   }, []);
 
-  // --- ROSTER ACTIONS ---
+  // Check for Guest Status once Auth loads
+  useEffect(() => {
+    if (!authLoading) {
+        const hasSeenPrompt = localStorage.getItem('zinc_trivia_guest_seen');
+        if (!user && !hasSeenPrompt) {
+            // Small delay for effect
+            setTimeout(() => setShowGuestPrompt(true), 1000);
+        }
+    }
+  }, [authLoading, user]);
+
+  // Auto-Fill Name
+  useEffect(() => {
+    if (profile?.username) {
+        setNewParticipantName(profile.username);
+    }
+  }, [profile]);
+
+  const fetchLeaderboard = async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from('daily_trivia_scores')
+        .select('*')
+        .eq('game_date', today)
+        .order('score', { ascending: false })
+        .limit(10);
+      
+      if (!error && data) {
+          setLeaderboard(data);
+      }
+  };
+
+  const handleDismissGuest = () => {
+      localStorage.setItem('zinc_trivia_guest_seen', 'true');
+      setShowGuestPrompt(false);
+  };
+
+  // --- ACTIONS ---
   const addParticipant = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!newParticipantName.trim()) return;
-
     const newId = Math.random().toString(36).substr(2, 9);
     setParticipants([...participants, {
       id: newId,
@@ -93,7 +171,7 @@ export default function TriviaGame() {
       type: newParticipantType,
       score: 0
     }]);
-    setNewParticipantName('');
+    setNewParticipantName(''); 
     nameInputRef.current?.focus();
   };
 
@@ -101,52 +179,66 @@ export default function TriviaGame() {
     setParticipants(participants.filter(p => p.id !== id));
   };
 
-  // --- TIMER LOGIC ---
+  // --- TIMER ---
   const handleTimeExpired = useCallback(() => {
     if (isAnswerRevealed) return;
-    
     setIsTimerActive(false);
     setSelectedAnswer('TIME_EXPIRED'); 
     setIsAnswerRevealed(true);
-    
-    setTimeout(() => {
-        handleNext();
-    }, 2000);
+    setTimeout(() => handleNext(), 2000);
   }, [isAnswerRevealed]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isTimerActive && timeLeft > 0) {
-        interval = setInterval(() => {
-            setTimeLeft((prev) => prev - 1);
-        }, 1000);
+        interval = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
     } else if (timeLeft === 0 && isTimerActive) {
         handleTimeExpired();
     }
     return () => clearInterval(interval);
   }, [isTimerActive, timeLeft, handleTimeExpired]);
 
-  // --- GAME LOGIC ---
-  const initializeGame = async () => {
-    if (!selectedCategory) return;
-    
-    let activeRoster = participants;
-    if (activeRoster.length === 0) {
-      activeRoster = [{ id: 'default', name: 'Player 1', type: 'player', score: 0 }];
-      setParticipants(activeRoster);
+  // --- GAME FLOW ---
+  const startRoulette = () => {
+    if (participants.length === 0) {
+        if (profile?.username) {
+             setParticipants([{ id: 'user', name: profile.username, type: 'player', score: 0 }]);
+        } else {
+             setParticipants([{ id: 'default', name: 'Player 1', type: 'player', score: 0 }]);
+        }
     }
+    
+    if (categories.length === 0) return;
 
+    const randomCat = categories[Math.floor(Math.random() * categories.length)];
+    setTargetCategory(randomCat);
+
+    const fillers = Array.from({ length: 20 }, () => categories[Math.floor(Math.random() * categories.length)]);
+    setReelCategories([...fillers, randomCat]);
+
+    setGameState('ROULETTE');
+
+    setTimeout(() => {
+        initializeGame(randomCat.id);
+    }, 4500); 
+  };
+
+  const initializeGame = async (categoryId: number) => {
     setGameState('LOADING');
     
     try {
-      const totalQuestions = rounds * activeRoster.length;
-      const url = `https://opentdb.com/api.php?amount=${totalQuestions}&category=${selectedCategory}&difficulty=${difficulty}&type=multiple`;
+      const currentParticipants = participants.length > 0 
+        ? participants 
+        : [{ id: 'default', name: profile?.username || 'Player 1', type: 'player', score: 0 }];
+      
+      if (participants.length === 0) setParticipants(currentParticipants as Participant[]);
+
+      const totalQuestions = rounds * currentParticipants.length;
+      const url = `https://opentdb.com/api.php?amount=${totalQuestions}&category=${categoryId}&difficulty=${difficulty}&type=multiple`;
       const res = await fetch(url);
       const data = await res.json();
 
-      if (data.response_code !== 0 || !data.results.length) {
-        throw new Error('Failed to fetch questions.');
-      }
+      if (data.response_code !== 0 || !data.results.length) throw new Error('Failed to fetch questions.');
 
       const formattedQuestions = data.results.map((q: Question) => ({
         ...q,
@@ -159,9 +251,12 @@ export default function TriviaGame() {
       setQuestions(formattedQuestions);
       setCurrentQuestionIndex(0);
       setCurrentTurnIndex(0);
-      setParticipants(activeRoster.map(p => ({ ...p, score: 0 })));
+      setParticipants(prev => {
+          const list = prev.length > 0 ? prev : currentParticipants as Participant[];
+          return list.map(p => ({ ...p, score: 0 }));
+      });
       
-      startTurn(0);
+      startTurn();
       setGameState('PLAYING');
 
     } catch (error) {
@@ -169,16 +264,11 @@ export default function TriviaGame() {
     }
   };
 
-  const startTurn = (questionIdx: number) => {
+  const startTurn = () => {
       setIsAnswerRevealed(false);
       setSelectedAnswer(null);
-      if (timerSetting !== 'off') {
-          const seconds = parseInt(timerSetting.replace('s', ''));
-          setTimeLeft(seconds);
-          setIsTimerActive(true);
-      } else {
-          setIsTimerActive(false);
-      }
+      setTimeLeft(15);
+      setIsTimerActive(true);
   };
 
   const handleAnswer = (answer: string) => {
@@ -196,12 +286,10 @@ export default function TriviaGame() {
       setParticipants(updatedRoster);
     }
 
-    setTimeout(() => {
-      handleNext();
-    }, 1500);
+    setTimeout(() => handleNext(), 1500);
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     setIsTimerActive(false); 
 
     if (currentQuestionIndex < questions.length - 1) {
@@ -209,9 +297,34 @@ export default function TriviaGame() {
       setCurrentQuestionIndex(nextQIndex);
       const nextTurnIndex = (currentTurnIndex + 1) % participants.length;
       setCurrentTurnIndex(nextTurnIndex);
-      startTurn(nextQIndex);
+      startTurn();
     } else {
       setGameState('GAME_OVER');
+      
+      if (user) {
+        const playerParticipant = participants.find(p => p.type === 'player');
+        if (playerParticipant && playerParticipant.score > 0) {
+            let roundValue = 1;
+            if (rounds === 5) roundValue = 2;
+            if (rounds === 10) roundValue = 4;
+
+            let multiplier = 1;
+            if (difficulty === 'medium') multiplier = 2;
+            if (difficulty === 'hard') multiplier = 2.5;
+
+            const earnings = Math.floor(playerParticipant.score * roundValue * multiplier);
+            await supabase.rpc('add_credits', { amount: earnings });
+            refreshProfile();
+
+            await supabase.from('daily_trivia_scores').insert({
+                user_id: user.id,
+                username: profile?.username || 'Unknown',
+                score: earnings,
+                game_date: new Date().toISOString().split('T')[0]
+            });
+            fetchLeaderboard();
+        }
+      }
     }
   };
 
@@ -223,73 +336,76 @@ export default function TriviaGame() {
 
   // --- RENDERERS ---
 
+  if (gameState === 'ROULETTE') {
+      return (
+          <div className="flex flex-col items-center justify-center min-h-[500px] w-full overflow-hidden relative">
+              <style>{animationStyles}</style>
+              <h2 className="text-xl font-black uppercase tracking-widest text-zinc-500 mb-8 animate-pulse">Selecting Database Sector...</h2>
+              <div className="w-full max-w-2xl h-48 border-y-2 border-[#DFFF00] bg-zinc-950 relative flex items-center overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+                  <div className="absolute top-0 bottom-0 left-1/2 flex items-center animate-scroll-x">
+                      {reelCategories.map((cat, i) => (
+                          <div key={i} className="w-[250px] shrink-0 flex flex-col items-center justify-center gap-4 px-4 opacity-50 last:opacity-100 last:scale-110 transition-all">
+                              <div className="p-4 bg-zinc-900 border border-zinc-700 rounded-2xl text-zinc-400">
+                                  {getCategoryIcon(cat.name)}
+                              </div>
+                              <span className="text-xs font-black uppercase text-center text-zinc-300 w-full truncate">
+                                  {cat.name.replace('Entertainment: ', '').replace('Science: ', '')}
+                              </span>
+                          </div>
+                      ))}
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-transparent to-zinc-950 z-10 pointer-events-none" />
+                  <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[260px] border-x-2 border-[#DFFF00]/30 bg-[#DFFF00]/5 z-0" />
+                  <div className="absolute top-2 bottom-2 left-1/2 -translate-x-1/2 w-0.5 bg-[#DFFF00] z-20 shadow-[0_0_10px_#DFFF00]" />
+              </div>
+          </div>
+      );
+  }
+
   if (gameState === 'LOADING') {
     return (
-      <div className="flex flex-col items-center justify-center h-[300px] md:h-[400px] border border-zinc-800 bg-zinc-900 rounded-3xl animate-pulse">
+      <div className="flex flex-col items-center justify-center h-[400px] border border-zinc-800 bg-zinc-900 rounded-3xl animate-pulse">
         <Loader2 size={48} className="text-[#DFFF00] animate-spin mb-4" />
-        <span className="text-zinc-500 font-mono font-bold tracking-widest text-xs md:text-sm">GENERATING TRIVIA MATRIX...</span>
+        <span className="text-zinc-500 font-mono font-bold tracking-widest text-xs md:text-sm">DOWNLOADING {targetCategory?.name.toUpperCase()}...</span>
       </div>
     );
   }
 
-  if (gameState === 'ERROR') {
-    return (
-      <div className="flex flex-col items-center justify-center h-[300px] md:h-[400px] border border-red-900/50 bg-zinc-900 rounded-3xl p-8 text-center">
+  if (gameState === 'ERROR') return (
+      <div className="flex flex-col items-center justify-center h-[400px] border border-red-900/50 bg-zinc-900 rounded-3xl p-8 text-center">
         <Brain size={48} className="text-red-500 mb-4" />
         <h3 className="text-xl font-black text-white uppercase mb-2">Generation Failed</h3>
-        <p className="text-zinc-400 mb-6 text-sm">Reduce the number of rounds or try a broader category.</p>
-        <button onClick={() => setGameState('SETUP')} className="px-6 py-3 bg-white text-black font-bold font-mono rounded-lg hover:bg-[#DFFF00] transition-colors text-sm">
-          RETURN TO CONFIG
-        </button>
+        <button onClick={() => setGameState('SETUP')} className="px-6 py-3 bg-white text-black font-bold font-mono rounded-lg hover:bg-[#DFFF00] transition-colors text-sm">RETURN TO CONFIG</button>
       </div>
-    );
-  }
+  );
 
   if (gameState === 'GAME_OVER') {
-    const sortedParticipants = [...participants].sort((a, b) => b.score - a.score);
-    
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] md:min-h-[500px] border border-zinc-800 bg-zinc-900 rounded-3xl p-6 md:p-8 text-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-800/30 to-transparent pointer-events-none" />
-        
-        <div className="relative z-10 w-full max-w-md">
-          <div className="inline-flex p-4 rounded-full bg-zinc-800 border border-zinc-700 mb-6 shadow-xl">
-            <Trophy size={48} className="text-[#DFFF00]" />
-          </div>
-          
-          <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-2">
-            Session Complete
-          </h2>
-          <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest mb-8">
-            Final Standings
-          </p>
+    const userScore = participants.find(p => p.type === 'player')?.score || 0;
+    let multiplier = difficulty === 'hard' ? 2.5 : difficulty === 'medium' ? 2 : 1;
+    let rVal = rounds === 10 ? 4 : rounds === 5 ? 2 : 1;
+    const earned = Math.floor(userScore * rVal * multiplier);
 
-          <div className="bg-zinc-950/50 border border-zinc-800 rounded-2xl overflow-hidden mb-8">
-            {sortedParticipants.map((p, idx) => (
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[500px] border border-zinc-800 bg-zinc-900 rounded-3xl p-8 text-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-800/30 to-transparent pointer-events-none" />
+        <div className="relative z-10 w-full max-w-md">
+          <Trophy size={64} className="text-[#DFFF00] mx-auto mb-6" />
+          <h2 className="text-4xl font-black text-white uppercase tracking-tighter mb-2">Session Complete</h2>
+          {user && earned > 0 && (
+             <div className="mb-8 inline-flex items-center gap-3 bg-[#DFFF00]/10 border border-[#DFFF00] px-6 py-3 rounded-xl">
+                 <span className="text-[#DFFF00] font-mono text-sm font-bold uppercase tracking-widest">Payout:</span>
+                 <span className="text-white font-black text-xl">+{earned} CREDITS</span>
+             </div>
+          )}
+          <div className="bg-zinc-950/50 border border-zinc-800 rounded-2xl overflow-hidden mb-8 w-full">
+            {participants.sort((a, b) => b.score - a.score).map((p, idx) => (
                 <div key={p.id} className="flex items-center justify-between p-4 border-b border-zinc-800/50 last:border-0">
-                    <div className="flex items-center gap-3">
-                        <span className={`font-mono font-bold text-lg w-6 ${idx === 0 ? 'text-[#DFFF00]' : 'text-zinc-600'}`}>#{idx + 1}</span>
-                        <div className="flex flex-col items-start text-left">
-                            <span className={`font-bold uppercase leading-none mb-1 ${idx === 0 ? 'text-white' : 'text-zinc-400'}`}>{p.name}</span>
-                            <span className="text-[9px] text-zinc-600 font-mono uppercase flex items-center gap-1">
-                                {p.type === 'team' ? <Shield size={10}/> : <User size={10}/>} {p.type}
-                            </span>
-                        </div>
-                    </div>
-                    <span className="text-2xl font-black text-white font-mono">{p.score}</span>
+                    <span className="font-bold text-white">{p.name}</span>
+                    <span className="text-2xl font-black text-[#DFFF00] font-mono">{p.score}</span>
                 </div>
             ))}
           </div>
-
-          <button 
-            onClick={resetGame}
-            className="group relative w-full px-8 py-4 bg-[#DFFF00] hover:bg-white text-black font-black uppercase tracking-wider rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(223,255,0,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)]"
-          >
-            <span className="flex items-center justify-center gap-2">
-              <RefreshCw size={20} className="group-hover:rotate-180 transition-transform duration-500"/> 
-              Re-Initialize
-            </span>
-          </button>
+          <button onClick={resetGame} className="w-full py-4 bg-white hover:bg-[#DFFF00] text-black font-black uppercase tracking-wider rounded-xl transition-colors">Re-Initialize</button>
         </div>
       </div>
     );
@@ -298,122 +414,52 @@ export default function TriviaGame() {
   if (gameState === 'PLAYING') {
     const q = questions[currentQuestionIndex];
     const currentParticipant = participants[currentTurnIndex];
-
-    const totalTime = parseInt(timerSetting.replace('s', '')) || 10;
-    const timePct = (timeLeft / totalTime) * 100;
-    let timerColor = 'bg-[#DFFF00]';
-    if (timePct < 50) timerColor = 'bg-orange-500';
-    if (timePct < 20) timerColor = 'bg-red-500';
+    const timePct = (timeLeft / 15) * 100;
 
     return (
       <div className="max-w-3xl mx-auto flex flex-col h-full">
-        
-        {/* COMPACT HUD (Mobile Optimized) */}
-        <div className="flex items-center justify-between mb-4 md:mb-6 bg-zinc-900 border border-zinc-800 rounded-xl p-3 md:p-4 shadow-lg">
-             {/* LEFT: Active Player */}
-             <div className="flex items-center gap-3 animate-in slide-in-from-left-4 fade-in duration-300" key={currentParticipant.id}>
-                <div className={`
-                    w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center shadow-inner
-                    ${currentParticipant.type === 'team' ? 'bg-blue-900/30 text-blue-400 border border-blue-500/30' : 'bg-[#DFFF00]/10 text-[#DFFF00] border border-[#DFFF00]/30'}
-                `}>
-                    {currentParticipant.type === 'team' ? <Shield size={16} /> : <User size={16} />}
+        <div className="flex items-center justify-between mb-6 bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-lg">
+             <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-[#DFFF00]/10 text-[#DFFF00] border border-[#DFFF00]/30">
+                    {currentParticipant.type === 'team' ? <Shield size={20} /> : <User size={20} />}
                 </div>
-                <div className="flex flex-col">
-                    <span className="text-[10px] text-zinc-500 font-mono font-bold uppercase leading-none mb-0.5">Active Turn</span>
-                    <span className="text-sm md:text-xl font-black text-white uppercase leading-none truncate max-w-[120px] md:max-w-[200px]">
-                        {currentParticipant.name}
-                    </span>
+                <div>
+                    <div className="text-[10px] text-zinc-500 font-mono font-bold uppercase">Active Turn</div>
+                    <div className="text-xl font-black text-white uppercase">{currentParticipant.name}</div>
                 </div>
              </div>
-
-             {/* RIGHT: Score/Progress */}
-             <div className="flex items-center gap-3 md:gap-6 border-l border-zinc-800 pl-3 md:pl-6">
-                 {timerSetting !== 'off' && (
-                     <div className="flex flex-col items-end w-12 md:w-16">
-                         <span className={`text-lg md:text-2xl font-black font-mono leading-none ${timeLeft < 5 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
-                            {timeLeft}
-                         </span>
-                         <span className="text-[8px] md:text-[10px] text-zinc-500 font-mono uppercase">SEC</span>
-                     </div>
-                 )}
-                 <div className="flex flex-col items-end">
-                    <span className="text-lg md:text-2xl font-black text-[#DFFF00] font-mono leading-none">
-                        {String(currentQuestionIndex + 1).padStart(2, '0')}
-                    </span>
-                    <span className="text-[8px] md:text-[10px] text-zinc-500 font-mono uppercase">
-                        OF {questions.length}
-                    </span>
-                 </div>
+             <div className="flex flex-col items-end">
+                 <span className={`text-2xl font-black font-mono leading-none ${timeLeft < 5 ? 'text-red-500 animate-pulse' : 'text-white'}`}>{timeLeft}</span>
+                 <span className="text-[10px] text-zinc-500 font-mono uppercase">SECONDS</span>
              </div>
         </div>
-
-        {/* TIMER BAR (Thinner, Integrated) */}
-        {timerSetting !== 'off' && (
-             <div className="mb-4 h-1 w-full bg-zinc-900 rounded-full overflow-hidden">
-                 <div 
-                    className={`h-full ${timerColor} transition-all duration-1000 ease-linear`}
-                    style={{ width: `${timePct}%` }}
-                 />
-             </div>
-        )}
-
-        {/* QUESTION CARD */}
-        <div className="flex-1 border border-zinc-800 bg-zinc-900 rounded-2xl md:rounded-3xl p-5 md:p-10 shadow-2xl relative overflow-hidden flex flex-col justify-center">
-            
-            {/* OVERLAY: TIME EXPIRED */}
+        <div className="mb-4 h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden">
+             <div className="h-full bg-[#DFFF00] transition-all duration-1000 ease-linear" style={{ width: `${timePct}%` }} />
+        </div>
+        <div className="flex-1 border border-zinc-800 bg-zinc-900 rounded-3xl p-8 shadow-2xl relative overflow-hidden flex flex-col justify-center">
             {selectedAnswer === 'TIME_EXPIRED' && (
                 <div className="absolute inset-0 bg-red-950/90 z-50 flex flex-col items-center justify-center animate-in fade-in duration-200 backdrop-blur-sm">
                     <AlertTriangle size={64} className="text-red-500 mb-4 animate-bounce" />
-                    <h3 className="text-3xl md:text-5xl font-black text-white uppercase tracking-tighter mb-2">Time Expired</h3>
-                    <p className="text-red-300 font-mono text-xs uppercase tracking-widest">Turn Forfeited</p>
+                    <h3 className="text-4xl font-black text-white uppercase tracking-tighter">Time Expired</h3>
                 </div>
             )}
-
             <div className="mb-8">
-                <span className="inline-block mb-4 px-3 py-1.5 rounded bg-zinc-950 border border-zinc-800 text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-widest">
-                    {q.category}
+                <span className="inline-flex items-center gap-2 mb-4 px-3 py-1.5 rounded bg-zinc-950 border border-zinc-800 text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-widest">
+                    {getCategoryIcon(q.category)} {q.category}
                 </span>
-
-                <h3 className="text-xl md:text-3xl lg:text-4xl font-black text-white leading-tight">
-                    {decodeHTML(q.question)}
-                </h3>
+                <h3 className="text-3xl font-black text-white leading-tight">{decodeHTML(q.question)}</h3>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {q.all_answers?.map((ans, idx) => {
-                    const isSelected = selectedAnswer === ans;
-                    const isCorrect = ans === q.correct_answer;
-                    
                     let btnStyle = "border-zinc-800 bg-zinc-950 hover:border-zinc-600 hover:bg-zinc-800 text-zinc-300";
-                    let icon = null;
-
                     if (isAnswerRevealed) {
-                        if (isCorrect) {
-                            btnStyle = "border-[#DFFF00] bg-[#DFFF00]/10 text-[#DFFF00] shadow-[0_0_15px_rgba(223,255,0,0.1)]";
-                            icon = <Check size={20} />;
-                        } else if (isSelected && !isCorrect) {
-                            btnStyle = "border-red-500/50 bg-red-900/20 text-red-500";
-                            icon = <X size={20} />;
-                        } else {
-                            btnStyle = "border-zinc-800 bg-zinc-950 text-zinc-700 opacity-50";
-                        }
-                    } else if (isSelected) {
-                        btnStyle = "border-white bg-zinc-800 text-white";
+                        if (ans === q.correct_answer) btnStyle = "border-[#DFFF00] bg-[#DFFF00]/10 text-[#DFFF00]";
+                        else if (selectedAnswer === ans) btnStyle = "border-red-500/50 bg-red-900/20 text-red-500";
+                        else btnStyle = "opacity-50 border-zinc-800";
                     }
-
                     return (
-                        <button
-                            key={idx}
-                            onClick={() => handleAnswer(ans)}
-                            disabled={isAnswerRevealed}
-                            className={`
-                                relative p-4 md:p-6 rounded-xl border-2 text-left transition-all duration-200 group
-                                flex items-center justify-between min-h-[64px]
-                                ${btnStyle}
-                            `}
-                        >
-                            <span className="font-bold text-sm md:text-base pr-4 leading-tight">{decodeHTML(ans)}</span>
-                            {icon}
+                        <button key={idx} onClick={() => handleAnswer(ans)} disabled={isAnswerRevealed} className={`p-6 rounded-xl border-2 text-left transition-all font-bold text-sm ${btnStyle}`}>
+                            {decodeHTML(ans)}
                         </button>
                     );
                 })}
@@ -425,201 +471,139 @@ export default function TriviaGame() {
 
   // --- SETUP VIEW ---
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-      
-      {/* LEFT: ROSTER CONFIG */}
-      <div className="lg:col-span-5 flex flex-col gap-6 order-2 lg:order-1">
-         <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 md:p-8">
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                    <Users className="text-[#DFFF00]" size={20} />
-                    <h3 className="text-lg font-black uppercase text-white">Roster</h3>
-                </div>
-                <span className="text-xs font-mono text-zinc-500 bg-zinc-950 px-2 py-1 rounded border border-zinc-800">
-                    {participants.length} READY
-                </span>
-            </div>
-            
-            {/* Clean Add Form */}
-            <form onSubmit={addParticipant} className="flex flex-col gap-3 mb-6 bg-zinc-950 p-3 rounded-2xl border border-zinc-800">
-                <div className="flex gap-2">
-                    <button 
-                        type="button"
-                        onClick={() => setNewParticipantType('player')}
-                        className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors border ${newParticipantType === 'player' ? 'bg-zinc-800 text-white border-zinc-700' : 'bg-transparent text-zinc-600 border-transparent hover:text-zinc-400'}`}
-                    >
-                        <User size={12} className="inline mr-1 mb-0.5"/> Player
-                    </button>
-                    <button 
-                        type="button"
-                        onClick={() => setNewParticipantType('team')}
-                        className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors border ${newParticipantType === 'team' ? 'bg-zinc-800 text-white border-zinc-700' : 'bg-transparent text-zinc-600 border-transparent hover:text-zinc-400'}`}
-                    >
-                        <Shield size={12} className="inline mr-1 mb-0.5"/> Team
-                    </button>
-                </div>
-                <div className="flex gap-2">
-                    <input 
-                        ref={nameInputRef}
-                        type="text" 
-                        value={newParticipantName}
-                        onChange={(e) => setNewParticipantName(e.target.value)}
-                        placeholder={newParticipantType === 'player' ? "PLAYER NAME..." : "TEAM NAME..."}
-                        className="flex-1 bg-zinc-900 border border-zinc-800 text-white px-4 py-2 rounded-lg focus:outline-none focus:border-[#DFFF00] placeholder:text-zinc-700 font-bold uppercase text-xs font-mono"
-                    />
-                    <button type="submit" className="bg-[#DFFF00] text-black w-10 flex items-center justify-center rounded-lg hover:bg-white transition-colors">
-                        <ArrowRight size={16} />
-                    </button>
-                </div>
-            </form>
+    <>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* LEFT: ROSTER & LEADERBOARD */}
+        <div className="lg:col-span-5 flex flex-col gap-6 order-2 lg:order-1">
+           <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+              <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                      <Users className="text-[#DFFF00]" size={20} />
+                      <h3 className="text-lg font-black uppercase text-white">Roster</h3>
+                  </div>
+                  <span className="text-xs font-mono text-zinc-500 bg-zinc-950 px-2 py-1 rounded border border-zinc-800">
+                      {participants.length} READY
+                  </span>
+              </div>
+              <form onSubmit={addParticipant} className="flex flex-col gap-3 mb-6 bg-zinc-950 p-3 rounded-2xl border border-zinc-800">
+                  <div className="flex gap-2">
+                      <button type="button" onClick={() => setNewParticipantType('player')} className={`flex-1 py-2 text-[10px] font-bold uppercase rounded-lg border ${newParticipantType === 'player' ? 'bg-zinc-800 text-white border-zinc-700' : 'bg-transparent text-zinc-600 border-transparent'}`}>Player</button>
+                      <button type="button" onClick={() => setNewParticipantType('team')} className={`flex-1 py-2 text-[10px] font-bold uppercase rounded-lg border ${newParticipantType === 'team' ? 'bg-zinc-800 text-white border-zinc-700' : 'bg-transparent text-zinc-600 border-transparent'}`}>Team</button>
+                  </div>
+                  <div className="flex gap-2">
+                      <input 
+                          ref={nameInputRef} 
+                          type="text" 
+                          value={newParticipantName} 
+                          onChange={(e) => setNewParticipantName(e.target.value)} 
+                          placeholder={profile?.username ? profile.username : "NAME..."} 
+                          className="flex-1 bg-zinc-900 border border-zinc-800 text-white px-4 py-2 rounded-lg font-bold uppercase text-xs font-mono focus:border-[#DFFF00] outline-none"
+                      />
+                      <button type="submit" className="bg-[#DFFF00] text-black w-10 flex items-center justify-center rounded-lg hover:bg-white"><ArrowRight size={16} /></button>
+                  </div>
+              </form>
+              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                  {participants.map((p) => (
+                      <div key={p.id} className="flex items-center justify-between p-3 bg-zinc-950 border border-zinc-800 rounded-xl">
+                          <span className="font-bold text-white text-xs uppercase">{p.name}</span>
+                          <button onClick={() => removeParticipant(p.id)} className="text-zinc-700 hover:text-red-500"><Trash2 size={14} /></button>
+                      </div>
+                  ))}
+                  {participants.length === 0 && <div className="text-center py-4 text-zinc-700 text-xs font-mono uppercase">List Empty</div>}
+              </div>
+           </div>
 
-            {/* Compact List */}
-            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
-                {participants.length === 0 ? (
-                    <div className="text-center py-8 border border-dashed border-zinc-800 rounded-xl bg-zinc-950/50">
-                        <span className="text-zinc-700 text-[10px] font-mono uppercase tracking-widest">No Participants<br/>Auto-Assign: Player 1</span>
-                    </div>
-                ) : (
-                    participants.map((p) => (
-                        <div key={p.id} className="group flex items-center justify-between p-3 bg-zinc-950 border border-zinc-800 rounded-xl hover:border-zinc-700 transition-colors">
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-zinc-900 flex items-center justify-center text-zinc-500 border border-zinc-800">
-                                    {p.type === 'team' ? <Shield size={14} /> : <User size={14} />}
-                                </div>
-                                <span className="font-bold text-white text-xs uppercase tracking-wide">{p.name}</span>
-                            </div>
-                            <button onClick={() => removeParticipant(p.id)} className="text-zinc-700 hover:text-red-500 transition-colors p-2">
-                                <Trash2 size={14} />
-                            </button>
-                        </div>
-                    ))
-                )}
-            </div>
-         </div>
-      </div>
+           <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 relative overflow-hidden">
+               <div className="flex items-center gap-3 mb-6 relative z-10">
+                   <ListOrdered className="text-[#DFFF00]" size={20} />
+                   <h3 className="text-lg font-black uppercase text-white">Daily Top 10</h3>
+               </div>
+               {leaderboard.length === 0 ? (
+                   <div className="text-center py-8 text-zinc-700 font-mono text-xs uppercase">No Scores Yet Today</div>
+               ) : (
+                   <div className="space-y-1 relative z-10">
+                       {leaderboard.map((entry, idx) => (
+                           <div key={entry.id} className="flex justify-between items-center p-2 rounded hover:bg-zinc-800/50 transition-colors">
+                               <div className="flex items-center gap-3">
+                                   <span className={`font-mono font-bold text-xs w-4 ${idx === 0 ? 'text-[#DFFF00]' : 'text-zinc-600'}`}>{idx + 1}</span>
+                                   <span className="font-bold text-zinc-300 text-xs uppercase">{entry.username}</span>
+                               </div>
+                               <span className="font-mono text-[#DFFF00] text-xs font-bold">{entry.score}</span>
+                           </div>
+                       ))}
+                   </div>
+               )}
+           </div>
+        </div>
 
-      {/* RIGHT: GAME CONFIG */}
-      <div className="lg:col-span-7 flex flex-col gap-6 order-1 lg:order-2">
-        
-        {/* Category Select */}
-        <div className="space-y-3">
-          <label className="flex items-center gap-2 text-xs font-bold text-zinc-500 uppercase tracking-widest">
-            <Settings2 size={12} /> Database Sector
-          </label>
-          
-          <div className="
-             flex gap-3 overflow-x-auto pb-6 -mx-4 px-4 snap-x snap-mandatory 
-             md:grid md:grid-cols-3 md:gap-3 md:max-h-[360px] md:overflow-y-auto md:pb-0 md:mx-0 md:px-0 md:snap-none custom-scrollbar
-             [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']
-          ">
-            {categories.length > 0 ? categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`
-                  shrink-0 w-[140px] h-[100px] md:w-auto md:h-24 snap-center
-                  p-4 rounded-xl border flex flex-col md:flex-row items-center justify-center md:justify-start gap-3 text-center md:text-left transition-all
-                  ${selectedCategory === cat.id 
-                    ? 'bg-white text-black border-white shadow-xl scale-[1.02]' 
-                    : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-white'}
-                `}
-              >
-                <div className={`
-                    w-2 h-2 rounded-full mb-1 md:mb-0
-                    ${selectedCategory === cat.id ? 'bg-black' : 'bg-[#DFFF00]'}
-                `} />
-                <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider leading-tight">
-                    {cat.name.replace('Entertainment: ', '').replace('Science: ', '')}
-                </span>
-              </button>
-            )) : (
-              [1,2,3,4,5,6].map(i => <div key={i} className="shrink-0 w-[140px] h-[100px] md:w-auto md:h-24 bg-zinc-900 rounded-xl animate-pulse snap-center" />)
-            )}
+        {/* RIGHT: CONFIG */}
+        <div className="lg:col-span-7 flex flex-col gap-6 order-1 lg:order-2">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-32 bg-[#DFFF00]/5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+              <div className="relative z-10">
+                  <h2 className="text-3xl font-black uppercase text-white mb-2">Protocol Config</h2>
+                  <p className="text-zinc-500 font-mono text-xs mb-8 max-w-md">Database sector will be randomly assigned upon initialization.</p>
+                  <div className="space-y-6">
+                      <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Complexity Level</label>
+                          <div className="grid grid-cols-3 gap-2">
+                              {(['easy', 'medium', 'hard'] as const).map((level) => (
+                              <button key={level} onClick={() => setDifficulty(level)} className={`py-4 rounded-xl border text-center font-black uppercase tracking-widest transition-all ${difficulty === level ? 'bg-[#DFFF00] text-black border-[#DFFF00]' : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}>
+                                  {level} {level === 'medium' ? '(2x)' : level === 'hard' ? '(2.5x)' : '(1x)'}
+                              </button>
+                              ))}
+                          </div>
+                      </div>
+                      <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Questions per Player</label>
+                          <div className="grid grid-cols-3 gap-2">
+                              {[3, 5, 10].map((num) => (
+                              <button key={num} onClick={() => setRounds(num)} className={`py-4 rounded-xl border text-center font-black uppercase tracking-widest transition-all ${rounds === num ? 'bg-white text-black border-white' : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}>
+                                  {num} {num === 3 ? '(1cr)' : num === 5 ? '(2cr)' : '(4cr)'}
+                              </button>
+                              ))}
+                          </div>
+                      </div>
+                  </div>
+                  <button onClick={startRoulette} className="w-full mt-8 py-6 rounded-2xl bg-[#DFFF00] hover:bg-white text-black font-black uppercase tracking-widest text-lg flex items-center justify-center gap-3 transition-all shadow-xl">
+                    INITIALIZE GENERATOR <Play size={20} fill="currentColor" />
+                  </button>
+              </div>
           </div>
         </div>
-
-        {/* Settings Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            
-            {/* Complexity */}
-            <div className="space-y-2">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Complexity</label>
-                <div className="flex md:flex-col gap-2 overflow-x-auto md:overflow-visible pb-2 md:pb-0">
-                    {(['easy', 'medium', 'hard'] as const).map((level) => (
-                    <button
-                        key={level}
-                        onClick={() => setDifficulty(level)}
-                        className={`
-                        flex-1 md:flex-none py-3 px-4 rounded-xl border text-center md:text-left text-[10px] font-black uppercase tracking-widest transition-all
-                        ${difficulty === level 
-                            ? 'bg-[#DFFF00] text-black border-[#DFFF00]' 
-                            : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-600'}
-                        `}
-                    >
-                        {level}
-                    </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* Rounds */}
-            <div className="space-y-2">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Rounds / Player</label>
-                <div className="flex md:flex-col gap-2">
-                    {[3, 5, 10].map((num) => (
-                    <button
-                        key={num}
-                        onClick={() => setRounds(num)}
-                        className={`
-                        flex-1 md:flex-none py-3 px-4 rounded-xl border text-center md:text-left text-[10px] font-black uppercase tracking-widest transition-all
-                        ${rounds === num 
-                            ? 'bg-white text-black border-white' 
-                            : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-600'}
-                        `}
-                    >
-                        {num} Rounds
-                    </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* Timer */}
-            <div className="space-y-2">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Time Limit</label>
-                <div className="flex md:flex-col gap-2">
-                    {(['10s', '20s', 'off'] as const).map((opt) => (
-                    <button
-                        key={opt}
-                        onClick={() => setTimerSetting(opt)}
-                        className={`
-                        flex-1 md:flex-none py-3 px-4 rounded-xl border text-center md:text-left text-[10px] font-black uppercase tracking-widest transition-all
-                        ${timerSetting === opt 
-                            ? 'bg-zinc-800 text-white border-zinc-600' 
-                            : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-600'}
-                        `}
-                    >
-                        {opt === 'off' ? 'No Timer' : opt}
-                    </button>
-                    ))}
-                </div>
-            </div>
-        </div>
-
-        {/* Start Button */}
-        <button
-          onClick={initializeGame}
-          disabled={!selectedCategory}
-          className={`
-            w-full py-6 rounded-2xl font-black uppercase tracking-widest text-lg flex items-center justify-center gap-3 transition-all shadow-xl
-            ${selectedCategory 
-              ? 'bg-white text-black hover:bg-[#DFFF00] hover:scale-[1.01]' 
-              : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'}
-          `}
-        >
-          Initialize Generator <Play size={20} fill="currentColor" />
-        </button>
-
       </div>
-    </div>
+
+      {/* --- GUEST PROMPT MODAL --- */}
+      {showGuestPrompt && (
+          <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
+              <div className="w-full max-w-md bg-zinc-950 border-2 border-[#DFFF00] rounded-3xl p-8 relative overflow-hidden shadow-[0_0_50px_rgba(223,255,0,0.15)]">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-[#DFFF00]/10 via-transparent to-transparent pointer-events-none" />
+                  
+                  <div className="relative z-10 text-center">
+                      <div className="w-16 h-16 bg-[#DFFF00]/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-[#DFFF00]">
+                          <AlertTriangle size={32} className="text-[#DFFF00]" />
+                      </div>
+                      
+                      <h2 className="text-2xl font-black uppercase text-white mb-2 tracking-tighter">Unregistered User Detected</h2>
+                      <p className="text-zinc-400 font-mono text-xs mb-8 leading-relaxed">
+                          Initialize account to enable: <br/>
+                          <span className="text-[#DFFF00]">• Credit Earning (Market Access)</span><br/>
+                          <span className="text-white">• Stat Tracking</span><br/>
+                          <span className="text-white">• Leaderboard Entry</span>
+                      </p>
+
+                      <div className="flex flex-col gap-3">
+                          <Link href="/login" className="w-full py-4 bg-[#DFFF00] hover:bg-white text-black font-black uppercase tracking-widest rounded-xl transition-colors flex items-center justify-center gap-2">
+                              <LogIn size={16} /> Initialize ID
+                          </Link>
+                          <button onClick={handleDismissGuest} className="w-full py-4 bg-zinc-900 hover:bg-zinc-800 text-zinc-500 hover:text-white font-mono font-bold uppercase tracking-widest rounded-xl transition-colors text-xs border border-zinc-800">
+                              Proceed as Ghost
+                          </button>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      )}
+    </>
   );
 }
