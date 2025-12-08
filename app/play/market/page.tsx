@@ -1,43 +1,34 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/app/context/AuthContext';
-import { Package, Zap, Info, Star, ChevronDown, ChevronUp, Layers, Grid3X3, Coins, RefreshCw, AlertCircle } from 'lucide-react';
+import { Package, Zap, Info, Star, ChevronDown, ChevronUp, Layers, Grid3X3 } from 'lucide-react';
 import BackButton from '@/app/components/BackButton';
 
 // --- 1. CONFIGURATION ---
 const REEL_ITEMS_SOURCE = [
-  { name: 'Plastic Spork', rarity: 'COMMON' }, 
-  { name: 'AA Battery', rarity: 'COMMON' },
-  { name: 'Red Brick', rarity: 'COMMON' }, 
-  { name: 'Left Sock', rarity: 'COMMON' },
-  { name: 'Vintage Toaster', rarity: 'UNCOMMON' }, 
-  { name: 'Lava Lamp', rarity: 'UNCOMMON' },
-  { name: 'Gaming Chair', rarity: 'RARE' }, 
-  { name: 'Mechanical Keyboard', rarity: 'RARE' },
-  { name: 'Espresso Machine', rarity: 'SUPER_RARE' }, 
-  { name: 'VR Headset', rarity: 'SUPER_RARE' },
-  { name: 'Solid Gold Paperclip', rarity: 'ULTRA' }, 
-  { name: 'The Zinc Cube', rarity: 'ZENITH' },
-  { name: 'Rubber Band', rarity: 'COMMON' }, 
-  { name: 'Coffee Mug', rarity: 'UNCOMMON' },
-  { name: 'Drone', rarity: 'RARE' }, 
-  { name: 'Diamond Ring', rarity: 'ULTRA' },
-  { name: 'Soda Can', rarity: 'COMMON' }, 
-  { name: 'Pizza Box', rarity: 'COMMON' },
-  { name: 'Smart Watch', rarity: 'RARE' }, 
-  { name: 'Succulent', rarity: 'UNCOMMON' }
+  { name: 'Plastic Spork', rarity: 'COMMON', description: 'Barely functional. The apex of disposable cutlery.' }, 
+  { name: 'AA Battery', rarity: 'COMMON', description: 'Not included. Probably dead anyway.' },
+  { name: 'Red Brick', rarity: 'COMMON', description: 'It\'s a brick. Good for throwing.' }, 
+  { name: 'Left Sock', rarity: 'COMMON', description: 'Where is the right one? A mystery.' },
+  { name: 'Vintage Toaster', rarity: 'UNCOMMON', description: 'A fire hazard that occasionally browns bread.' }, 
+  { name: 'Lava Lamp', rarity: 'UNCOMMON', description: 'Distracting goo. Do not drink.' },
+  { name: 'Gaming Chair', rarity: 'RARE', description: 'Racing bucket seat for sitting absolutely still.' }, 
+  { name: 'Mechanical Keyboard', rarity: 'RARE', description: 'Loud. Annoying. Tactile. Your coworkers hate you.' },
+  { name: 'Espresso Machine', rarity: 'SUPER_RARE', description: 'Overcomplicated bean water extractor. PhD required.' }, 
+  { name: 'VR Headset', rarity: 'SUPER_RARE', description: 'Escape reality. Motion sickness included.' },
+  { name: 'Solid Gold Paperclip', rarity: 'ULTRA', description: 'It holds paper. But expensively.' }, 
+  { name: 'The Zinc Cube', rarity: 'ZENITH', description: 'Dense. Heavy. Zinc. Perfection.' },
+  { name: 'Rubber Band', rarity: 'COMMON', description: 'Potential energy storage device. Snap.' }, 
+  { name: 'Coffee Mug', rarity: 'UNCOMMON', description: 'Vessel for caffeine. Stain resistant (lies).' },
+  { name: 'Drone', rarity: 'RARE', description: 'Buzzing annoyance. Battery life: 2 minutes.' }, 
+  { name: 'Diamond Ring', rarity: 'ULTRA', description: 'Compressed carbon. Depreciates instantly.' },
+  { name: 'Soda Can', rarity: 'COMMON', description: 'Aluminum cylinder. Contents: Liquid sugar.' }, 
+  { name: 'Pizza Box', rarity: 'COMMON', description: 'Cardboard with grease stains. Pizza not included.' },
+  { name: 'Smart Watch', rarity: 'RARE', description: 'It tells time and steals your personal data.' }, 
+  { name: 'Succulent', rarity: 'UNCOMMON', description: 'A plant you might actually manage not to kill.' }
 ];
-
-const QUICK_SELL_VALUES: Record<string, number> = {
-    'COMMON': 2,
-    'UNCOMMON': 5,
-    'RARE': 20,
-    'SUPER_RARE': 100,
-    'ULTRA': 500,
-    'ZENITH': 2000
-};
 
 // --- PRELOADER ---
 const getAssetUrl = (name: string) => {
@@ -90,7 +81,6 @@ const BasePackIcon = () => (
 );
 
 // --- 3. ANIMATION STYLES (MOBILE OPTIMIZED) ---
-// Note: --reel-offset matches the item height (h-32 = 128px, h-48 = 192px)
 const animationStyles = `
   .reel-container {
     --reel-offset: 128px;
@@ -159,7 +149,6 @@ export default function MarketPage() {
   // States
   const [stage, setStage] = useState<'IDLE' | 'RUMBLE' | 'SCROLLING' | 'REVEAL'>('IDLE');
   const [results, setResults] = useState<any[]>([]); 
-  const [soldItems, setSoldItems] = useState<string[]>([]);
   const [error, setError] = useState('');
   const [showOdds, setShowOdds] = useState(false);
   const [packQuantity, setPackQuantity] = useState<1 | 3>(1);
@@ -177,7 +166,6 @@ export default function MarketPage() {
     setStage('RUMBLE');
     setError('');
     setResults([]);
-    setSoldItems([]);
 
     try {
         const promises = Array(packQuantity).fill(null).map(() => supabase.rpc('open_base_set_pack'));
@@ -191,7 +179,7 @@ export default function MarketPage() {
             tempResults.push(res.data);
         }
 
-        // Patch: Fetch missing IDs
+        // Patch: Fetch missing IDs (still useful for internal consistency, even if we don't sell here)
         let patchedResults = [...tempResults];
         
         if (user?.id) {
@@ -245,30 +233,6 @@ export default function MarketPage() {
         setError(err.message);
         setStage('IDLE');
     }
-  };
-
-  const handleQuickSell = async (item: any) => {
-      const itemId = item.id || item.item_id || (item.data && item.data.id);
-
-      if (!itemId) {
-          console.error("Sell Error: Item ID missing", item);
-          alert("Error: Cannot sell this item because its ID is missing. The pack opening protocol may have glitched.");
-          return; 
-      }
-
-      const sellValue = QUICK_SELL_VALUES[item.rarity] || 2;
-      setSoldItems(prev => [...prev, itemId]);
-
-      try {
-          const { error: delError } = await supabase.from('user_items').delete().eq('id', itemId);
-          if (delError) throw delError;
-          await supabase.rpc('add_credits', { amount: sellValue });
-          refreshProfile();
-      } catch (err) {
-          console.error("Quick Sell Failed:", err);
-          setSoldItems(prev => prev.filter(id => id !== itemId));
-          alert("Sale failed. Please try again.");
-      }
   };
 
   const reset = () => {
@@ -361,6 +325,10 @@ export default function MarketPage() {
                                 <div className="p-2 border-b border-zinc-800 text-right text-green-500">30.0%</div>
                                 <div className="p-2 border-r border-b border-zinc-800 text-blue-500">Rare</div>
                                 <div className="p-2 border-b border-zinc-800 text-right text-blue-500">15.0%</div>
+                                <div className="p-2 border-r border-b border-zinc-800 text-orange-500">Super Rare</div>
+                                <div className="p-2 border-b border-zinc-800 text-right text-orange-500">4.0%</div>
+                                <div className="p-2 border-r border-b border-zinc-800 text-purple-500">Ultra</div>
+                                <div className="p-2 border-b border-zinc-800 text-right text-purple-500">0.9%</div>
                                 <div className="p-2 border-r border-zinc-800 text-[#DFFF00] bg-[#DFFF00]/5 font-bold">Zenith</div>
                                 <div className="p-2 text-right text-[#DFFF00] bg-[#DFFF00]/5 font-bold">0.1%</div>
                             </div>
@@ -381,7 +349,7 @@ export default function MarketPage() {
         </div>
       </div>
 
-      {/* --- CENTER STAGE GLASS WINDOW (SCROLLABLE & RESPONSIVE) --- */}
+      {/* --- CENTER STAGE GLASS WINDOW --- */}
       <div className={`
           fixed inset-0 z-[100] flex flex-col items-center justify-center p-4
           transition-all duration-500 ease-out
@@ -437,21 +405,8 @@ export default function MarketPage() {
                       
                       <div className="flex flex-wrap justify-center gap-6 mb-8 w-full">
                           {results.map((result, idx) => {
-                              const resultId = result.id || result.item_id || (result.data && result.data.id);
-                              const isSold = resultId && soldItems.includes(resultId);
-                              
-                              if (isSold) {
-                                  // SOLD CARD UI
-                                  return (
-                                      <div key={idx} className="relative w-64 h-80 bg-zinc-950 border-2 border-dashed border-zinc-800 rounded-2xl p-6 text-center flex flex-col items-center justify-center animate-in fade-in zoom-in duration-300">
-                                          <div className="bg-green-900/20 p-4 rounded-full mb-4 border border-green-900">
-                                              <Coins size={32} className="text-green-500" />
-                                          </div>
-                                          <h3 className="text-xl font-black text-green-500 mb-2">SOLD</h3>
-                                          <div className="font-black text-white text-lg">+{QUICK_SELL_VALUES[result.rarity] || 2} CR</div>
-                                      </div>
-                                  );
-                              }
+                              // Find description from source list
+                              const desc = REEL_ITEMS_SOURCE.find(i => i.name === result.name)?.description || "A mysterious artifact.";
 
                               return (
                                   <div key={idx} className={`
@@ -479,13 +434,12 @@ export default function MarketPage() {
                                           {result.rarity.replace('_', ' ')}
                                       </div>
 
-                                      <button 
-                                          onClick={(e) => { e.stopPropagation(); handleQuickSell(result); }}
-                                          className="relative z-10 w-full py-2 bg-red-950/50 hover:bg-red-900 border border-red-900 hover:border-red-500 text-red-200 rounded-lg flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-all group cursor-pointer"
-                                      >
-                                          <RefreshCw size={12} className="group-hover:rotate-180 transition-transform" />
-                                          Quick Sell ({QUICK_SELL_VALUES[result.rarity] || 2}cr)
-                                      </button>
+                                      {/* FUNNY DESCRIPTION (Replaces Quick Sell) */}
+                                      <div className="relative z-10 border-t border-white/10 pt-4 mt-2">
+                                          <p className="text-zinc-400 font-mono text-[10px] leading-relaxed italic">
+                                              "{desc}"
+                                          </p>
+                                      </div>
                                   </div>
                               );
                           })}
