@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Brain, Trophy, Check, X, RefreshCw, Settings2, Loader2, Play, Users, UserPlus, Trash2, User, Shield, Clock, AlertTriangle, ArrowRight, Dna, Zap, Globe, Cpu, Music, Film, Book, Crown, ListOrdered, Lock, LogIn } from 'lucide-react';
+import { Brain, Trophy, AlertTriangle, ArrowRight, Dna, Globe, Cpu, Music, Film, Book, ListOrdered, Play, Users, Trash2, User, Shield, Loader2, LogIn } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/app/context/AuthContext';
 import Link from 'next/link';
@@ -42,6 +42,7 @@ interface LeaderboardEntry {
 
 // --- UTILS ---
 const decodeHTML = (html: string) => {
+  if (typeof document === 'undefined') return html;
   const txt = document.createElement('textarea');
   txt.innerHTML = html;
   return txt.value;
@@ -62,10 +63,12 @@ const getCategoryIcon = (name: string) => {
 };
 
 // --- ANIMATION STYLES ---
+// FIX: Adjusted final transform from 250px (full width) to 125px (half width)
+// This ensures the item centers itself under the marker instead of stopping at the left edge.
 const animationStyles = `
   @keyframes scroll-horizontal {
     0% { transform: translateX(0); }
-    100% { transform: translateX(calc(-100% + 250px)); }
+    100% { transform: translateX(calc(-100% + 125px)); }
   }
   .animate-scroll-x {
     animation: scroll-horizontal 4s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
@@ -77,6 +80,7 @@ export default function TriviaGame() {
   
   const [gameState, setGameState] = useState<GameState>('SETUP');
   const [categories, setCategories] = useState<Category[]>([]);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
   
   // Settings
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
@@ -111,16 +115,35 @@ export default function TriviaGame() {
 
   // --- INITIALIZATION ---
   useEffect(() => {
-    fetch('https://opentdb.com/api_category.php')
-      .then(res => res.json())
-      .then(data => {
-        const unwanted = ['Entertainment: Musicals & Theatres', 'Art', 'Celebrities'];
-        const filtered = data.trivia_categories.filter((c: Category) => !unwanted.includes(c.name));
-        setCategories(filtered);
-      })
-      .catch(err => console.error("Failed to load categories", err));
+    const init = async () => {
+        // 1. Fetch Categories
+        try {
+            const catRes = await fetch('https://opentdb.com/api_category.php');
+            const catData = await catRes.json();
+            const unwanted = ['Entertainment: Musicals & Theatres', 'Art', 'Celebrities'];
+            const filtered = catData.trivia_categories.filter((c: Category) => !unwanted.includes(c.name));
+            setCategories(filtered);
+        } catch (err) {
+            console.error("Failed to load categories", err);
+        }
 
-    fetchLeaderboard();
+        // 2. Fetch Session Token (Prevents Repeats)
+        try {
+            const tokenRes = await fetch('https://opentdb.com/api_token.php?command=request');
+            const tokenData = await tokenRes.json();
+            if (tokenData.response_code === 0) {
+                setSessionToken(tokenData.token);
+                console.log("Trivia Session Token Initialized:", tokenData.token);
+            }
+        } catch (err) {
+            console.error("Failed to load session token", err);
+        }
+
+        // 3. Fetch Leaderboard
+        fetchLeaderboard();
+    };
+
+    init();
   }, []);
 
   // Check for Guest Status once Auth loads
@@ -128,7 +151,6 @@ export default function TriviaGame() {
     if (!authLoading) {
         const hasSeenPrompt = localStorage.getItem('zinc_trivia_guest_seen');
         if (!user && !hasSeenPrompt) {
-            // Small delay for effect
             setTimeout(() => setShowGuestPrompt(true), 1000);
         }
     }
@@ -234,9 +256,38 @@ export default function TriviaGame() {
       if (participants.length === 0) setParticipants(currentParticipants as Participant[]);
 
       const totalQuestions = rounds * currentParticipants.length;
-      const url = `https://opentdb.com/api.php?amount=${totalQuestions}&category=${categoryId}&difficulty=${difficulty}&type=multiple`;
-      const res = await fetch(url);
-      const data = await res.json();
+      
+      // Base URL
+      let url = `https://opentdb.com/api.php?amount=${totalQuestions}&category=${categoryId}&difficulty=${difficulty}&type=multiple`;
+      
+      // Append Session Token to ensure uniqueness
+      if (sessionToken) {
+          url += `&token=${sessionToken}`;
+      }
+
+      let res = await fetch(url);
+      let data = await res.json();
+
+      // CODE 4: Token Empty (User has seen all questions in this category)
+      // Action: Reset Token to start over, then refetch
+      if (data.response_code === 4 && sessionToken) {
+          console.warn("Session exhausted. Resetting token...");
+          await fetch(`https://opentdb.com/api_token.php?command=reset&token=${sessionToken}`);
+          // Refetch original request
+          res = await fetch(url);
+          data = await res.json();
+      }
+
+      // CODE 1: No Results (Not enough questions for this specific difficulty)
+      // Action: Fallback to ANY difficulty for this category
+      if (data.response_code === 1) {
+          console.warn("Not enough questions for specific difficulty. Fetching mixed difficulty.");
+          let fallbackUrl = `https://opentdb.com/api.php?amount=${totalQuestions}&category=${categoryId}&type=multiple`;
+          if (sessionToken) fallbackUrl += `&token=${sessionToken}`;
+          
+          res = await fetch(fallbackUrl);
+          data = await res.json();
+      }
 
       if (data.response_code !== 0 || !data.results.length) throw new Error('Failed to fetch questions.');
 
@@ -260,6 +311,7 @@ export default function TriviaGame() {
       setGameState('PLAYING');
 
     } catch (error) {
+      console.error(error);
       setGameState('ERROR');
     }
   };
@@ -375,6 +427,7 @@ export default function TriviaGame() {
       <div className="flex flex-col items-center justify-center h-[400px] border border-red-900/50 bg-zinc-900 rounded-3xl p-8 text-center">
         <Brain size={48} className="text-red-500 mb-4" />
         <h3 className="text-xl font-black text-white uppercase mb-2">Generation Failed</h3>
+        <p className="text-zinc-500 font-mono text-xs mb-6">Could not retrieve questions for this configuration.</p>
         <button onClick={() => setGameState('SETUP')} className="px-6 py-3 bg-white text-black font-bold font-mono rounded-lg hover:bg-[#DFFF00] transition-colors text-sm">RETURN TO CONFIG</button>
       </div>
   );

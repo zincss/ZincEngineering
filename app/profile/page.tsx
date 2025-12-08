@@ -3,54 +3,31 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/app/context/AuthContext';
-import { User, Shield, Coins, Calendar, Loader2, Box, Zap, X, Globe, Hash, BarChart3, Search } from 'lucide-react';
+import { User, Shield, Coins, Calendar, Loader2, Box, Zap, X, Globe, Hash, BarChart3, Search, AlertTriangle } from 'lucide-react';
 import BackButton from '@/app/components/BackButton';
 import Link from 'next/link';
 
-// --- SMART PIXEL ICON SYSTEM (Synced with Market) ---
-const PixelIcon = ({ name }: { name: string }) => {
-  // A. Hand-Coded Heroes
-  const heroIcons: Record<string, React.ReactNode> = {
-    'The Zinc Cube': <svg viewBox="0 0 24 24" className="w-full h-full text-zinc-900" fill="currentColor"><path d="M4 4h16v16H4V4z" className="text-black"/><path d="M8 8h8v8H8V8z" className="text-[#DFFF00] animate-pulse"/><path d="M10 10h4v4h-4v-4z" className="text-white"/></svg>,
-    'Solid Gold Paperclip': <svg viewBox="0 0 24 24" className="w-full h-full text-yellow-400" fill="currentColor"><path d="M8 6h2v12H8V6zm4-2h2v16h-2V4zm4 4h2v8h-2V8z"/><path d="M8 18h8v2H8v-2zM12 2h4v2h-4V2z"/></svg>,
-    'Diamond Ring': <svg viewBox="0 0 24 24" className="w-full h-full" fill="currentColor"><path d="M8 14a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" className="text-yellow-500"/><path d="M10 8l2-4l2 4l-2 2z" className="text-blue-300 animate-pulse"/></svg>,
-    'Meteorite Chunk': <svg viewBox="0 0 24 24" className="w-full h-full text-zinc-600" fill="currentColor"><path d="M4 8l4-4l8 2l4 6l-2 8l-8 2l-6-6z"/><circle cx="8" cy="10" r="1" className="text-zinc-800"/><circle cx="14" cy="14" r="2" className="text-zinc-800"/></svg>,
-  };
-
-  if (heroIcons[name]) return heroIcons[name];
-
-  // B. Procedural Categorizer
-  const lowerName = name.toLowerCase();
-  let type = 'misc';
-  let colorClass = 'text-zinc-500';
-
-  if (/(battery|phone|watch|camera|drone|printer|vacuum|router|drive|card|monitor|console|game|keyboard|mouse|headphone|webcam)/.test(lowerName)) { type = 'tech'; colorClass = 'text-blue-500'; }
-  else if (/(spork|fork|spoon|knife|whisk|peeler|can|opener|cup|mug|thermos|bottle|plate|tray|toaster|espresso|blender)/.test(lowerName)) { type = 'kitchen'; colorClass = 'text-orange-400'; }
-  else if (/(sock|shirt|beanie|cap|sneaker|bag|coat|jacket|shoe|boot|backpack|duffel)/.test(lowerName)) { type = 'clothing'; colorClass = 'text-red-400'; }
-  else if (/(plant|succulent|leaf|flower|tree|cactus|dirt|rock|marble|stone)/.test(lowerName)) { type = 'nature'; colorClass = 'text-green-500'; }
-  else if (/(paper|receipt|napkin|note|ticket|tag|cardboard|box|envelope)/.test(lowerName)) { type = 'paper'; colorClass = 'text-yellow-100'; }
-  else if (/(brick|block|dice|cube|lego)/.test(lowerName)) { type = 'block'; colorClass = 'text-red-700'; }
-  else if (/(tool|hammer|wrench|driver|tape|ruler|measure|compass|flashlight|knife)/.test(lowerName)) { type = 'tool'; colorClass = 'text-slate-400'; }
-  else if (/(lamp|light|bulb|fan|switch|outlet|cord|plug)/.test(lowerName)) { type = 'electric'; colorClass = 'text-yellow-500'; }
+// --- GENERATIVE IMAGE SYSTEM (Synced with Market) ---
+const ItemImage = ({ name, rarity, className = "" }: { name: string, rarity: string, className?: string }) => {
+  // Same seed logic = Same image everywhere
+  const seed = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   
-  // C. Archetype Paths
-  const paths: Record<string, React.ReactNode> = {
-    tech: <path d="M6 4h12v14H6z M8 18h8v2H8z M9 8h6v6H9z" />,
-    kitchen: <path d="M8 2h8v12h-2v8h-4v-8h-2z" />,
-    clothing: <path d="M4 6h16v4h-2v10H6V10H4z" />,
-    nature: <path d="M12 2l4 6h-2v8h4v4H6v-4h4V8H8z" />,
-    paper: <path d="M6 2h12v20H6z M14 2v6h4" />,
-    block: <path d="M4 4h16v16H4z M8 8h2v2H8z M14 14h2v2h-2z" />,
-    tool: <path d="M16 2l4 4l-4 4l-2-2l-8 8l-4 4l-2-2l4-4l8-8z" />,
-    electric: <path d="M8 2h8v2h-2v4h4v6h-4v8H10v-8H6V8h4V4H8z" />,
-    misc: <path d="M8 6h8v2h2v8h-2v2H8v-2H6V8h2z" />
-  };
+  // Prompt engineering for consistent "Game Asset" look
+  const prompt = encodeURIComponent(`3d render of ${name}, video game asset, isometric view, dark background, high quality, glowing lighting, 4k`);
+  const imageUrl = `https://image.pollinations.ai/prompt/${prompt}?width=300&height=300&seed=${seed}&nologo=true`;
 
   return (
-    <svg viewBox="0 0 24 24" className={`w-full h-full ${colorClass}`} fill="currentColor">
-       {paths[type] || paths['misc']}
-       <rect x="0" y="0" width="24" height="24" fill="white" opacity="0.1" />
-    </svg>
+    <div className={`relative overflow-hidden rounded-xl ${className}`}>
+        <div className="absolute inset-0 bg-zinc-800 animate-pulse -z-10" />
+        <img 
+            src={imageUrl} 
+            alt={name}
+            className="w-full h-full object-cover transform hover:scale-110 transition-transform duration-500"
+            loading="lazy"
+        />
+        {rarity === 'ZENITH' && <div className="absolute inset-0 bg-gradient-to-t from-[#DFFF00]/20 to-transparent pointer-events-none mix-blend-overlay" />}
+        {rarity === 'ULTRA' && <div className="absolute inset-0 bg-gradient-to-t from-purple-500/20 to-transparent pointer-events-none mix-blend-overlay" />}
+    </div>
   );
 };
 
@@ -66,8 +43,13 @@ export default function ProfilePage() {
   const [loadingSupply, setLoadingSupply] = useState(false);
 
   useEffect(() => {
-    if (user) fetchInventory();
-  }, [user]);
+    // FIX: Prevents infinite loading if not logged in
+    if (user) {
+        fetchInventory();
+    } else if (!authLoading) {
+        setLoading(false);
+    }
+  }, [user, authLoading]);
 
   // Fetch Supply when item selected
   useEffect(() => {
@@ -89,6 +71,7 @@ export default function ProfilePage() {
 
   const fetchInventory = async () => {
     try {
+      if (!user) return;
       const { data, error } = await supabase
         .from('user_items')
         .select(`
@@ -104,7 +87,7 @@ export default function ProfilePage() {
             image_url
           )
         `)
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .order('obtained_at', { ascending: false });
 
       if (error) throw error;
@@ -146,6 +129,21 @@ export default function ProfilePage() {
   };
 
   if (authLoading) return <div className="min-h-screen bg-black flex items-center justify-center text-[#DFFF00]"><Loader2 className="animate-spin"/></div>;
+
+  // Handle case where user is not logged in
+  if (!user) {
+      return (
+        <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-center p-6">
+            <BackButton href="/" label="MAIN TERMINAL" />
+            <AlertTriangle className="text-[#DFFF00] mb-4" size={48} />
+            <h2 className="text-2xl font-black text-white uppercase mb-2">Access Denied</h2>
+            <p className="text-zinc-500 font-mono text-sm mb-8">Identification required to access asset database.</p>
+            <Link href="/login" className="px-8 py-4 bg-[#DFFF00] text-black font-black uppercase rounded-xl hover:bg-white transition-colors">
+                Initialize Login
+            </Link>
+        </div>
+      );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white selection:bg-[#DFFF00] selection:text-black relative">
@@ -245,21 +243,22 @@ export default function ProfilePage() {
                         key={item.id}
                         onClick={() => setSelectedItem(item)}
                         className={`
-                            group relative bg-zinc-900 border-2 rounded-xl p-4 transition-all hover:-translate-y-1 hover:shadow-xl text-left
+                            group relative bg-zinc-900 border-2 rounded-xl p-4 transition-all hover:-translate-y-1 hover:shadow-xl text-left overflow-hidden
                             ${getRarityColor(item.item_templates.rarity)}
                         `}
                     >
-                        <div className="flex justify-between items-start mb-4">
+                        <div className="flex justify-between items-start mb-4 relative z-10">
                             <span className="text-[8px] font-mono opacity-50">#{String(item.serial_number).padStart(4, '0')}</span>
                             {item.is_shiny && <Zap size={10} className="text-yellow-400 fill-current" />}
                         </div>
 
-                        <div className="aspect-square bg-black/20 rounded-lg mb-4 flex items-center justify-center p-2 group-hover:scale-105 transition-transform">
-                             <PixelIcon name={item.item_templates.name} />
+                        {/* Updated to use ItemImage */}
+                        <div className="aspect-square bg-black/20 rounded-lg mb-4 flex items-center justify-center p-0 overflow-hidden group-hover:scale-105 transition-transform">
+                             <ItemImage name={item.item_templates.name} rarity={item.item_templates.rarity} className="w-full h-full" />
                         </div>
 
-                        <h3 className="text-xs font-black uppercase truncate mb-1">{item.item_templates.name}</h3>
-                        <div className="flex items-center justify-between">
+                        <h3 className="text-xs font-black uppercase truncate mb-1 relative z-10">{item.item_templates.name}</h3>
+                        <div className="flex items-center justify-between relative z-10">
                             <span className="text-[8px] font-mono font-bold opacity-75">{item.item_templates.rarity}</span>
                         </div>
                     </button>
@@ -298,9 +297,9 @@ export default function ProfilePage() {
                           )}
                       </div>
 
-                      <div className="w-48 h-48 mx-auto mb-8 bg-black/20 rounded-2xl p-6 border border-white/10 shadow-inner flex items-center justify-center">
+                      <div className="w-48 h-48 mx-auto mb-8 bg-black/20 rounded-2xl border border-white/10 shadow-inner flex items-center justify-center overflow-hidden">
                           <div className="w-full h-full transform hover:scale-110 transition-transform duration-500">
-                             <PixelIcon name={selectedItem.item_templates.name} />
+                             <ItemImage name={selectedItem.item_templates.name} rarity={selectedItem.item_templates.rarity} className="w-full h-full" />
                           </div>
                       </div>
 
