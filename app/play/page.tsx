@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Brain, ChevronRight, Construction, Dna, Package } from 'lucide-react';
+import { Brain, ChevronRight, Construction, Dna, Package, Layers, Spade } from 'lucide-react';
 import BackButton from '../components/BackButton';
 
 export default function PlayHub() {
@@ -58,20 +58,30 @@ export default function PlayHub() {
                 </div>
             </Link>
 
-            {/* GAME 2: MARKET - REMOVED AS REQUESTED */}
-            {/* Replaced with Classified Slot */}
-            <div className="group relative border border-dashed border-zinc-800 bg-zinc-950/50 min-h-[350px] flex flex-col items-center justify-center text-center p-8 opacity-75 hover:opacity-100 transition-opacity">
-                <div className="mb-4 text-zinc-700 group-hover:text-zinc-500 transition-colors">
-                    <Package size={48} strokeWidth={1} />
+            {/* GAME 2: BLACKJACK (NEW) */}
+            <Link 
+                href="/play/blackjack" 
+                className="group relative border border-zinc-800 bg-zinc-900/20 hover:border-[#DFFF00] transition-colors duration-300 min-h-[350px] flex flex-col"
+            >
+                {/* Background Image - Abstract Cards/Chips */}
+                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1511193311914-0346f16efe90?q=80&w=2674&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-40 grayscale transition-all duration-500" />
+                <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-transparent" />
+
+                <div className="relative z-10 p-8 flex-1 flex flex-col justify-end">
+                    <div className="mb-4 text-[#DFFF00] bg-zinc-950/50 w-fit p-3 rounded-xl border border-zinc-800 backdrop-blur-sm">
+                        <Spade size={32} />
+                    </div>
+                    <h3 className="text-3xl font-black uppercase tracking-tight text-white mb-2 group-hover:text-[#DFFF00] transition-colors">
+                        Tactical Blackjack
+                    </h3>
+                    <p className="text-zinc-400 font-mono text-sm mb-6 max-w-md">
+                        High-stakes probability simulation. Wager credits against the house algorithm.
+                    </p>
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500 group-hover:text-white transition-colors">
+                        ENTER TABLE <ChevronRight size={12} />
+                    </div>
                 </div>
-                <h3 className="text-xl font-black uppercase tracking-tight text-zinc-700 mb-2">
-                    Classified
-                </h3>
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-zinc-800 rounded text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
-                    <Construction size={10} />
-                    Moved to Header
-                </div>
-            </div>
+            </Link>
 
             {/* COMING SOON SLOT */}
             <div className="group relative border border-dashed border-zinc-800 bg-zinc-950/50 min-h-[350px] flex flex-col items-center justify-center text-center p-8 opacity-75 hover:opacity-100 transition-opacity">
