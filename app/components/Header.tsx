@@ -15,7 +15,7 @@ import {
   LogOut,
   Shield,
   Gamepad2,
-  Package // Added for Market
+  Package 
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -25,17 +25,19 @@ export default function Header() {
   
   // Route Detection
   const isHome = pathname === '/';
-  const isPlay = pathname?.startsWith('/play') && !pathname?.startsWith('/play/market'); // Exclude market from play highlight
+  const isPlay = pathname?.startsWith('/play') && !pathname?.startsWith('/play/market');
   const isMarket = pathname?.startsWith('/play/market');
   const isSports = pathname?.startsWith('/sports');
   const isCollections = pathname?.startsWith('/collections') || pathname?.startsWith('/gaming') || pathname?.startsWith('/automotive');
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Close mobile menu when route changes
+  // Close mobile menu when route changes (backup safety)
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [pathname]);
+
+  const closeMenu = () => setIsMobileMenuOpen(false);
 
   return (
     <>
@@ -44,7 +46,7 @@ export default function Header() {
           
           {/* LEFT: IDENTITY & NAV */}
           <div className="flex items-center gap-10">
-              <a href="/" className="flex items-center gap-4 group">
+              <Link href="/" className="flex items-center gap-4 group">
                   <div className="bg-[#DFFF00] w-10 h-10 flex items-center justify-center font-black text-xl text-black shadow-[0_0_25px_rgba(223,255,0,0.15)] group-hover:shadow-[0_0_35px_rgba(223,255,0,0.4)] transition-all duration-500 rounded-sm">
                       Z
                   </div>
@@ -52,7 +54,7 @@ export default function Header() {
                       <span className="font-black text-xl leading-none text-white tracking-tighter group-hover:text-[#DFFF00] transition-colors">ZINC</span>
                       <span className="font-mono text-[9px] text-zinc-500 tracking-[0.35em] group-hover:text-zinc-400 transition-colors uppercase">Engineering</span>
                   </div>
-              </a>
+              </Link>
 
               {/* DESKTOP NAV */}
               <nav className="hidden lg:flex items-center">
@@ -60,7 +62,6 @@ export default function Header() {
                   <div className="w-px h-4 bg-zinc-800 mx-3"></div>
                   <NavLink href="/play" active={isPlay} icon={<Gamepad2 size={14} />}>PLAY</NavLink>
                   <div className="w-px h-4 bg-zinc-800 mx-3"></div>
-                  {/* ADDED MARKET LINK */}
                   <NavLink href="/play/market" active={isMarket} icon={<Package size={14} />}>MARKET</NavLink>
                   <div className="w-px h-4 bg-zinc-800 mx-3"></div>
                   <NavLink href="/collections" active={isCollections} icon={<FolderOpen size={14} />}>COLLECTIONS</NavLink>
@@ -84,9 +85,8 @@ export default function Header() {
                           {/* User Menu */}
                           <div className="flex items-center gap-3 pl-4 border-l border-zinc-800">
                               
-                              {/* ADMIN BUTTON */}
                               {isAdmin && (
-                                <a 
+                                <Link 
                                   href="/admin" 
                                   className="p-2 text-red-500 hover:text-white hover:bg-red-900/50 rounded-full transition-colors relative group"
                                   title="Admin Dashboard"
@@ -96,10 +96,9 @@ export default function Header() {
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                                     <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
                                   </span>
-                                </a>
+                                </Link>
                               )}
 
-                              {/* LINK TO PROFILE */}
                               <Link href="/profile" className="text-right hidden md:block leading-tight group hover:opacity-80 transition-opacity cursor-pointer">
                                   <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest group-hover:text-[#DFFF00]">Operator</div>
                                   <div className="text-xs font-black text-white uppercase tracking-tight">{profile.username}</div>
@@ -121,18 +120,18 @@ export default function Header() {
                             <Circle size={6} className="fill-[#DFFF00] text-[#DFFF00] animate-pulse" />
                             <span>System Online</span>
                         </div>
-                        <a 
+                        <Link 
                             href="/login" 
                             className="flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase tracking-widest bg-zinc-900 border border-zinc-800 text-white hover:bg-[#DFFF00] hover:text-black hover:border-[#DFFF00] transition-all rounded-sm"
                         >
                             <LogIn size={14} /> Login
-                        </a>
+                        </Link>
                       </div>
                   )}
               </div>
 
               {/* MOBILE MENU TOGGLE */}
-              <button className="lg:hidden text-white hover:text-[#DFFF00] transition-colors" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+              <button className="lg:hidden text-white hover:text-[#DFFF00] transition-colors z-50" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
                   {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
           </div>
@@ -142,27 +141,41 @@ export default function Header() {
 
       {/* MOBILE MENU DRAWER */}
       {isMobileMenuOpen && (
-          <div className="fixed inset-0 top-20 z-40 bg-black/95 backdrop-blur-xl p-6 flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 border-t border-zinc-800">
-              <MobileLink href="/" active={isHome} icon={<LayoutGrid size={18}/>} label="HUB" />
-              <MobileLink href="/play" active={isPlay} icon={<Gamepad2 size={18}/>} label="PLAY" />
-              <MobileLink href="/play/market" active={isMarket} icon={<Package size={18}/>} label="MARKET" />
-              <MobileLink href="/collections" active={isCollections} icon={<FolderOpen size={18}/>} label="COLLECTIONS" />
-              <MobileLink href="/sports" active={isSports} icon={<Trophy size={18}/>} label="SPORTS" />
+          <div className="fixed inset-0 top-0 pt-24 z-40 bg-black/95 backdrop-blur-xl p-6 flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 border-t border-zinc-800 overflow-y-auto">
+              <MobileLink onClick={closeMenu} href="/" active={isHome} icon={<LayoutGrid size={18}/>} label="HUB" />
+              <MobileLink onClick={closeMenu} href="/play" active={isPlay} icon={<Gamepad2 size={18}/>} label="PLAY" />
+              <MobileLink onClick={closeMenu} href="/play/market" active={isMarket} icon={<Package size={18}/>} label="MARKET" />
+              <MobileLink onClick={closeMenu} href="/collections" active={isCollections} icon={<FolderOpen size={18}/>} label="COLLECTIONS" />
+              <MobileLink onClick={closeMenu} href="/sports" active={isSports} icon={<Trophy size={18}/>} label="SPORTS" />
               
               <div className="w-full h-px bg-zinc-800 my-2"></div>
               
               {user ? (
                  <>
-                    <MobileLink href="/profile" active={pathname === '/profile'} icon={<User size={18}/>} label="MY PROFILE" />
+                    <div className="flex items-center justify-between p-4 bg-zinc-900/50 rounded-sm border border-zinc-800">
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Balance</span>
+                            <div className="flex items-center gap-2 text-[#DFFF00]">
+                                <Coins size={14} />
+                                <span className="font-mono font-black">{profile?.credits?.toLocaleString() ?? 0}</span>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Operator</span>
+                            <div className="font-bold text-white">{profile?.username}</div>
+                        </div>
+                    </div>
+
+                    <MobileLink onClick={closeMenu} href="/profile" active={pathname === '/profile'} icon={<UserIcon size={18}/>} label="MY PROFILE" />
                     {isAdmin && (
-                        <MobileLink href="/admin" active={pathname === '/admin'} icon={<Shield size={18} className="text-red-500"/>} label="ADMIN CONSOLE" />
+                        <MobileLink onClick={closeMenu} href="/admin" active={pathname === '/admin'} icon={<Shield size={18} className="text-red-500"/>} label="ADMIN CONSOLE" />
                     )}
-                    <button onClick={signOut} className="flex items-center gap-4 p-4 text-sm font-black uppercase tracking-widest border border-zinc-800 bg-zinc-900/50 text-zinc-400 hover:text-white rounded-sm">
+                    <button onClick={() => { closeMenu(); signOut(); }} className="flex items-center gap-4 p-4 text-sm font-black uppercase tracking-widest border border-zinc-800 bg-zinc-900/50 text-zinc-400 hover:text-white rounded-sm w-full">
                         <LogOut size={18} /> Logout
                     </button>
                  </>
               ) : (
-                 <MobileLink href="/login" active={false} icon={<LogIn size={18}/>} label="LOGIN / REGISTER" />
+                 <MobileLink onClick={closeMenu} href="/login" active={false} icon={<LogIn size={18}/>} label="LOGIN / REGISTER" />
               )}
           </div>
       )}
@@ -173,7 +186,7 @@ export default function Header() {
 // --- HELPER NAV COMPONENTS ---
 
 const NavLink = ({ href, active, icon, children }: { href: string, active: boolean, icon: React.ReactNode, children: React.ReactNode }) => (
-    <a 
+    <Link 
         href={href} 
         className={`
             flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-sm
@@ -182,12 +195,13 @@ const NavLink = ({ href, active, icon, children }: { href: string, active: boole
     >
         {icon}
         {children}
-    </a>
+    </Link>
 );
 
-const MobileLink = ({ href, active, icon, label }: any) => (
-    <a 
+const MobileLink = ({ href, active, icon, label, onClick }: any) => (
+    <Link 
         href={href} 
+        onClick={onClick}
         className={`
             flex items-center gap-4 p-4 text-sm font-black uppercase tracking-widest border transition-all rounded-sm
             ${active ? 'bg-[#DFFF00] text-black border-[#DFFF00]' : 'bg-zinc-900 text-zinc-500 border-zinc-800'}
@@ -195,10 +209,10 @@ const MobileLink = ({ href, active, icon, label }: any) => (
     >
         {icon}
         {label}
-    </a>
+    </Link>
 );
 
-const User = ({ size }: { size: number }) => (
+const UserIcon = ({ size }: { size: number }) => (
     <svg 
         width={size} 
         height={size} 

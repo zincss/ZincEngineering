@@ -28,19 +28,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // Use a ref to track the current user ID without closure staleness
-  const mountedUser = useRef<string | null>(null);
+  // Track if we have already fetched the profile for a specific user to prevent loops
+  const lastFetchedUserId = useRef<string | null>(null);
 
   const fetchProfile = async (userId: string) => {
     try {
-        const { data } = await supabase
+        const { data, error } = await supabase
         .from('profiles')
         .select('username, credits, role, created_at') 
         .eq('id', userId)
         .single();
         
+        if (error) {
+            console.warn("Profile fetch warning:", error.message);
+            // Don't nullify profile on temporary network errors if we already have one
+            return;
+        }
+
         if (data) {
             setProfile(data as Profile);
+            lastFetchedUserId.current = userId;
         }
     } catch (error) {
         console.error("Profile fetch error:", error);
@@ -50,55 +57,60 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     let mounted = true;
 
-    const initSession = async () => {
+    // 1. Check active session immediately
+    const initializeAuth = async () => {
         try {
             const { data: { session } } = await supabase.auth.getSession();
             
             if (mounted) {
                 if (session?.user) {
                     setUser(session.user);
-                    mountedUser.current = session.user.id;
-                    await fetchProfile(session.user.id);
+                    // Only fetch if we haven't already for this user
+                    if (lastFetchedUserId.current !== session.user.id) {
+                         await fetchProfile(session.user.id);
+                    }
                 } else {
                     setUser(null);
-                    mountedUser.current = null;
+                    setProfile(null);
                 }
             }
-        } catch (error) {
-            console.error("Session init error:", error);
+        } catch (err) {
+            console.error("Auth init error:", err);
         } finally {
             if (mounted) setLoading(false);
         }
     };
 
-    initSession();
+    initializeAuth();
 
+    // 2. Listen for changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // Only act on specific events to avoid unnecessary re-renders/fetches
-      const currentUserId = session?.user?.id ?? null;
+      // 'INITIAL_SESSION' is often redundant if we manually checked getSession, 
+      // but 'SIGNED_IN', 'SIGNED_OUT', 'TOKEN_REFRESHED' are critical.
+      
+      if (!mounted) return;
 
-      // If the user ID hasn't changed, we don't need to do a full reload/fetch
-      // This prevents "flicker" on token refreshes
-      if (currentUserId === mountedUser.current) {
-          if (event === 'TOKEN_REFRESHED' && session?.user) {
-              setUser(session.user); // Update user object just in case, but don't toggle loading
-          }
+      const currentUser = session?.user ?? null;
+      
+      if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setProfile(null);
+          lastFetchedUserId.current = null;
+          setLoading(false);
           return;
       }
 
-      // If we are here, the user actually changed (Login or Logout)
-      if (mounted) setLoading(true);
-      
-      setUser(session?.user ?? null);
-      mountedUser.current = currentUserId;
-
-      if (session?.user) {
-          await fetchProfile(session.user.id);
-      } else {
-          setProfile(null);
+      // If session exists and it's a new user or token refresh
+      if (currentUser) {
+          setUser(currentUser);
+          
+          // Refresh profile on sign-in or if we haven't fetched it yet
+          if (event === 'SIGNED_IN' || lastFetchedUserId.current !== currentUser.id) {
+              await fetchProfile(currentUser.id);
+          }
       }
       
-      if (mounted) setLoading(false);
+      setLoading(false);
     });
 
     return () => {
@@ -112,14 +124,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signIn = () => {
-    window.location.href = '/login';
+    // Ideally use router.push instead of window.location for SPA feel
+    window.location.href = '/login'; 
   };
 
   const signOut = async () => {
+    setLoading(true);
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
-    mountedUser.current = null;
+    lastFetchedUserId.current = null;
+    setLoading(false);
     window.location.href = '/';
   };
 
