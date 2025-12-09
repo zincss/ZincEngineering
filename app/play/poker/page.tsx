@@ -551,15 +551,15 @@ export default function PokerPage() {
                     Portrait: Vertical rectangle (aspect-[3/5])
                     Landscape/Desktop: Horizontal oval (aspect-[2/1])
                 */}
-                <div className="relative w-[90%] md:w-[80%] max-w-5xl transition-all duration-500
+                <div className="relative w-[95%] md:w-[80%] max-w-5xl max-h-[60vh] md:max-h-none transition-all duration-500
                     aspect-[3/5] md:aspect-[2/1]
-                    bg-zinc-900/90 border-4 border-zinc-800 rounded-[100px] md:rounded-[150px] shadow-2xl flex items-center justify-center mt-8 md:mt-0">
+                    bg-zinc-900/90 border-4 border-zinc-800 rounded-[100px] md:rounded-[150px] shadow-2xl flex items-center justify-center">
                     
                     <div className="absolute inset-2 md:inset-4 border-2 border-dashed border-zinc-700/50 rounded-[90px] md:rounded-[130px]" />
                     
                     {/* POT DISPLAY - CENTERED & MOVED HIGHER ON DESKTOP */}
                     {/* Changed top-[38%] to top-[20%] on desktop to avoid card overlap */}
-                    <div className="absolute top-[38%] md:top-[15%] left-1/2 -translate-x-1/2 z-20 flex flex-col items-center justify-center pointer-events-none transition-all duration-300">
+                    <div className="absolute top-[28%] md:top-[15%] left-1/2 -translate-x-1/2 z-20 flex flex-col items-center justify-center pointer-events-none transition-all duration-300">
                          <div className="text-[10px] text-zinc-500 font-mono uppercase tracking-widest mb-1">Pot</div>
                          <div className="flex items-center gap-1.5 bg-zinc-950/90 px-4 py-1.5 rounded-full border border-zinc-800 backdrop-blur-sm shadow-xl">
                             <Coins size={14} className="text-[#DFFF00]" />
@@ -711,7 +711,7 @@ export default function PokerPage() {
             )}
 
             {/* ACTION DRAWER - FIXED BOTTOM */}
-            <div className="h-[25vh] md:h-auto md:min-h-[140px] bg-zinc-900 border-t border-zinc-800 p-4 relative z-[60] flex flex-col justify-end pb-safe">
+            <div className="h-auto md:min-h-[140px] bg-zinc-900 border-t border-zinc-800 p-4 pt-6 relative z-[60] flex flex-col justify-end pb-safe">
                 
                 {/* GAME LOG TICKER */}
                 <div className="absolute -top-4 left-0 right-0 flex justify-center pointer-events-none">
