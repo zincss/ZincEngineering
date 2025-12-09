@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Layers, Grid3X3, Info, ChevronUp, ChevronDown, Lock, Zap, CarFront, Loader2 } from 'lucide-react';
 import { 
-  REEL_ITEMS_SOURCE, CAR_PACK_SOURCE, BasePackIcon, ItemImage, 
+  REEL_ITEMS_SOURCE, CAR_PACK_SOURCE, FLAIR_ITEMS_SOURCE, BasePackIcon, ItemImage, 
   getScrollRarityStyle, getRarityBorder, getRarityBadge 
 } from './shared';
 
@@ -40,27 +40,49 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
         setResults([]);
 
         try {
+            // 1. Open Standard Packs via RPC
             const promises = Array(packQuantity).fill(null).map(() => supabase.rpc('open_base_set_pack'));
             const responses = await Promise.all(promises);
             const tempResults: any[] = [];
+            
             for (const res of responses) {
                 if (res.error) throw res.error;
                 if (res.data && res.data.error === 'INSUFFICIENT_FUNDS') throw new Error("Insufficient Funds");
-                // Car pack sim logic would go here if enabled
                 tempResults.push(res.data);
             }
+
+            // 2. SECRET BONUS LOGIC (5% Chance for Rare Flair)
+            const ROLL_CHANCE = 0.05 * packQuantity; 
+            if (Math.random() < ROLL_CHANCE) {
+                const bonusItem = FLAIR_ITEMS_SOURCE[Math.floor(Math.random() * FLAIR_ITEMS_SOURCE.length)];
+                // Note: Real persistence requires backend RPC support for 'COSMIC' items
+                // For now, we simulate the drop visually
+                tempResults.push({ ...bonusItem, isBonus: true });
+            }
+
+            // 3. Generate Reels
             const reels = tempResults.map((result) => {
                 const source = currentConfig.source;
+                
+                // Special handling for Bonus items (All items in reel are the bonus to highlight it)
+                if (result.isBonus) {
+                     return { items: Array.from({ length: 30 }, () => ({ ...result })) };
+                }
+
+                // Standard random fillers + actual result at the end
                 const randomFillers = Array.from({ length: 30 }, () => source[Math.floor(Math.random() * source.length)]);
                 return { items: [...randomFillers, { name: result.name, rarity: result.rarity }] };
             });
+
             setActiveReels(reels);
             setResults(tempResults); 
             refreshProfile();
+
             setTimeout(() => {
                 setStage('SCROLLING');
                 setTimeout(() => { setStage('REVEAL'); }, 6000);
             }, 1500);
+
         } catch (err: any) {
             setError(err.message);
             setStage('IDLE');
@@ -111,7 +133,8 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
                                     <div className="p-2 border-r border-b border-zinc-800 text-blue-500">Rare</div><div className="p-2 border-b border-zinc-800 text-right text-blue-500">15.0%</div>
                                     <div className="p-2 border-r border-b border-zinc-800 text-orange-500">Super Rare</div><div className="p-2 border-b border-zinc-800 text-right text-orange-500">4.0%</div>
                                     <div className="p-2 border-r border-b border-zinc-800 text-purple-500">Ultra</div><div className="p-2 border-b border-zinc-800 text-right text-purple-500">0.9%</div>
-                                    <div className="p-2 border-r border-zinc-800 text-[#DFFF00] bg-[#DFFF00]/5 font-bold">Zenith</div><div className="p-2 text-right text-[#DFFF00] bg-[#DFFF00]/5 font-bold">0.1%</div>
+                                    <div className="p-2 border-r border-b border-zinc-800 text-[#DFFF00] bg-[#DFFF00]/5 font-bold">Zenith</div><div className="p-2 border-b text-right text-[#DFFF00] bg-[#DFFF00]/5 font-bold">0.1%</div>
+                                    <div className="p-2 border-r border-zinc-800 text-pink-500 bg-pink-500/10 font-bold animate-pulse">COSMIC</div><div className="p-2 text-right text-pink-500 bg-pink-500/10 font-bold">BONUS</div>
                                 </div>
                             )}
                         </div>
@@ -152,9 +175,15 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
                     )}
                     {stage === 'REVEAL' && results.length > 0 && (
                         <div className="relative z-10 w-full max-w-6xl mx-auto p-6 animate-in zoom-in-50 duration-500 flex flex-col items-center">
+                            {results.some(r => r.isBonus) && (
+                                <div className="mb-8 text-center animate-bounce">
+                                    <h2 className="text-4xl font-black text-pink-500 uppercase tracking-tighter drop-shadow-[0_0_20px_rgba(236,72,153,0.8)]">COSMIC ANOMALY DETECTED</h2>
+                                    <p className="text-white font-mono text-sm">HIDDEN STASH UNLOCKED</p>
+                                </div>
+                            )}
                             <div className="flex flex-wrap justify-center gap-6 mb-8 w-full">
                                 {results.map((result, idx) => {
-                                    const sourceItem = currentConfig.source.find(i => i.name === result.name);
+                                    const sourceItem = [...currentConfig.source, ...FLAIR_ITEMS_SOURCE].find(i => i.name === result.name);
                                     const desc = sourceItem?.description || "A mysterious artifact.";
                                     return (
                                         <div key={idx} className={`relative w-64 h-auto bg-zinc-900 border-4 rounded-2xl p-4 text-center shadow-2xl overflow-hidden transform hover:scale-105 transition-transform duration-300 ${getRarityBorder(result.rarity)}`}>

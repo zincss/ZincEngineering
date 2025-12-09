@@ -28,6 +28,15 @@ export const REEL_ITEMS_SOURCE = [
   { name: 'Succulent', rarity: 'UNCOMMON', description: 'A plant you might actually manage not to kill.' }
 ];
 
+// [NEW] Rare Flair Items
+export const FLAIR_ITEMS_SOURCE = [
+    { name: 'Neon Samurai', rarity: 'COSMIC', type: 'FLAIR', description: 'Animated profile avatar. The way of the blade.' },
+    { name: 'Cyber Skull', rarity: 'COSMIC', type: 'FLAIR', description: 'Animated profile avatar. Death is only a glitch.' },
+    { name: 'Glitch Cat', rarity: 'COSMIC', type: 'FLAIR', description: 'Animated profile avatar. Purring in binary.' },
+    { name: 'Void Eye', rarity: 'COSMIC', type: 'FLAIR', description: 'Animated profile avatar. It sees everything.' },
+    { name: 'Golden Ticket', rarity: 'COSMIC', type: 'FLAIR', description: 'Animated profile avatar. Access granted.' },
+];
+
 export const CAR_PACK_SOURCE = CARS.map(car => {
   let rarity = 'COMMON';
   if (car.id === '919-hybrid-evo') rarity = 'ZENITH'; 
@@ -54,7 +63,7 @@ export const getAssetUrl = (name: string) => {
 
 export const AssetPreloader = () => (
     <div className="hidden">
-        {[...REEL_ITEMS_SOURCE, ...CAR_PACK_SOURCE].map((item) => (
+        {[...REEL_ITEMS_SOURCE, ...CAR_PACK_SOURCE, ...FLAIR_ITEMS_SOURCE].map((item) => (
             <img key={item.name} src={getAssetUrl(item.name)} alt="preload" loading="eager" />
         ))}
     </div>
@@ -79,6 +88,7 @@ export const ItemImage = ({ name, rarity, className = "" }: { name: string, rari
             loading="eager"
         />
         {rarity === 'ZENITH' && <div className="absolute inset-0 bg-gradient-to-t from-[#DFFF00]/30 to-transparent pointer-events-none mix-blend-overlay" />}
+        {rarity === 'COSMIC' && <div className="absolute inset-0 bg-gradient-to-t from-pink-500/30 to-transparent pointer-events-none mix-blend-overlay" />}
         {rarity === 'ULTRA' && <div className="absolute inset-0 bg-gradient-to-t from-purple-500/30 to-transparent pointer-events-none mix-blend-overlay" />}
         {rarity === 'SUPER_RARE' && <div className="absolute inset-0 bg-gradient-to-t from-orange-500/30 to-transparent pointer-events-none mix-blend-overlay" />}
     </div>
@@ -112,6 +122,7 @@ export const animationStyles = `
   .animate-scroll-1 { animation: scroll-reel 4.5s cubic-bezier(0.1, 0.9, 0.2, 1) forwards; }
   .animate-scroll-2 { animation: scroll-reel 5.0s cubic-bezier(0.1, 0.9, 0.2, 1) forwards; }
   .animate-scroll-3 { animation: scroll-reel 5.5s cubic-bezier(0.1, 0.9, 0.2, 1) forwards; }
+  .animate-scroll-4 { animation: scroll-reel 6.0s cubic-bezier(0.1, 0.9, 0.2, 1) forwards; }
   .foil-gradient {
     background: linear-gradient(135deg, #18181b 0%, #000 100%);
     position: relative; overflow: hidden;
@@ -124,9 +135,42 @@ export const animationStyles = `
   @keyframes foil-shine { 0% { transform: translate(-50%, -50%) rotate(30deg); } 100% { transform: translate(20%, 20%) rotate(30deg); } }
 `;
 
-export function getScrollRarityStyle(rarity: string) { switch (rarity) { case 'ZENITH': return 'bg-[#DFFF00]/20 border-[#DFFF00]'; case 'ULTRA': return 'bg-purple-900/30 border-purple-500'; case 'SUPER_RARE': return 'bg-orange-900/30 border-orange-500'; case 'RARE': return 'bg-blue-900/30 border-blue-500'; case 'UNCOMMON': return 'bg-green-900/30 border-green-600'; default: return 'bg-zinc-900 border-zinc-800'; } }
-export function getRarityBorder(rarity: string) { switch (rarity) { case 'ZENITH': return 'border-[#DFFF00]'; case 'ULTRA': return 'border-purple-500'; case 'SUPER_RARE': return 'border-orange-500'; case 'RARE': return 'border-blue-500'; case 'UNCOMMON': return 'border-green-600'; default: return 'border-zinc-700'; } }
-export function getRarityBadge(rarity: string) { switch (rarity) { case 'ZENITH': return 'bg-[#DFFF00] text-black shadow-[0_0_15px_rgba(223,255,0,0.5)]'; case 'ULTRA': return 'bg-purple-600 text-white shadow-[0_0_15px_rgba(147,51,234,0.5)]'; case 'SUPER_RARE': return 'bg-orange-500 text-black'; case 'RARE': return 'bg-blue-600 text-white'; case 'UNCOMMON': return 'bg-green-700 text-white'; default: return 'bg-zinc-800 text-zinc-400'; } }
+export function getScrollRarityStyle(rarity: string) { 
+    switch (rarity) { 
+        case 'COSMIC': return 'bg-pink-900/30 border-pink-500 shadow-[0_0_30px_rgba(236,72,153,0.3)]';
+        case 'ZENITH': return 'bg-[#DFFF00]/20 border-[#DFFF00]'; 
+        case 'ULTRA': return 'bg-purple-900/30 border-purple-500'; 
+        case 'SUPER_RARE': return 'bg-orange-900/30 border-orange-500'; 
+        case 'RARE': return 'bg-blue-900/30 border-blue-500'; 
+        case 'UNCOMMON': return 'bg-green-900/30 border-green-600'; 
+        default: return 'bg-zinc-900 border-zinc-800'; 
+    } 
+}
+
+export function getRarityBorder(rarity: string) { 
+    switch (rarity) { 
+        case 'COSMIC': return 'border-pink-500';
+        case 'ZENITH': return 'border-[#DFFF00]'; 
+        case 'ULTRA': return 'border-purple-500'; 
+        case 'SUPER_RARE': return 'border-orange-500'; 
+        case 'RARE': return 'border-blue-500'; 
+        case 'UNCOMMON': return 'border-green-600'; 
+        default: return 'border-zinc-700'; 
+    } 
+}
+
+export function getRarityBadge(rarity: string) { 
+    switch (rarity) { 
+        case 'COSMIC': return 'bg-pink-600 text-white shadow-[0_0_15px_rgba(236,72,153,0.5)] animate-pulse';
+        case 'ZENITH': return 'bg-[#DFFF00] text-black shadow-[0_0_15px_rgba(223,255,0,0.5)]'; 
+        case 'ULTRA': return 'bg-purple-600 text-white shadow-[0_0_15px_rgba(147,51,234,0.5)]'; 
+        case 'SUPER_RARE': return 'bg-orange-500 text-black'; 
+        case 'RARE': return 'bg-blue-600 text-white'; 
+        case 'UNCOMMON': return 'bg-green-700 text-white'; 
+        default: return 'bg-zinc-800 text-zinc-400'; 
+    } 
+}
+
 export const getTimeLeft = (endsAt: string) => {
     const total = Date.parse(endsAt) - Date.now();
     if (total <= 0) return { text: "ENDED", urgent: false };

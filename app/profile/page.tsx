@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/app/context/AuthContext';
 import { 
     User, Shield, Coins, Calendar, Loader2, Box, Zap, X, Globe, Hash, BarChart3, 
-    AlertTriangle, RefreshCw
+    AlertTriangle, RefreshCw, PenTool, Gem
 } from 'lucide-react';
 import BackButton from '@/app/components/BackButton';
 import Link from 'next/link';
@@ -16,7 +16,8 @@ const QUICK_SELL_VALUES: Record<string, number> = {
     'RARE': 20,
     'SUPER_RARE': 100,
     'ULTRA': 500,
-    'ZENITH': 2000
+    'ZENITH': 2000,
+    'COSMIC': 5000 // [NEW] Value for cosmic items
 };
 
 // --- PRELOADER (Cached Images) ---
@@ -34,7 +35,8 @@ const KNOWN_ITEMS = [
   'Lava Lamp', 'Gaming Chair', 'Mechanical Keyboard', 'Espresso Machine', 
   'VR Headset', 'Solid Gold Paperclip', 'The Zinc Cube', 'Rubber Band', 
   'Coffee Mug', 'Drone', 'Diamond Ring', 'Soda Can', 'Pizza Box', 
-  'Smart Watch', 'Succulent'
+  'Smart Watch', 'Succulent',
+  'Neon Samurai', 'Cyber Skull', 'Glitch Cat', 'Void Eye', 'Golden Ticket' // [NEW]
 ];
 
 const AssetPreloader = () => (
@@ -64,6 +66,7 @@ const ItemImage = ({ name, rarity, className = "" }: { name: string, rarity: str
             loading="eager"
         />
         {rarity === 'ZENITH' && <div className="absolute inset-0 bg-gradient-to-t from-[#DFFF00]/20 to-transparent pointer-events-none mix-blend-overlay" />}
+        {rarity === 'COSMIC' && <div className="absolute inset-0 bg-gradient-to-t from-pink-500/20 to-transparent pointer-events-none mix-blend-overlay" />}
         {rarity === 'ULTRA' && <div className="absolute inset-0 bg-gradient-to-t from-purple-500/20 to-transparent pointer-events-none mix-blend-overlay" />}
         <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
     </div>
@@ -138,6 +141,28 @@ export default function ProfilePage() {
       }
   };
 
+  // [NEW] Function to Equip Avatar
+  const handleEquip = async () => {
+      if (!selectedItem || !user) return;
+      
+      try {
+          // This assumes an 'avatar_image' column exists in your profiles table
+          const { error } = await supabase
+            .from('profiles')
+            .update({ avatar_image: selectedItem.item_templates.name })
+            .eq('id', user.id);
+            
+          if (error) throw error;
+          
+          alert(`Equipped ${selectedItem.item_templates.name} as Avatar!`);
+          if (refreshProfile) refreshProfile();
+          setSelectedItem(null);
+      } catch (err) {
+          console.error(err);
+          alert("Failed to equip avatar.");
+      }
+  };
+
   const filteredInventory = inventory.filter(item => {
     if (filter === 'ALL') return true;
     if (filter === 'SHINY') return item.is_shiny;
@@ -146,6 +171,7 @@ export default function ProfilePage() {
 
   const getRarityColor = (rarity: string) => {
     switch (rarity) {
+        case 'COSMIC': return 'text-pink-400 bg-pink-900/20 border-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.2)]';
         case 'ZENITH': return 'text-[#DFFF00] bg-[#DFFF00]/10 border-[#DFFF00] shadow-[0_0_15px_rgba(223,255,0,0.2)]';
         case 'ULTRA': return 'text-purple-400 bg-purple-900/20 border-purple-500';
         case 'SUPER_RARE': return 'text-orange-400 bg-orange-900/20 border-orange-500';
@@ -157,6 +183,7 @@ export default function ProfilePage() {
 
   const getRarityStats = (rarity: string) => {
       switch (rarity) {
+          case 'COSMIC': return { percent: '???', label: 'ANOMALY' };
           case 'ZENITH': return { percent: '0.1%', label: 'MYTHIC' };
           case 'ULTRA': return { percent: '0.9%', label: 'LEGENDARY' };
           case 'SUPER_RARE': return { percent: '4.0%', label: 'EPIC' };
@@ -219,7 +246,7 @@ export default function ProfilePage() {
         <div className="flex flex-col gap-6 mb-8">
             <h2 className="text-xl font-black uppercase flex items-center gap-2"><Box className="text-[#DFFF00]" size={20} /> Asset Collection</h2>
             <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                {['ALL', 'ZENITH', 'ULTRA', 'SHINY', 'COMMON'].map(f => (
+                {['ALL', 'ZENITH', 'COSMIC', 'ULTRA', 'SHINY', 'COMMON'].map(f => (
                     <button key={f} onClick={() => setFilter(f)} className={`px-4 py-2 text-[10px] font-bold uppercase tracking-widest rounded transition-all whitespace-nowrap ${filter === f ? 'bg-white text-black' : 'bg-zinc-900 text-zinc-500 hover:text-white border border-zinc-800'}`}>{f}</button>
                 ))}
             </div>
@@ -288,7 +315,15 @@ export default function ProfilePage() {
                           </div>
                       </div>
 
-                      <button onClick={handleQuickSell} className="w-full mt-6 py-4 bg-red-950/50 hover:bg-red-900 border border-red-900 hover:border-red-500 text-red-200 rounded-xl flex items-center justify-center gap-2 font-black uppercase tracking-widest transition-all group">
+                      {/* [NEW] EQUIP BUTTON FOR COSMIC ITEMS */}
+                      {selectedItem.item_templates.rarity === 'COSMIC' && (
+                          <button onClick={handleEquip} className="w-full mt-6 py-4 bg-[#DFFF00] hover:bg-white text-black rounded-xl flex items-center justify-center gap-2 font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(223,255,0,0.3)] animate-pulse">
+                              <Gem size={16} />
+                              <span>Equip Profile Flair</span>
+                          </button>
+                      )}
+
+                      <button onClick={handleQuickSell} className="w-full mt-4 py-4 bg-red-950/50 hover:bg-red-900 border border-red-900 hover:border-red-500 text-red-200 rounded-xl flex items-center justify-center gap-2 font-black uppercase tracking-widest transition-all group">
                           <RefreshCw size={16} className="group-hover:rotate-180 transition-transform" />
                           <span>Quick Sell ({QUICK_SELL_VALUES[selectedItem.item_templates.rarity] || 2} CR)</span>
                       </button>
