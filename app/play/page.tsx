@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Brain, ChevronRight, Construction, Dna, Spade, Trophy, Package, DollarSign } from 'lucide-react';
+import { Brain, ChevronRight, Construction, Dna, Spade, Trophy, Package, TrendingUp } from 'lucide-react';
 import BackButton from '../components/BackButton';
 
 export default function PlayHub() {
@@ -117,26 +117,26 @@ export default function PlayHub() {
                 </div>
             </Link>
 
-            {/* GAME 4: THE BOOKIE */}
+            {/* GAME 4: ZINC EXCHANGE (Was Bookie) */}
             <Link 
-                href="/play/bookies" 
+                href="/play/stocks" 
                 className="group relative border border-zinc-800 bg-zinc-900/20 hover:border-[#DFFF00] transition-colors duration-300 min-h-[350px] flex flex-col"
             >
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1560272564-c83b66b1ad12?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-40 grayscale transition-all duration-500" />
+                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1611974765270-ca1258634369?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-40 grayscale transition-all duration-500" />
                 <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-transparent" />
 
                 <div className="relative z-10 p-8 flex-1 flex flex-col justify-end">
                     <div className="mb-4 text-[#DFFF00] bg-zinc-950/50 w-fit p-3 rounded-xl border border-zinc-800 backdrop-blur-sm">
-                        <DollarSign size={32} />
+                        <TrendingUp size={32} />
                     </div>
                     <h3 className="text-3xl font-black uppercase tracking-tight text-white mb-2 group-hover:text-[#DFFF00] transition-colors">
-                        The Bookie
+                        Zinc Exchange
                     </h3>
                     <p className="text-zinc-400 font-mono text-sm mb-6 max-w-md">
-                        Live sports wagering module. Place bets on active NBA & NFL lines.
+                        Volatile parody market. Invest in Void Corp, Facade, and more.
                     </p>
                     <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500 group-hover:text-white transition-colors">
-                        VIEW ODDS <ChevronRight size={12} />
+                        OPEN TRADING FLOOR <ChevronRight size={12} />
                     </div>
                 </div>
             </Link>

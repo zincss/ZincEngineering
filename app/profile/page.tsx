@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from '@/app/context/AuthContext';
-import { Box, Wrench, Tent, Loader2 } from 'lucide-react';
+import { Box, Wrench, Tent, Loader2, Briefcase } from 'lucide-react';
 import BackButton from '@/app/components/BackButton';
 import { InventoryItem, Material, SortOption } from './types';
 
@@ -13,6 +13,7 @@ import { InventoryView } from './components/InventoryView';
 import { MaterialsView } from './components/MaterialsView';
 import { BaseCampView } from './components/BaseCampView';
 import { ItemDetailModal } from './components/ItemDetailModal';
+import { PortfolioView } from './components/PortfolioView';
 
 // --- CONFIGURATION ---
 
@@ -39,7 +40,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   
   // UI State
-  const [viewMode, setViewMode] = useState<'ITEMS' | 'MATERIALS' | 'BASE_CAMP'>('BASE_CAMP'); 
+  const [viewMode, setViewMode] = useState<'ITEMS' | 'MATERIALS' | 'BASE_CAMP' | 'PORTFOLIO'>('BASE_CAMP'); 
   const [filter, setFilter] = useState('ALL');
   const [sortBy, setSortBy] = useState<SortOption>('NEWEST');
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
@@ -224,6 +225,7 @@ export default function ProfilePage() {
                 <button onClick={() => setViewMode('BASE_CAMP')} className={`flex items-center gap-2 px-6 py-3 font-bold uppercase rounded transition-all whitespace-nowrap ${viewMode === 'BASE_CAMP' ? 'bg-orange-600 text-white shadow-lg' : 'text-zinc-500 hover:text-white'}`}><Tent size={16} /> <span>Base Camp</span></button>
                 <button onClick={() => setViewMode('ITEMS')} className={`flex items-center gap-2 px-6 py-3 font-bold uppercase rounded transition-all whitespace-nowrap ${viewMode === 'ITEMS' ? 'bg-[#DFFF00] text-black shadow-lg' : 'text-zinc-500 hover:text-white'}`}><Box size={16} /> <span>Assets</span></button>
                 <button onClick={() => setViewMode('MATERIALS')} className={`flex items-center gap-2 px-6 py-3 font-bold uppercase rounded transition-all whitespace-nowrap ${viewMode === 'MATERIALS' ? 'bg-blue-500 text-white shadow-lg' : 'text-zinc-500 hover:text-white'}`}><Wrench size={16} /> <span>Parts</span></button>
+                <button onClick={() => setViewMode('PORTFOLIO')} className={`flex items-center gap-2 px-6 py-3 font-bold uppercase rounded transition-all whitespace-nowrap ${viewMode === 'PORTFOLIO' ? 'bg-purple-600 text-white shadow-lg' : 'text-zinc-500 hover:text-white'}`}><Briefcase size={16} /> <span>Portfolio</span></button>
             </div>
         </div>
 
@@ -249,6 +251,10 @@ export default function ProfilePage() {
         
         {viewMode === 'MATERIALS' && (
             <MaterialsView materials={materials} />
+        )}
+
+        {viewMode === 'PORTFOLIO' && user && (
+            <PortfolioView userId={user.id} />
         )}
       </div>
 
