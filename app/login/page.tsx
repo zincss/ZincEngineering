@@ -1,14 +1,15 @@
 'use client';
 import { useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { createClient } from '@/utils/supabase/client'; // CHANGED
 import { useRouter } from 'next/navigation';
 import { Lock, Mail, User } from 'lucide-react';
 import BackButton from '@/app/components/BackButton';
 
 export default function LoginPage() {
+  const supabase = createClient(); // Create instance here
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [username, setUsername] = useState(''); // Only for signup
+  const [username, setUsername] = useState(''); 
   const [isSignUp, setIsSignUp] = useState(false);
   const router = useRouter();
 
@@ -18,19 +19,26 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { username } }, // Pass username to trigger
+        options: { data: { username } },
       });
       if (error) alert(error.message);
       else alert('Check your email for the confirmation link!');
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) alert(error.message);
-      else router.push('/'); // Redirect to home
+      if (error) {
+        alert(error.message);
+      } else {
+        // Refresh page to ensure Context picks up the new Cookie
+        router.refresh(); 
+        router.push('/'); 
+      }
     }
   };
 
+  // ... rest of your JSX remains the same ...
   return (
     <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-4">
+      {/* ... keep existing UI code ... */}
       <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-8">
         <h1 className="text-3xl font-black text-white uppercase mb-6 text-center">
           {isSignUp ? 'Initialize ID' : 'System Access'}
