@@ -5,11 +5,13 @@ import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/app/context/AuthContext';
 import { 
     Package, Zap, Info, ChevronDown, ChevronUp, Layers, Grid3X3, Loader2, Wallet,
-    Gavel, Coins, Clock, Plus, Filter, TrendingUp, AlertCircle, Check, X, Search
+    Gavel, Coins, Clock, Plus, Filter, TrendingUp, AlertCircle, Check, X, Search,
+    CarFront // Imported for the Car Pack icon
 } from 'lucide-react';
 import BackButton from '@/app/components/BackButton';
+import { CARS } from '@/app/automotive/data'; // Importing Car Data
 
-// --- CONFIGURATION: PACK ITEMS ---
+// --- CONFIGURATION: BASE PACK ITEMS ---
 const REEL_ITEMS_SOURCE = [
   { name: 'Plastic Spork', rarity: 'COMMON', description: 'Barely functional. The apex of disposable cutlery.' }, 
   { name: 'AA Battery', rarity: 'COMMON', description: 'Not included. Probably dead anyway.' },
@@ -33,6 +35,24 @@ const REEL_ITEMS_SOURCE = [
   { name: 'Succulent', rarity: 'UNCOMMON', description: 'A plant you might actually manage not to kill.' }
 ];
 
+// --- CONFIGURATION: CAR PACK ITEMS ---
+const CAR_PACK_SOURCE = CARS.map(car => {
+  let rarity = 'COMMON';
+  
+  // Custom Rarity Logic for the Car Pack
+  if (car.id === '919-hybrid-evo') rarity = 'ZENITH'; // The 1/5 Chase Card
+  else if (car.class === 'Formula 1' || car.class === 'Hypercar') rarity = 'ULTRA';
+  else if (car.class === 'Supercar' || car.class === 'Group B') rarity = 'SUPER_RARE';
+  else if (car.class === 'WRC') rarity = 'RARE';
+  else if (car.manufacturer === 'Porsche' || car.manufacturer === 'Ferrari') rarity = 'UNCOMMON';
+
+  return {
+    name: car.name,
+    rarity: rarity,
+    description: car.history.length > 80 ? car.history.substring(0, 80) + "..." : car.history
+  };
+});
+
 // --- HELPER: ASSETS ---
 const getAssetUrl = (name: string) => {
     const seed = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -44,7 +64,7 @@ const getAssetUrl = (name: string) => {
 
 const AssetPreloader = () => (
     <div className="hidden">
-        {REEL_ITEMS_SOURCE.map((item) => (
+        {[...REEL_ITEMS_SOURCE, ...CAR_PACK_SOURCE].map((item) => (
             <img key={item.name} src={getAssetUrl(item.name)} alt="preload" loading="eager" />
         ))}
     </div>
@@ -245,8 +265,31 @@ const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: any) =>
     const [showOdds, setShowOdds] = useState(false);
     const [packQuantity, setPackQuantity] = useState<1 | 3>(1);
     const [activeReels, setActiveReels] = useState<{items: any[]}[]>([]);
+    
+    // NEW: Track selected pack
+    const [selectedPack, setSelectedPack] = useState<'BASE' | 'CARS'>('BASE');
 
-    const cost = packQuantity * 100;
+    const PACK_CONFIG = {
+        BASE: { 
+            cost: 100, 
+            name: 'Series 1', 
+            label: 'BASE PACK NO.1', 
+            icon: BasePackIcon, 
+            source: REEL_ITEMS_SOURCE,
+            desc: null
+        },
+        CARS: { 
+            cost: 250, 
+            name: 'Legends', 
+            label: 'AUTOMOTIVE PACK', 
+            icon: CarFront, 
+            source: CAR_PACK_SOURCE,
+            desc: "Contains 100 Unique Cars across many generations. Chance to earn 1/5 Zenith Rare 919 Evo."
+        }
+    };
+
+    const currentConfig = PACK_CONFIG[selectedPack];
+    const cost = packQuantity * currentConfig.cost;
     const canAfford = (profile?.credits || 0) >= cost;
     const isReady = !authLoading && user;
 
@@ -263,6 +306,7 @@ const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: any) =>
         setResults([]);
 
         try {
+            // Note: In a real implementation, you would pass the 'pack_type' to the RPC function
             const promises = Array(packQuantity).fill(null).map(() => supabase.rpc('open_base_set_pack'));
             const responses = await Promise.all(promises);
 
@@ -270,47 +314,31 @@ const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: any) =>
             for (const res of responses) {
                 if (res.error) throw res.error;
                 if (res.data && res.data.error === 'INSUFFICIENT_FUNDS') throw new Error("Insufficient Funds");
-                tempResults.push(res.data);
-            }
-
-            // Fetch IDs for proper tracking
-            let patchedResults = [...tempResults];
-            if (user?.id) {
-                const { data: latestItems } = await supabase
-                    .from('user_items')
-                    .select('id, item:items(name)')
-                    .eq('user_id', user.id)
-                    .order('created_at', { ascending: false })
-                    .limit(packQuantity);
-
-                if (latestItems && latestItems.length > 0) {
-                     const pool = [...latestItems];
-                     patchedResults = tempResults.map((rpcItem: any) => {
-                         const matchIndex = pool.findIndex(dbItem => {
-                             const itemData = dbItem.item as any; 
-                             const dbName = Array.isArray(itemData) ? itemData[0]?.name : itemData?.name;
-                             return dbName === rpcItem.name;
-                         });
-                         if (matchIndex !== -1) {
-                             const match = pool[matchIndex];
-                             pool.splice(matchIndex, 1); 
-                             return { ...rpcItem, id: match.id }; 
-                         }
-                         const fallback = pool.shift();
-                         return { ...rpcItem, id: fallback?.id };
-                     });
+                
+                // --- SIMULATION FOR CAR PACK (Until Backend RPC is Updated) ---
+                // If Car Pack is selected, we override the RPC result with a random car
+                if (selectedPack === 'CARS') {
+                    const rand = Math.random();
+                    let item;
+                    if (rand > 0.98) item = CAR_PACK_SOURCE.find(i => i.rarity === 'ZENITH') || CAR_PACK_SOURCE[0];
+                    else if (rand > 0.90) item = CAR_PACK_SOURCE.find(i => i.rarity === 'ULTRA') || CAR_PACK_SOURCE[0];
+                    else item = CAR_PACK_SOURCE[Math.floor(Math.random() * CAR_PACK_SOURCE.length)];
+                    tempResults.push({ ...item, id: Math.random().toString() }); // Fake ID for sim
+                } else {
+                    tempResults.push(res.data);
                 }
             }
 
-            const reels = patchedResults.map((result) => {
+            const reels = tempResults.map((result) => {
+                const source = currentConfig.source;
                 const randomFillers = Array.from({ length: 30 }, () => 
-                    REEL_ITEMS_SOURCE[Math.floor(Math.random() * REEL_ITEMS_SOURCE.length)]
+                    source[Math.floor(Math.random() * source.length)]
                 );
                 return { items: [...randomFillers, { name: result.name, rarity: result.rarity }] };
             });
 
             setActiveReels(reels);
-            setResults(patchedResults); 
+            setResults(tempResults); 
             refreshProfile();
 
             setTimeout(() => {
@@ -332,7 +360,32 @@ const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: any) =>
     };
 
     return (
-        <div className="w-full flex items-center justify-center py-12 px-4 relative min-h-[600px]">
+        <div className="w-full flex flex-col items-center justify-center py-12 px-4 relative min-h-[600px]">
+            
+            {/* PACK SELECTOR */}
+            <div className={`flex gap-4 mb-8 transition-all duration-500 ${stage !== 'IDLE' ? 'opacity-0 translate-y-10 pointer-events-none' : 'opacity-100'}`}>
+                {/* BASE PACK OPTION */}
+                <button 
+                    onClick={() => setSelectedPack('BASE')}
+                    className={`group relative w-36 md:w-48 p-4 rounded-xl border-2 transition-all duration-300 text-left ${selectedPack === 'BASE' ? 'border-[#DFFF00] bg-zinc-900' : 'border-zinc-800 bg-zinc-950 opacity-60 hover:opacity-100'}`}
+                >
+                    <div className="text-[10px] font-bold text-zinc-500 uppercase mb-2">Series 1</div>
+                    <div className="text-white font-black uppercase text-sm md:text-base">Base Set</div>
+                    <div className="text-xs font-mono text-zinc-400 mt-1">100 CR</div>
+                </button>
+
+                {/* CAR PACK OPTION */}
+                <button 
+                    onClick={() => setSelectedPack('CARS')}
+                    className={`group relative w-36 md:w-48 p-4 rounded-xl border-2 transition-all duration-300 text-left ${selectedPack === 'CARS' ? 'border-[#DFFF00] bg-zinc-900' : 'border-zinc-800 bg-zinc-950 opacity-60 hover:opacity-100'}`}
+                >
+                     <div className="absolute -top-2 -right-2 bg-[#DFFF00] text-black text-[9px] font-black px-2 py-0.5 rounded uppercase shadow-lg animate-pulse">New</div>
+                    <div className="text-[10px] font-bold text-zinc-500 uppercase mb-2">Legends</div>
+                    <div className="text-white font-black uppercase text-sm md:text-base">Automotive</div>
+                    <div className="text-xs font-mono text-zinc-400 mt-1">250 CR</div>
+                </button>
+            </div>
+
             {/* PACK CARD */}
             <div className={`
                 w-full max-w-md transition-all duration-500 ease-in-out px-4
@@ -340,17 +393,31 @@ const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: any) =>
             `}>
                 <div className="group relative border border-zinc-800 bg-zinc-900/80 backdrop-blur-md rounded-3xl p-6 md:p-8 hover:border-[#DFFF00] transition-all duration-500 shadow-2xl">
                     <div className="absolute top-4 right-4 bg-[#DFFF00] text-black font-bold font-mono text-[10px] px-3 py-1 rounded uppercase shadow-[0_0_15px_rgba(223,255,0,0.4)] z-20">
-                        Series 1
+                        {currentConfig.name}
                     </div>
 
                     <div className="flex justify-center py-8 md:py-10">
                         <div className="relative w-40 h-56 md:w-48 md:h-64 foil-gradient rounded-xl border border-white/20 shadow-2xl flex flex-col items-center justify-center p-4 transform group-hover:scale-105 transition-transform duration-500">
-                            <div className="bg-black/80 backdrop-blur border border-[#DFFF00] rounded-lg p-3 mb-2 w-16 h-16 flex items-center justify-center">
-                                 <BasePackIcon />
+                            <div className="bg-black/80 backdrop-blur border border-[#DFFF00] rounded-lg p-3 mb-4 w-20 h-20 flex items-center justify-center text-[#DFFF00]">
+                                 <currentConfig.icon size={40} />
                             </div>
-                            <h3 className="text-xl md:text-2xl font-black uppercase text-white italic tracking-tighter text-center leading-none mt-2">BASE<br/>PACK NO.1</h3>
+                            <h3 className="text-xl md:text-2xl font-black uppercase text-white italic tracking-tighter text-center leading-none mt-2">
+                                {currentConfig.label.split(' ').map((word, i) => <div key={i}>{word}</div>)}
+                            </h3>
                         </div>
                     </div>
+
+                    {/* DYNAMIC DESCRIPTION FOR PACKS */}
+                    {currentConfig.desc && (
+                        <div className="mb-6 text-center bg-black/40 p-3 rounded-lg border border-zinc-800">
+                            <p className="text-[#DFFF00] text-[10px] font-bold uppercase tracking-widest mb-1">
+                                Pack Contents
+                            </p>
+                            <p className="text-zinc-400 text-xs font-mono leading-relaxed">
+                                {currentConfig.desc}
+                            </p>
+                        </div>
+                    )}
 
                     <div className="space-y-6">
                         <div className="grid grid-cols-2 gap-3">
@@ -359,14 +426,14 @@ const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: any) =>
                                 className={`p-3 rounded-xl border-2 flex items-center justify-center gap-2 transition-all ${packQuantity === 1 ? 'border-[#DFFF00] bg-[#DFFF00]/10 text-white' : 'border-zinc-800 bg-zinc-900 text-zinc-500 hover:border-zinc-700'}`}
                             >
                                 <Layers size={16} />
-                                <span className="font-bold text-xs">SINGLE (100)</span>
+                                <span className="font-bold text-xs">SINGLE ({currentConfig.cost})</span>
                             </button>
                             <button 
                                 onClick={() => setPackQuantity(3)}
                                 className={`p-3 rounded-xl border-2 flex items-center justify-center gap-2 transition-all ${packQuantity === 3 ? 'border-[#DFFF00] bg-[#DFFF00]/10 text-white' : 'border-zinc-800 bg-zinc-900 text-zinc-500 hover:border-zinc-700'}`}
                             >
                                 <Grid3X3 size={16} />
-                                <span className="font-bold text-xs">TRIPLE (300)</span>
+                                <span className="font-bold text-xs">TRIPLE ({currentConfig.cost * 3})</span>
                             </button>
                         </div>
 
@@ -430,7 +497,9 @@ const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: any) =>
                         <div className="animate-rumble relative z-10 flex gap-4 flex-wrap justify-center p-8">
                             {Array.from({ length: packQuantity }).map((_, i) => (
                                 <div key={i} className="w-32 h-44 md:w-48 md:h-64 foil-gradient rounded-xl border border-white/30 flex items-center justify-center shadow-[0_0_50px_rgba(223,255,0,0.5)]">
-                                    <div className="w-12 h-12 md:w-16 md:h-16"><BasePackIcon /></div>
+                                    <div className="w-12 h-12 md:w-16 md:h-16 text-white flex items-center justify-center">
+                                        <currentConfig.icon size={64} />
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -462,7 +531,10 @@ const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: any) =>
                         <div className="relative z-10 w-full max-w-6xl mx-auto p-6 animate-in zoom-in-50 duration-500 flex flex-col items-center">
                             <div className="flex flex-wrap justify-center gap-6 mb-8 w-full">
                                 {results.map((result, idx) => {
-                                    const desc = REEL_ITEMS_SOURCE.find(i => i.name === result.name)?.description || "A mysterious artifact.";
+                                    // Dynamically find description from the current active source
+                                    const sourceItem = currentConfig.source.find(i => i.name === result.name);
+                                    const desc = sourceItem?.description || "A mysterious artifact.";
+
                                     return (
                                         <div key={idx} className={`relative w-64 h-auto bg-zinc-900 border-4 rounded-2xl p-4 text-center shadow-2xl overflow-hidden transform hover:scale-105 transition-transform duration-300 ${getRarityBorder(result.rarity)}`}>
                                             <div className="w-32 h-32 mx-auto mb-4 bg-zinc-950/50 rounded-xl p-2 border border-zinc-800 shadow-inner flex items-center justify-center relative z-10">
