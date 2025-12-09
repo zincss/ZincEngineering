@@ -1,12 +1,31 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/app/context/AuthContext';
 import BackButton from '@/app/components/BackButton';
-import { Coins, Layers, RotateCcw, Shield, ShieldAlert, Trophy, Wallet } from 'lucide-react';
+import { 
+    Coins, 
+    Layers, 
+    RotateCcw, 
+    ShieldAlert, 
+    Trophy, 
+    Wallet, 
+    Smartphone, 
+    Loader2,
+    Play,
+    Hand,
+    AlertTriangle
+} from 'lucide-react';
 
-// --- TYPES ---
+// --- VISUAL HELPERS (Parity with Poker) ---
+
+const vibrate = (pattern: number | number[] = 15) => {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(pattern);
+    }
+};
+
 type Suit = 'HEARTS' | 'DIAMONDS' | 'CLUBS' | 'SPADES';
 type Rank = '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | 'J' | 'Q' | 'K' | 'A';
 
@@ -15,14 +34,84 @@ interface Card {
   rank: Rank;
   value: number;
   isHidden?: boolean;
+  key?: string; // For React keys
 }
 
-type GameState = 'BETTING' | 'PLAYER_TURN' | 'DEALER_TURN' | 'GAME_OVER';
+// Adapted CardView from Poker for consistency
+const CardView = ({ 
+    card, 
+    index, 
+    total,
+    isDealer = false 
+}: { 
+    card: Card; 
+    index: number; 
+    total: number;
+    isDealer?: boolean;
+}) => {
+    // Dynamic overlapping based on hand size
+    const overlap = index === 0 ? 0 : -30;
+    
+    if (card.isHidden) {
+        return (
+            <div 
+                className="w-20 h-28 md:w-24 md:h-36 bg-zinc-900 border border-zinc-700 rounded-xl flex items-center justify-center relative shadow-2xl z-10"
+                style={{ 
+                    transform: `translateX(${index * overlap}px)`,
+                    zIndex: index
+                }}
+            >
+                <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,#18181b_0,#18181b_10px,#27272a_10px,#27272a_20px)] opacity-50 rounded-xl" />
+                <div className="relative z-10 text-zinc-700 font-black text-xs tracking-wider">ZINC</div>
+            </div>
+        );
+    }
 
-// --- CONFIGURATION ---
-const BET_AMOUNTS = [10, 50, 100, 500, 1000];
+    const isRed = card.suit === 'HEARTS' || card.suit === 'DIAMONDS';
+    const SuitIcon = () => {
+        switch(card.suit) {
+            case 'HEARTS': return <span className="text-red-500">♥</span>;
+            case 'DIAMONDS': return <span className="text-red-500">♦</span>;
+            case 'SPADES': return <span className="text-zinc-200">♠</span>;
+            case 'CLUBS': return <span className="text-zinc-200">♣</span>;
+        }
+    };
 
-// --- HELPER FUNCTIONS ---
+    return (
+        <div 
+            className={`
+                w-20 h-28 md:w-24 md:h-36 bg-zinc-100 rounded-xl flex flex-col justify-between p-2 shadow-2xl transition-all duration-500 animate-in slide-in-from-bottom-4 fade-in
+                ${['J', 'Q', 'K'].includes(card.rank) ? 'border-2 border-[#DFFF00]/50' : 'border-2 border-zinc-300'}
+                ${card.rank === 'A' ? 'shadow-[0_0_15px_rgba(168,85,247,0.3)] border-purple-400' : ''}
+            `}
+            style={{ 
+                transform: `translateX(${index * overlap}px) rotate(${index * 2 - (total * 1)}deg)`,
+                zIndex: index
+            }}
+        >
+            <div className="flex flex-col items-center leading-none">
+                <span className={`text-xl font-black font-mono ${isRed ? 'text-red-600' : 'text-zinc-900'}`}>
+                    {card.rank}
+                </span>
+                <div className="text-xs"><SuitIcon /></div>
+            </div>
+
+            <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none text-4xl">
+                <SuitIcon />
+            </div>
+
+            <div className="flex flex-col items-center leading-none rotate-180">
+                <span className={`text-xl font-black font-mono ${isRed ? 'text-red-600' : 'text-zinc-900'}`}>
+                    {card.rank}
+                </span>
+                <div className="text-xs"><SuitIcon /></div>
+            </div>
+        </div>
+    );
+};
+
+// --- GAME LOGIC HELPERS ---
+
 const getCardValue = (rank: Rank): number => {
   if (['J', 'Q', 'K'].includes(rank)) return 10;
   if (rank === 'A') return 11;
@@ -33,10 +122,9 @@ const createDeck = (): Card[] => {
   const suits: Suit[] = ['HEARTS', 'DIAMONDS', 'CLUBS', 'SPADES'];
   const ranks: Rank[] = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
   const deck: Card[] = [];
-
   for (const suit of suits) {
     for (const rank of ranks) {
-      deck.push({ suit, rank, value: getCardValue(rank) });
+      deck.push({ suit, rank, value: getCardValue(rank), key: Math.random().toString(36) });
     }
   }
   return deck.sort(() => Math.random() - 0.5);
@@ -45,89 +133,24 @@ const createDeck = (): Card[] => {
 const calculateHandValue = (hand: Card[]) => {
   let value = 0;
   let aces = 0;
-
   for (const card of hand) {
     if (card.isHidden) continue;
     value += card.value;
     if (card.rank === 'A') aces += 1;
   }
-
   while (value > 21 && aces > 0) {
     value -= 10;
     aces -= 1;
   }
-
   return value;
 };
 
-// --- COMPONENTS ---
-
-const CardDisplay = ({ card, index }: { card: Card; index: number }) => {
-  if (card.isHidden) {
-    return (
-      <div 
-        className="w-24 h-36 md:w-32 md:h-48 bg-zinc-900 border-2 border-zinc-800 rounded-xl flex items-center justify-center relative overflow-hidden shadow-2xl transform transition-all duration-500 hover:scale-105"
-        style={{ 
-            zIndex: index, 
-            marginLeft: index > 0 ? '-3rem' : '0',
-            backgroundImage: 'repeating-linear-gradient(45deg, #18181b 0, #18181b 10px, #27272a 10px, #27272a 20px)'
-        }}
-      >
-        <div className="absolute inset-0 flex items-center justify-center opacity-20">
-            <Shield size={48} />
-        </div>
-      </div>
-    );
-  }
-
-  const isRed = card.suit === 'HEARTS' || card.suit === 'DIAMONDS';
-  const SuitIcon = () => {
-      switch(card.suit) {
-          case 'HEARTS': return <span className="text-red-500">♥</span>;
-          case 'DIAMONDS': return <span className="text-red-500">♦</span>;
-          case 'SPADES': return <span className="text-zinc-200">♠</span>;
-          case 'CLUBS': return <span className="text-zinc-200">♣</span>;
-      }
-  };
-
-  return (
-    <div 
-      className={`
-        relative w-24 h-36 md:w-32 md:h-48 bg-zinc-950 border-2 rounded-xl flex flex-col justify-between p-3 shadow-2xl transform transition-all duration-500 animate-in slide-in-from-bottom-4 fade-in
-        ${['J', 'Q', 'K'].includes(card.rank) ? 'border-[#DFFF00]/50' : 'border-zinc-800'}
-        ${card.rank === 'A' ? 'border-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.2)]' : ''}
-      `}
-      style={{ zIndex: index, marginLeft: index > 0 ? '-3rem' : '0' }}
-    >
-      {/* Background Gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 to-black rounded-xl z-0" />
-      
-      {/* Top Left */}
-      <div className="relative z-10 flex flex-col items-center w-6">
-        <span className={`text-xl md:text-2xl font-black font-mono leading-none ${isRed ? 'text-red-500' : 'text-white'}`}>
-            {card.rank}
-        </span>
-        <div className="text-sm"><SuitIcon /></div>
-      </div>
-
-      {/* Center Art (Text based for now, could be icons) */}
-      <div className="absolute inset-0 flex items-center justify-center z-0 opacity-10 font-black text-6xl select-none pointer-events-none">
-         <SuitIcon />
-      </div>
-
-      {/* Bottom Right */}
-      <div className="relative z-10 flex flex-col items-center w-6 self-end rotate-180">
-        <span className={`text-xl md:text-2xl font-black font-mono leading-none ${isRed ? 'text-red-500' : 'text-white'}`}>
-            {card.rank}
-        </span>
-        <div className="text-sm"><SuitIcon /></div>
-      </div>
-    </div>
-  );
-};
+// --- CONFIGURATION ---
+const BET_AMOUNTS = [10, 50, 100, 500, 1000];
+type GameState = 'BETTING' | 'PLAYER_TURN' | 'DEALER_TURN' | 'GAME_OVER';
 
 export default function BlackjackPage() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   
   const [deck, setDeck] = useState<Card[]>([]);
   const [playerHand, setPlayerHand] = useState<Card[]>([]);
@@ -136,28 +159,25 @@ export default function BlackjackPage() {
   const [bet, setBet] = useState(0);
   const [message, setMessage] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [outcome, setOutcome] = useState<'WIN' | 'LOSE' | 'PUSH' | 'BJ' | null>(null);
 
-  // --- AUDIO / SFX (Placeholder for now) ---
-  const playSound = (type: 'deal' | 'chip' | 'win') => {
-      // Future implementation
-  };
-
-  // --- GAME LOGIC ---
+  // --- GAME ACTIONS ---
 
   const startGame = async (amount: number) => {
+    vibrate(10);
     if (!profile || profile.credits < amount) {
         alert("INSUFFICIENT FUNDS");
         return;
     }
 
     setProcessing(true);
+    setOutcome(null);
     
-    // 1. Deduct Credits Optimistically (or via RPC)
     try {
         const { error } = await supabase.rpc('add_credits', { amount: -amount });
         if (error) throw error;
         
-        await refreshProfile(); // Sync UI
+        await refreshProfile(); 
         
         const newDeck = createDeck();
         const pHand = [newDeck.pop()!, newDeck.pop()!];
@@ -185,6 +205,7 @@ export default function BlackjackPage() {
   };
 
   const handleHit = () => {
+    vibrate(20);
     const newDeck = [...deck];
     const card = newDeck.pop()!;
     const newHand = [...playerHand, card];
@@ -198,19 +219,16 @@ export default function BlackjackPage() {
   };
 
   const handleStand = async (currentPHand = playerHand, currentDHand = dealerHand, currentDeck = deck) => {
+    vibrate(20);
     setGameState('DEALER_TURN');
     
-    // Reveal Dealer Card
-    // FIX: We explicitly type this variable as Card[] to prevent Type narrowing issues
     let newDHand: Card[] = currentDHand.map(c => ({ ...c, isHidden: false }));
     let newDeck = [...currentDeck];
 
-    // Dealer AI (Hit until 17)
-    // We use a small delay loop for dramatic effect
+    setDealerHand([...newDHand]); // Reveal first
+    
+    // Simulate thinking time
     const playDealer = async () => {
-        setDealerHand([...newDHand]); // Show reveal
-        
-        // Small delay before drawing
         await new Promise(r => setTimeout(r, 600));
 
         while (calculateHandValue(newDHand) < 17) {
@@ -218,7 +236,8 @@ export default function BlackjackPage() {
             newDHand = [...newDHand, card];
             setDealerHand([...newDHand]);
             setDeck(newDeck);
-            await new Promise(r => setTimeout(r, 800)); // Animation delay
+            vibrate(10);
+            await new Promise(r => setTimeout(r, 800)); // Card deal animation delay
         }
         
         determineWinner(currentPHand, newDHand);
@@ -247,23 +266,34 @@ export default function BlackjackPage() {
     
     let payout = 0;
     let msg = "";
+    let out: typeof outcome = null;
 
     if (result === 'BUST') {
-        msg = "SYSTEM FAILURE // BUST";
+        msg = "BUST";
+        out = 'LOSE';
+        vibrate([50, 100]);
     } else if (result === 'LOSE') {
-        msg = "DEALER WINS // CREDITS LOST";
+        msg = "DEALER WINS";
+        out = 'LOSE';
+        vibrate([50, 100]);
     } else if (result === 'PUSH') {
-        msg = "PUSH // CREDITS REFUNDED";
+        msg = "PUSH";
         payout = bet;
+        out = 'PUSH';
     } else if (result === 'WIN') {
-        msg = "VICTORY // CREDITS ACQUIRED";
+        msg = "VICTORY";
         payout = bet * 2;
+        out = 'WIN';
+        vibrate([50, 50, 50]);
     } else if (result === 'BLACKJACK') {
-        msg = "CRITICAL SUCCESS // BLACKJACK";
+        msg = "BLACKJACK";
         payout = bet * 2.5;
+        out = 'BJ';
+        vibrate([50, 50, 50, 50]);
     }
 
     setMessage(msg);
+    setOutcome(out);
 
     if (payout > 0) {
         try {
@@ -275,140 +305,168 @@ export default function BlackjackPage() {
     }
   };
 
+  const resetGame = () => {
+      setGameState('BETTING');
+      setPlayerHand([]);
+      setDealerHand([]);
+      setMessage('');
+      setOutcome(null);
+  }
+
   // --- RENDER ---
 
-  return (
-    <div className="min-h-screen bg-zinc-950 text-white selection:bg-[#DFFF00] selection:text-black flex flex-col relative overflow-hidden">
-      
-      {/* Background Grid */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#09090b_100%)] pointer-events-none" />
+  const playerTotal = calculateHandValue(playerHand);
+  const dealerTotal = calculateHandValue(dealerHand);
 
-      {/* Header */}
-      <div className="relative z-10">
+  return (
+    <div className="h-[100dvh] bg-[#0a0a0a] text-white flex flex-col relative overflow-hidden touch-none">
+      
+      {/* Backgrounds */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#18181b_0%,#000_80%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none opacity-20" />
+
+      {/* Top Bar */}
+      <div className="absolute top-0 left-0 right-0 p-3 flex justify-between items-start z-30 pointer-events-none">
           <BackButton href="/play" label="ARCADE HUB" />
-          <div className="pt-32 px-6 max-w-7xl mx-auto flex justify-between items-end border-b border-zinc-800 pb-6">
-            <div>
-                <div className="flex items-center gap-2 text-[#DFFF00] font-mono text-sm font-black tracking-widest uppercase mb-2">
-                    <Layers size={16} />
-                    <span>TACTICAL_OPERATIONS // BLACKJACK</span>
-                </div>
-                <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">
-                    Table <span className="text-zinc-600">Protocol</span>
-                </h1>
-            </div>
-            
-            <div className="text-right">
-                <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Current Balance</div>
-                <div className="text-2xl font-mono font-black text-[#DFFF00] flex items-center gap-2 justify-end">
-                    <Wallet size={20} />
+          <div className="flex flex-col gap-0.5 pointer-events-auto bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5">
+                <div className="text-[#DFFF00] font-black uppercase tracking-widest text-xs flex items-center gap-2 justify-end">
+                    <Wallet size={12} />
                     {profile?.credits.toLocaleString() || 0}
                 </div>
-            </div>
+                <div className="text-zinc-500 text-[10px] font-mono text-right">BALANCE</div>
           </div>
       </div>
 
-      {/* MAIN GAME AREA */}
-      <div className="flex-1 flex flex-col items-center justify-center p-4 relative z-20 min-h-[600px]">
-        
-        {/* DEALER AREA */}
-        <div className="mb-12 flex flex-col items-center">
-            <div className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                <ShieldAlert size={12} />
-                DEALER HAND {gameState === 'GAME_OVER' && `(${calculateHandValue(dealerHand)})`}
-            </div>
-            <div className="flex justify-center h-36 md:h-48">
-                {dealerHand.map((card, i) => (
-                    <CardDisplay key={i} card={card} index={i} />
-                ))}
-                {dealerHand.length === 0 && (
-                    <div className="w-24 h-36 md:w-32 md:h-48 border-2 border-dashed border-zinc-800 rounded-xl opacity-20" />
-                )}
-            </div>
-        </div>
-
-        {/* CENTER STATUS / MESSAGE */}
-        <div className="h-16 mb-8 flex items-center justify-center">
-            {message && (
-                <div className="bg-[#DFFF00] text-black px-6 py-2 rounded-full font-black font-mono text-sm md:text-base uppercase tracking-widest animate-in zoom-in slide-in-from-bottom-4 shadow-[0_0_20px_rgba(223,255,0,0.4)]">
-                    {message}
-                </div>
-            )}
-        </div>
-
-        {/* PLAYER AREA */}
-        <div className="mb-12 flex flex-col items-center">
-            <div className="flex justify-center h-36 md:h-48">
-                {playerHand.map((card, i) => (
-                    <CardDisplay key={i} card={card} index={i} />
-                ))}
-                {playerHand.length === 0 && (
-                    <div className="w-24 h-36 md:w-32 md:h-48 border-2 border-dashed border-zinc-800 rounded-xl opacity-20" />
-                )}
-            </div>
-            <div className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-[0.2em] mt-4 flex items-center gap-2">
-                <Trophy size={12} />
-                PLAYER HAND {playerHand.length > 0 && `(${calculateHandValue(playerHand)})`}
-            </div>
-        </div>
-
-        {/* CONTROLS */}
-        <div className="w-full max-w-2xl mx-auto">
-            {gameState === 'BETTING' ? (
-                <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 fade-in">
-                    <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest mb-6">Select Buy-In Amount</p>
-                    <div className="flex flex-wrap justify-center gap-4">
-                        {BET_AMOUNTS.map(amount => (
-                            <button
-                                key={amount}
-                                onClick={() => startGame(amount)}
-                                disabled={processing}
-                                className="group relative bg-zinc-900 border border-zinc-800 hover:border-[#DFFF00] w-24 h-24 rounded-full flex flex-col items-center justify-center transition-all hover:scale-110 hover:shadow-[0_0_20px_rgba(223,255,0,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                <Coins size={24} className="text-zinc-600 group-hover:text-[#DFFF00] mb-2 transition-colors" />
-                                <span className="font-black font-mono text-lg text-white group-hover:text-[#DFFF00]">{amount}</span>
-                            </button>
-                        ))}
+      {/* Main Game Surface - The "Felt" */}
+      <div className="flex-1 flex flex-col items-center justify-center relative z-10 w-full overflow-hidden pb-[140px] md:pb-0">
+         
+         <div className="relative w-[95%] md:w-[80%] max-w-5xl aspect-[3/5] md:aspect-[2/1] bg-zinc-900/90 border-4 border-zinc-800 rounded-[60px] md:rounded-[150px] shadow-2xl flex flex-col items-center justify-between py-12 md:py-16">
+            
+            <div className="absolute inset-2 md:inset-4 border-2 border-dashed border-zinc-700/50 rounded-[50px] md:rounded-[130px] pointer-events-none" />
+            
+            {/* Center Logo/Message */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center z-0 pointer-events-none">
+                {message ? (
+                    <div className={`
+                        text-3xl md:text-5xl font-black uppercase tracking-tighter animate-in zoom-in duration-300
+                        ${outcome === 'WIN' || outcome === 'BJ' ? 'text-[#DFFF00]' : outcome === 'LOSE' ? 'text-red-500' : 'text-white'}
+                    `}>
+                        {message}
                     </div>
-                </div>
-            ) : gameState === 'PLAYER_TURN' ? (
-                <div className="flex justify-center gap-6 animate-in slide-in-from-bottom-8 fade-in">
-                    <button 
-                        onClick={handleHit}
-                        className="px-8 py-4 bg-zinc-800 hover:bg-zinc-700 text-white font-black uppercase tracking-widest rounded-xl border border-zinc-700 hover:border-white transition-all min-w-[140px]"
-                    >
-                        HIT
-                    </button>
-                    <button 
-                        onClick={() => handleStand()}
-                        className="px-8 py-4 bg-[#DFFF00] hover:bg-white text-black font-black uppercase tracking-widest rounded-xl shadow-[0_0_15px_rgba(223,255,0,0.3)] transition-all min-w-[140px]"
-                    >
-                        STAND
-                    </button>
-                </div>
-            ) : gameState === 'GAME_OVER' ? (
-                <div className="flex justify-center animate-in slide-in-from-bottom-8 fade-in">
-                    <button 
-                        onClick={() => {
-                            setGameState('BETTING');
-                            setPlayerHand([]);
-                            setDealerHand([]);
-                            setMessage('');
-                        }}
-                        className="flex items-center gap-2 px-8 py-4 bg-white text-black font-black uppercase tracking-widest rounded-xl hover:bg-[#DFFF00] transition-all shadow-lg"
-                    >
-                        <RotateCcw size={18} />
-                        New Hand
-                    </button>
-                </div>
-            ) : (
-                <div className="h-12 flex items-center justify-center text-zinc-500 font-mono text-xs animate-pulse">
-                    PROCESSING DEALER PROTOCOL...
-                </div>
-            )}
-        </div>
+                ) : (
+                    <>
+                        <Layers className="mx-auto text-zinc-800 mb-2 w-16 h-16 md:w-24 md:h-24" />
+                        <div className="text-zinc-800 font-black text-4xl md:text-6xl uppercase opacity-50">BLACKJACK</div>
+                    </>
+                )}
+            </div>
 
+            {/* Dealer Zone */}
+            <div className="relative z-10 flex flex-col items-center min-h-[160px]">
+                <div className="flex items-center justify-center mb-4">
+                    {dealerHand.length > 0 && (
+                        dealerHand.map((card, i) => (
+                            <CardView key={card.key || i} card={card} index={i} total={dealerHand.length} isDealer />
+                        ))
+                    )}
+                    {dealerHand.length === 0 && (
+                        <div className="w-20 h-28 md:w-24 md:h-36 border-2 border-dashed border-zinc-800 rounded-xl opacity-20 flex items-center justify-center">
+                            <ShieldAlert className="text-zinc-700" />
+                        </div>
+                    )}
+                </div>
+                {dealerHand.length > 0 && (
+                    <div className="bg-zinc-950 px-3 py-1 rounded-full border border-zinc-800 text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest">
+                        Dealer {gameState === 'GAME_OVER' ? dealerTotal : '?'}
+                    </div>
+                )}
+            </div>
+
+            {/* Player Zone */}
+            <div className="relative z-10 flex flex-col items-center min-h-[160px]">
+                <div className="flex items-center justify-center mb-4">
+                    {playerHand.length > 0 && (
+                        playerHand.map((card, i) => (
+                            <CardView key={card.key || i} card={card} index={i} total={playerHand.length} />
+                        ))
+                    )}
+                    {playerHand.length === 0 && (
+                        <div className="w-20 h-28 md:w-24 md:h-36 border-2 border-dashed border-zinc-800 rounded-xl opacity-20 flex items-center justify-center">
+                            <Trophy className="text-zinc-700" />
+                        </div>
+                    )}
+                </div>
+                {playerHand.length > 0 && (
+                    <div className="bg-zinc-950 px-3 py-1 rounded-full border border-zinc-800 text-[10px] font-mono font-bold text-[#DFFF00] uppercase tracking-widest shadow-[0_0_15px_rgba(223,255,0,0.1)]">
+                        Player {playerTotal}
+                    </div>
+                )}
+            </div>
+
+         </div>
       </div>
+
+      {/* BOTTOM ACTION DRAWER - FIXED */}
+      <div className="h-auto md:min-h-[140px] bg-zinc-900 border-t border-zinc-800 p-4 pt-6 relative z-[60] flex flex-col justify-end pb-safe">
+            
+            {/* Status Ticker */}
+            <div className="absolute -top-4 left-0 right-0 flex justify-center pointer-events-none">
+                <div className="bg-black/80 backdrop-blur px-4 py-1.5 rounded-full text-zinc-300 text-[10px] font-mono shadow-xl border border-white/5 uppercase tracking-wider">
+                    {gameState === 'BETTING' ? 'Place your bet' : gameState === 'PLAYER_TURN' ? 'Your Turn' : gameState === 'DEALER_TURN' ? 'Dealer Acting...' : 'Round Over'}
+                </div>
+            </div>
+
+            <div className="w-full max-w-4xl mx-auto">
+                
+                {gameState === 'BETTING' ? (
+                    <div className="flex flex-col gap-3 animate-in slide-in-from-bottom-4">
+                        <div className="text-zinc-500 font-mono text-[10px] uppercase tracking-widest text-center">Select Wager</div>
+                        <div className="flex justify-center gap-3 flex-wrap">
+                            {BET_AMOUNTS.map(amount => (
+                                <button
+                                    key={amount}
+                                    onClick={() => startGame(amount)}
+                                    disabled={processing}
+                                    className="group relative bg-zinc-950 border border-zinc-700 hover:border-[#DFFF00] w-16 h-16 md:w-20 md:h-20 rounded-full flex flex-col items-center justify-center transition-all hover:scale-110 active:scale-95 hover:shadow-[0_0_20px_rgba(223,255,0,0.2)]"
+                                >
+                                    <Coins size={16} className="text-zinc-500 group-hover:text-[#DFFF00] mb-1" />
+                                    <span className="font-black font-mono text-sm md:text-base text-white group-hover:text-[#DFFF00]">{amount}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                ) : gameState === 'PLAYER_TURN' ? (
+                    <div className="grid grid-cols-2 gap-4 h-16 md:h-20 animate-in slide-in-from-bottom-4">
+                        <button 
+                            onClick={handleHit}
+                            className="bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-600 rounded-xl font-black uppercase text-lg tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all"
+                        >
+                            <Hand size={20} /> Hit
+                        </button>
+                        <button 
+                            onClick={() => handleStand()}
+                            className="bg-[#DFFF00] hover:bg-white text-black rounded-xl font-black uppercase text-lg tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all shadow-[0_0_20px_rgba(223,255,0,0.3)]"
+                        >
+                             Stand <ShieldAlert size={20} />
+                        </button>
+                    </div>
+                ) : gameState === 'GAME_OVER' ? (
+                    <div className="flex justify-center animate-in slide-in-from-bottom-4">
+                         <button 
+                            onClick={resetGame}
+                            className="w-full md:w-auto px-12 py-4 bg-[#DFFF00] text-black font-black uppercase tracking-widest rounded-xl hover:bg-white active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2"
+                        >
+                            <RotateCcw size={18} /> New Round
+                        </button>
+                    </div>
+                ) : (
+                    <div className="h-16 flex items-center justify-center text-zinc-500 font-mono text-xs animate-pulse border border-dashed border-zinc-800 rounded-xl">
+                        <Loader2 size={16} className="animate-spin mr-2" /> PROCESSING...
+                    </div>
+                )}
+            </div>
+      </div>
+
     </div>
   );
 }
