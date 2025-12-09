@@ -28,8 +28,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // Track if we have already fetched the profile for a specific user to prevent loops
+  // Ref to track user state without triggering effect re-runs
+  const userRef = useRef<User | null>(null);
+  // Track profile fetch to prevent loops
   const lastFetchedUserId = useRef<string | null>(null);
+
+  // Keep the ref synced with state
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -59,17 +66,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // 1. Check active session immediately
     const initializeAuth = async () => {
         try {
-            // Also helps clear any lingering localStorage confusion if migrating
-            if (typeof window !== 'undefined') {
-                // Optional: Force clear localStorage if you want to ensure no old keys remain
-                // localStorage.removeItem('sb-<your-project-ref>-auth-token'); 
-            }
-
             const { data: { session } } = await supabase.auth.getSession();
             
             if (mounted) {
                 if (session?.user) {
                     setUser(session.user);
+                    // Fetch profile if we haven't already for this user
                     if (lastFetchedUserId.current !== session.user.id) {
                          await fetchProfile(session.user.id);
                     }
@@ -98,8 +100,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setProfile(null);
           lastFetchedUserId.current = null;
           setLoading(false);
-          // Clear any client-side caches if necessary
-          if (typeof window !== 'undefined') sessionStorage.clear();
+          if (typeof window !== 'undefined') {
+             sessionStorage.clear();
+             // Optional: Clear only supabase keys if needed, but signOut() usually handles this
+             // localStorage.removeItem(`sb-${process.env.NEXT_PUBLIC_SUPABASE_PROJECT_ID}-auth-token`);
+          }
           return;
       }
 
@@ -107,12 +112,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (currentUser) {
           setUser(currentUser);
           
-          // Re-fetch profile on sign-in or if we detect a change/staleness
           if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || lastFetchedUserId.current !== currentUser.id) {
               await fetchProfile(currentUser.id);
           }
       } else if (event === 'TOKEN_REFRESHED' && !currentUser) {
-          // If refresh failed or returned null, ensure we log out
           setUser(null);
           setProfile(null);
       }
@@ -120,16 +123,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false);
     });
 
-    // 3. Re-validate session when user returns to the tab (fixes "after awhile" issues)
+    // 3. Visibility Change Handler
     const handleVisibilityChange = async () => {
         if (document.visibilityState === 'visible') {
             const { data: { session }, error } = await supabase.auth.getSession();
             if (error || !session) {
-                // Session died while in background
                 setUser(null);
                 setProfile(null);
-            } else if (session.user.id !== user?.id) {
-                // User changed? unlikely but possible in multi-tab
+            } else if (session.user.id !== userRef.current?.id) {
+                // Use userRef.current here to avoid stale closure issues
                 setUser(session.user);
                 fetchProfile(session.user.id);
             }
@@ -143,7 +145,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         subscription.unsubscribe();
         document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [user]); // Re-bind visibility check if user changes to ensure closures are fresh
+  }, []); // DEPENDENCY ARRAY IS NOW EMPTY
 
   const refreshProfile = () => {
     if (user) fetchProfile(user.id);
@@ -156,21 +158,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = async () => {
     try {
         setLoading(true);
-        // Attempt to sign out from Supabase
         const { error } = await supabase.auth.signOut();
         if (error) console.error("Sign out error:", error);
     } catch (err) {
         console.error("Unexpected error during sign out:", err);
     } finally {
-        // ALWAYS clear state and redirect, even if Supabase errors
         setUser(null);
         setProfile(null);
         lastFetchedUserId.current = null;
         
-        // Aggressive cleanup for security
         if (typeof window !== 'undefined') {
             sessionStorage.clear();
-            localStorage.clear(); 
+            // REMOVED: localStorage.clear(); -> This was too aggressive
         }
         
         setLoading(false);
