@@ -1,14 +1,42 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/app/context/AuthContext';
 import { 
-    User, Shield, Coins, Calendar, Loader2, Box, Zap, X, Globe, Hash, BarChart3, 
-    AlertTriangle, RefreshCw, PenTool, Gem, Hammer, Wrench // Added Hammer/Wrench
+    User, Coins, Calendar, Loader2, Box, Zap, X, Globe, Hash, BarChart3, 
+    AlertTriangle, RefreshCw, Gem, Hammer, Wrench, ArrowUpDown, Filter
 } from 'lucide-react';
 import BackButton from '@/app/components/BackButton';
 import Link from 'next/link';
+
+// --- TYPES ---
+
+interface ItemTemplate {
+    id: string;
+    name: string;
+    rarity: string;
+    description: string;
+    image_url?: string;
+}
+
+interface InventoryItem {
+    id: string;
+    serial_number: number;
+    is_shiny: boolean;
+    obtained_at: string;
+    item_templates: ItemTemplate;
+}
+
+interface Material {
+    id: string;
+    user_id: string;
+    material_type: string;
+    quantity: number;
+    updated_at: string;
+}
+
+type SortOption = 'NEWEST' | 'OLDEST' | 'RARITY_DESC' | 'RARITY_ASC';
 
 // --- CONFIGURATION ---
 
@@ -22,7 +50,6 @@ const QUICK_SELL_VALUES: Record<string, number> = {
     'COSMIC': 5000
 };
 
-// [NEW] Breakdown Yields: Defines what materials are given for each rarity
 const BREAKDOWN_YIELDS: Record<string, { type: string, label: string, amount: number }> = {
     'COMMON': { type: 'BASIC_SCRAP', label: 'Basic Scrap', amount: 3 },
     'UNCOMMON': { type: 'UNCOMMON_CIRCUITS', label: 'Uncommon Circuits', amount: 2 },
@@ -31,6 +58,16 @@ const BREAKDOWN_YIELDS: Record<string, { type: string, label: string, amount: nu
     'ULTRA': { type: 'VOID_CRYSTAL', label: 'Void Crystal', amount: 1 },
     'ZENITH': { type: 'QUANTUM_SHARD', label: 'Quantum Shard', amount: 1 },
     'COSMIC': { type: 'COSMIC_DUST', label: 'Cosmic Dust', amount: 5 }
+};
+
+const RARITY_WEIGHTS: Record<string, number> = {
+    'COSMIC': 7,
+    'ZENITH': 6,
+    'ULTRA': 5,
+    'SUPER_RARE': 4,
+    'RARE': 3,
+    'UNCOMMON': 2,
+    'COMMON': 1
 };
 
 // --- PRELOADER (Cached Images) ---
@@ -87,19 +124,26 @@ const ItemImage = ({ name, rarity, className = "" }: { name: string, rarity: str
 
 export default function ProfilePage() {
   const { user, profile, loading: authLoading, refreshProfile } = useAuth();
-  const [inventory, setInventory] = useState<any[]>([]);
-  const [materials, setMaterials] = useState<any[]>([]); // [NEW] Materials state
-  const [viewMode, setViewMode] = useState<'ITEMS' | 'MATERIALS'>('ITEMS'); // [NEW] View Toggle
+  
+  // Typed State
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [materials, setMaterials] = useState<Material[]>([]); 
+  const [viewMode, setViewMode] = useState<'ITEMS' | 'MATERIALS'>('ITEMS'); 
   const [loading, setLoading] = useState(true);
+  
+  // Filtering & Sorting State
   const [filter, setFilter] = useState('ALL');
-  const [selectedItem, setSelectedItem] = useState<any | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>('NEWEST');
+  const [showSortMenu, setShowSortMenu] = useState(false);
+
+  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [totalSupply, setTotalSupply] = useState<number | null>(null);
   const [loadingSupply, setLoadingSupply] = useState(false);
 
   useEffect(() => {
     if (user) {
         fetchInventory();
-        fetchMaterials(); // [NEW] Fetch materials
+        fetchMaterials(); 
     } else if (!authLoading) {
         setLoading(false);
     }
@@ -128,11 +172,19 @@ export default function ProfilePage() {
       if (!user) return;
       const { data, error } = await supabase
         .from('user_items')
-        .select(`id, serial_number, is_shiny, obtained_at, item_templates!inner (id, name, rarity, description, image_url)`)
+        .select(`
+            id, 
+            serial_number, 
+            is_shiny, 
+            obtained_at, 
+            item_templates!inner (id, name, rarity, description, image_url)
+        `)
         .eq('user_id', user.id)
         .order('obtained_at', { ascending: false });
+      
       if (error) throw error;
-      setInventory(data || []);
+      // Cast the response to our typed interface
+      setInventory((data as unknown as InventoryItem[]) || []);
     } catch (err) {
       console.error('Error loading inventory:', err);
     } finally {
@@ -140,14 +192,13 @@ export default function ProfilePage() {
     }
   };
 
-  // [NEW] Fetch User Materials
   const fetchMaterials = async () => {
       if (!user) return;
       const { data, error } = await supabase
           .from('user_materials')
           .select('*')
           .eq('user_id', user.id);
-      if (!error && data) setMaterials(data);
+      if (!error && data) setMaterials(data as Material[]);
   };
 
   const handleQuickSell = async () => {
@@ -168,7 +219,6 @@ export default function ProfilePage() {
       }
   };
 
-  // [NEW] Handle Breakdown / Scrap
   const handleBreakdown = async () => {
       if (!selectedItem) return;
       const yieldData = BREAKDOWN_YIELDS[selectedItem.item_templates.rarity];
@@ -181,19 +231,16 @@ export default function ProfilePage() {
       if (!window.confirm(`Scrap ${selectedItem.item_templates.name} into ${yieldData.amount}x ${yieldData.label}? This action cannot be undone.`)) return;
 
       try {
-          // 1. Delete Item
           const { error } = await supabase.from('user_items').delete().eq('id', selectedItem.id);
           if (error) throw error;
 
-          // 2. Add Materials (RPC call)
           await supabase.rpc('add_material', { 
               p_material_type: yieldData.type, 
               p_amount: yieldData.amount 
           });
 
-          // 3. UI Updates
           setInventory(prev => prev.filter(i => i.id !== selectedItem.id));
-          await fetchMaterials(); // Refresh materials list
+          await fetchMaterials(); 
           setSelectedItem(null);
           alert(`Success! Acquired ${yieldData.amount}x ${yieldData.label}`);
           
@@ -220,11 +267,47 @@ export default function ProfilePage() {
       }
   };
 
-  const filteredInventory = inventory.filter(item => {
-    if (filter === 'ALL') return true;
-    if (filter === 'SHINY') return item.is_shiny;
-    return item.item_templates.rarity === filter;
-  });
+  // --- FILTER & SORT LOGIC ---
+  
+  const processedInventory = useMemo(() => {
+    let result = [...inventory];
+
+    // 1. Identify Duplicates (Maps template_id -> count)
+    const counts = new Map<string, number>();
+    result.forEach(item => {
+        const id = item.item_templates.id;
+        counts.set(id, (counts.get(id) || 0) + 1);
+    });
+
+    // 2. Filter
+    if (filter !== 'ALL') {
+        if (filter === 'DUPLICATES') {
+            result = result.filter(item => (counts.get(item.item_templates.id) || 0) > 1);
+        } else if (filter === 'SHINY') {
+            result = result.filter(item => item.is_shiny);
+        } else {
+            result = result.filter(item => item.item_templates.rarity === filter);
+        }
+    }
+
+    // 3. Sort
+    result.sort((a, b) => {
+        switch (sortBy) {
+            case 'NEWEST':
+                return new Date(b.obtained_at).getTime() - new Date(a.obtained_at).getTime();
+            case 'OLDEST':
+                return new Date(a.obtained_at).getTime() - new Date(b.obtained_at).getTime();
+            case 'RARITY_DESC':
+                return (RARITY_WEIGHTS[b.item_templates.rarity] || 0) - (RARITY_WEIGHTS[a.item_templates.rarity] || 0);
+            case 'RARITY_ASC':
+                return (RARITY_WEIGHTS[a.item_templates.rarity] || 0) - (RARITY_WEIGHTS[b.item_templates.rarity] || 0);
+            default:
+                return 0;
+        }
+    });
+
+    return result;
+  }, [inventory, filter, sortBy]);
 
   const getRarityColor = (rarity: string) => {
     switch (rarity) {
@@ -303,34 +386,87 @@ export default function ProfilePage() {
         
         {/* TAB CONTROLS */}
         <div className="flex flex-col gap-6 mb-8">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <h2 className="text-xl font-black uppercase flex items-center gap-2">
                     {viewMode === 'ITEMS' ? <Box className="text-[#DFFF00]" size={20} /> : <Wrench className="text-blue-400" size={20} />} 
                     {viewMode === 'ITEMS' ? 'Asset Collection' : 'Component Storage'}
                 </h2>
                 
-                {/* View Toggle */}
-                <div className="flex bg-zinc-900 rounded-lg p-1 border border-zinc-800">
-                    <button 
-                        onClick={() => setViewMode('ITEMS')}
-                        className={`px-4 py-2 text-[10px] font-bold uppercase rounded transition-all ${viewMode === 'ITEMS' ? 'bg-[#DFFF00] text-black' : 'text-zinc-500 hover:text-white'}`}
-                    >
-                        Items
-                    </button>
-                    <button 
-                        onClick={() => setViewMode('MATERIALS')}
-                        className={`px-4 py-2 text-[10px] font-bold uppercase rounded transition-all ${viewMode === 'MATERIALS' ? 'bg-blue-500 text-white' : 'text-zinc-500 hover:text-white'}`}
-                    >
-                        Parts
-                    </button>
+                <div className="flex items-center gap-4 w-full md:w-auto">
+                    {/* View Toggle */}
+                    <div className="flex bg-zinc-900 rounded-lg p-1 border border-zinc-800 w-full md:w-auto">
+                        <button 
+                            onClick={() => setViewMode('ITEMS')}
+                            className={`flex-1 md:flex-none px-4 py-2 text-[10px] font-bold uppercase rounded transition-all ${viewMode === 'ITEMS' ? 'bg-[#DFFF00] text-black' : 'text-zinc-500 hover:text-white'}`}
+                        >
+                            Items
+                        </button>
+                        <button 
+                            onClick={() => setViewMode('MATERIALS')}
+                            className={`flex-1 md:flex-none px-4 py-2 text-[10px] font-bold uppercase rounded transition-all ${viewMode === 'MATERIALS' ? 'bg-blue-500 text-white' : 'text-zinc-500 hover:text-white'}`}
+                        >
+                            Parts
+                        </button>
+                    </div>
+
+                    {/* Sorting Controls (Only for Items) */}
+                    {viewMode === 'ITEMS' && (
+                        <div className="relative">
+                            <button 
+                                onClick={() => setShowSortMenu(!showSortMenu)}
+                                className="flex items-center gap-2 px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-[10px] font-bold uppercase text-zinc-400 hover:text-white hover:border-zinc-600 transition-all"
+                            >
+                                <ArrowUpDown size={14} />
+                                <span className="hidden md:inline">Sort: {sortBy.replace('_', ' ')}</span>
+                            </button>
+                            
+                            {showSortMenu && (
+                                <div className="absolute right-0 top-full mt-2 w-40 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl z-50 flex flex-col p-1 animate-in fade-in zoom-in-95 duration-100">
+                                    {[
+                                        { label: 'Newest First', value: 'NEWEST' },
+                                        { label: 'Oldest First', value: 'OLDEST' },
+                                        { label: 'Highest Rarity', value: 'RARITY_DESC' },
+                                        { label: 'Lowest Rarity', value: 'RARITY_ASC' },
+                                    ].map((opt) => (
+                                        <button
+                                            key={opt.value}
+                                            onClick={() => {
+                                                setSortBy(opt.value as SortOption);
+                                                setShowSortMenu(false);
+                                            }}
+                                            className={`px-3 py-2 text-left text-[10px] font-bold uppercase rounded hover:bg-zinc-800 ${sortBy === opt.value ? 'text-[#DFFF00]' : 'text-zinc-400'}`}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
 
             {/* FILTERS (Only show for Items) */}
             {viewMode === 'ITEMS' && (
                 <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                    {['ALL', 'ZENITH', 'COSMIC', 'ULTRA', 'SHINY', 'COMMON'].map(f => (
-                        <button key={f} onClick={() => setFilter(f)} className={`px-4 py-2 text-[10px] font-bold uppercase tracking-widest rounded transition-all whitespace-nowrap ${filter === f ? 'bg-white text-black' : 'bg-zinc-900 text-zinc-500 hover:text-white border border-zinc-800'}`}>{f}</button>
+                    <div className="flex items-center gap-2 px-1">
+                        <Filter size={14} className="text-zinc-600" />
+                        <div className="w-[1px] h-4 bg-zinc-800 mx-1" />
+                    </div>
+                    {['ALL', 'DUPLICATES', 'ZENITH', 'COSMIC', 'ULTRA', 'SHINY', 'COMMON'].map(f => (
+                        <button 
+                            key={f} 
+                            onClick={() => setFilter(f)} 
+                            className={`
+                                px-4 py-2 text-[10px] font-bold uppercase tracking-widest rounded transition-all whitespace-nowrap 
+                                ${filter === f 
+                                    ? 'bg-white text-black shadow-lg scale-105' 
+                                    : 'bg-zinc-900 text-zinc-500 hover:text-white border border-zinc-800 hover:border-zinc-600'
+                                }
+                            `}
+                        >
+                            {f}
+                        </button>
                     ))}
                 </div>
             )}
@@ -343,14 +479,14 @@ export default function ProfilePage() {
             <>
                 {/* VIEW: INVENTORY ITEMS */}
                 {viewMode === 'ITEMS' && (
-                    filteredInventory.length === 0 ? (
+                    processedInventory.length === 0 ? (
                         <div className="py-20 text-center border border-dashed border-zinc-800 rounded-2xl bg-zinc-900/20">
                             <p className="text-zinc-500 font-mono text-sm mb-4">NO ASSETS FOUND</p>
                             <Link href="/play/market" className="px-6 py-3 bg-[#DFFF00] text-black font-black uppercase text-xs rounded hover:bg-white transition-colors">Visit Black Market</Link>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
-                            {filteredInventory.map((item) => (
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            {processedInventory.map((item) => (
                                 <button key={item.id} onClick={() => setSelectedItem(item)} className={`group relative bg-zinc-900 border-2 rounded-xl p-3 md:p-4 transition-all hover:-translate-y-1 hover:shadow-xl text-left overflow-hidden ${getRarityColor(item.item_templates.rarity)}`}>
                                     <div className="flex justify-between items-start mb-2 relative z-10">
                                         <span className="text-[8px] font-mono opacity-50">#{String(item.serial_number).padStart(4, '0')}</span>
@@ -369,7 +505,7 @@ export default function ProfilePage() {
 
                 {/* VIEW: MATERIALS */}
                 {viewMode === 'MATERIALS' && (
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {materials.map((mat) => (
                             <div key={mat.id} className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl flex flex-col items-center text-center">
                                 <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center mb-3 text-blue-400">
@@ -447,7 +583,7 @@ export default function ProfilePage() {
                                 <span className="text-xs font-mono text-zinc-500">+{QUICK_SELL_VALUES[selectedItem.item_templates.rarity] || 2} CR</span>
                             </button>
 
-                            {/* BREAK DOWN / SCRAP [NEW] */}
+                            {/* BREAK DOWN / SCRAP */}
                             <button onClick={handleBreakdown} className="py-4 bg-orange-900/20 hover:bg-orange-500 text-orange-400 hover:text-white border border-orange-500/50 rounded-xl flex flex-col items-center justify-center gap-1 font-black uppercase tracking-widest transition-all group">
                                 <div className="flex items-center gap-2">
                                     <Hammer size={14} className="group-hover:-rotate-45 transition-transform" />

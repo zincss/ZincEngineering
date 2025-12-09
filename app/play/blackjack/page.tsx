@@ -11,14 +11,11 @@ import {
     ShieldAlert, 
     Trophy, 
     Wallet, 
-    Smartphone, 
     Loader2,
-    Play,
     Hand,
-    AlertTriangle
 } from 'lucide-react';
 
-// --- VISUAL HELPERS (Parity with Poker) ---
+// --- VISUAL HELPERS ---
 
 const vibrate = (pattern: number | number[] = 15) => {
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
@@ -34,10 +31,10 @@ interface Card {
   rank: Rank;
   value: number;
   isHidden?: boolean;
-  key?: string; // For React keys
+  key?: string; 
 }
 
-// Adapted CardView from Poker for consistency
+// --- CARD COMPONENT ---
 const CardView = ({ 
     card, 
     index, 
@@ -49,8 +46,8 @@ const CardView = ({
     total: number;
     isDealer?: boolean;
 }) => {
-    // Dynamic overlapping based on hand size
-    const overlap = index === 0 ? 0 : -30;
+    // Dynamic overlapping
+    const overlap = index === 0 ? 0 : -35; // Increased overlap slightly
     
     if (card.isHidden) {
         return (
@@ -68,12 +65,17 @@ const CardView = ({
     }
 
     const isRed = card.suit === 'HEARTS' || card.suit === 'DIAMONDS';
+    
+    // Maximized contrast colors
+    const textColor = isRed ? 'text-red-600' : 'text-black';
+    const borderColor = ['J', 'Q', 'K'].includes(card.rank) ? 'border-[#DFFF00]/50' : 'border-zinc-300';
+    
     const SuitIcon = () => {
         switch(card.suit) {
-            case 'HEARTS': return <span className="text-red-500">♥</span>;
-            case 'DIAMONDS': return <span className="text-red-500">♦</span>;
-            case 'SPADES': return <span className="text-zinc-200">♠</span>;
-            case 'CLUBS': return <span className="text-zinc-200">♣</span>;
+            case 'HEARTS': return <span>♥</span>;
+            case 'DIAMONDS': return <span>♦</span>;
+            case 'SPADES': return <span>♠</span>;
+            case 'CLUBS': return <span>♣</span>;
         }
     };
 
@@ -81,7 +83,7 @@ const CardView = ({
         <div 
             className={`
                 w-20 h-28 md:w-24 md:h-36 bg-zinc-100 rounded-xl flex flex-col justify-between p-2 shadow-2xl transition-all duration-500 animate-in slide-in-from-bottom-4 fade-in
-                ${['J', 'Q', 'K'].includes(card.rank) ? 'border-2 border-[#DFFF00]/50' : 'border-2 border-zinc-300'}
+                border-2 ${borderColor}
                 ${card.rank === 'A' ? 'shadow-[0_0_15px_rgba(168,85,247,0.3)] border-purple-400' : ''}
             `}
             style={{ 
@@ -89,28 +91,31 @@ const CardView = ({
                 zIndex: index
             }}
         >
-            <div className="flex flex-col items-center leading-none">
-                <span className={`text-xl font-black font-mono ${isRed ? 'text-red-600' : 'text-zinc-900'}`}>
+            {/* Top Left */}
+            <div className={`flex flex-col items-center leading-none ${textColor}`}>
+                <span className="text-xl font-black font-mono">
                     {card.rank}
                 </span>
-                <div className="text-xs"><SuitIcon /></div>
+                <div className="text-sm font-bold"><SuitIcon /></div>
             </div>
 
-            <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none text-4xl">
+            {/* Center Watermark - Increased Opacity for Visibility */}
+            <div className={`absolute inset-0 flex items-center justify-center opacity-25 pointer-events-none text-5xl ${textColor}`}>
                 <SuitIcon />
             </div>
 
-            <div className="flex flex-col items-center leading-none rotate-180">
-                <span className={`text-xl font-black font-mono ${isRed ? 'text-red-600' : 'text-zinc-900'}`}>
+            {/* Bottom Right */}
+            <div className={`flex flex-col items-center leading-none rotate-180 ${textColor}`}>
+                <span className="text-xl font-black font-mono">
                     {card.rank}
                 </span>
-                <div className="text-xs"><SuitIcon /></div>
+                <div className="text-sm font-bold"><SuitIcon /></div>
             </div>
         </div>
     );
 };
 
-// --- GAME LOGIC HELPERS ---
+// --- GAME LOGIC ---
 
 const getCardValue = (rank: Rank): number => {
   if (['J', 'Q', 'K'].includes(rank)) return 10;
@@ -161,7 +166,7 @@ export default function BlackjackPage() {
   const [processing, setProcessing] = useState(false);
   const [outcome, setOutcome] = useState<'WIN' | 'LOSE' | 'PUSH' | 'BJ' | null>(null);
 
-  // --- GAME ACTIONS ---
+  // --- ACTIONS ---
 
   const startGame = async (amount: number) => {
     vibrate(10);
@@ -227,7 +232,6 @@ export default function BlackjackPage() {
 
     setDealerHand([...newDHand]); // Reveal first
     
-    // Simulate thinking time
     const playDealer = async () => {
         await new Promise(r => setTimeout(r, 600));
 
@@ -237,7 +241,7 @@ export default function BlackjackPage() {
             setDealerHand([...newDHand]);
             setDeck(newDeck);
             vibrate(10);
-            await new Promise(r => setTimeout(r, 800)); // Card deal animation delay
+            await new Promise(r => setTimeout(r, 800)); 
         }
         
         determineWinner(currentPHand, newDHand);
@@ -337,33 +341,40 @@ export default function BlackjackPage() {
           </div>
       </div>
 
-      {/* Main Game Surface - The "Felt" */}
+      {/* Main Game Surface */}
       <div className="flex-1 flex flex-col items-center justify-center relative z-10 w-full overflow-hidden pb-[140px] md:pb-0">
          
          <div className="relative w-[95%] md:w-[80%] max-w-5xl aspect-[3/5] md:aspect-[2/1] bg-zinc-900/90 border-4 border-zinc-800 rounded-[60px] md:rounded-[150px] shadow-2xl flex flex-col items-center justify-between py-12 md:py-16">
             
             <div className="absolute inset-2 md:inset-4 border-2 border-dashed border-zinc-700/50 rounded-[50px] md:rounded-[130px] pointer-events-none" />
             
-            {/* Center Logo/Message */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center z-0 pointer-events-none">
+            {/* Center Message - Layered ON TOP (z-50) when active */}
+            <div className={`
+                absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none transition-all duration-300
+                ${message ? 'z-50 scale-110' : 'z-0'}
+            `}>
                 {message ? (
-                    <div className={`
-                        text-3xl md:text-5xl font-black uppercase tracking-tighter animate-in zoom-in duration-300
-                        ${outcome === 'WIN' || outcome === 'BJ' ? 'text-[#DFFF00]' : outcome === 'LOSE' ? 'text-red-500' : 'text-white'}
-                    `}>
-                        {message}
+                    <div className="relative">
+                        {/* Text Shadow Layer for Readability over Cards */}
+                        <div className={`
+                            text-4xl md:text-6xl font-black uppercase tracking-tighter animate-in zoom-in duration-300 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)]
+                            ${outcome === 'WIN' || outcome === 'BJ' ? 'text-[#DFFF00]' : outcome === 'LOSE' ? 'text-red-500' : 'text-white'}
+                        `} style={{ textShadow: '0 0 10px rgba(0,0,0,1), 0 0 20px rgba(0,0,0,0.8)' }}>
+                            {message}
+                        </div>
+                        {outcome === 'BJ' && <div className="text-white font-mono text-xs uppercase tracking-[0.5em] mt-2 animate-pulse">Critical Hit</div>}
                     </div>
                 ) : (
-                    <>
+                    <div className="opacity-50 transition-opacity duration-500">
                         <Layers className="mx-auto text-zinc-800 mb-2 w-16 h-16 md:w-24 md:h-24" />
-                        <div className="text-zinc-800 font-black text-4xl md:text-6xl uppercase opacity-50">BLACKJACK</div>
-                    </>
+                        <div className="text-zinc-800 font-black text-4xl md:text-6xl uppercase">BLACKJACK</div>
+                    </div>
                 )}
             </div>
 
             {/* Dealer Zone */}
             <div className="relative z-10 flex flex-col items-center min-h-[160px]">
-                <div className="flex items-center justify-center mb-4">
+                <div className="flex items-center justify-center mb-4 pl-4">
                     {dealerHand.length > 0 && (
                         dealerHand.map((card, i) => (
                             <CardView key={card.key || i} card={card} index={i} total={dealerHand.length} isDealer />
@@ -376,7 +387,7 @@ export default function BlackjackPage() {
                     )}
                 </div>
                 {dealerHand.length > 0 && (
-                    <div className="bg-zinc-950 px-3 py-1 rounded-full border border-zinc-800 text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest">
+                    <div className="bg-zinc-950 px-3 py-1 rounded-full border border-zinc-800 text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest z-20">
                         Dealer {gameState === 'GAME_OVER' ? dealerTotal : '?'}
                     </div>
                 )}
@@ -384,7 +395,7 @@ export default function BlackjackPage() {
 
             {/* Player Zone */}
             <div className="relative z-10 flex flex-col items-center min-h-[160px]">
-                <div className="flex items-center justify-center mb-4">
+                <div className="flex items-center justify-center mb-4 pl-4">
                     {playerHand.length > 0 && (
                         playerHand.map((card, i) => (
                             <CardView key={card.key || i} card={card} index={i} total={playerHand.length} />
@@ -397,7 +408,7 @@ export default function BlackjackPage() {
                     )}
                 </div>
                 {playerHand.length > 0 && (
-                    <div className="bg-zinc-950 px-3 py-1 rounded-full border border-zinc-800 text-[10px] font-mono font-bold text-[#DFFF00] uppercase tracking-widest shadow-[0_0_15px_rgba(223,255,0,0.1)]">
+                    <div className="bg-zinc-950 px-3 py-1 rounded-full border border-zinc-800 text-[10px] font-mono font-bold text-[#DFFF00] uppercase tracking-widest shadow-[0_0_15px_rgba(223,255,0,0.1)] z-20">
                         Player {playerTotal}
                     </div>
                 )}
@@ -406,9 +417,8 @@ export default function BlackjackPage() {
          </div>
       </div>
 
-      {/* BOTTOM ACTION DRAWER - FIXED */}
+      {/* BOTTOM ACTION DRAWER */}
       <div className="h-auto md:min-h-[140px] bg-zinc-900 border-t border-zinc-800 p-4 pt-6 relative z-[60] flex flex-col justify-end pb-safe">
-            
             {/* Status Ticker */}
             <div className="absolute -top-4 left-0 right-0 flex justify-center pointer-events-none">
                 <div className="bg-black/80 backdrop-blur px-4 py-1.5 rounded-full text-zinc-300 text-[10px] font-mono shadow-xl border border-white/5 uppercase tracking-wider">
@@ -417,7 +427,6 @@ export default function BlackjackPage() {
             </div>
 
             <div className="w-full max-w-4xl mx-auto">
-                
                 {gameState === 'BETTING' ? (
                     <div className="flex flex-col gap-3 animate-in slide-in-from-bottom-4">
                         <div className="text-zinc-500 font-mono text-[10px] uppercase tracking-widest text-center">Select Wager</div>
@@ -466,7 +475,6 @@ export default function BlackjackPage() {
                 )}
             </div>
       </div>
-
     </div>
   );
 }
