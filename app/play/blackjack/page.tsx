@@ -323,7 +323,7 @@ export default function BlackjackPage() {
   const dealerTotal = calculateHandValue(dealerHand);
 
   return (
-    <div className="h-[100dvh] bg-[#0a0a0a] text-white flex flex-col relative overflow-hidden touch-none">
+    <div className="fixed inset-0 z-[100] bg-[#0a0a0a] text-white flex flex-col overflow-hidden touch-none">
       
       {/* Backgrounds */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#18181b_0%,#000_80%)]" />
@@ -342,7 +342,7 @@ export default function BlackjackPage() {
       </div>
 
       {/* Main Game Surface */}
-      <div className="flex-1 flex flex-col items-center justify-center relative z-10 w-full overflow-hidden pb-[140px] md:pb-0">
+      <div className="flex-1 flex flex-col items-center justify-center relative z-10 w-full overflow-hidden pb-[140px] md:pb-0 pt-16 md:pt-0">
          
          <div className="relative w-[95%] md:w-[80%] max-w-5xl aspect-[3/5] md:aspect-[2/1] bg-zinc-900/90 border-4 border-zinc-800 rounded-[60px] md:rounded-[150px] shadow-2xl flex flex-col items-center justify-between py-12 md:py-16">
             
@@ -373,7 +373,7 @@ export default function BlackjackPage() {
             </div>
 
             {/* Dealer Zone */}
-            <div className="relative z-10 flex flex-col items-center min-h-[160px]">
+            <div className="relative z-10 flex flex-col items-center min-h-[160px] pt-4 md:pt-0">
                 <div className="flex items-center justify-center mb-4 pl-4">
                     {dealerHand.length > 0 && (
                         dealerHand.map((card, i) => (

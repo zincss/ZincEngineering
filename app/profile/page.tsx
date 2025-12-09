@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { createClient } from '@/utils/supabase/client'; // CHANGED: Import correctly
 import { useAuth } from '@/app/context/AuthContext';
 import { 
     User, Coins, Calendar, Loader2, Box, Zap, X, Globe, Hash, BarChart3, 
@@ -123,6 +123,7 @@ const ItemImage = ({ name, rarity, className = "" }: { name: string, rarity: str
 };
 
 export default function ProfilePage() {
+  const supabase = createClient(); // CHANGED: Instantiate authenticated client
   const { user, profile, loading: authLoading, refreshProfile } = useAuth();
   
   // Typed State

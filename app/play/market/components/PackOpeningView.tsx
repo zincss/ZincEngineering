@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { createClient } from '@/utils/supabase/client'; // CHANGED: Import correctly
 import { Layers, Grid3X3, Info, ChevronUp, ChevronDown, Lock, Zap, CarFront, Loader2 } from 'lucide-react';
 import { 
   REEL_ITEMS_SOURCE, CAR_PACK_SOURCE, FLAIR_ITEMS_SOURCE, BasePackIcon, ItemImage, 
@@ -9,6 +9,7 @@ import {
 } from './shared';
 
 export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: any) => {
+    const supabase = createClient(); // CHANGED: Instantiate authenticated client
     const [stage, setStage] = useState<'IDLE' | 'RUMBLE' | 'SCROLLING' | 'REVEAL'>('IDLE');
     const [results, setResults] = useState<any[]>([]); 
     const [error, setError] = useState('');

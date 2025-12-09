@@ -30,7 +30,6 @@ const CardView = ({
     dim?: boolean 
 }) => {
     // Increased base sizes slightly for mobile readability
-    // UPDATED: Scaled down 'md' (Community Cards) on mobile to w-10 h-[60px] to prevent overlapping
     const dims = size === 'sm' 
         ? 'w-10 h-14 md:w-11 md:h-16 text-xs' // Hand cards
         : size === 'md' 
@@ -172,6 +171,15 @@ export default function PokerPage() {
         vibrate();
         if (!table) return;
 
+        // 1. RESET UI STATE IMMEDIATELY (Fixes Rebuy Overlay Bug)
+        setWinnerMsg('');
+        setWinnerId(null);
+        setWinningCards([]);
+        setUserRevealedHand(false);
+        setAiRevealedHand(false);
+        setGameLog([]);
+
+        // 2. CHECK BANKRUPTCY
         const solventPlayers = players.map(p => {
             if (p.isBot && p.chips < table.blind) {
                 return { ...p, chips: table.buyIn }; 
@@ -181,10 +189,11 @@ export default function PokerPage() {
 
         if (solventPlayers[0].chips < table.blind) {
             setPlayers(solventPlayers);
-            setGameStatus('BANKRUPT');
+            setGameStatus('BANKRUPT'); // This will now show clearly without the Winner Overlay
             return;
         }
 
+        // 3. START NEW HAND
         const newDeck = createDeck();
         
         const updatedPlayers: Player[] = solventPlayers.map(p => ({
@@ -219,12 +228,6 @@ export default function PokerPage() {
         setPhase('PRE-FLOP');
         setGameStatus('PLAYING');
         setTurnIdx((nextDealer + 3) % 4); 
-        setWinnerMsg('');
-        setWinnerId(null);
-        setWinningCards([]);
-        setUserRevealedHand(false);
-        setAiRevealedHand(false);
-        setGameLog([]);
         addToLog("Dealing cards...");
     };
 
@@ -525,7 +528,7 @@ export default function PokerPage() {
     }
 
     return (
-        <div className="h-[100dvh] bg-[#0a0a0a] text-white flex flex-col relative overflow-hidden touch-none">
+        <div className="fixed inset-0 z-[100] bg-[#0a0a0a] text-white flex flex-col overflow-hidden touch-none">
             {/* BACKGROUND */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#18181b_0%,#000_80%)]" />
             
@@ -548,18 +551,14 @@ export default function PokerPage() {
             {/* MAIN GAME AREA - ADAPTIVE LAYOUT */}
             <div className="flex-1 flex flex-col items-center justify-center relative z-10 w-full overflow-hidden">
                 
-                {/* TABLE CONTAINER
-                    Portrait: Vertical rectangle (aspect-[3/5])
-                    Landscape/Desktop: Horizontal oval (aspect-[2/1])
-                */}
+                {/* TABLE CONTAINER */}
                 <div className="relative w-[95%] md:w-[80%] max-w-5xl max-h-[60vh] md:max-h-none transition-all duration-500
                     aspect-[3/5] md:aspect-[2/1]
                     bg-zinc-900/90 border-4 border-zinc-800 rounded-[100px] md:rounded-[150px] shadow-2xl flex items-center justify-center">
                     
                     <div className="absolute inset-2 md:inset-4 border-2 border-dashed border-zinc-700/50 rounded-[90px] md:rounded-[130px]" />
                     
-                    {/* POT DISPLAY - CENTERED & MOVED HIGHER ON DESKTOP */}
-                    {/* Changed top-[38%] to top-[20%] on desktop to avoid card overlap */}
+                    {/* POT DISPLAY */}
                     <div className="absolute top-[28%] md:top-[15%] left-1/2 -translate-x-1/2 z-20 flex flex-col items-center justify-center pointer-events-none transition-all duration-300">
                          <div className="text-[10px] text-zinc-500 font-mono uppercase tracking-widest mb-1">Pot</div>
                          <div className="flex items-center gap-1.5 bg-zinc-950/90 px-4 py-1.5 rounded-full border border-zinc-800 backdrop-blur-sm shadow-xl">
@@ -568,7 +567,7 @@ export default function PokerPage() {
                         </div>
                     </div>
 
-                    {/* COMMUNITY CARDS - BELOW POT */}
+                    {/* COMMUNITY CARDS */}
                     <div className={`absolute top-[48%] left-1/2 -translate-x-1/2 -translate-y-1/2 flex gap-1 md:gap-2 ${gameStatus === 'FINISHED' && hasWinner ? 'z-[130]' : 'z-20'}`}>
                         {communityCards.map((c, i) => (
                             <CardView 
@@ -584,17 +583,15 @@ export default function PokerPage() {
                         ))}
                     </div>
 
-                    {/* PLAYERS - RESPONSIVE POSITIONING */}
+                    {/* PLAYERS */}
                     {players.map((p, i) => {
-                        // Portrait: 0 (User-Bottom), 1 (Left), 2 (Top), 3 (Right)
                         const portraitPos = [
-                            'bottom-24 left-1/2 -translate-x-1/2', // UPDATED: Lifted UP for mobile clearance
-                            'left-[-20px] top-1/2 -translate-y-1/2', // Bot 1
-                            'top-[-30px] left-1/2 -translate-x-1/2', // Bot 2
-                            'right-[-20px] top-1/2 -translate-y-1/2', // Bot 3
+                            'bottom-24 left-1/2 -translate-x-1/2', 
+                            'left-[-20px] top-1/2 -translate-y-1/2', 
+                            'top-[-30px] left-1/2 -translate-x-1/2', 
+                            'right-[-20px] top-1/2 -translate-y-1/2', 
                         ];
                         
-                        // Landscape/Desktop: Oval
                         const landscapePos = [
                             'md:bottom-[-50px] md:left-1/2 md:-translate-x-1/2 md:top-auto md:right-auto',
                             'md:left-[-30px] md:top-1/2 md:-translate-y-1/2 md:bottom-auto md:right-auto',
@@ -611,7 +608,6 @@ export default function PokerPage() {
                         let borderColor = isActive ? 'border-[#DFFF00]' : 'border-zinc-800';
                         if (p.lastAction === 'FOLD') borderColor = 'border-red-900 opacity-50';
                         
-                        // Z-Index handling
                         const zLevel = (isWinner && gameStatus === 'FINISHED') ? 'z-[140]' : isActive ? 'z-40' : 'z-30';
                         const isDimmed = gameStatus === 'FINISHED' && !isWinner;
 
@@ -666,7 +662,7 @@ export default function PokerPage() {
                         </div>
                     )}
 
-                    {/* REBUY MODAL */}
+                    {/* REBUY MODAL - HIGH Z-INDEX */}
                     {gameStatus === 'BANKRUPT' && (
                         <div className="absolute inset-0 bg-black/90 backdrop-blur-md z-[150] flex flex-col items-center justify-center rounded-[90px] animate-in fade-in duration-300 p-6 text-center">
                              <AlertTriangle size={48} className="text-red-500 mb-4 animate-bounce" />
@@ -682,7 +678,7 @@ export default function PokerPage() {
                 </div>
             </div>
 
-            {/* WINNER OVERLAY - FULL SCREEN */}
+            {/* WINNER OVERLAY */}
             {winnerMsg && (
                 <div className="absolute inset-0 z-[145] flex flex-col items-center justify-end pb-[20vh] pointer-events-none bg-gradient-to-t from-black/90 via-black/50 to-transparent">
                      <div className="pointer-events-auto bg-zinc-900/90 p-6 rounded-3xl border border-[#DFFF00]/30 shadow-2xl backdrop-blur-xl flex flex-col items-center animate-in slide-in-from-bottom-10 mx-4 max-w-sm w-full">
@@ -711,10 +707,8 @@ export default function PokerPage() {
                 </div>
             )}
 
-            {/* ACTION DRAWER - FIXED BOTTOM */}
+            {/* ACTION DRAWER */}
             <div className="h-auto md:min-h-[140px] bg-zinc-900 border-t border-zinc-800 p-4 pt-6 relative z-[60] flex flex-col justify-end pb-safe">
-                
-                {/* GAME LOG TICKER */}
                 <div className="absolute -top-4 left-0 right-0 flex justify-center pointer-events-none">
                      <div className="bg-black/80 backdrop-blur px-4 py-1.5 rounded-full text-zinc-300 text-[10px] font-mono shadow-xl border border-white/5 truncate max-w-[80%]">
                         {gameLog[0] || "Waiting for action..."}
@@ -722,7 +716,6 @@ export default function PokerPage() {
                 </div>
 
                 <div className="w-full max-w-4xl mx-auto flex flex-col gap-3">
-                    {/* STATS ROW */}
                     <div className="flex justify-between items-end px-2 text-zinc-400 font-mono text-[10px] uppercase tracking-wider">
                         <div>
                             <span className="text-zinc-600">You:</span> {userPlayer?.currentBet || 0}
@@ -732,7 +725,6 @@ export default function PokerPage() {
                         </div>
                     </div>
 
-                    {/* CONTROLS */}
                     {gameStatus === 'PLAYING' && turnIdx === 0 && !userPlayer?.folded ? (
                         <div className="grid grid-cols-4 gap-2 h-14 md:h-16">
                             <button onClick={() => handleAction('FOLD')} className="bg-red-950/40 text-red-500 border border-red-900/50 rounded-xl font-black uppercase text-xs active:bg-red-900/80 active:scale-95 transition-all">
