@@ -184,7 +184,8 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
                             <div className="flex flex-wrap justify-center gap-6 mb-8 w-full">
                                 {results.map((result, idx) => {
                                     const sourceItem = [...currentConfig.source, ...FLAIR_ITEMS_SOURCE].find(i => i.name === result.name);
-                                    const desc = sourceItem?.description || "A mysterious artifact.";
+                                    // UPDATED: Now falls back to the DB description if local source is missing
+                                    const desc = sourceItem?.description || result.description || "A mysterious artifact.";
                                     return (
                                         <div key={idx} className={`relative w-64 h-auto bg-zinc-900 border-4 rounded-2xl p-4 text-center shadow-2xl overflow-hidden transform hover:scale-105 transition-transform duration-300 ${getRarityBorder(result.rarity)}`}>
                                             <div className="w-32 h-32 mx-auto mb-4 bg-zinc-950/50 rounded-xl p-2 border border-zinc-800 shadow-inner flex items-center justify-center relative z-10"><ItemImage name={result.name} rarity={result.rarity} className="w-full h-full shadow-lg" /></div>
