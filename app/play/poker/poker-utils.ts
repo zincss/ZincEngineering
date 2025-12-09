@@ -125,7 +125,7 @@ export const evaluateHand = (holeCards: Card[], communityCards: Card[]): { type:
   return { type: 'HIGH_CARD', score: allCards[0].value, name: 'High Card', winningCards: allCards.slice(0, 5) };
 };
 
-// --- AI BRAIN ---
+// --- IMPROVED AI BRAIN ---
 export const getAIDecision = (
   difficulty: 'ROOKIE' | 'PRO' | 'ELITE', 
   hand: Card[], 
@@ -136,36 +136,106 @@ export const getAIDecision = (
 ): 'FOLD' | 'CALL' | 'RAISE' | 'CHECK' => {
   
   const costToCall = currentBet - botCurrentBet;
-  const handStrength = evaluateHand(hand, community).score;
+  const handStrength = evaluateHand(hand, community);
+  const score = handStrength.score;
   const random = Math.random();
+  
+  // Basic Hand Analysis
+  const isPair = hand[0].value === hand[1].value;
+  const isSuited = hand[0].suit === hand[1].suit;
+  const highCard = Math.max(hand[0].value, hand[1].value);
+  const lowCard = Math.min(hand[0].value, hand[1].value);
+  const isConnected = highCard - lowCard === 1;
 
-  // 1. ROOKIE
+  // --- ROOKIE AI ---
+  // Loose-Passive. Calls too much. Rarely raises unless monster. Folds only garbage.
   if (difficulty === 'ROOKIE') {
       if (costToCall === 0) return 'CHECK';
-      if (handStrength > 1000000) return 'CALL';
-      return random > 0.2 ? 'CALL' : 'FOLD';
-  }
-
-  // 2. PRO / ELITE
-  if (difficulty === 'PRO' || difficulty === 'ELITE') {
-      const highCardVal = Math.max(hand[0].value, hand[1].value);
       
       if (isPreFlop) {
-          const isPair = hand[0].value === hand[1].value;
-          const isHigh = highCardVal >= 10;
-          if (isPair || (isHigh && highCardVal > 11)) return random > 0.3 ? 'RAISE' : 'CALL';
-          if (isHigh) return 'CALL';
+          // Calls almost any face card or pair
+          if (highCard >= 10 || isPair || isSuited) return 'CALL';
+          // Randomly calls with trash 30% of time
+          return random > 0.7 ? 'CALL' : 'FOLD';
+      } else {
+          // Post-flop: Calls with any pair or draw
+          if (score >= 1000000) return 'CALL'; // Pair or better
+          // Chase any flush/straight draw (naive check: just random call frequency)
+          if (random > 0.6) return 'CALL'; 
+          return 'FOLD';
+      }
+  }
+
+  // --- PRO AI ---
+  // Tight-Aggressive (TAG). Folds weak hands. Raises strong hands. Value bets.
+  if (difficulty === 'PRO') {
+      if (isPreFlop) {
+          // Raise Pairs 10+, AK, AQ
+          if (isPair && highCard >= 10) return 'RAISE';
+          if (highCard === 14 && lowCard >= 12) return 'RAISE';
+          
+          // Call Small Pairs, Suited Connectors, High Cards
+          if (isPair) return 'CALL';
+          if (isSuited && isConnected) return 'CALL';
+          if (highCard >= 12) return 'CALL';
+
+          if (costToCall === 0) return 'CHECK';
+          return 'FOLD';
+      } else {
+          // Post-Flop
+          if (score >= 3000000) return 'RAISE'; // Trips or better
+          if (score >= 2000000) return 'RAISE'; // Two Pair (Aggressive)
+          if (score >= 1000000) {
+              // Top Pair check (approximate)
+              if (handStrength.winningCards[0].value >= 12) return 'RAISE';
+              return 'CALL';
+          }
+          
           if (costToCall === 0) return 'CHECK';
           return 'FOLD';
       }
+  }
 
-      if (handStrength >= 3000000) return 'RAISE'; 
-      if (handStrength >= 1000000) return 'CALL';
-      
-      if (difficulty === 'ELITE' && costToCall === 0 && random > 0.8) return 'RAISE'; // Bluff
-      
-      if (costToCall === 0) return 'CHECK';
-      return 'FOLD';
+  // --- ELITE AI ---
+  // Loose-Aggressive / Balanced (LAG). Mixes it up. Bluffs. Defends blinds.
+  if (difficulty === 'ELITE') {
+    // Bluff chance
+    const bluff = random < 0.15; 
+
+    if (isPreFlop) {
+        // Aggressive Raising
+        if (isPair || (highCard >= 13) || (isSuited && highCard >= 10)) return 'RAISE';
+        
+        // Defend wide
+        if (highCard >= 10 || isConnected || isSuited) return 'CALL';
+        
+        // 3-bet bluff light
+        if (bluff && costToCall > 0) return 'RAISE';
+
+        if (costToCall === 0) return 'CHECK';
+        return 'FOLD';
+    } else {
+        // Monster: Slow play or Fast play mixed
+        if (score >= 4000000) { // Straight or better
+             return random > 0.7 ? 'CALL' : 'RAISE'; // Trapping 30% of time
+        }
+
+        // Strong Value
+        if (score >= 2000000) return 'RAISE'; 
+
+        // Marginal / Draws
+        if (score >= 1000000) return 'CALL'; // Pair
+        
+        // Bluff at pot if checked to
+        if (costToCall === 0 && bluff) return 'RAISE';
+
+        if (costToCall === 0) return 'CHECK';
+        
+        // Float occasionally
+        if (random > 0.8 && highCard >= 13) return 'CALL';
+
+        return 'FOLD';
+    }
   }
 
   return 'CHECK';
