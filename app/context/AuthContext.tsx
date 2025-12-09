@@ -154,20 +154,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signOut = async () => {
-    setLoading(true);
-    await supabase.auth.signOut();
-    setUser(null);
-    setProfile(null);
-    lastFetchedUserId.current = null;
-    
-    // Aggressive cleanup for security
-    if (typeof window !== 'undefined') {
-        sessionStorage.clear();
-        localStorage.clear(); // Caution: Clears preferences too, use specific keys if needed
+    try {
+        setLoading(true);
+        // Attempt to sign out from Supabase
+        const { error } = await supabase.auth.signOut();
+        if (error) console.error("Sign out error:", error);
+    } catch (err) {
+        console.error("Unexpected error during sign out:", err);
+    } finally {
+        // ALWAYS clear state and redirect, even if Supabase errors
+        setUser(null);
+        setProfile(null);
+        lastFetchedUserId.current = null;
+        
+        // Aggressive cleanup for security
+        if (typeof window !== 'undefined') {
+            sessionStorage.clear();
+            localStorage.clear(); 
+        }
+        
+        setLoading(false);
+        window.location.href = '/';
     }
-    
-    setLoading(false);
-    window.location.href = '/';
   };
 
   return (

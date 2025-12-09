@@ -7,11 +7,10 @@ if (!supabaseUrl || !supabaseKey) {
   throw new Error("Supabase Keys are missing! Check your .env.local file.");
 }
 
-// Configured to use sessionStorage instead of localStorage.
-// This ensures the session is cleared when the tab/window is closed.
+// Configured to use defaults (localStorage) which is much more stable on mobile
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
-    storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
+    // REMOVED: storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,

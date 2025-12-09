@@ -9,7 +9,7 @@ import { createDeck, evaluateHand, getAIDecision, Card } from './poker-utils';
 
 // --- VISUAL COMPONENTS ---
 
-// Helper for haptics - FIXED TYPE DEFINITION
+// Helper for haptics
 const vibrate = (pattern: number | number[] = 15) => {
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate(pattern);
@@ -587,7 +587,7 @@ export default function PokerPage() {
                     {players.map((p, i) => {
                         // Portrait: 0 (User-Bottom), 1 (Left), 2 (Top), 3 (Right)
                         const portraitPos = [
-                            'bottom-[-30px] left-1/2 -translate-x-1/2', // User
+                            'bottom-24 left-1/2 -translate-x-1/2', // UPDATED: Lifted UP for mobile clearance
                             'left-[-20px] top-1/2 -translate-y-1/2', // Bot 1
                             'top-[-30px] left-1/2 -translate-x-1/2', // Bot 2
                             'right-[-20px] top-1/2 -translate-y-1/2', // Bot 3
