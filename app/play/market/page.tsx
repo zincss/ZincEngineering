@@ -6,7 +6,7 @@ import { useAuth } from '@/app/context/AuthContext';
 import { 
     Package, Zap, Info, ChevronDown, ChevronUp, Layers, Grid3X3, Loader2, Wallet,
     Gavel, Coins, Clock, Plus, Filter, TrendingUp, AlertCircle, Check, X, Search,
-    CarFront // Imported for the Car Pack icon
+    CarFront, Lock // Imported Lock for the teaser
 } from 'lucide-react';
 import BackButton from '@/app/components/BackButton';
 import { CARS } from '@/app/automotive/data'; // Importing Car Data
@@ -276,7 +276,8 @@ const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: any) =>
             label: 'BASE PACK NO.1', 
             icon: BasePackIcon, 
             source: REEL_ITEMS_SOURCE,
-            desc: null
+            desc: null,
+            comingSoon: false
         },
         CARS: { 
             cost: 250, 
@@ -284,7 +285,8 @@ const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: any) =>
             label: 'AUTOMOTIVE PACK', 
             icon: CarFront, 
             source: CAR_PACK_SOURCE,
-            desc: "Contains 100 Unique Cars across many generations. Chance to earn 1/5 Zenith Rare 919 Evo."
+            comingSoon: true, // FLAG AS COMING SOON
+            desc: "The ultimate collection for petrolheads. Collect 100+ unique vehicles including WRC Legends, F1 icons, and Hypercars. Chase the 1/5 Zenith 919 Evo.\n\nFEATURE PREVIEW: Unlocking cars will grant access to the new 'Profile Garage', a dedicated 3D showroom to display your rarest pulls to the community."
         }
     };
 
@@ -294,12 +296,13 @@ const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: any) =>
     const isReady = !authLoading && user;
 
     let buttonText = `Authorize Payment (${cost})`;
-    if (authLoading) buttonText = "CONNECTING...";
+    if (currentConfig.comingSoon) buttonText = "DROPPING SOON";
+    else if (authLoading) buttonText = "CONNECTING...";
     else if (!user) buttonText = "LOGIN REQUIRED";
     else if (!canAfford) buttonText = "INSUFFICIENT CREDITS";
 
     const handleOpenPack = async () => {
-        if (authLoading || !profile || profile.credits < cost) return;
+        if (authLoading || !profile || profile.credits < cost || currentConfig.comingSoon) return;
 
         setStage('RUMBLE');
         setError('');
@@ -379,10 +382,10 @@ const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: any) =>
                     onClick={() => setSelectedPack('CARS')}
                     className={`group relative w-36 md:w-48 p-4 rounded-xl border-2 transition-all duration-300 text-left ${selectedPack === 'CARS' ? 'border-[#DFFF00] bg-zinc-900' : 'border-zinc-800 bg-zinc-950 opacity-60 hover:opacity-100'}`}
                 >
-                     <div className="absolute -top-2 -right-2 bg-[#DFFF00] text-black text-[9px] font-black px-2 py-0.5 rounded uppercase shadow-lg animate-pulse">New</div>
+                     <div className="absolute -top-2 -right-2 bg-orange-500 text-black text-[9px] font-black px-2 py-0.5 rounded uppercase shadow-lg animate-pulse">SOON</div>
                     <div className="text-[10px] font-bold text-zinc-500 uppercase mb-2">Legends</div>
                     <div className="text-white font-black uppercase text-sm md:text-base">Automotive</div>
-                    <div className="text-xs font-mono text-zinc-400 mt-1">250 CR</div>
+                    <div className="text-xs font-mono text-zinc-400 mt-1">??? CR</div>
                 </button>
             </div>
 
@@ -397,30 +400,35 @@ const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: any) =>
                     </div>
 
                     <div className="flex justify-center py-8 md:py-10">
-                        <div className="relative w-40 h-56 md:w-48 md:h-64 foil-gradient rounded-xl border border-white/20 shadow-2xl flex flex-col items-center justify-center p-4 transform group-hover:scale-105 transition-transform duration-500">
+                        <div className={`relative w-40 h-56 md:w-48 md:h-64 foil-gradient rounded-xl border border-white/20 shadow-2xl flex flex-col items-center justify-center p-4 transform group-hover:scale-105 transition-transform duration-500 ${currentConfig.comingSoon ? 'grayscale brightness-75' : ''}`}>
                             <div className="bg-black/80 backdrop-blur border border-[#DFFF00] rounded-lg p-3 mb-4 w-20 h-20 flex items-center justify-center text-[#DFFF00]">
                                  <currentConfig.icon size={40} />
                             </div>
                             <h3 className="text-xl md:text-2xl font-black uppercase text-white italic tracking-tighter text-center leading-none mt-2">
                                 {currentConfig.label.split(' ').map((word, i) => <div key={i}>{word}</div>)}
                             </h3>
+                            {currentConfig.comingSoon && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-xl">
+                                    <Lock size={48} className="text-white/50" />
+                                </div>
+                            )}
                         </div>
                     </div>
 
                     {/* DYNAMIC DESCRIPTION FOR PACKS */}
                     {currentConfig.desc && (
-                        <div className="mb-6 text-center bg-black/40 p-3 rounded-lg border border-zinc-800">
-                            <p className="text-[#DFFF00] text-[10px] font-bold uppercase tracking-widest mb-1">
-                                Pack Contents
+                        <div className="mb-6 text-center bg-black/40 p-4 rounded-lg border border-zinc-800">
+                            <p className="text-[#DFFF00] text-[10px] font-bold uppercase tracking-widest mb-2 flex items-center justify-center gap-2">
+                                {currentConfig.comingSoon ? <><Lock size={12}/> Locked Intel</> : "Pack Contents"}
                             </p>
-                            <p className="text-zinc-400 text-xs font-mono leading-relaxed">
+                            <p className="text-zinc-400 text-xs font-mono leading-relaxed whitespace-pre-wrap">
                                 {currentConfig.desc}
                             </p>
                         </div>
                     )}
 
                     <div className="space-y-6">
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className={`grid grid-cols-2 gap-3 ${currentConfig.comingSoon ? 'opacity-50 pointer-events-none' : ''}`}>
                             <button 
                                 onClick={() => setPackQuantity(1)}
                                 className={`p-3 rounded-xl border-2 flex items-center justify-center gap-2 transition-all ${packQuantity === 1 ? 'border-[#DFFF00] bg-[#DFFF00]/10 text-white' : 'border-zinc-800 bg-zinc-900 text-zinc-500 hover:border-zinc-700'}`}
@@ -472,10 +480,16 @@ const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: any) =>
                     <div className="mt-6">
                         <button 
                             onClick={handleOpenPack}
-                            disabled={!isReady || !canAfford}
-                            className="w-full bg-white text-black font-black uppercase py-4 rounded-xl hover:bg-[#DFFF00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
+                            disabled={!isReady || !canAfford || currentConfig.comingSoon}
+                            className={`
+                                w-full font-black uppercase py-4 rounded-xl transition-all disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg
+                                ${currentConfig.comingSoon 
+                                    ? 'bg-zinc-800 text-zinc-500 border border-zinc-700' 
+                                    : 'bg-white text-black hover:bg-[#DFFF00] disabled:opacity-50'
+                                }
+                            `}
                         >
-                            {authLoading ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} fill="currentColor" />}
+                            {authLoading ? <Loader2 size={16} className="animate-spin" /> : currentConfig.comingSoon ? <Lock size={16} /> : <Zap size={16} fill="currentColor" />}
                             <span>{buttonText}</span>
                         </button>
                     </div>

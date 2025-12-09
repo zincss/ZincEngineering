@@ -30,10 +30,11 @@ const CardView = ({
     dim?: boolean 
 }) => {
     // Increased base sizes slightly for mobile readability
+    // UPDATED: Scaled down 'md' (Community Cards) on mobile to w-10 h-[60px] to prevent overlapping
     const dims = size === 'sm' 
         ? 'w-10 h-14 md:w-11 md:h-16 text-xs' // Hand cards
         : size === 'md' 
-        ? 'w-12 h-[72px] md:w-16 md:h-24 text-sm md:text-base' // Community cards
+        ? 'w-10 h-[60px] md:w-16 md:h-24 text-xs md:text-base' // Community cards
         : 'w-20 h-28 md:w-24 md:h-36 text-xl md:text-2xl';
 
     if (hidden || !card) {
@@ -579,7 +580,7 @@ export default function PokerPage() {
                             />
                         ))}
                         {Array.from({length: 5 - communityCards.length}).map((_, i) => (
-                             <div key={i} className="w-12 h-[72px] md:w-16 md:h-24 border-2 border-dashed border-zinc-800 rounded-lg bg-black/20" />
+                             <div key={i} className="w-10 h-[60px] md:w-16 md:h-24 border-2 border-dashed border-zinc-800 rounded-lg bg-black/20" />
                         ))}
                     </div>
 
