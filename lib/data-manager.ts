@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabaseClient';
+import { createClient } from '@/utils/supabase/client'; // CHANGED: Import the shared Cookie client
 
 export interface DataFetchOptions {
   table: string;      // e.g. 'golf_snapshots'
@@ -11,6 +11,10 @@ export async function getOrFetchResource<T>(
   options: DataFetchOptions,
   fetcher: () => Promise<T | null>
 ): Promise<T | null> {
+  // CHANGED: Instantiate the client inside the function.
+  // This ensures we get the current user session (cookies) every time we fetch.
+  const supabase = createClient(); 
+
   const { table, keyField, id, expirationHours = 24 } = options;
   let cachedData: T | null = null;
 

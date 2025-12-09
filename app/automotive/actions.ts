@@ -1,6 +1,6 @@
 'use server'
 
-import { supabase } from '../../lib/supabaseClient';
+import { createClient } from '@/utils/supabase/client'; // CHANGED: Import the Cookie/SSR client
 
 const WIKI_API = "https://en.wikipedia.org/w/api.php";
 const COMMONS_API = "https://commons.wikimedia.org/w/api.php";
@@ -72,27 +72,21 @@ const scanTextForSpecs = (fullText: string) => {
     const lowerText = fullText.toLowerCase();
 
     // 1. Acceleration (0-100 or 0-60)
-    // Matches: "0–100 km/h in 2.8 s" or "sprint to 60 mph in 2.9 seconds"
     const accelMatch = fullText.match(/0\s*(?:[–-]|to)\s*(?:100\s*km\/?h|60\s*mph).*?(?:in|:)?\s*([0-9\.]+)\s*s/i) ||
                        fullText.match(/(?:sprints|accelerates).*?(?:100\s*km\/?h|60\s*mph).*?(?:in|:)?\s*([0-9\.]+)\s*s/i);
     
     if (accelMatch) specs.acceleration = `${accelMatch[1]}s`;
 
     // 2. Top Speed
-    // Matches: "top speed of 350 km/h" or "maximum speed is 217 mph"
     const speedMatch = fullText.match(/(?:top|maximum)\s*speed.*?(?:of|is)?\s*(\d{3,})\s*(?:km\/?h|mph)/i);
     if (speedMatch) {
-        // Keep the original string found to preserve unit, or default to match
         const window = fullText.substring(speedMatch.index!, speedMatch.index! + 20);
         specs.topSpeed = window.match(/\d+\s*(?:km\/?h|mph)/i)?.[0] || `${speedMatch[1]} km/h`;
     }
 
     // 3. Torque
-    // Matches: "900 N⋅m" or "664 lb⋅ft"
-    // We look for 3-digit numbers followed immediately by torque units
     const torqueMatch = fullText.match(/(\d{3,}(?:,\d{3})?)\s*(?:N⋅m|lb⋅ft|Nm|lb-ft)/i);
     if (torqueMatch) {
-         // Grab the full string with unit
          const window = fullText.substring(torqueMatch.index!, torqueMatch.index! + 15);
          specs.torque = window.match(/[\d,]+\s*(?:N⋅m|lb⋅ft|Nm|lb-ft)/i)?.[0] || torqueMatch[1];
     }
@@ -160,7 +154,7 @@ export async function fetchCarDetails(title: string) {
     // Get History and Image from Query API
     const pageId = Object.keys(queryData.query.pages)[0];
     const pageObj = queryData.query.pages[pageId];
-    const cleanHistory = pageObj.extract ? stripHtml(pageObj.extract) : ""; // Full Intro, no slicing
+    const cleanHistory = pageObj.extract ? stripHtml(pageObj.extract) : ""; 
 
     // 2. Extract Infoboxes
     const infoboxes = parseAllInfoboxes(fullHtml);
@@ -182,8 +176,7 @@ export async function fetchCarDetails(title: string) {
         if (!mergedInfo['top_speed']) mergedInfo['top_speed'] = box['top_speed'] || box['top speed'];
     }
 
-    // 4. Fallback Scanner (Crucial for P1, 918, etc.)
-    // If specific fields are missing in infobox, scan the full text
+    // 4. Fallback Scanner
     const textSpecs = scanTextForSpecs(stripHtml(fullHtml));
 
     // --- DATA CLEANUP ---
@@ -192,7 +185,7 @@ export async function fetchCarDetails(title: string) {
     const carClass = determineClass(mergedInfo['class'] || "", stripHtml(fullHtml).slice(0, 500));
 
     // Image Strategy
-    let image = pageObj.original?.source; // Primary: Page Image
+    let image = pageObj.original?.source; 
     
     if (!image) {
         // Fallback: Commons Search
@@ -234,17 +227,19 @@ export async function fetchCarDetails(title: string) {
 // --- DATABASE UTILITIES ---
 
 export async function saveCarToDatabase(car: any) {
+    const supabase = createClient(); // CHANGED: Instantiate here
     const { error } = await supabase.from('cars').upsert(car);
     return { success: !error, error };
 }
 
 // FIXED: Specific Update Action that cleans data
 export async function updateCar(car: any) {
+    const supabase = createClient(); // CHANGED: Instantiate here
+    
     // 1. Clone the object so we don't mutate state
     const carData = { ...car };
     
     // 2. Map camelCase (UI) to snake_case (DB) if needed
-    // This handles the error where 'accentColor' (frontend) isn't in the DB schema
     if (carData.accentColor) {
         carData.accent_color = carData.accentColor;
     }
@@ -257,6 +252,7 @@ export async function updateCar(car: any) {
 }
 
 export async function deleteCar(id: string) {
+    const supabase = createClient(); // CHANGED: Instantiate here
     const { data, error } = await supabase.from('cars').delete().eq('id', id).select('id');
     if (error) return { success: false, message: error.message };
     if (!data || data.length === 0) return { success: false, message: "Database blocked deletion." };
@@ -264,12 +260,14 @@ export async function deleteCar(id: string) {
 }
 
 export async function getDatabaseCars() {
+    const supabase = createClient(); // CHANGED: Instantiate here
     const { data, error } = await supabase.from('cars').select('*').order('created_at', { ascending: true });
     if (error) return [];
     return data.map((d: any) => ({ ...d, accentColor: d.accent_color }));
 }
 
 export async function seedCars(cars: any[]) {
+    const supabase = createClient(); // CHANGED: Instantiate here
     const formatted = cars.map(c => ({
         id: c.id,
         name: c.name,
