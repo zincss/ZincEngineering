@@ -41,7 +41,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         if (error) {
             console.warn("Profile fetch warning:", error.message);
-            // Don't nullify profile on temporary network errors if we already have one
             return;
         }
 
@@ -60,12 +59,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // 1. Check active session immediately
     const initializeAuth = async () => {
         try {
+            // Also helps clear any lingering localStorage confusion if migrating
+            if (typeof window !== 'undefined') {
+                // Optional: Force clear localStorage if you want to ensure no old keys remain
+                // localStorage.removeItem('sb-<your-project-ref>-auth-token'); 
+            }
+
             const { data: { session } } = await supabase.auth.getSession();
             
             if (mounted) {
                 if (session?.user) {
                     setUser(session.user);
-                    // Only fetch if we haven't already for this user
                     if (lastFetchedUserId.current !== session.user.id) {
                          await fetchProfile(session.user.id);
                     }
@@ -85,9 +89,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // 2. Listen for changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // 'INITIAL_SESSION' is often redundant if we manually checked getSession, 
-      // but 'SIGNED_IN', 'SIGNED_OUT', 'TOKEN_REFRESHED' are critical.
-      
       if (!mounted) return;
 
       const currentUser = session?.user ?? null;
@@ -97,34 +98,58 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setProfile(null);
           lastFetchedUserId.current = null;
           setLoading(false);
+          // Clear any client-side caches if necessary
+          if (typeof window !== 'undefined') sessionStorage.clear();
           return;
       }
 
-      // If session exists and it's a new user or token refresh
+      // Handle token refreshes or new sign-ins
       if (currentUser) {
           setUser(currentUser);
           
-          // Refresh profile on sign-in or if we haven't fetched it yet
-          if (event === 'SIGNED_IN' || lastFetchedUserId.current !== currentUser.id) {
+          // Re-fetch profile on sign-in or if we detect a change/staleness
+          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || lastFetchedUserId.current !== currentUser.id) {
               await fetchProfile(currentUser.id);
           }
+      } else if (event === 'TOKEN_REFRESHED' && !currentUser) {
+          // If refresh failed or returned null, ensure we log out
+          setUser(null);
+          setProfile(null);
       }
       
       setLoading(false);
     });
 
+    // 3. Re-validate session when user returns to the tab (fixes "after awhile" issues)
+    const handleVisibilityChange = async () => {
+        if (document.visibilityState === 'visible') {
+            const { data: { session }, error } = await supabase.auth.getSession();
+            if (error || !session) {
+                // Session died while in background
+                setUser(null);
+                setProfile(null);
+            } else if (session.user.id !== user?.id) {
+                // User changed? unlikely but possible in multi-tab
+                setUser(session.user);
+                fetchProfile(session.user.id);
+            }
+        }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
         mounted = false;
         subscription.unsubscribe();
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [user]); // Re-bind visibility check if user changes to ensure closures are fresh
 
   const refreshProfile = () => {
     if (user) fetchProfile(user.id);
   };
 
   const signIn = () => {
-    // Ideally use router.push instead of window.location for SPA feel
     window.location.href = '/login'; 
   };
 
@@ -134,6 +159,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(null);
     setProfile(null);
     lastFetchedUserId.current = null;
+    
+    // Aggressive cleanup for security
+    if (typeof window !== 'undefined') {
+        sessionStorage.clear();
+        localStorage.clear(); // Caution: Clears preferences too, use specific keys if needed
+    }
+    
     setLoading(false);
     window.location.href = '/';
   };

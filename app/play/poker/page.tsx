@@ -21,11 +21,11 @@ const CardView = ({
     highlight?: boolean, 
     dim?: boolean 
 }) => {
-    // Responsive Dimensions
+    // Optimized Mobile Dimensions
     const dims = size === 'sm' 
-        ? 'w-8 h-12 md:w-10 md:h-14 text-[10px] md:text-xs' 
+        ? 'w-9 h-14 md:w-10 md:h-14 text-[10px] md:text-xs' 
         : size === 'md' 
-        ? 'w-10 h-16 md:w-14 md:h-20 text-xs md:text-sm' 
+        ? 'w-11 h-[68px] md:w-14 md:h-20 text-xs md:text-sm' 
         : 'w-16 h-24 md:w-20 md:h-28 text-lg md:text-xl';
 
     if (hidden || !card) {
@@ -34,7 +34,7 @@ const CardView = ({
                 ${dims}
                 bg-zinc-900 border border-zinc-700 rounded-md relative shadow-lg
                 bg-[repeating-linear-gradient(45deg,#18181b_0,#18181b_5px,#27272a_5px,#27272a_10px)]
-                ${dim ? 'opacity-20 grayscale blur-[1px]' : 'opacity-100'}
+                ${dim ? 'opacity-10 grayscale blur-[1px]' : 'opacity-100'}
                 transition-all duration-500 flex-shrink-0
             `}>
                 <div className="absolute inset-0 flex items-center justify-center text-zinc-700 font-black text-[8px] md:text-xs">ZINC</div>
@@ -47,11 +47,12 @@ const CardView = ({
     const textColorClass = isRed ? 'text-red-600' : 'text-black';
     
     const borderClass = highlight 
-        ? 'border-[#DFFF00] ring-1 ring-[#DFFF00]/80' 
+        ? 'border-[#DFFF00] ring-2 ring-[#DFFF00]/50' 
         : (isRed ? 'border-red-200' : 'border-zinc-300');
 
+    // On mobile, scale winning cards slightly less to avoid screen overflow
     const effectClass = highlight 
-        ? 'shadow-[0_0_20px_rgba(223,255,0,0.5)] scale-110 md:scale-125 z-[100] opacity-100' 
+        ? 'shadow-[0_0_20px_rgba(223,255,0,0.6)] scale-110 md:scale-125 z-[100] opacity-100' 
         : '';
 
     return (
@@ -558,7 +559,6 @@ export default function PokerPage() {
 
                     {/* PLAYERS */}
                     {players.map((p, i) => {
-                        // ADJUSTED POSITIONS FOR MOBILE
                         const positions = [
                             'bottom-[-40px] md:bottom-[-60px] left-1/2 -translate-x-1/2', 
                             'left-[-12px] md:left-[-40px] top-1/2 -translate-y-1/2', 
@@ -580,10 +580,13 @@ export default function PokerPage() {
                         
                         const zLevel = (isWinner && gameStatus === 'FINISHED') ? 'z-[140]' : isActive ? 'z-40' : 'z-30';
 
+                        // FOCUS MODE: If game is finished, dim everyone except winner
+                        const isDimmed = gameStatus === 'FINISHED' && !isWinner;
+
                         if (isWinner && gameStatus === 'FINISHED') borderColor = 'border-[#DFFF00] shadow-[0_0_30px_rgba(223,255,0,0.5)] bg-zinc-900';
 
                         return (
-                            <div key={p.id} className={`absolute ${positions[i]} flex flex-col items-center transition-all duration-300 ${p.folded ? 'opacity-40 grayscale' : ''} ${zLevel}`}>
+                            <div key={p.id} className={`absolute ${positions[i]} flex flex-col items-center transition-all duration-300 ${p.folded ? 'opacity-40 grayscale' : ''} ${zLevel} ${isDimmed ? 'opacity-20 blur-[1px]' : 'opacity-100'}`}>
                                 
                                 {showAction && p.lastAction && (
                                     <ActionBubble action={p.lastAction} />
@@ -641,38 +644,40 @@ export default function PokerPage() {
                         </div>
                     )}
 
-                    {/* WINNER OVERLAY */}
+                    {/* WINNER OVERLAY - MOBILE OPTIMIZED */}
                     {winnerMsg && (
-                        <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] z-[120] flex flex-col justify-between py-8 md:py-12 rounded-[60px] md:rounded-[100px] animate-in fade-in duration-300 pointer-events-auto">
+                        <div className="absolute inset-0 z-[120] flex flex-col justify-between py-6 md:py-12 rounded-[60px] md:rounded-[100px] animate-in fade-in duration-300 pointer-events-auto bg-transparent">
+                             <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] rounded-[60px] md:rounded-[100px] -z-10" />
+                             
                              <div className="flex flex-col items-center">
-                                 <div className="bg-black/80 px-6 py-3 md:px-8 md:py-4 rounded-full border border-[#DFFF00]/30 shadow-[0_0_30px_rgba(0,0,0,0.8)] backdrop-blur-md flex flex-col items-center mx-4">
-                                     <Trophy size={24} className="text-[#DFFF00] mb-1 animate-bounce" />
-                                     <div className="text-lg md:text-2xl font-black uppercase text-center max-w-md leading-none text-white mb-1">
+                                 <div className="bg-black/80 px-4 py-2 md:px-8 md:py-4 rounded-full border border-[#DFFF00]/30 shadow-2xl backdrop-blur-md flex flex-col items-center mx-4">
+                                     <Trophy size={20} className="text-[#DFFF00] mb-1 animate-bounce md:w-8 md:h-8" />
+                                     <div className="text-sm md:text-2xl font-black uppercase text-center max-w-md leading-none text-white mb-0.5 md:mb-1">
                                         {winnerMsg.split(' with ')[0]}
                                      </div>
-                                     <div className="text-[#DFFF00] font-mono text-[10px] md:text-xs uppercase tracking-widest">
+                                     <div className="text-[#DFFF00] font-mono text-[9px] md:text-xs uppercase tracking-widest">
                                         {winnerMsg.split(' with ')[1]}
                                      </div>
                                  </div>
                              </div>
 
-                             <div className="flex justify-center gap-2 md:gap-4 px-4">
+                             <div className="flex justify-center gap-2 md:gap-4 px-4 pb-2 md:pb-0">
                                  {winnerId === 0 && !userRevealedHand && !isShowdown && (
-                                     <button onClick={() => setUserRevealedHand(true)} className="px-4 py-2 md:px-8 md:py-3 bg-zinc-800 text-white font-black uppercase tracking-widest rounded hover:bg-zinc-700 transition-colors shadow-lg border border-zinc-600 flex items-center gap-2 text-[10px] md:text-xs">
+                                     <button onClick={() => setUserRevealedHand(true)} className="px-4 py-3 md:px-8 md:py-3 bg-zinc-800 text-white font-black uppercase tracking-widest rounded-lg hover:bg-zinc-700 transition-colors shadow-lg border border-zinc-600 flex items-center gap-2 text-[10px] md:text-xs">
                                          <Eye size={14} /> Show
                                      </button>
                                  )}
 
-                                 <button onClick={startHand} className="px-6 py-2 md:px-8 md:py-3 bg-white text-black font-black uppercase tracking-widest rounded hover:bg-[#DFFF00] hover:scale-105 transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)] text-[10px] md:text-xs">
+                                 <button onClick={startHand} className="flex-1 max-w-[140px] px-4 py-3 md:px-8 md:py-3 bg-white text-black font-black uppercase tracking-widest rounded-lg hover:bg-[#DFFF00] hover:scale-105 transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)] text-[10px] md:text-xs text-center">
                                      Next Hand
                                  </button>
                                  <button 
                                     onClick={leaveTable} 
                                     disabled={isLeaving}
-                                    className="px-6 py-2 md:px-8 md:py-3 bg-zinc-900/90 text-zinc-400 font-black uppercase tracking-widest rounded hover:text-white border border-zinc-700 hover:bg-zinc-800 transition-colors flex items-center gap-2 backdrop-blur-md text-[10px] md:text-xs"
+                                    className="px-4 py-3 md:px-8 md:py-3 bg-zinc-900/90 text-zinc-400 font-black uppercase tracking-widest rounded-lg hover:text-white border border-zinc-700 hover:bg-zinc-800 transition-colors flex items-center gap-2 backdrop-blur-md text-[10px] md:text-xs"
                                 >
                                      {isLeaving ? <Loader2 size={14} className="animate-spin"/> : <LogOut size={14} />}
-                                     {isLeaving ? '...' : 'Leave'}
+                                     {isLeaving ? '' : 'Leave'}
                                  </button>
                              </div>
                         </div>
