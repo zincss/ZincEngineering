@@ -4,10 +4,18 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import { supabase } from '@/lib/supabaseClient'; 
 import BackButton from '@/app/components/BackButton';
-import { Coins, User, Trophy, Cpu, LogOut, Eye, Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Coins, User, Trophy, Cpu, LogOut, Eye, Loader2, RefreshCw, AlertTriangle, Smartphone } from 'lucide-react';
 import { createDeck, evaluateHand, getAIDecision, Card } from './poker-utils';
 
 // --- VISUAL COMPONENTS ---
+
+// Helper for haptics - FIXED TYPE DEFINITION
+const vibrate = (pattern: number | number[] = 15) => {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(pattern);
+    }
+};
+
 const CardView = ({ 
     card, 
     hidden, 
@@ -21,62 +29,60 @@ const CardView = ({
     highlight?: boolean, 
     dim?: boolean 
 }) => {
-    // Optimized Mobile Dimensions
+    // Increased base sizes slightly for mobile readability
     const dims = size === 'sm' 
-        ? 'w-9 h-14 md:w-10 md:h-14 text-[10px] md:text-xs' 
+        ? 'w-10 h-14 md:w-11 md:h-16 text-xs' // Hand cards
         : size === 'md' 
-        ? 'w-11 h-[68px] md:w-14 md:h-20 text-xs md:text-sm' 
-        : 'w-16 h-24 md:w-20 md:h-28 text-lg md:text-xl';
+        ? 'w-12 h-[72px] md:w-16 md:h-24 text-sm md:text-base' // Community cards
+        : 'w-20 h-28 md:w-24 md:h-36 text-xl md:text-2xl';
 
     if (hidden || !card) {
         return (
             <div className={`
                 ${dims}
-                bg-zinc-900 border border-zinc-700 rounded-md relative shadow-lg
+                bg-zinc-900 border border-zinc-700 rounded-lg relative shadow-lg
                 bg-[repeating-linear-gradient(45deg,#18181b_0,#18181b_5px,#27272a_5px,#27272a_10px)]
-                ${dim ? 'opacity-10 grayscale blur-[1px]' : 'opacity-100'}
+                ${dim ? 'opacity-20 blur-[1px]' : 'opacity-100'}
                 transition-all duration-500 flex-shrink-0
             `}>
-                <div className="absolute inset-0 flex items-center justify-center text-zinc-700 font-black text-[8px] md:text-xs">ZINC</div>
+                <div className="absolute inset-0 flex items-center justify-center text-zinc-700 font-black text-[10px] md:text-xs tracking-wider">ZINC</div>
             </div>
         );
     }
 
     const isRed = card.suit === 'H' || card.suit === 'D';
     const suitIcon = card.suit === 'H' ? '♥' : card.suit === 'D' ? '♦' : card.suit === 'C' ? '♣' : '♠';
-    const textColorClass = isRed ? 'text-red-600' : 'text-black';
+    const textColorClass = isRed ? 'text-red-500' : 'text-zinc-900';
     
     const borderClass = highlight 
-        ? 'border-[#DFFF00] ring-2 ring-[#DFFF00]/50' 
+        ? 'border-[#DFFF00] ring-2 ring-[#DFFF00]/50 z-50' 
         : (isRed ? 'border-red-200' : 'border-zinc-300');
 
-    // On mobile, scale winning cards slightly less to avoid screen overflow
     const effectClass = highlight 
-        ? 'shadow-[0_0_20px_rgba(223,255,0,0.6)] scale-110 md:scale-125 z-[100] opacity-100' 
+        ? 'shadow-[0_0_20px_rgba(223,255,0,0.6)] scale-110 z-[50] opacity-100' 
         : '';
 
     return (
         <div className={`
             ${dims}
-            bg-zinc-100 rounded-md flex flex-col items-center justify-between p-0.5 md:p-1 shadow-xl border-2 transition-all duration-500 relative flex-shrink-0
+            bg-zinc-100 rounded-lg flex flex-col items-center justify-between p-1 shadow-xl border-2 transition-all duration-300 relative flex-shrink-0
             ${textColorClass} ${borderClass} ${effectClass}
-            ${dim && !highlight ? 'opacity-10 grayscale scale-95 blur-[2px]' : ''}
-            animate-in zoom-in duration-300
+            ${dim && !highlight ? 'opacity-20 grayscale scale-95 blur-[1px]' : ''}
+            animate-in zoom-in duration-300 select-none
         `}>
-            <div className="self-start font-black leading-none pl-0.5 pt-0.5">{card.rank}</div>
-            <div className="text-base md:text-2xl">{suitIcon}</div>
-            <div className="self-end font-black leading-none rotate-180 pr-0.5 pb-0.5">{card.rank}</div>
+            <div className="self-start font-black leading-none">{card.rank}</div>
+            <div className="text-xl md:text-3xl">{suitIcon}</div>
+            <div className="self-end font-black leading-none rotate-180">{card.rank}</div>
             
             {highlight && (
-                 <div className="absolute -top-3 md:-top-4 left-1/2 -translate-x-1/2 bg-[#DFFF00] text-black text-[8px] md:text-[9px] font-black px-1.5 py-0.5 rounded-full whitespace-nowrap shadow-lg z-[101] border border-black/20 animate-in slide-in-from-bottom-2">
-                     WINNER
+                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#DFFF00] text-black text-[9px] font-black px-2 py-0.5 rounded-full whitespace-nowrap shadow-md z-[60] border border-black/10 animate-in slide-in-from-bottom-2">
+                     WIN
                  </div>
             )}
         </div>
     );
 };
 
-// --- ACTION BUBBLE COMPONENT ---
 const ActionBubble = ({ action, amount }: { action: string, amount?: number }) => {
     const colorClass = 
         action === 'FOLD' ? 'bg-red-600 text-white' :
@@ -86,13 +92,13 @@ const ActionBubble = ({ action, amount }: { action: string, amount?: number }) =
 
     return (
         <div className={`
-            absolute -top-10 md:-top-14 left-1/2 -translate-x-1/2 z-50 
-            px-3 py-1 md:px-4 md:py-2 rounded-full font-black uppercase tracking-widest text-[10px] md:text-xs shadow-xl
+            absolute -top-8 md:-top-12 left-1/2 -translate-x-1/2 z-50 
+            px-3 py-1 md:px-4 md:py-1.5 rounded-full font-black uppercase tracking-widest text-[10px] md:text-xs shadow-xl
             animate-in zoom-in slide-in-from-bottom-2 duration-200
-            whitespace-nowrap ${colorClass} border-2 border-black/20
+            whitespace-nowrap ${colorClass} border border-black/20
         `}>
             {action} {amount ? amount : ''}
-            <div className={`absolute bottom-[-6px] md:bottom-[-8px] left-1/2 -translate-x-1/2 w-3 h-3 md:w-4 md:h-4 rotate-45 ${colorClass} border-b-2 border-r-2 border-black/20`} />
+            <div className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45 ${colorClass} border-b border-r border-black/20`} />
         </div>
     );
 };
@@ -140,8 +146,9 @@ export default function PokerPage() {
     const [isLeaving, setIsLeaving] = useState(false);
     const [gameLog, setGameLog] = useState<string[]>([]);
 
-    // --- INITIALIZATION ---
+    // --- LOGIC ---
     const joinTable = (selectedTable: typeof TABLES[number]) => {
+        vibrate();
         if (!profile || profile.credits < selectedTable.buyIn) {
             alert("Insufficient Funds");
             return;
@@ -161,6 +168,7 @@ export default function PokerPage() {
     };
 
     const startHand = () => {
+        vibrate();
         if (!table) return;
 
         const solventPlayers = players.map(p => {
@@ -220,11 +228,12 @@ export default function PokerPage() {
     };
 
     const handleRebuy = async () => {
+        vibrate();
         if (!profile || !table) return;
         const rebuyCost = table.buyIn;
 
         if (profile.credits < rebuyCost) {
-            alert("Not enough credits in account to rebuy!");
+            alert("Not enough credits to rebuy!");
             leaveTable();
             return;
         }
@@ -257,12 +266,14 @@ export default function PokerPage() {
                     phase === 'PRE-FLOP'
                 );
                 handleAction(decision);
-            }, 1000 + Math.random() * 800); 
+            }, 800 + Math.random() * 1000); 
             return () => clearTimeout(timer);
         }
     }, [turnIdx, gameStatus, players]);
 
     const handleAction = (action: 'FOLD' | 'CHECK' | 'CALL' | 'RAISE') => {
+        if (!players[turnIdx].isBot) vibrate(20);
+        
         const newPlayers = [...players];
         const p = newPlayers[turnIdx];
         const costToCall = currentBet - p.currentBet;
@@ -322,7 +333,7 @@ export default function PokerPage() {
         p.lastActionTimestamp = Date.now();
         setPlayers(newPlayers);
         
-        setTimeout(() => nextTurn(), 600);
+        setTimeout(() => nextTurn(), 400);
     };
 
     const nextTurn = () => {
@@ -424,6 +435,7 @@ export default function PokerPage() {
         newPlayers[winner.id].chips += pot;
         setPlayers(newPlayers);
         setGameStatus('FINISHED');
+        vibrate([50, 50, 50]);
 
         if (winner.isBot && isDefaultWin) {
             if (Math.random() < 0.3) {
@@ -433,6 +445,7 @@ export default function PokerPage() {
     };
 
     const leaveTable = async () => {
+        vibrate();
         if (!table) return;
         setIsLeaving(true);
         addToLog("Saving...");
@@ -460,43 +473,7 @@ export default function PokerPage() {
         setIsLeaving(false);
     };
 
-    if (!table) {
-        return (
-            <div className="min-h-screen bg-zinc-950 text-white flex flex-col items-center justify-center p-4 md:p-6 relative overflow-hidden">
-                <BackButton href="/play" label="ARCADE HUB" />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#000_100%)] z-0"/>
-                
-                <h1 className="text-3xl md:text-5xl font-black mb-6 md:mb-8 relative z-10 uppercase tracking-tighter text-center">Texas <span className="text-[#DFFF00]">Hold'em</span></h1>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 max-w-5xl w-full relative z-10">
-                    {TABLES.map(t => (
-                        <div key={t.id} className="border border-zinc-800 bg-zinc-900/50 p-6 md:p-8 rounded-xl hover:border-[#DFFF00] hover:bg-zinc-900 transition-all group">
-                            <div className="text-zinc-500 font-mono text-xs font-bold mb-2 flex items-center gap-2">
-                                <Cpu size={14} /> NO LIMIT HOLD'EM
-                            </div>
-                            <h2 className="text-xl md:text-2xl font-black uppercase mb-4">{t.name}</h2>
-                            <div className="space-y-2 font-mono text-xs md:text-sm text-zinc-400 mb-6 md:mb-8">
-                                <div className="flex justify-between border-b border-zinc-800 pb-2">
-                                    <span>Buy-In</span>
-                                    <span className="text-white">{t.buyIn} CR</span>
-                                </div>
-                                <div className="flex justify-between border-b border-zinc-800 pb-2">
-                                    <span>Blinds</span>
-                                    <span className="text-white">{t.blind/2} / {t.blind}</span>
-                                </div>
-                            </div>
-                            <button 
-                                onClick={() => joinTable(t)}
-                                className="w-full py-3 md:py-4 bg-white text-black font-black uppercase tracking-widest rounded hover:bg-[#DFFF00] transition-colors text-sm md:text-base"
-                            >
-                                Sit Down
-                            </button>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        );
-    }
-
+    // --- RENDER HELPERS ---
     const userPlayer = players[0];
     const isShowdown = phase === 'SHOWDOWN' || gameStatus === 'FINISHED';
     
@@ -507,42 +484,91 @@ export default function PokerPage() {
 
     const hasWinner = winningCards.length > 0;
 
+    // --- LOBBY VIEW ---
+    if (!table) {
+        return (
+            <div className="min-h-[100dvh] bg-zinc-950 text-white flex flex-col items-center p-4 relative overflow-hidden">
+                <BackButton href="/play" label="ARCADE HUB" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#000_100%)] z-0"/>
+                
+                <div className="z-10 w-full max-w-md flex flex-col items-center mt-12 mb-8">
+                    <h1 className="text-5xl font-black mb-2 relative z-10 uppercase tracking-tighter text-center">Texas <span className="text-[#DFFF00]">Hold'em</span></h1>
+                    <div className="text-zinc-500 font-mono text-xs uppercase tracking-widest flex items-center gap-2">
+                         <Smartphone size={14} /> Optimized for Mobile
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 w-full max-w-md relative z-10 pb-20">
+                    {TABLES.map(t => (
+                        <button 
+                            key={t.id} 
+                            onClick={() => joinTable(t)}
+                            className="group relative border border-zinc-800 bg-zinc-900/80 p-6 rounded-2xl hover:border-[#DFFF00] hover:bg-zinc-900 transition-all text-left overflow-hidden active:scale-95 duration-200"
+                        >
+                            <div className="absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-100 transition-opacity">
+                                <Coins className="text-[#DFFF00]" size={24} />
+                            </div>
+                            <div className="text-[#DFFF00] font-mono text-[10px] font-bold mb-1 flex items-center gap-2 uppercase tracking-wider">
+                                {t.difficulty}
+                            </div>
+                            <h2 className="text-2xl font-black uppercase mb-1 text-white">{t.name}</h2>
+                            <div className="flex gap-4 text-xs font-mono text-zinc-400 mt-2">
+                                <span>Buy-In: <span className="text-white">{t.buyIn}</span></span>
+                                <span>Blinds: <span className="text-white">{t.blind/2}/{t.blind}</span></span>
+                            </div>
+                        </button>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col relative overflow-hidden">
+        <div className="h-[100dvh] bg-[#0a0a0a] text-white flex flex-col relative overflow-hidden touch-none">
+            {/* BACKGROUND */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#18181b_0%,#000_80%)]" />
             
-            {/* TOP BAR */}
-            <div className="absolute top-0 left-0 right-0 p-3 md:p-4 flex justify-between items-start z-30">
-                <div className="flex flex-col gap-1">
-                    <div className="text-center md:text-left">
-                        <div className="text-[#DFFF00] font-black uppercase tracking-widest text-sm md:text-lg">{table.name}</div>
-                        <div className="text-zinc-500 text-[10px] md:text-xs font-mono">BLINDS {table.blind/2}/{table.blind}</div>
-                    </div>
+            {/* TOP BAR - COMPACT */}
+            <div className="absolute top-0 left-0 right-0 p-3 flex justify-between items-start z-30 pointer-events-none">
+                <div className="flex flex-col gap-0.5 pointer-events-auto bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5">
+                    <div className="text-[#DFFF00] font-black uppercase tracking-widest text-xs">{table.name}</div>
+                    <div className="text-zinc-500 text-[10px] font-mono">BLINDS {table.blind/2}/{table.blind}</div>
                 </div>
                 
                 <button 
                     onClick={leaveTable}
                     disabled={isLeaving}
-                    className="flex items-center gap-2 text-[10px] md:text-xs font-bold font-mono bg-red-900/20 text-red-500 border border-red-900/50 px-4 py-2 md:px-6 md:py-3 rounded hover:bg-red-900/40 hover:text-white transition-all uppercase tracking-widest shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="pointer-events-auto flex items-center justify-center w-8 h-8 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700 hover:bg-red-900 hover:text-white hover:border-red-500 transition-colors shadow-lg active:scale-90"
                 >
                     {isLeaving ? <Loader2 size={14} className="animate-spin"/> : <LogOut size={14} />} 
-                    {isLeaving ? "Saving..." : "Cash Out"}
                 </button>
             </div>
 
-            {/* MAIN GAME AREA */}
-            <div className="flex-1 flex items-center justify-center relative z-10 mt-12 md:mt-0">
-                <div className="relative w-[95%] max-w-4xl aspect-[2/1] bg-zinc-900/80 border-4 md:border-8 border-zinc-800 rounded-[60px] md:rounded-[100px] shadow-2xl flex items-center justify-center">
-                    <div className="absolute inset-2 md:inset-4 border-2 border-dashed border-zinc-700/50 rounded-[50px] md:rounded-[80px]" />
+            {/* MAIN GAME AREA - ADAPTIVE LAYOUT */}
+            <div className="flex-1 flex flex-col items-center justify-center relative z-10 w-full overflow-hidden">
+                
+                {/* TABLE CONTAINER
+                    Portrait: Vertical rectangle (aspect-[3/5])
+                    Landscape/Desktop: Horizontal oval (aspect-[2/1])
+                */}
+                <div className="relative w-[90%] md:w-[80%] max-w-5xl transition-all duration-500
+                    aspect-[3/5] md:aspect-[2/1]
+                    bg-zinc-900/90 border-4 border-zinc-800 rounded-[100px] md:rounded-[150px] shadow-2xl flex items-center justify-center mt-8 md:mt-0">
                     
-                    {/* POT DISPLAY */}
-                    <div className="absolute top-[32%] md:top-[35%] left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-zinc-950/80 px-4 py-1.5 md:px-6 md:py-2 rounded-full border border-zinc-800 backdrop-blur-sm">
-                        <Coins size={14} className="text-[#DFFF00]" />
-                        <span className="font-mono font-bold text-lg md:text-xl text-white">{pot}</span>
+                    <div className="absolute inset-2 md:inset-4 border-2 border-dashed border-zinc-700/50 rounded-[90px] md:rounded-[130px]" />
+                    
+                    {/* POT DISPLAY - CENTERED & MOVED HIGHER ON DESKTOP */}
+                    {/* Changed top-[38%] to top-[20%] on desktop to avoid card overlap */}
+                    <div className="absolute top-[38%] md:top-[15%] left-1/2 -translate-x-1/2 z-20 flex flex-col items-center justify-center pointer-events-none transition-all duration-300">
+                         <div className="text-[10px] text-zinc-500 font-mono uppercase tracking-widest mb-1">Pot</div>
+                         <div className="flex items-center gap-1.5 bg-zinc-950/90 px-4 py-1.5 rounded-full border border-zinc-800 backdrop-blur-sm shadow-xl">
+                            <Coins size={14} className="text-[#DFFF00]" />
+                            <span className="font-mono font-bold text-lg text-white">{pot}</span>
+                        </div>
                     </div>
 
-                    {/* COMMUNITY CARDS */}
-                    <div className={`flex gap-1 md:gap-2 relative mt-6 md:mt-8 ${gameStatus === 'FINISHED' && hasWinner ? 'z-[130]' : 'z-20'}`}>
+                    {/* COMMUNITY CARDS - BELOW POT */}
+                    <div className={`absolute top-[48%] left-1/2 -translate-x-1/2 -translate-y-1/2 flex gap-1 md:gap-2 ${gameStatus === 'FINISHED' && hasWinner ? 'z-[130]' : 'z-20'}`}>
                         {communityCards.map((c, i) => (
                             <CardView 
                                 key={i} 
@@ -553,48 +579,52 @@ export default function PokerPage() {
                             />
                         ))}
                         {Array.from({length: 5 - communityCards.length}).map((_, i) => (
-                             <div key={i} className="w-10 h-16 md:w-14 md:h-20 border-2 border-dashed border-zinc-700 rounded-md opacity-20" />
+                             <div key={i} className="w-12 h-[72px] md:w-16 md:h-24 border-2 border-dashed border-zinc-800 rounded-lg bg-black/20" />
                         ))}
                     </div>
 
-                    {/* PLAYERS */}
+                    {/* PLAYERS - RESPONSIVE POSITIONING */}
                     {players.map((p, i) => {
-                        const positions = [
-                            'bottom-[-40px] md:bottom-[-60px] left-1/2 -translate-x-1/2', 
-                            'left-[-12px] md:left-[-40px] top-1/2 -translate-y-1/2', 
-                            'top-[-50px] md:top-[-60px] left-1/2 -translate-x-1/2', 
-                            'right-[-12px] md:right-[-40px] top-1/2 -translate-y-1/2', 
+                        // Portrait: 0 (User-Bottom), 1 (Left), 2 (Top), 3 (Right)
+                        const portraitPos = [
+                            'bottom-[-30px] left-1/2 -translate-x-1/2', // User
+                            'left-[-20px] top-1/2 -translate-y-1/2', // Bot 1
+                            'top-[-30px] left-1/2 -translate-x-1/2', // Bot 2
+                            'right-[-20px] top-1/2 -translate-y-1/2', // Bot 3
                         ];
-                        const isActive = i === turnIdx && gameStatus === 'PLAYING';
                         
+                        // Landscape/Desktop: Oval
+                        const landscapePos = [
+                            'md:bottom-[-50px] md:left-1/2 md:-translate-x-1/2 md:top-auto md:right-auto',
+                            'md:left-[-30px] md:top-1/2 md:-translate-y-1/2 md:bottom-auto md:right-auto',
+                            'md:top-[-50px] md:left-1/2 md:-translate-x-1/2 md:bottom-auto md:right-auto',
+                            'md:right-[-30px] md:top-1/2 md:-translate-y-1/2 md:bottom-auto md:left-auto',
+                        ];
+
+                        const isActive = i === turnIdx && gameStatus === 'PLAYING';
                         const isWinner = winnerId === p.id;
                         const winnerRevealed = isWinner && (p.isBot ? aiRevealedHand : userRevealedHand);
                         const revealCards = !p.isBot || (isShowdown && !p.folded) || winnerRevealed;
-
-                        const showAction = p.lastAction && p.lastActionTimestamp && (Date.now() - p.lastActionTimestamp < 2000);
+                        const showAction = p.lastAction && p.lastActionTimestamp && (Date.now() - p.lastActionTimestamp < 2500);
                         
                         let borderColor = isActive ? 'border-[#DFFF00]' : 'border-zinc-800';
-                        if (p.lastAction === 'FOLD') borderColor = 'border-red-900';
-                        else if (p.lastAction === 'RAISE' || p.lastAction === 'ALL-IN') borderColor = 'border-green-500';
-                        else if (p.lastAction === 'CALL') borderColor = 'border-blue-500';
+                        if (p.lastAction === 'FOLD') borderColor = 'border-red-900 opacity-50';
                         
+                        // Z-Index handling
                         const zLevel = (isWinner && gameStatus === 'FINISHED') ? 'z-[140]' : isActive ? 'z-40' : 'z-30';
-
-                        // FOCUS MODE: If game is finished, dim everyone except winner
                         const isDimmed = gameStatus === 'FINISHED' && !isWinner;
 
-                        if (isWinner && gameStatus === 'FINISHED') borderColor = 'border-[#DFFF00] shadow-[0_0_30px_rgba(223,255,0,0.5)] bg-zinc-900';
-
                         return (
-                            <div key={p.id} className={`absolute ${positions[i]} flex flex-col items-center transition-all duration-300 ${p.folded ? 'opacity-40 grayscale' : ''} ${zLevel} ${isDimmed ? 'opacity-20 blur-[1px]' : 'opacity-100'}`}>
+                            <div key={p.id} className={`absolute ${portraitPos[i]} ${landscapePos[i]} flex flex-col items-center transition-all duration-300 ${zLevel} ${isDimmed ? 'opacity-30 grayscale blur-[1px]' : 'opacity-100'}`}>
                                 
                                 {showAction && p.lastAction && (
                                     <ActionBubble action={p.lastAction} />
                                 )}
 
-                                <div className="flex -space-x-3 md:-space-x-4 mb-1 md:mb-2">
+                                {/* CARDS */}
+                                <div className="flex -space-x-4 mb-2 relative">
                                     {p.hand.map((c, ci) => (
-                                        <div key={ci} className={`transform ${ci === 1 ? 'rotate-6 translate-y-1' : '-rotate-6'}`}>
+                                        <div key={ci} className={`transform transition-transform duration-300 ${ci === 1 ? 'rotate-6 translate-y-1' : '-rotate-6'} ${isActive ? 'scale-105' : ''}`}>
                                             <CardView 
                                                 card={c} 
                                                 hidden={!revealCards} 
@@ -604,20 +634,21 @@ export default function PokerPage() {
                                             />
                                         </div>
                                     ))}
+                                    {dealerIdx === i && (
+                                         <div className="absolute -right-2 -top-2 w-5 h-5 bg-white text-black text-[10px] font-black rounded-full flex items-center justify-center border border-black shadow-md z-50">D</div>
+                                    )}
                                 </div>
 
+                                {/* PLAYER INFO PILL */}
                                 <div className={`
-                                    relative bg-zinc-950 border-2 px-2 py-1 md:px-4 md:py-2 rounded-lg md:rounded-xl flex flex-col items-center min-w-[80px] md:min-w-[100px] shadow-xl 
-                                    transition-all duration-300
+                                    relative bg-zinc-950 px-3 py-1.5 rounded-xl flex flex-col items-center min-w-[90px] shadow-xl border-2 transition-colors duration-300
                                     ${borderColor}
-                                    ${isActive ? 'scale-110' : ''}
                                 `}>
-                                    {dealerIdx === i && <div className="absolute -top-2 -right-1 md:-top-3 md:-right-2 bg-white text-black text-[8px] md:text-[10px] font-black w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center border border-black">D</div>}
-                                    
-                                    <div className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase mb-0.5 flex items-center gap-1">
-                                        {p.isBot ? <Cpu size={10}/> : <User size={10}/>} {p.name.split(' ')[0]}
+                                    <div className="text-[10px] font-bold text-zinc-500 uppercase flex items-center gap-1">
+                                        {p.isBot ? <Cpu size={10}/> : <User size={10}/>} 
+                                        {p.name.length > 8 ? p.name.substring(0,6)+'..' : p.name}
                                     </div>
-                                    <div className={`font-mono font-bold text-xs md:text-sm flex items-center gap-1 ${p.chips === 0 && !p.folded ? 'text-red-500' : 'text-[#DFFF00]'}`}>
+                                    <div className={`font-mono font-bold text-xs flex items-center gap-1 ${p.chips === 0 && !p.folded ? 'text-red-500' : 'text-[#DFFF00]'}`}>
                                         <Coins size={10} /> {p.chips}
                                     </div>
                                 </div>
@@ -625,114 +656,107 @@ export default function PokerPage() {
                         );
                     })}
 
-                    {/* REBUY MODAL */}
-                    {gameStatus === 'BANKRUPT' && (
-                        <div className="absolute inset-0 bg-black/90 backdrop-blur-md z-[150] flex flex-col items-center justify-center rounded-[60px] md:rounded-[100px] animate-in fade-in duration-300 border-4 border-red-900/50 p-4">
-                             <AlertTriangle size={32} className="text-red-500 mb-2 md:mb-4 animate-bounce" />
-                             <div className="text-2xl md:text-3xl font-black uppercase text-center text-white mb-1">BUSTED</div>
-                             <div className="text-zinc-400 font-mono text-xs md:text-sm uppercase tracking-widest mb-6 md:mb-8 text-center max-w-xs">
-                                Insufficient chips for blinds.
-                             </div>
-                             <div className="flex flex-col md:flex-row gap-3 w-full max-w-xs">
-                                 <button onClick={handleRebuy} className="w-full py-3 bg-[#DFFF00] text-black font-black uppercase tracking-widest rounded hover:bg-white transition-colors shadow-lg flex items-center justify-center gap-2 text-xs md:text-sm">
-                                     <RefreshCw size={14} /> Rebuy
-                                 </button>
-                                 <button onClick={leaveTable} className="w-full py-3 bg-zinc-800 text-zinc-400 font-black uppercase tracking-widest rounded hover:text-white border border-zinc-700 transition-colors text-xs md:text-sm">
-                                     Leave
-                                 </button>
-                             </div>
-                        </div>
-                    )}
-
-                    {/* WINNER OVERLAY - MOBILE OPTIMIZED */}
-                    {winnerMsg && (
-                        <div className="absolute inset-0 z-[120] flex flex-col justify-between py-6 md:py-12 rounded-[60px] md:rounded-[100px] animate-in fade-in duration-300 pointer-events-auto bg-transparent">
-                             <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] rounded-[60px] md:rounded-[100px] -z-10" />
-                             
-                             <div className="flex flex-col items-center">
-                                 <div className="bg-black/80 px-4 py-2 md:px-8 md:py-4 rounded-full border border-[#DFFF00]/30 shadow-2xl backdrop-blur-md flex flex-col items-center mx-4">
-                                     <Trophy size={20} className="text-[#DFFF00] mb-1 animate-bounce md:w-8 md:h-8" />
-                                     <div className="text-sm md:text-2xl font-black uppercase text-center max-w-md leading-none text-white mb-0.5 md:mb-1">
-                                        {winnerMsg.split(' with ')[0]}
-                                     </div>
-                                     <div className="text-[#DFFF00] font-mono text-[9px] md:text-xs uppercase tracking-widest">
-                                        {winnerMsg.split(' with ')[1]}
-                                     </div>
-                                 </div>
-                             </div>
-
-                             <div className="flex justify-center gap-2 md:gap-4 px-4 pb-2 md:pb-0">
-                                 {winnerId === 0 && !userRevealedHand && !isShowdown && (
-                                     <button onClick={() => setUserRevealedHand(true)} className="px-4 py-3 md:px-8 md:py-3 bg-zinc-800 text-white font-black uppercase tracking-widest rounded-lg hover:bg-zinc-700 transition-colors shadow-lg border border-zinc-600 flex items-center gap-2 text-[10px] md:text-xs">
-                                         <Eye size={14} /> Show
-                                     </button>
-                                 )}
-
-                                 <button onClick={startHand} className="flex-1 max-w-[140px] px-4 py-3 md:px-8 md:py-3 bg-white text-black font-black uppercase tracking-widest rounded-lg hover:bg-[#DFFF00] hover:scale-105 transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)] text-[10px] md:text-xs text-center">
-                                     Next Hand
-                                 </button>
-                                 <button 
-                                    onClick={leaveTable} 
-                                    disabled={isLeaving}
-                                    className="px-4 py-3 md:px-8 md:py-3 bg-zinc-900/90 text-zinc-400 font-black uppercase tracking-widest rounded-lg hover:text-white border border-zinc-700 hover:bg-zinc-800 transition-colors flex items-center gap-2 backdrop-blur-md text-[10px] md:text-xs"
-                                >
-                                     {isLeaving ? <Loader2 size={14} className="animate-spin"/> : <LogOut size={14} />}
-                                     {isLeaving ? '' : 'Leave'}
-                                 </button>
-                             </div>
-                        </div>
-                    )}
-
-                    {/* START BUTTON */}
+                    {/* START BUTTON OVERLAY */}
                     {gameStatus === 'IDLE' && table && (
-                        <div className="absolute inset-0 bg-black/60 z-40 flex items-center justify-center rounded-[60px] md:rounded-[100px]">
-                            <button onClick={startHand} className="px-8 py-3 md:px-10 md:py-4 bg-[#DFFF00] text-black font-black uppercase tracking-widest rounded shadow-[0_0_20px_rgba(223,255,0,0.4)] hover:scale-105 transition-transform text-xs md:text-base">
+                        <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center rounded-[100px] backdrop-blur-sm">
+                            <button onClick={startHand} className="px-10 py-4 bg-[#DFFF00] text-black font-black uppercase tracking-widest rounded-full shadow-[0_0_40px_rgba(223,255,0,0.4)] hover:scale-105 active:scale-95 transition-all animate-in zoom-in">
                                 Deal Cards
                             </button>
+                        </div>
+                    )}
+
+                    {/* REBUY MODAL */}
+                    {gameStatus === 'BANKRUPT' && (
+                        <div className="absolute inset-0 bg-black/90 backdrop-blur-md z-[150] flex flex-col items-center justify-center rounded-[90px] animate-in fade-in duration-300 p-6 text-center">
+                             <AlertTriangle size={48} className="text-red-500 mb-4 animate-bounce" />
+                             <div className="text-3xl font-black uppercase text-white mb-2">BUSTED</div>
+                             <button onClick={handleRebuy} className="w-full max-w-[200px] py-3 bg-[#DFFF00] text-black font-black uppercase rounded-lg mb-3 flex items-center justify-center gap-2 active:scale-95 transition-transform">
+                                 <RefreshCw size={16} /> Rebuy {table.buyIn}
+                             </button>
+                             <button onClick={leaveTable} className="text-zinc-500 uppercase text-xs font-bold tracking-widest hover:text-white p-2">
+                                 Return to Lobby
+                             </button>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* ACTION & LOG BAR - RESPONSIVE */}
-            <div className="h-auto md:h-32 bg-zinc-900 border-t border-zinc-800 p-3 md:p-4 relative z-30 flex flex-col justify-between pb-8 md:pb-4">
-                <div className="absolute -top-8 md:-top-10 left-0 right-0 flex justify-center pointer-events-none">
-                     <div className="bg-black/50 backdrop-blur px-3 py-1 rounded-full text-zinc-400 text-[10px] md:text-xs font-mono truncate max-w-[90%] text-center">
-                        {gameLog[0]}
+            {/* WINNER OVERLAY - FULL SCREEN */}
+            {winnerMsg && (
+                <div className="absolute inset-0 z-[145] flex flex-col items-center justify-end pb-[20vh] pointer-events-none bg-gradient-to-t from-black/90 via-black/50 to-transparent">
+                     <div className="pointer-events-auto bg-zinc-900/90 p-6 rounded-3xl border border-[#DFFF00]/30 shadow-2xl backdrop-blur-xl flex flex-col items-center animate-in slide-in-from-bottom-10 mx-4 max-w-sm w-full">
+                         <Trophy size={32} className="text-[#DFFF00] mb-2 animate-bounce" />
+                         <div className="text-2xl font-black uppercase text-center text-white mb-1 leading-none">
+                            {winnerMsg.split(' with ')[0]}
+                         </div>
+                         <div className="text-[#DFFF00] font-mono text-xs uppercase tracking-widest mb-6">
+                            {winnerMsg.split(' with ')[1]}
+                         </div>
+
+                         <div className="flex flex-wrap gap-2 w-full">
+                             {winnerId === 0 && !userRevealedHand && !isShowdown && (
+                                 <button onClick={() => setUserRevealedHand(true)} className="flex-1 py-3 bg-zinc-800 text-white font-bold uppercase rounded-xl border border-zinc-700 active:scale-95 text-xs">
+                                     Show
+                                 </button>
+                             )}
+                             <button onClick={startHand} className="flex-[2] min-w-[120px] py-3 bg-[#DFFF00] text-black font-black uppercase rounded-xl shadow-lg active:scale-95 text-xs">
+                                 Next Hand
+                             </button>
+                             <button onClick={leaveTable} className="flex-1 py-3 bg-red-900/30 text-red-400 font-bold uppercase rounded-xl border border-red-900/50 hover:bg-red-900/50 active:scale-95 text-xs">
+                                 Leave
+                             </button>
+                         </div>
+                     </div>
+                </div>
+            )}
+
+            {/* ACTION DRAWER - FIXED BOTTOM */}
+            <div className="h-[25vh] md:h-auto md:min-h-[140px] bg-zinc-900 border-t border-zinc-800 p-4 relative z-[60] flex flex-col justify-end pb-safe">
+                
+                {/* GAME LOG TICKER */}
+                <div className="absolute -top-4 left-0 right-0 flex justify-center pointer-events-none">
+                     <div className="bg-black/80 backdrop-blur px-4 py-1.5 rounded-full text-zinc-300 text-[10px] font-mono shadow-xl border border-white/5 truncate max-w-[80%]">
+                        {gameLog[0] || "Waiting for action..."}
                      </div>
                 </div>
 
-                <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between h-full w-full gap-3">
-                    <div className="text-[10px] text-zinc-500 font-mono hidden md:block w-48">
-                        <div>YOUR BET: {userPlayer?.currentBet}</div>
-                        <div>TO CALL: {Math.max(0, currentBet - (userPlayer?.currentBet || 0))}</div>
+                <div className="w-full max-w-4xl mx-auto flex flex-col gap-3">
+                    {/* STATS ROW */}
+                    <div className="flex justify-between items-end px-2 text-zinc-400 font-mono text-[10px] uppercase tracking-wider">
+                        <div>
+                            <span className="text-zinc-600">You:</span> {userPlayer?.currentBet || 0}
+                        </div>
+                        <div>
+                            <span className="text-zinc-600">Call:</span> <span className="text-white font-bold">{Math.max(0, currentBet - (userPlayer?.currentBet || 0))}</span>
+                        </div>
                     </div>
-                    
-                    {/* MOBILE: 2x2 Grid, DESKTOP: Flex Row */}
-                    <div className="w-full md:w-auto">
-                        {gameStatus === 'PLAYING' && turnIdx === 0 && !userPlayer?.folded ? (
-                            <div className="grid grid-cols-2 md:flex gap-2 md:gap-4 w-full">
-                                <button onClick={() => handleAction('FOLD')} className="px-4 py-3 md:px-6 md:py-3 bg-red-900/30 text-red-500 border border-red-900 rounded font-black uppercase hover:bg-red-900/50 transition-colors text-xs">Fold</button>
-                                <button onClick={() => handleAction('CHECK')} className="px-4 py-3 md:px-6 md:py-3 bg-zinc-800 text-white border border-zinc-700 rounded font-black uppercase hover:bg-zinc-700 transition-colors text-xs">
-                                    {currentBet > userPlayer.currentBet ? 'Fold' : 'Check'}
-                                </button>
-                                <button onClick={() => handleAction('CALL')} className="px-4 py-3 md:px-6 md:py-3 bg-blue-900/30 text-blue-400 border border-blue-900 rounded font-black uppercase hover:bg-blue-900/50 transition-colors text-xs">
-                                    Call {Math.max(0, currentBet - userPlayer.currentBet)}
-                                </button>
-                                <button onClick={() => handleAction('RAISE')} className="px-4 py-3 md:px-6 md:py-3 bg-[#DFFF00] text-black border border-[#DFFF00] rounded font-black uppercase hover:bg-white transition-colors text-xs">
-                                    Raise
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="text-zinc-500 font-mono text-[10px] md:text-xs uppercase tracking-widest flex items-center justify-center gap-2 h-12">
+
+                    {/* CONTROLS */}
+                    {gameStatus === 'PLAYING' && turnIdx === 0 && !userPlayer?.folded ? (
+                        <div className="grid grid-cols-4 gap-2 h-14 md:h-16">
+                            <button onClick={() => handleAction('FOLD')} className="bg-red-950/40 text-red-500 border border-red-900/50 rounded-xl font-black uppercase text-xs active:bg-red-900/80 active:scale-95 transition-all">
+                                Fold
+                            </button>
+                            <button onClick={() => handleAction('CHECK')} className="bg-zinc-800 text-white border border-zinc-700 rounded-xl font-black uppercase text-xs active:bg-zinc-700 active:scale-95 transition-all">
+                                {currentBet > userPlayer.currentBet ? 'Fold' : 'Check'}
+                            </button>
+                            <button onClick={() => handleAction('CALL')} className="bg-blue-900/20 text-blue-400 border border-blue-900/50 rounded-xl font-black uppercase text-xs active:bg-blue-900/40 active:scale-95 transition-all flex flex-col items-center justify-center leading-none gap-0.5">
+                                <span>Call</span>
+                                <span className="text-[10px] opacity-70">{Math.max(0, currentBet - userPlayer.currentBet)}</span>
+                            </button>
+                            <button onClick={() => handleAction('RAISE')} className="bg-[#DFFF00] text-black border border-[#DFFF00] rounded-xl font-black uppercase text-xs active:bg-white active:scale-95 transition-all shadow-[0_0_15px_rgba(223,255,0,0.3)]">
+                                Raise
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="h-14 md:h-16 flex items-center justify-center bg-zinc-950/50 rounded-xl border border-dashed border-zinc-800">
+                             <div className="text-zinc-600 font-mono text-xs uppercase tracking-widest flex items-center gap-2">
                                 {gameStatus === 'PLAYING' ? (
-                                    <><Loader2 size={12} className="animate-spin"/> Waiting...</>
-                                ) : 'Next hand'}
+                                    <><Loader2 size={12} className="animate-spin"/> Opponents thinking...</>
+                                ) : 'Waiting for next hand'}
                             </div>
-                        )}
-                    </div>
-                    
-                    <div className="hidden md:block w-48" />
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

@@ -25,10 +25,15 @@ export default function Header() {
   
   // Route Detection
   const isHome = pathname === '/';
-  const isPlay = pathname?.startsWith('/play') && !pathname?.startsWith('/play/market');
+  // Exclude poker from "isPlay" highlighting if needed, but mainly we want to hide header on poker
+  const isPlay = pathname?.startsWith('/play') && !pathname?.startsWith('/play/market') && !pathname?.startsWith('/play/poker');
   const isMarket = pathname?.startsWith('/play/market');
   const isSports = pathname?.startsWith('/sports');
   const isCollections = pathname?.startsWith('/collections') || pathname?.startsWith('/gaming') || pathname?.startsWith('/automotive');
+
+  // SPECIAL CASE: HIDE HEADER ON POKER GAME
+  // The poker game has its own dedicated full-screen UI and internal back button
+  const isPoker = pathname === '/play/poker';
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -38,6 +43,8 @@ export default function Header() {
   }, [pathname]);
 
   const closeMenu = () => setIsMobileMenuOpen(false);
+
+  if (isPoker) return null;
 
   return (
     <>
