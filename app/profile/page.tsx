@@ -5,10 +5,12 @@ import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/app/context/AuthContext';
 import { 
     User, Shield, Coins, Calendar, Loader2, Box, Zap, X, Globe, Hash, BarChart3, 
-    AlertTriangle, RefreshCw, PenTool, Gem
+    AlertTriangle, RefreshCw, PenTool, Gem, Hammer, Wrench // Added Hammer/Wrench
 } from 'lucide-react';
 import BackButton from '@/app/components/BackButton';
 import Link from 'next/link';
+
+// --- CONFIGURATION ---
 
 const QUICK_SELL_VALUES: Record<string, number> = {
     'COMMON': 2,
@@ -17,7 +19,18 @@ const QUICK_SELL_VALUES: Record<string, number> = {
     'SUPER_RARE': 100,
     'ULTRA': 500,
     'ZENITH': 2000,
-    'COSMIC': 5000 // [NEW] Value for cosmic items
+    'COSMIC': 5000
+};
+
+// [NEW] Breakdown Yields: Defines what materials are given for each rarity
+const BREAKDOWN_YIELDS: Record<string, { type: string, label: string, amount: number }> = {
+    'COMMON': { type: 'BASIC_SCRAP', label: 'Basic Scrap', amount: 3 },
+    'UNCOMMON': { type: 'UNCOMMON_CIRCUITS', label: 'Uncommon Circuits', amount: 2 },
+    'RARE': { type: 'RARE_ALLOY', label: 'Rare Alloy', amount: 1 },
+    'SUPER_RARE': { type: 'PLASMA_CORE', label: 'Plasma Core', amount: 1 },
+    'ULTRA': { type: 'VOID_CRYSTAL', label: 'Void Crystal', amount: 1 },
+    'ZENITH': { type: 'QUANTUM_SHARD', label: 'Quantum Shard', amount: 1 },
+    'COSMIC': { type: 'COSMIC_DUST', label: 'Cosmic Dust', amount: 5 }
 };
 
 // --- PRELOADER (Cached Images) ---
@@ -29,14 +42,13 @@ const getAssetUrl = (name: string) => {
     return `https://image.pollinations.ai/prompt/${prompt}?width=400&height=400&seed=${seed}&nologo=true&model=flux`;
 };
 
-// List of all items for preloading
 const KNOWN_ITEMS = [
   'Plastic Spork', 'AA Battery', 'Red Brick', 'Left Sock', 'Vintage Toaster', 
   'Lava Lamp', 'Gaming Chair', 'Mechanical Keyboard', 'Espresso Machine', 
   'VR Headset', 'Solid Gold Paperclip', 'The Zinc Cube', 'Rubber Band', 
   'Coffee Mug', 'Drone', 'Diamond Ring', 'Soda Can', 'Pizza Box', 
   'Smart Watch', 'Succulent',
-  'Neon Samurai', 'Cyber Skull', 'Glitch Cat', 'Void Eye', 'Golden Ticket' // [NEW]
+  'Neon Samurai', 'Cyber Skull', 'Glitch Cat', 'Void Eye', 'Golden Ticket'
 ];
 
 const AssetPreloader = () => (
@@ -76,6 +88,8 @@ const ItemImage = ({ name, rarity, className = "" }: { name: string, rarity: str
 export default function ProfilePage() {
   const { user, profile, loading: authLoading, refreshProfile } = useAuth();
   const [inventory, setInventory] = useState<any[]>([]);
+  const [materials, setMaterials] = useState<any[]>([]); // [NEW] Materials state
+  const [viewMode, setViewMode] = useState<'ITEMS' | 'MATERIALS'>('ITEMS'); // [NEW] View Toggle
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('ALL');
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
@@ -85,11 +99,13 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user) {
         fetchInventory();
+        fetchMaterials(); // [NEW] Fetch materials
     } else if (!authLoading) {
         setLoading(false);
     }
   }, [user, authLoading]);
 
+  // Fetch Total Supply Logic
   useEffect(() => {
     if (selectedItem) {
         setLoadingSupply(true);
@@ -124,6 +140,16 @@ export default function ProfilePage() {
     }
   };
 
+  // [NEW] Fetch User Materials
+  const fetchMaterials = async () => {
+      if (!user) return;
+      const { data, error } = await supabase
+          .from('user_materials')
+          .select('*')
+          .eq('user_id', user.id);
+      if (!error && data) setMaterials(data);
+  };
+
   const handleQuickSell = async () => {
       if (!selectedItem) return;
       const sellValue = QUICK_SELL_VALUES[selectedItem.item_templates.rarity] || 2;
@@ -133,6 +159,7 @@ export default function ProfilePage() {
           const { error } = await supabase.from('user_items').delete().eq('id', selectedItem.id);
           if (error) throw error;
           await supabase.rpc('add_credits', { amount: sellValue });
+          
           setInventory(prev => prev.filter(i => i.id !== selectedItem.id));
           setSelectedItem(null);
           if (refreshProfile) refreshProfile();
@@ -141,19 +168,49 @@ export default function ProfilePage() {
       }
   };
 
-  // [NEW] Function to Equip Avatar
+  // [NEW] Handle Breakdown / Scrap
+  const handleBreakdown = async () => {
+      if (!selectedItem) return;
+      const yieldData = BREAKDOWN_YIELDS[selectedItem.item_templates.rarity];
+      
+      if (!yieldData) {
+          alert("This item cannot be broken down.");
+          return;
+      }
+
+      if (!window.confirm(`Scrap ${selectedItem.item_templates.name} into ${yieldData.amount}x ${yieldData.label}? This action cannot be undone.`)) return;
+
+      try {
+          // 1. Delete Item
+          const { error } = await supabase.from('user_items').delete().eq('id', selectedItem.id);
+          if (error) throw error;
+
+          // 2. Add Materials (RPC call)
+          await supabase.rpc('add_material', { 
+              p_material_type: yieldData.type, 
+              p_amount: yieldData.amount 
+          });
+
+          // 3. UI Updates
+          setInventory(prev => prev.filter(i => i.id !== selectedItem.id));
+          await fetchMaterials(); // Refresh materials list
+          setSelectedItem(null);
+          alert(`Success! Acquired ${yieldData.amount}x ${yieldData.label}`);
+          
+      } catch (err) {
+          console.error(err);
+          alert("Breakdown Failed.");
+      }
+  };
+
   const handleEquip = async () => {
       if (!selectedItem || !user) return;
-      
       try {
-          // This assumes an 'avatar_image' column exists in your profiles table
           const { error } = await supabase
             .from('profiles')
             .update({ avatar_image: selectedItem.item_templates.name })
             .eq('id', user.id);
-            
           if (error) throw error;
-          
           alert(`Equipped ${selectedItem.item_templates.name} as Avatar!`);
           if (refreshProfile) refreshProfile();
           setSelectedItem(null);
@@ -234,51 +291,106 @@ export default function ProfilePage() {
                     <div className="text-2xl font-black">{inventory.length}</div>
                 </div>
                 <div className="text-right">
-                    <div className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Zenith Grade</div>
-                    <div className="text-2xl font-black text-[#DFFF00]">{inventory.filter(i => i.item_templates.rarity === 'ZENITH').length}</div>
+                    <div className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Materials</div>
+                    <div className="text-2xl font-black text-blue-400">{materials.reduce((acc, m) => acc + m.quantity, 0)}</div>
                 </div>
             </div>
         </div>
       </div>
 
-      {/* INVENTORY */}
+      {/* MAIN CONTENT AREA */}
       <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-8 md:py-12">
+        
+        {/* TAB CONTROLS */}
         <div className="flex flex-col gap-6 mb-8">
-            <h2 className="text-xl font-black uppercase flex items-center gap-2"><Box className="text-[#DFFF00]" size={20} /> Asset Collection</h2>
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                {['ALL', 'ZENITH', 'COSMIC', 'ULTRA', 'SHINY', 'COMMON'].map(f => (
-                    <button key={f} onClick={() => setFilter(f)} className={`px-4 py-2 text-[10px] font-bold uppercase tracking-widest rounded transition-all whitespace-nowrap ${filter === f ? 'bg-white text-black' : 'bg-zinc-900 text-zinc-500 hover:text-white border border-zinc-800'}`}>{f}</button>
-                ))}
+            <div className="flex items-center justify-between">
+                <h2 className="text-xl font-black uppercase flex items-center gap-2">
+                    {viewMode === 'ITEMS' ? <Box className="text-[#DFFF00]" size={20} /> : <Wrench className="text-blue-400" size={20} />} 
+                    {viewMode === 'ITEMS' ? 'Asset Collection' : 'Component Storage'}
+                </h2>
+                
+                {/* View Toggle */}
+                <div className="flex bg-zinc-900 rounded-lg p-1 border border-zinc-800">
+                    <button 
+                        onClick={() => setViewMode('ITEMS')}
+                        className={`px-4 py-2 text-[10px] font-bold uppercase rounded transition-all ${viewMode === 'ITEMS' ? 'bg-[#DFFF00] text-black' : 'text-zinc-500 hover:text-white'}`}
+                    >
+                        Items
+                    </button>
+                    <button 
+                        onClick={() => setViewMode('MATERIALS')}
+                        className={`px-4 py-2 text-[10px] font-bold uppercase rounded transition-all ${viewMode === 'MATERIALS' ? 'bg-blue-500 text-white' : 'text-zinc-500 hover:text-white'}`}
+                    >
+                        Parts
+                    </button>
+                </div>
             </div>
+
+            {/* FILTERS (Only show for Items) */}
+            {viewMode === 'ITEMS' && (
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    {['ALL', 'ZENITH', 'COSMIC', 'ULTRA', 'SHINY', 'COMMON'].map(f => (
+                        <button key={f} onClick={() => setFilter(f)} className={`px-4 py-2 text-[10px] font-bold uppercase tracking-widest rounded transition-all whitespace-nowrap ${filter === f ? 'bg-white text-black' : 'bg-zinc-900 text-zinc-500 hover:text-white border border-zinc-800'}`}>{f}</button>
+                    ))}
+                </div>
+            )}
         </div>
 
+        {/* LOADING STATE */}
         {loading ? (
             <div className="py-20 text-center text-zinc-500 font-mono text-sm">LOADING ASSETS...</div>
-        ) : filteredInventory.length === 0 ? (
-            <div className="py-20 text-center border border-dashed border-zinc-800 rounded-2xl bg-zinc-900/20">
-                <p className="text-zinc-500 font-mono text-sm mb-4">NO ASSETS FOUND</p>
-                <Link href="/play/market" className="px-6 py-3 bg-[#DFFF00] text-black font-black uppercase text-xs rounded hover:bg-white transition-colors">Visit Black Market</Link>
-            </div>
         ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
-                {filteredInventory.map((item) => (
-                    <button key={item.id} onClick={() => setSelectedItem(item)} className={`group relative bg-zinc-900 border-2 rounded-xl p-3 md:p-4 transition-all hover:-translate-y-1 hover:shadow-xl text-left overflow-hidden ${getRarityColor(item.item_templates.rarity)}`}>
-                        <div className="flex justify-between items-start mb-2 relative z-10">
-                            <span className="text-[8px] font-mono opacity-50">#{String(item.serial_number).padStart(4, '0')}</span>
-                            {item.is_shiny && <Zap size={10} className="text-yellow-400 fill-current" />}
+            <>
+                {/* VIEW: INVENTORY ITEMS */}
+                {viewMode === 'ITEMS' && (
+                    filteredInventory.length === 0 ? (
+                        <div className="py-20 text-center border border-dashed border-zinc-800 rounded-2xl bg-zinc-900/20">
+                            <p className="text-zinc-500 font-mono text-sm mb-4">NO ASSETS FOUND</p>
+                            <Link href="/play/market" className="px-6 py-3 bg-[#DFFF00] text-black font-black uppercase text-xs rounded hover:bg-white transition-colors">Visit Black Market</Link>
                         </div>
-                        <div className="aspect-square mb-2">
-                             <ItemImage name={item.item_templates.name} rarity={item.item_templates.rarity} className="w-full h-full" />
+                    ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
+                            {filteredInventory.map((item) => (
+                                <button key={item.id} onClick={() => setSelectedItem(item)} className={`group relative bg-zinc-900 border-2 rounded-xl p-3 md:p-4 transition-all hover:-translate-y-1 hover:shadow-xl text-left overflow-hidden ${getRarityColor(item.item_templates.rarity)}`}>
+                                    <div className="flex justify-between items-start mb-2 relative z-10">
+                                        <span className="text-[8px] font-mono opacity-50">#{String(item.serial_number).padStart(4, '0')}</span>
+                                        {item.is_shiny && <Zap size={10} className="text-yellow-400 fill-current" />}
+                                    </div>
+                                    <div className="aspect-square mb-2">
+                                        <ItemImage name={item.item_templates.name} rarity={item.item_templates.rarity} className="w-full h-full" />
+                                    </div>
+                                    <h3 className="text-[10px] md:text-xs font-black uppercase truncate mb-1 relative z-10">{item.item_templates.name}</h3>
+                                    <span className="text-[8px] font-mono font-bold opacity-75">{item.item_templates.rarity}</span>
+                                </button>
+                            ))}
                         </div>
-                        <h3 className="text-[10px] md:text-xs font-black uppercase truncate mb-1 relative z-10">{item.item_templates.name}</h3>
-                        <span className="text-[8px] font-mono font-bold opacity-75">{item.item_templates.rarity}</span>
-                    </button>
-                ))}
-            </div>
+                    )
+                )}
+
+                {/* VIEW: MATERIALS */}
+                {viewMode === 'MATERIALS' && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                        {materials.map((mat) => (
+                            <div key={mat.id} className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl flex flex-col items-center text-center">
+                                <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center mb-3 text-blue-400">
+                                    <Hammer size={24} />
+                                </div>
+                                <h3 className="text-xs font-black uppercase text-white mb-1">{mat.material_type.replace('_', ' ')}</h3>
+                                <div className="text-xl font-mono text-zinc-400">x{mat.quantity}</div>
+                            </div>
+                        ))}
+                        {materials.length === 0 && (
+                            <div className="col-span-full py-12 text-center text-zinc-500 font-mono text-xs">
+                                NO COMPONENTS FOUND. BREAK DOWN ITEMS TO COLLECT PARTS.
+                            </div>
+                        )}
+                    </div>
+                )}
+            </>
         )}
       </div>
 
-      {/* MOBILE OPTIMIZED MODAL */}
+      {/* ITEM DETAIL MODAL */}
       {selectedItem && (
           <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/90 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedItem(null)}>
               <div className={`relative w-full md:max-w-lg bg-zinc-950 border-t-2 md:border-4 rounded-t-3xl md:rounded-3xl p-6 md:p-8 shadow-2xl overflow-y-auto max-h-[85vh] md:max-h-none ${getRarityColor(selectedItem.item_templates.rarity)}`} onClick={e => e.stopPropagation()}>
@@ -296,7 +408,8 @@ export default function ProfilePage() {
                       <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter mb-4 text-white">{selectedItem.item_templates.name}</h2>
                       <p className="text-zinc-400 font-mono text-xs md:text-sm leading-relaxed mb-6 border-b border-white/10 pb-6">"{selectedItem.item_templates.description}"</p>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-left">
+                      {/* STATS GRID */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-left mb-6">
                           <div className="bg-black/20 p-4 rounded-xl border border-white/5 flex justify-between items-center md:block">
                               <div className="flex items-center gap-2 text-zinc-500 mb-1"><Hash size={12} /><span className="text-[10px] font-mono uppercase tracking-widest">Serial</span></div>
                               <div className="text-lg md:text-xl font-black text-white">#{selectedItem.serial_number}</div>
@@ -315,18 +428,38 @@ export default function ProfilePage() {
                           </div>
                       </div>
 
-                      {/* [NEW] EQUIP BUTTON FOR COSMIC ITEMS */}
-                      {selectedItem.item_templates.rarity === 'COSMIC' && (
-                          <button onClick={handleEquip} className="w-full mt-6 py-4 bg-[#DFFF00] hover:bg-white text-black rounded-xl flex items-center justify-center gap-2 font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(223,255,0,0.3)] animate-pulse">
-                              <Gem size={16} />
-                              <span>Equip Profile Flair</span>
-                          </button>
-                      )}
+                      {/* ACTION BUTTONS */}
+                      <div className="space-y-3">
+                          {selectedItem.item_templates.rarity === 'COSMIC' && (
+                              <button onClick={handleEquip} className="w-full py-4 bg-[#DFFF00] hover:bg-white text-black rounded-xl flex items-center justify-center gap-2 font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(223,255,0,0.3)] animate-pulse">
+                                  <Gem size={16} />
+                                  <span>Equip Profile Flair</span>
+                              </button>
+                          )}
 
-                      <button onClick={handleQuickSell} className="w-full mt-4 py-4 bg-red-950/50 hover:bg-red-900 border border-red-900 hover:border-red-500 text-red-200 rounded-xl flex items-center justify-center gap-2 font-black uppercase tracking-widest transition-all group">
-                          <RefreshCw size={16} className="group-hover:rotate-180 transition-transform" />
-                          <span>Quick Sell ({QUICK_SELL_VALUES[selectedItem.item_templates.rarity] || 2} CR)</span>
-                      </button>
+                          <div className="grid grid-cols-2 gap-3">
+                            {/* QUICK SELL */}
+                            <button onClick={handleQuickSell} className="py-4 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-600 text-zinc-400 hover:text-white rounded-xl flex flex-col items-center justify-center gap-1 font-black uppercase tracking-widest transition-all group">
+                                <div className="flex items-center gap-2">
+                                    <RefreshCw size={14} className="group-hover:rotate-180 transition-transform" />
+                                    <span>Quick Sell</span>
+                                </div>
+                                <span className="text-xs font-mono text-zinc-500">+{QUICK_SELL_VALUES[selectedItem.item_templates.rarity] || 2} CR</span>
+                            </button>
+
+                            {/* BREAK DOWN / SCRAP [NEW] */}
+                            <button onClick={handleBreakdown} className="py-4 bg-orange-900/20 hover:bg-orange-500 text-orange-400 hover:text-white border border-orange-500/50 rounded-xl flex flex-col items-center justify-center gap-1 font-black uppercase tracking-widest transition-all group">
+                                <div className="flex items-center gap-2">
+                                    <Hammer size={14} className="group-hover:-rotate-45 transition-transform" />
+                                    <span>Scrap Item</span>
+                                </div>
+                                <span className="text-xs font-mono opacity-80">
+                                    +{BREAKDOWN_YIELDS[selectedItem.item_templates.rarity]?.amount || 0} {BREAKDOWN_YIELDS[selectedItem.item_templates.rarity]?.label?.split(' ')[0] || 'Parts'}
+                                </span>
+                            </button>
+                          </div>
+                      </div>
+
                   </div>
               </div>
           </div>
