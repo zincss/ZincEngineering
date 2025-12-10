@@ -1,40 +1,65 @@
 'use server'
 
-import { createClient } from '@/utils/supabase/client';
-import { COMPANIES } from './data';
+import { createClient } from '@/utils/supabase/server';
+import { cookies } from 'next/headers';
 import { getCurrentPrice } from './utils';
 import { revalidatePath } from 'next/cache';
 
-// Fetch the current market state
+// Fetch market with history
 export async function getMarketStatus() {
+  const { COMPANIES } = await import('./data');
+  const { getStockHistory } = await import('./utils');
+
   const market = COMPANIES.map(c => {
-    const price = getCurrentPrice(c.ticker);
+    const history = getStockHistory(c.ticker, 24);
+    const currentPrice = history[history.length - 1];
+    const openPrice = history[0];
+    
     return {
       ...c,
-      currentPrice: price,
-      change: ((price - c.basePrice) / c.basePrice) * 100
+      currentPrice,
+      change: ((currentPrice - openPrice) / openPrice) * 100,
+      history
     };
   });
+  
   return market;
 }
 
-// Buy Stock
+// Fetch user's portfolio
+export async function getPortfolio() {
+  const cookieStore = cookies();
+  const supabase = createClient(cookieStore);
+  
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from('portfolio')
+    .select('*')
+    .eq('user_id', user.id);
+    
+  if (error) {
+    console.error("Portfolio fetch error:", error);
+    return [];
+  }
+  
+  return data || [];
+}
+
+// Buy Stock via Secure RPC
 export async function buyStock(ticker: string, quantity: number) {
-  const supabase = createClient();
+  const cookieStore = cookies();
+  const supabase = createClient(cookieStore);
+  
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Unauthorized' };
 
   const price = getCurrentPrice(ticker);
   const totalCost = Math.ceil(price * quantity);
 
-  // 1. Check Balance
-  const { data: profile } = await supabase.from('profiles').select('credits').eq('id', user.id).single();
-  if (!profile || profile.credits < totalCost) return { error: 'Insufficient Funds' };
-
-  // 2. Execute Trade (RPC recommended for atomicity)
-  // Assumes you create a 'buy_stock' RPC in Supabase
+  // Call the SQL function we created
   const { error } = await supabase.rpc('buy_stock', {
-    p_user_id: user.id,
     p_ticker: ticker,
     p_quantity: quantity,
     p_price: price,
@@ -44,31 +69,30 @@ export async function buyStock(ticker: string, quantity: number) {
   if (error) return { error: error.message };
   
   revalidatePath('/play/stocks');
-  revalidatePath('/profile');
   return { success: true, price };
 }
 
-// Sell Stock
+// Sell Stock via Secure RPC
 export async function sellStock(ticker: string, quantity: number) {
-  const supabase = createClient();
+  const cookieStore = cookies();
+  const supabase = createClient(cookieStore);
+  
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Unauthorized' };
 
   const price = getCurrentPrice(ticker);
   const totalValue = Math.floor(price * quantity);
 
-  // Execute Trade via RPC
+  // Call the SQL function we created
   const { error } = await supabase.rpc('sell_stock', {
-    p_user_id: user.id,
     p_ticker: ticker,
     p_quantity: quantity,
     p_price: price,
-    p_total_value: totalValue
+    p_total_val: totalValue
   });
 
   if (error) return { error: error.message };
 
   revalidatePath('/play/stocks');
-  revalidatePath('/profile');
   return { success: true, price };
 }
