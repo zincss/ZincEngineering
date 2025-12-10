@@ -11,28 +11,64 @@ import {
   Wallet, 
   PieChart, 
   ArrowRight, 
-  BarChart3,
-  Briefcase // Added this missing import
+  Briefcase,
+  X 
 } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import { Category } from './data';
 
-// --- MINI CHART COMPONENT ---
-const MiniChart = ({ data, color }: { data: number[], color: string }) => {
+// --- CANDLESTICK CHART COMPONENT ---
+// Simulates OHLC data from a single price history array for visual flair
+const CandlestickChart = ({ data }: { data: number[] }) => {
     const min = Math.min(...data);
     const max = Math.max(...data);
     const range = max - min || 1;
     
     return (
-        <div className="flex items-end gap-[2px] h-10 w-full mt-3 opacity-80">
-            {data.map((val, i) => {
-                const height = ((val - min) / range) * 100;
+        <div className="flex items-end justify-between gap-[2px] h-12 w-full mt-3 opacity-90">
+            {data.map((close, i) => {
+                if (i === 0) return null; // Need previous close to determine open
+                const open = data[i-1];
+                
+                const isGreen = close >= open;
+                const color = isGreen ? '#DFFF00' : '#ef4444'; // Zinc Green or Red
+                
+                // Simulate wicks (High/Low) based on volatility
+                const candleTop = Math.max(open, close);
+                const candleBottom = Math.min(open, close);
+                const high = candleTop + (Math.random() * (range * 0.1)); 
+                const low = candleBottom - (Math.random() * (range * 0.1));
+
+                // Normalize for % height
+                const getY = (val: number) => ((val - min) / range) * 100;
+                
+                const topPct = getY(high);
+                const bottomPct = getY(low);
+                const bodyTopPct = getY(candleTop);
+                const bodyBottomPct = getY(candleBottom);
+                const bodyHeight = Math.max(2, bodyTopPct - bodyBottomPct); // Min 2px body
+
                 return (
-                    <div 
-                        key={i} 
-                        style={{ height: `${Math.max(10, height)}%`, backgroundColor: color }} 
-                        className="flex-1 rounded-t-[1px]" 
-                    />
+                    <div key={i} className="relative flex-1 group h-full">
+                        {/* WICK */}
+                        <div 
+                            className="absolute left-1/2 -translate-x-1/2 w-[1px] bg-zinc-600"
+                            style={{ 
+                                bottom: `${bottomPct}%`, 
+                                height: `${topPct - bottomPct}%` 
+                            }} 
+                        />
+                        {/* BODY */}
+                        <div 
+                            className="absolute left-[1px] right-[1px] rounded-[1px] transition-all"
+                            style={{ 
+                                bottom: `${bodyBottomPct}%`, 
+                                height: `${bodyHeight}%`,
+                                backgroundColor: color,
+                                boxShadow: isGreen ? `0 0 2px ${color}` : 'none'
+                            }} 
+                        />
+                    </div>
                 );
             })}
         </div>
@@ -283,8 +319,8 @@ export default function StockMarketPage() {
                       </div>
                   </div>
 
-                  {/* HISTORY CHART */}
-                  <MiniChart data={stock.history} color={isPositive ? '#DFFF00' : '#ef4444'} />
+                  {/* REPLACED MINI CHART WITH CANDLESTICK */}
+                  <CandlestickChart data={stock.history} />
 
                   {/* Hover Effect */}
                   <div className={`absolute bottom-0 left-0 h-[2px] transition-all duration-300 w-0 group-hover:w-full ${isPositive ? 'bg-[#DFFF00]' : 'bg-red-500'}`} />
@@ -294,33 +330,40 @@ export default function StockMarketPage() {
         </div>
       )}
 
-      {/* DETAILED TRADE MODAL */}
+      {/* DETAILED TRADE MODAL - MOBILE OPTIMIZED */}
       {selectedStock && (
-         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in zoom-in-95 duration-200">
+         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-4 z-50 animate-in fade-in duration-200">
             <div 
-                className="bg-zinc-950 border border-zinc-800 p-0 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden ring-1 ring-white/10"
+                className="bg-zinc-950 border-t md:border border-zinc-800 p-0 rounded-t-3xl md:rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden ring-1 ring-white/10 max-h-[90vh] md:max-h-none overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
             >
+               {/* CLOSE BUTTON (Mobile) */}
+               <div className="sticky top-0 right-0 p-4 flex justify-end md:hidden z-20 bg-zinc-950/90 backdrop-blur">
+                   <button onClick={() => setSelectedStock(null)} className="p-2 bg-zinc-900 rounded-full text-white">
+                       <X size={20} />
+                   </button>
+               </div>
+
                {/* Modal Header */}
-               <div className="p-8 pb-4 border-b border-zinc-800 bg-zinc-900/50">
+               <div className="p-6 md:p-8 pb-4 border-b border-zinc-800 bg-zinc-900/50">
                    <div className="flex justify-between items-start mb-6">
                       <div>
                         <div className="flex items-center gap-3 mb-1">
-                            <h3 className="text-5xl font-black uppercase tracking-tighter text-white">{selectedStock.ticker}</h3>
+                            <h3 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-white">{selectedStock.ticker}</h3>
                             <span className="px-3 py-1 bg-zinc-800 rounded-full text-[10px] text-zinc-400 font-bold tracking-widest border border-zinc-700">{selectedStock.category}</span>
                         </div>
                         <p className="text-zinc-400 text-sm font-bold">{selectedStock.name}</p>
                         <p className="text-zinc-600 text-xs mt-1 italic max-w-sm">{selectedStock.description}</p>
                       </div>
                       <div className="text-right">
-                        <div className="text-5xl font-black text-white">{selectedStock.currentPrice}</div>
+                        <div className="text-4xl md:text-5xl font-black text-white">{selectedStock.currentPrice}</div>
                         <div className={`text-sm font-bold flex justify-end items-center gap-1 mt-1 ${selectedStock.change >= 0 ? 'text-[#DFFF00]' : 'text-red-500'}`}>
                              {selectedStock.change.toFixed(2)}% Today
                         </div>
                       </div>
                    </div>
 
-                   {/* BIG CHART */}
+                   {/* BIG CHART (Still using bars for clarity on detail view, or could be candles too) */}
                    <div className="h-40 w-full bg-black/40 rounded-xl p-4 flex items-end gap-1 mb-4 border border-zinc-800/50">
                         {selectedStock.history.map((val: number, i: number) => {
                             const min = Math.min(...selectedStock.history);
@@ -338,7 +381,7 @@ export default function StockMarketPage() {
                </div>
 
                {/* TRADING INTERFACE */}
-               <div className="p-8">
+               <div className="p-6 md:p-8">
                    
                    {/* Toggle */}
                    <div className="flex bg-zinc-900 p-1.5 rounded-xl mb-8 border border-zinc-800">
@@ -390,26 +433,26 @@ export default function StockMarketPage() {
                                type="number" 
                                value={amount} 
                                onChange={(e) => setAmount(Math.max(1, Number(e.target.value)))}
-                               className="flex-1 bg-transparent text-center text-3xl font-black outline-none text-white"
+                               className="flex-1 bg-transparent text-center text-2xl md:text-3xl font-black outline-none text-white w-full min-w-0"
                              />
                              <button onClick={() => setAmount(amount + 1)} className="w-12 h-12 rounded-lg hover:bg-zinc-800 flex items-center justify-center text-2xl text-zinc-400 hover:text-white transition-colors">+</button>
                          </div>
-                         <div className="text-right min-w-[120px]">
-                             <div className="text-3xl font-black text-white">{(amount * selectedStock.currentPrice).toFixed(0)}</div>
+                         <div className="text-right min-w-[100px] md:min-w-[120px]">
+                             <div className="text-2xl md:text-3xl font-black text-white">{(amount * selectedStock.currentPrice).toFixed(0)}</div>
                              <div className="text-xs text-zinc-500 font-bold tracking-widest">CREDITS</div>
                          </div>
                       </div>
                    </div>
 
                    {/* Action Buttons */}
-                   <div className="grid grid-cols-3 gap-4">
-                      <button onClick={() => setSelectedStock(null)} className="col-span-1 py-4 bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold uppercase rounded-xl hover:bg-zinc-800 hover:text-white hover:border-zinc-700 transition-all text-xs tracking-widest">
+                   <div className="grid grid-cols-3 gap-4 pb-4 md:pb-0">
+                      <button onClick={() => setSelectedStock(null)} className="col-span-1 py-4 bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold uppercase rounded-xl hover:bg-zinc-800 hover:text-white hover:border-zinc-700 transition-all text-xs tracking-widest hidden md:block">
                           Cancel
                       </button>
                       <button 
                         onClick={handleTrade} 
                         disabled={isTransacting}
-                        className={`col-span-2 py-4 font-black uppercase rounded-xl transition-all flex items-center justify-center gap-2 shadow-xl active:scale-95 text-sm tracking-widest ${tradeMode === 'BUY' ? 'bg-[#DFFF00] text-black hover:bg-white' : 'bg-red-600 text-white hover:bg-red-500'}`}
+                        className={`col-span-3 md:col-span-2 py-4 font-black uppercase rounded-xl transition-all flex items-center justify-center gap-2 shadow-xl active:scale-95 text-sm tracking-widest ${tradeMode === 'BUY' ? 'bg-[#DFFF00] text-black hover:bg-white' : 'bg-red-600 text-white hover:bg-red-500'}`}
                       >
                         {isTransacting ? <RefreshCw className="animate-spin" /> : `CONFIRM ${tradeMode}`} <ArrowRight size={16} />
                       </button>
