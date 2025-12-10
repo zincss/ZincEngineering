@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
 import { 
   Trophy, 
-  LayoutGrid, 
+  CloudHail, 
   Circle, 
   Menu, 
   X, 
@@ -24,20 +24,21 @@ export default function Header() {
   const { user, profile, signOut, isAdmin } = useAuth();
   
   // Route Detection
-  const isHome = pathname === '/';
-  // Exclude poker from "isPlay" highlighting if needed, but mainly we want to hide header on poker
+  const isWeather = pathname?.startsWith('/collections/weather');
+  // Exclude weather from collections highlighting so they have distinct tabs
+  const isCollections = (pathname?.startsWith('/collections') && !isWeather) || pathname?.startsWith('/gaming') || pathname?.startsWith('/automotive');
+  
+  // Exclude poker from "isPlay" highlighting if needed
   const isPlay = pathname?.startsWith('/play') && !pathname?.startsWith('/play/market') && !pathname?.startsWith('/play/poker');
   const isMarket = pathname?.startsWith('/play/market');
   const isSports = pathname?.startsWith('/sports');
-  const isCollections = pathname?.startsWith('/collections') || pathname?.startsWith('/gaming') || pathname?.startsWith('/automotive');
 
   // SPECIAL CASE: HIDE HEADER ON POKER GAME
-  // The poker game has its own dedicated full-screen UI and internal back button
   const isPoker = pathname === '/play/poker';
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Close mobile menu when route changes (backup safety)
+  // Close mobile menu when route changes
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [pathname]);
@@ -65,7 +66,7 @@ export default function Header() {
 
               {/* DESKTOP NAV */}
               <nav className="hidden lg:flex items-center">
-                  <NavLink href="/" active={isHome} icon={<LayoutGrid size={14} />}>HUB</NavLink>
+                  <NavLink href="/collections/weather" active={isWeather} icon={<CloudHail size={14} />}>WEATHER</NavLink>
                   <div className="w-px h-4 bg-zinc-800 mx-3"></div>
                   <NavLink href="/play" active={isPlay} icon={<Gamepad2 size={14} />}>PLAY</NavLink>
                   <div className="w-px h-4 bg-zinc-800 mx-3"></div>
@@ -149,7 +150,7 @@ export default function Header() {
       {/* MOBILE MENU DRAWER */}
       {isMobileMenuOpen && (
           <div className="fixed inset-0 top-0 pt-24 z-40 bg-black/95 backdrop-blur-xl p-6 flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 border-t border-zinc-800 overflow-y-auto">
-              <MobileLink onClick={closeMenu} href="/" active={isHome} icon={<LayoutGrid size={18}/>} label="HUB" />
+              <MobileLink onClick={closeMenu} href="/collections/weather" active={isWeather} icon={<CloudHail size={18}/>} label="WEATHER" />
               <MobileLink onClick={closeMenu} href="/play" active={isPlay} icon={<Gamepad2 size={18}/>} label="PLAY" />
               <MobileLink onClick={closeMenu} href="/play/market" active={isMarket} icon={<Package size={18}/>} label="MARKET" />
               <MobileLink onClick={closeMenu} href="/collections" active={isCollections} icon={<FolderOpen size={18}/>} label="COLLECTIONS" />

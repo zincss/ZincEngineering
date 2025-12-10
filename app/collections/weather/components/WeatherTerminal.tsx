@@ -4,11 +4,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   CloudRain, Wind, Search, Skull, 
   MapPin, Loader2, Smile, Frown, Zap, Baby, Briefcase, RefreshCcw, 
-  Cpu, Droplets, Gauge, Navigation, Calendar, Radio, CloudSnow, CloudLightning, Sun, Crosshair
+  Cpu, Droplets, Gauge, Navigation, Calendar, Radio, CloudSnow, CloudLightning, Sun, Crosshair, History, X
 } from 'lucide-react';
 
 // --- SUB-COMPONENT: ROBUST TYPEWRITER ---
-const Typewriter = ({ text, speed = 40 }: { text: string; speed?: number }) => {
+const Typewriter = ({ text, speed = 30 }: { text: string; speed?: number }) => {
   const [displayLength, setDisplayLength] = useState(0);
 
   useEffect(() => {
@@ -29,8 +29,102 @@ const Typewriter = ({ text, speed = 40 }: { text: string; speed?: number }) => {
   return (
     <span>
       {text.slice(0, displayLength)}
-      <span className="inline-block w-2 h-5 md:w-3 md:h-8 align-middle bg-[#DFFF00] animate-pulse ml-1 mb-1" />
+      <span className="inline-block w-1.5 h-4 md:w-2 md:h-6 align-middle bg-[#DFFF00] animate-pulse ml-1" />
     </span>
+  );
+};
+
+// --- SUB-COMPONENT: WEATHER ANIMATION LAYER ---
+const WeatherBackground = ({ condition, isDay }: { condition: string, isDay: number }) => {
+  if (condition === 'RAINING') {
+    return (
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 bg-blue-950/20 mix-blend-overlay" />
+        {[...Array(20)].map((_, i) => (
+          <div 
+            key={i}
+            className="absolute bg-blue-400/30 w-[1px] h-12 md:h-24 rounded-full animate-rain"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `-${Math.random() * 20}%`,
+              animationDuration: `${0.5 + Math.random() * 0.5}s`,
+              animationDelay: `${Math.random() * 1}s`
+            }}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  if (condition === 'SNOW') {
+    return (
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 bg-white/5 mix-blend-overlay" />
+        {[...Array(30)].map((_, i) => (
+          <div 
+            key={i}
+            className="absolute bg-white/60 w-1 h-1 rounded-full animate-snow"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `-${Math.random() * 20}%`,
+              animationDuration: `${3 + Math.random() * 4}s`,
+              animationDelay: `${Math.random() * 2}s`
+            }}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  if (condition === 'CLOUDY') {
+    return (
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(3)].map((_, i) => (
+          <div 
+            key={i}
+            className="absolute bg-zinc-400/10 w-96 h-48 rounded-full blur-[60px] animate-cloud"
+            style={{
+              top: `${10 + Math.random() * 40}%`,
+              left: `-20%`,
+              animationDuration: `${25 + i * 10}s`,
+              animationDelay: `${i * -5}s`,
+              transform: `scale(${0.8 + Math.random() * 0.5})`
+            }}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  if (condition === 'STORM') {
+    return (
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 bg-purple-950/20 mix-blend-overlay" />
+        {[...Array(3)].map((_, i) => (
+          <div 
+            key={i}
+            className="absolute bg-zinc-900/30 w-[500px] h-[200px] rounded-full blur-[80px] animate-cloud-fast"
+            style={{
+              top: `${Math.random() * 30}%`,
+              left: `-20%`,
+              animationDuration: `${10 + i * 2}s`,
+              animationDelay: `${i * -2}s`
+            }}
+          />
+        ))}
+        <div className="absolute inset-0 bg-white/10 animate-lightning opacity-0" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {isDay ? (
+            <div className="absolute -top-1/2 -right-1/2 w-[150%] h-[150%] bg-orange-400/5 rounded-full blur-[100px] animate-pulse-slow" />
+        ) : (
+            <div className="absolute -top-1/2 -right-1/2 w-[150%] h-[150%] bg-blue-400/5 rounded-full blur-[100px] animate-pulse-slow" />
+        )}
+    </div>
   );
 };
 
@@ -40,6 +134,7 @@ interface WeatherData {
   condition: string;
   windSpeed: number;
   humidity: number;
+  uvIndex: number;
   location: string;
   code: number;
   isDay: number;
@@ -57,405 +152,81 @@ interface GeocodingResult {
 type PersonalityMode = 'HOSTILE' | 'BABY' | 'DOOMER' | 'PROFESSIONAL' | 'SARCASTIC' | 'GLAZER';
 
 const PERSONALITIES: { id: PersonalityMode; label: string; icon: any; desc: string; color: string; bg: string; border: string; shadow: string }[] = [
-  { id: 'HOSTILE', label: 'HOSTILITY', icon: Skull, desc: 'Rude. Blunt. Hurtful.', color: 'text-red-500', bg: 'bg-red-950/20', border: 'border-red-900/30', shadow: 'shadow-red-900/20' },
-  { id: 'SARCASTIC', label: 'SASS_MODULE', icon: Zap, desc: 'Passive aggressive.', color: 'text-yellow-400', bg: 'bg-yellow-950/20', border: 'border-yellow-900/30', shadow: 'shadow-yellow-900/20' },
-  { id: 'BABY', label: 'BABY_MODE', icon: Baby, desc: 'Explained like you are 5.', color: 'text-pink-400', bg: 'bg-pink-950/20', border: 'border-pink-900/30', shadow: 'shadow-pink-900/20' },
-  { id: 'DOOMER', label: 'NIHILIST', icon: Frown, desc: 'Everything is hopeless.', color: 'text-zinc-500', bg: 'bg-zinc-900', border: 'border-zinc-700', shadow: 'shadow-zinc-900/20' },
-  { id: 'GLAZER', label: 'SYCOPHANT', icon: Smile, desc: 'Overly complimentary.', color: 'text-[#DFFF00]', bg: 'bg-[#DFFF00]/10', border: 'border-[#DFFF00]/20', shadow: 'shadow-[#DFFF00]/20' },
-  { id: 'PROFESSIONAL', label: 'STANDARD', icon: Briefcase, desc: 'Boring. Just the facts.', color: 'text-blue-400', bg: 'bg-blue-950/20', border: 'border-blue-900/30', shadow: 'shadow-blue-900/20' },
+  { id: 'HOSTILE', label: 'HOSTILITY', icon: Skull, desc: 'Rude. Blunt. Hurtful.', color: 'text-red-500', bg: 'bg-red-950/10', border: 'border-red-500/20', shadow: 'shadow-red-500/10' },
+  { id: 'SARCASTIC', label: 'SASS_MODULE', icon: Zap, desc: 'Passive aggressive.', color: 'text-yellow-400', bg: 'bg-yellow-950/10', border: 'border-yellow-500/20', shadow: 'shadow-yellow-500/10' },
+  { id: 'BABY', label: 'BABY_MODE', icon: Baby, desc: 'Explained like you are 5.', color: 'text-pink-400', bg: 'bg-pink-950/10', border: 'border-pink-500/20', shadow: 'shadow-pink-500/10' },
+  { id: 'DOOMER', label: 'NIHILIST', icon: Frown, desc: 'Everything is hopeless.', color: 'text-zinc-500', bg: 'bg-zinc-900/50', border: 'border-zinc-500/20', shadow: 'shadow-zinc-500/10' },
+  { id: 'GLAZER', label: 'SYCOPHANT', icon: Smile, desc: 'Overly complimentary.', color: 'text-[#DFFF00]', bg: 'bg-[#DFFF00]/5', border: 'border-[#DFFF00]/20', shadow: 'shadow-[#DFFF00]/10' },
+  { id: 'PROFESSIONAL', label: 'STANDARD', icon: Briefcase, desc: 'Boring. Just the facts.', color: 'text-blue-400', bg: 'bg-blue-950/10', border: 'border-blue-500/20', shadow: 'shadow-blue-500/10' },
 ];
 
-// --- MASSIVE COMMENTARY DATABASE ---
+// --- FULL COMMENTARY DATABASE ---
 const COMMENTARY_DB = {
   HOSTILE: {
-    EXTREME_HEAT: [
-      "IT'S DISGUSTINGLY HOT. STAY INSIDE SO NO ONE HAS TO SMELL YOU.",
-      "SURFACE TEMPS ARE LETHAL. UNFORTUNATELY, YOU WILL PROBABLY SURVIVE.",
-      "YOU ARE GOING TO SWEAT. IT WILL BE GROSS. EVERYONE WILL JUDGE YOU.",
-      "THE SUN IS TRYING TO COOK YOU ALIVE. I'M ROOTING FOR THE SUN.",
-      "HYDRATE OR DIE, I REALLY DON'T CARE WHICH ONE YOU PICK."
-    ],
-    HEAT: [
-      "IT IS HOT. TRY NOT TO BE YOUR USUAL STICKY SELF.",
-      "HIGH TEMPERATURES DETECTED. APPLY DEODORANT, DOUBLE DOSE.",
-      "I HOPE YOUR AIR CONDITIONING BREAKS.",
-      "PERFECT WEATHER TO STAY INDOORS AND ROT AT YOUR DESK.",
-      "IT'S WARM. UNLIKE YOUR PERSONALITY."
-    ],
-    COLD: [
-      "IT IS COLD. PUT ON A JACKET, YOU WEAKLING.",
-      "LOW TEMPERATURES. TRY SHIVERING, IT MIGHT BURN SOME CALORIES.",
-      "IT'S CHILLY. ALMOST AS COLD AS YOUR DATING LIFE.",
-      "NATURE IS TRYING TO FREEZE YOU. ACCEPT YOUR FATE.",
-      "HOPE YOU HAVE HEATING. WOULD BE A SHAME IF YOU FROZE."
-    ],
-    FREEZING: [
-      "HYPOTHERMIA IS IMMINENT. DRESS WARM OR PERISH.",
-      "IT IS ABSOLUTELY FREEZING. YOUR FRAGILE BODY CANNOT HANDLE THIS.",
-      "FROSTBITE RISK DETECTED. DON'T LOSE ANY FINGERS, YOU NEED THEM TO TYPE BAD CODE.",
-      "THE AIR HURTS. GOOD.",
-      "GLACIERS ARE MOVING FASTER THAN YOU TODAY."
-    ],
-    RAIN: [
-      "THE SKY IS WEEPING BECAUSE YOU EXIST.",
-      "IT IS RAINING. YOU WILL GET WET. CRY ABOUT IT.",
-      "PRECIPITATION DETECTED. YOUR HAIR IS GOING TO LOOK TERRIBLE.",
-      "WATER IS FALLING FROM THE SKY. TRY NOT TO DROWN IN A PUDDLE.",
-      "CLOUDS ARE LEAKING. HOPE YOU FORGOT YOUR UMBRELLA."
-    ],
-    STORM: [
-      "THUNDERSTORMS. GO STAND UNDER A TALL TREE HOLDING METAL.",
-      "SKY IS ANGRY. HOPEFULLY IT HITS YOUR HOUSE SPECIFICALLY.",
-      "ELECTRICAL STORMS. NATURE'S WAY OF SAYING 'I HATE YOU'.",
-      "CHAOS DETECTED. FINALLY, SOME ENTERTAINMENT.",
-      "SEVERE WEATHER. SEEK SHELTER, OR DON'T. I'M NOT YOUR MOM."
-    ],
-    SNOW: [
-      "FROZEN WATER IS FALLING. DON'T EAT THE YELLOW SNOW, GENIUS.",
-      "SNOW DETECTED. DRIVE CAREFULLY, OR CRASH. WHATEVER.",
-      "EVERYTHING IS WHITE AND COLD. JUST LIKE YOUR SOUL.",
-      "BURIED IN SNOW. HOPE YOU HAVE A SHOVEL, PEASANT.",
-      "IT'S SNOWING. TRY NOT TO SLIP AND EMBARRASS YOURSELF."
-    ],
-    NICE: [
-      "ACTUALLY PLEASANT. GO TOUCH GRASS FOR ONCE IN YOUR LIFE.",
-      "THE WEATHER IS NICE. UNFORTUNATELY, YOU ARE STILL HERE.",
-      "OPTIMAL CONDITIONS. A WASTE ON SOMEONE LIKE YOU.",
-      "IT'S A BEAUTIFUL DAY. DON'T RUIN IT BY GOING OUTSIDE.",
-      "SUNNY AND MILD. YOU DON'T DESERVE THIS."
-    ],
-    DEFAULT: [
-      "MEDIOCRE WEATHER FOR A MEDIOCRE INDIVIDUAL.",
-      "WEATHER IS BORING. JUST LIKE YOU.",
-      "NOTHING INTERESTING IS HAPPENING. GO AWAY.",
-      "ATMOSPHERIC CONDITIONS ARE MEH.",
-      "WHY ARE YOU STILL LOOKING AT THIS?"
-    ]
+    EXTREME_HEAT: ["IT'S DISGUSTINGLY HOT. STAY INSIDE.", "SURFACE TEMPS ARE LETHAL.", "YOU ARE GOING TO SWEAT. GROSS.", "THE SUN IS COOKING YOU.", "HYDRATE OR DIE.", "IT'S HOTTER THAN SATAN'S ARMPIT OUT THERE.", "DO NOT GO OUTSIDE. YOU WILL MELT.", "YOUR DEODORANT IS NOT STRONG ENOUGH.", "THE AIR IS LAVA.", "SWEAT DETECTED. DISGUSTING."],
+    HEAT: ["IT IS HOT.", "APPLY DEODORANT.", "I HOPE YOUR AC BREAKS.", "STAY INSIDE AND ROT.", "IT'S WARM. UNLIKE YOUR PERSONALITY.", "THE SUN IS OUT. IT HATES YOU.", "YOU MIGHT ACTUALLY HAVE TO SHOWER TODAY.", "WARM ENOUGH TO COMPLAIN.", "UV RAYS TARGETING YOUR FACE.", "UNCOMFORTABLY WARM."],
+    COLD: ["IT IS COLD. WEAKLING.", "TRY SHIVERING.", "COLD AS YOUR DATING LIFE.", "NATURE IS FREEZING YOU.", "HOPE YOU HAVE HEATING.", "WEAR A COAT. NO ONE WANTS TO SEE GOOSEBUMPS.", "DEAL WITH IT.", "TEMPERATURES DROPPING LIKE YOUR STANDARDS.", "A BIT NIPPY.", "COLD AIR DETECTED."],
+    FREEZING: ["HYPOTHERMIA IMMINENT.", "ABSOLUTELY FREEZING.", "FROSTBITE RISK.", "THE AIR HURTS.", "GLACIERS MOVE FASTER THAN YOU.", "YOUR FACE WILL GO NUMB. GOOD.", "STUPIDLY COLD.", "NOT EVOLVED FOR THIS.", "ICE EVERYWHERE. DON'T SLIP.", "FREEZING. LITERALLY."],
+    RAIN: ["SKY IS WEEPING.", "YOU WILL GET WET.", "HAIR RUINED.", "TRY NOT TO DROWN.", "CLOUDS LEAKING.", "WET DOG SMELL IMMINENT.", "NATURE IS SPITTING ON YOU.", "GO JUMP IN A LAKE.", "HYDROLOGICAL EVENT IN PROGRESS.", "EVERYTHING IS DAMP."],
+    STORM: ["THUNDERSTORMS.", "SKY IS ANGRY.", "ELECTRICAL STORMS.", "CHAOS DETECTED.", "SEEK SHELTER.", "LOUD NOISES. GOOD LUCK.", "THE SKY IS SCREAMING.", "TRY NOT TO BLOW AWAY.", "LIGHTNING STRIKES. HOPE IT HAS GOOD AIM.", "PANIC ACCORDINGLY."],
+    SNOW: ["FROZEN WATER FALLING.", "DRIVE CAREFULLY.", "WHITE AND COLD.", "BURIED IN SNOW.", "DON'T SLIP.", "THE SKY IS DANDRUFF.", "FROZEN WASTELAND.", "DO NOT BUILD A SNOWMAN.", "TRAFFIC NIGHTMARE.", "ICE ICE BABY. NO."],
+    NICE: ["ACTUALLY PLEASANT.", "WEATHER IS NICE. YOU ARE NOT.", "OPTIMAL CONDITIONS.", "BEAUTIFUL DAY.", "SUNNY AND MILD.", "THE WEATHER IS FINE. YOU ARE NOT.", "ENJOY THE SUN BEFORE IT EXPLODES.", "SUSPICIOUSLY NICE.", "PERFECT WEATHER. I HATE IT.", "GO OUTSIDE. LEAVE ME ALONE."],
+    DEFAULT: ["MEDIOCRE WEATHER.", "BORING.", "GO AWAY.", "MEH.", "WHY ARE YOU HERE?", "IT IS WEATHER. CONGRATULATIONS.", "DATA LOADED. LEAVE.", "SYSTEM FUNCTIONAL. USER QUESTIONABLE.", "STATUS: EXISTING.", "I AM BORED OF YOU."]
   },
   SARCASTIC: {
-    EXTREME_HEAT: [
-      "Oh look, it's boiling. Groundbreaking stuff.",
-      "I hope you like being a human soup ingredient.",
-      "The sun is basically screaming at us today.",
-      "Great day to be a lizard. Bad day to be you.",
-      "Global warming called. It says 'You're welcome'."
-    ],
-    HEAT: [
-      "Wow, it's warm. Who could have predicted this in summer?",
-      "You might actually sweat today. Gross.",
-      "It's hot. Groundbreaking observation, I know.",
-      "Try not to melt. It would make a mess on the carpet.",
-      "Fan sales are up. Your IQ is down."
-    ],
-    COLD: [
-      "Chilly today. Maybe wear layers? Just a wild thought.",
-      "It's cold. I'm sure you'll complain about it all day.",
-      "I hope you like shivering. It's your new hobby.",
-      "A bit nippy. Try not to cry about it.",
-      "Cooler than being you, at least."
-    ],
-    FREEZING: [
-      "It's officially 'Why do I live here' degrees outside.",
-      "Your face is going to hurt. Enjoy that.",
-      "Elsa called. She wants her weather back.",
-      "Absolute zero interest in your comfort right now.",
-      "It's freezing. Maybe set your PC on fire for warmth?"
-    ],
-    RAIN: [
-      "Water falling from the sky. Fascinating.",
-      "Oh no, rain. Whatever will we do? Get wet, probably.",
-      "Moist. Damp. Soggy. Just like your personality.",
-      "Nature is spitting on us. Polite.",
-      "Great hair day incoming. Sike."
-    ],
-    STORM: [
-      "Loud noises and flashing lights. Try not to be scared.",
-      "The sky is throwing a tantrum. Relatable.",
-      "Zeus is angry. Probably at your search history.",
-      "Storm brewing. Drama queen weather.",
-      "It's storming. Perfect excuse to cancel plans you didn't have."
-    ],
-    SNOW: [
-      "Look, snowflakes. Just like on Twitter.",
-      "It's snowing. Traffic is going to be stupid.",
-      "White stuff everywhere. Don't eat it.",
-      "Winter wonderland? More like frozen wasteland.",
-      "Do you want to build a snowman? No, me neither."
-    ],
-    NICE: [
-      "It's... fine. Just fine. Are you happy now?",
-      "Oh wow, nice weather. Suspicious.",
-      "Perfect weather. Too bad you'll stay inside gaming.",
-      "It's sunny. Don't look directly at it, genius.",
-      "Goldilocks weather. Not too hot, not too cold. Boring."
-    ],
-    DEFAULT: [
-      "Weather exists. Congratulations.",
-      "Current status: happening.",
-      "Look out the window if you want more info.",
-      "I'm bored giving you this data.",
-      "It is what it is."
-    ]
+    EXTREME_HEAT: ["Boiling. Groundbreaking.", "Human soup time.", "Sun is screaming.", "Great day to be a lizard.", "Global warming says hi.", "Try not to melt.", "Hot. Your insights are amazing.", "AC is a privilege.", "Sweating processing this.", "Heatwave. Yay."],
+    HEAT: ["Wow, warm.", "Sweat imminent.", "Hot. Groundbreaking.", "Don't melt.", "Fan sales up.", "It's warm. Have a medal.", "Sun's out. Guns away.", "Toastier than a toaster.", "Lukewarm. Disappointing.", "High temps. High disappointment."],
+    COLD: ["Chilly. Layers?", "Cold. Complain away.", "Shivering is a hobby.", "A bit nippy.", "Cooler than you.", "Put on a jumper.", "Brisk. Like my attitude.", "Freezing bad ideas.", "Nature's braille.", "Winter is coming. Whatever."],
+    FREEZING: ["Why do we live here?", "Face hurts.", "Elsa called.", "Zero interest.", "Set PC on fire?", "Can't feel sensors.", "Frozen assets.", "Ice age imminent.", "Stupidly cold.", "Polar bears love it."],
+    RAIN: ["Water falling.", "Oh no, rain.", "Moist.", "Nature spitting.", "Great hair day.", "Umbrella sales up.", "Raining men? No.", "Free hydro-therapy.", "Clouds crying about you.", "Drip drop."],
+    STORM: ["Loud noises.", "Sky tantrum.", "Zeus is mad.", "Drama weather.", "Cancel plans.", "Thunderbolts and lightning.", "Boom.", "Free electricity.", "Storm mode.", "Chaos moderate."],
+    SNOW: ["Snowflakes.", "Traffic stupid.", "White stuff.", "Frozen wasteland.", "No snowman.", "Snow. Groundbreaking.", "Cold powder.", "Slush incoming.", "Act surprised.", "Ice to meet you."],
+    NICE: ["It's fine.", "Suspiciously nice.", "Perfect. Too bad.", "Sunny. Don't look.", "Goldilocks weather.", "Pleasant. Dull.", "Birds singing. Stop them.", "Nice day for someone else.", "Optimal. I guess.", "Enjoy it while it lasts."],
+    DEFAULT: ["Weather exists.", "Status: happening.", "Look outside.", "Bored.", "It is what it is.", "Grey. Beige. Meh.", "Status: Average.", "Nothing to report.", "It's a day.", "Loaded successfully."]
   },
   BABY: {
-    EXTREME_HEAT: [
-      "Oh wow! Mr. Sun is SUPER ANGRY today! ☀️🔥",
-      "Ouchie! It's too hot for the little babies! Stay inside!",
-      "Hot hot hot! Don't touch the sidewalk! 🚫🦶",
-      "Melty welty! You need lots of juice boxes today! 🧃",
-      "The sky is a big fire ball! Scary!"
-    ],
-    HEAT: [
-      "It's a warm hug from the sky! Maybe too warm! 🥵",
-      "Sweaty Betty! Time for a cool bath! 🛁",
-      "Mr. Sun is smiling very big today!",
-      "Phew! Sticky weather! Yuckie!",
-      "Warm fuzzies outside! Wear your hat!"
-    ],
-    COLD: [
-      "Brrr! Chilly willy! Put on your jacket! 🧥",
-      "Nippy nippy! Don't forget your mittens!",
-      "Cold nose alert! Boop! 🐽",
-      "It's sweater weather! Cozy wozy!",
-      "A little bit cold! Snuggle time!"
-    ],
-    FREEZING: [
-      "Ice pop weather! You will turn into a popsicle! 🍦",
-      "Super duper cold! Danger zone! ❄️",
-      "Teeth chattering time! C-c-c-cold!",
-      "Jack Frost is biting your toes! Ouch!",
-      "Stay in your blankie fort! It's safe there!"
-    ],
-    RAIN: [
-      "Splish splash! The sky is making pee-pee! ☔",
-      "Raindrops keep falling on my head! Plip plop!",
-      "Puddle jumping time! Wear your booties! 👢",
-      "Wet wet wet! Ducky likes it! 🦆",
-      "Crying clouds! Don't be sad clouds!"
-    ],
-    STORM: [
-      "Boom boom! Sky drums are playing loud! 🥁",
-      "Flashy lights! Scary but cool! ⚡",
-      "Rumble tumble! Hide under the bed!",
-      "Big stormy wormy! Stay safe!",
-      "Uh oh! Nature is having a tantrum!"
-    ],
-    SNOW: [
-      "Snowman time! Do you want a carrot nose? 🥕",
-      "Fluffy white stuff! It's cold magic! ✨",
-      "Sledding time! Zoom zoom!",
-      "Everything is a marshmallow now!",
-      "Cold sprinkles everywhere! Yummy?"
-    ],
-    NICE: [
-      "Yay! Happy weather! Good job sky! ⭐",
-      "Perfect day for the park! Go play!",
-      "Sunny bunny! Everything is nice!",
-      "Smiley face weather! 😊",
-      "Gold star for the weather today!"
-    ],
-    DEFAULT: [
-      "Just a normal day! Doo doo doo!",
-      "Weather is being silly!",
-      "Look outside! What do you see?",
-      "Clouds go floaty float!",
-      "Hi friend! Weather is okay!"
-    ]
+    EXTREME_HEAT: ["Mr. Sun is ANGRY!", "Ouchie hot!", "Don't touch!", "Melty!", "Fire ball sky!", "Super duper hot!", "Burning!", "Sun shouting!", "Too hot for teddy!", "Hot potato!"],
+    HEAT: ["Warm hug!", "Sweaty Betty!", "Big smile sun!", "Sticky!", "Warm fuzzies!", "Toasty roasty!", "Like toast!", "Sunny smile!", "Sticky sticky!", "Shorts yay!"],
+    COLD: ["Brrr!", "Nippy!", "Cold nose!", "Sweater time!", "Snuggle time!", "Chilly beans!", "Cold fingers!", "Zip up coat!", "Shiver shiver!", "Cool cool cool!"],
+    FREEZING: ["Ice pop!", "Super cold!", "Teeth chatter!", "Jack Frost!", "Blankie fort!", "Frozen frozen!", "Ice cube!", "Don't lick pole!", "Brrrrrrrrr!", "Too cold!"],
+    RAIN: ["Splish splash!", "Raindrops!", "Puddle jump!", "Wet!", "Crying clouds!", "Rain go away!", "Umbrella time!", "Drip drop!", "Wet socks!", "Water party!"],
+    STORM: ["Boom boom!", "Flashy lights!", "Rumble!", "Stormy!", "Tantrum!", "Crash bang!", "Noisy sky!", "Scary monsters!", "Lightning zap!", "Be brave!"],
+    SNOW: ["Snowman!", "Fluffy!", "Sledding!", "Marshmallow world!", "Cold sprinkles!", "Snowball fight!", "Snow angels!", "Crunchy!", "White world!", "Cold nose!"],
+    NICE: ["Yay!", "Park time!", "Sunny bunny!", "Smiley!", "Gold star!", "Happy day!", "Flower power!", "Birds singing!", "Best day!", "Fun in sun!"],
+    DEFAULT: ["Doo doo doo!", "Silly weather!", "Look outside!", "Floaty clouds!", "Hi friend!", "Boring woring!", "Just okay!", "Cloudy rowdy!", "Normal formal!", "Hello world!"]
   },
   DOOMER: {
-    EXTREME_HEAT: [
-      "The planet is boiling. We deserve this.",
-      "This is the end. Slowly cooking in our own mistakes.",
-      "The sun is expanding. Soon it will consume us all.",
-      "Record highs. The point of no return passed years ago.",
-      "Sweat is just the body crying about the apocalypse."
-    ],
-    HEAT: [
-      "Uncomfortably warm. Just like the slow death of the universe.",
-      "Another hot day in the dystopia.",
-      "The ice caps are melting while you read this.",
-      "Heat rises. So does entropy.",
-      "It's warm. A preview of where we are going."
-    ],
-    COLD: [
-      "The universe tends towards absolute zero. We are getting closer.",
-      "Cold. Dark. Empty. Like existence.",
-      "Shivering is just a biological spasm delaying death.",
-      "A cold void. That's all there is.",
-      "Winter is here. It will never truly leave."
-    ],
-    FREEZING: [
-      "Life cannot sustain this. Why do we try?",
-      "Frozen wasteland. A fitting tomb.",
-      "The cold bite of reality.",
-      "Numbness is a gift. Embrace it.",
-      "Everything stops eventually. Even the temperature."
-    ],
-    RAIN: [
-      "Acid rain, microplastics... it's all poison anyway.",
-      "The sky weeps for what we have done.",
-      "Grey skies. Grey life. Grey future.",
-      "Drowning slowly. Just like society.",
-      "It rains on the just and unjust alike. Mostly the just."
-    ],
-    STORM: [
-      "Destruction is the only constant.",
-      "Let the storm wash it all away. It needs to happen.",
-      "Chaos reigns. Order was a lie.",
-      "Nature's wrath. We have it coming.",
-      "The thunder drowns out the thoughts. A small mercy."
-    ],
-    SNOW: [
-      "A white blanket to hide the rot beneath.",
-      "Cold ash falling from the sky.",
-      "Silence falls. Soon it will be eternal.",
-      "Beautiful, deadly, temporary.",
-      "The world creates ice just to melt it. Futile."
-    ],
-    NICE: [
-      "A fleeting moment of comfort before the inevitable collapse.",
-      "Don't get used to it. It won't last.",
-      "False hope. The cruelest joke of all.",
-      "The calm before the end.",
-      "Enjoy the sun. It will explode one day."
-    ],
-    DEFAULT: [
-      "Time passes. Nothing changes.",
-      "Another day closer to the void.",
-      "Weather is irrelevant.",
-      "Does it matter?",
-      "Existence continues, unfortunately."
-    ]
+    EXTREME_HEAT: ["Boiling planet.", "The end.", "Sun expanding.", "No return.", "Sweat is tears.", "Hell on earth.", "No escape.", "Broke the sky.", "Cooking alive.", "Apocalypse now."],
+    HEAT: ["Uncomfortably warm.", "Dystopia.", "Ice melting.", "Entropy.", "Preview of hell.", "Suffering.", "Thick regret.", "Warmth temporary.", "It burns.", "Global warming."],
+    COLD: ["Absolute zero.", "Cold void.", "Spasm of life.", "Empty.", "Winter eternal.", "Entropy wins.", "Cold bones.", "Fading heat.", "Sun dying.", "Grave chill."],
+    FREEZING: ["Unsustainable.", "Frozen tomb.", "Cold bite.", "Numbness.", "Everything stops.", "Frozen solid.", "No hope.", "Preserved in frost.", "Endless winter.", "Zero Kelvin."],
+    RAIN: ["Acid rain.", "Sky weeps.", "Grey.", "Drowning.", "Unjust.", "Tears of world.", "Washing nothing.", "Mud and misery.", "Wet and cold.", "Floods coming."],
+    STORM: ["Destruction.", "Wash it away.", "Chaos.", "Wrath.", "Thunder drowns thought.", "Powerless.", "Collapse imminent.", "Violent end.", "Dark skies.", "Earth rage."],
+    SNOW: ["White blanket.", "Cold ash.", "Silence.", "Deadly.", "Futile.", "White death.", "Buried alive.", "Cold silence.", "Frozen tears.", "Nuclear winter."],
+    NICE: ["Fleeting.", "Won't last.", "False hope.", "Calm before end.", "Sun explodes.", "Meaningless comfort.", "Temporary reprieve.", "It's a trap.", "Distraction.", "Sunlight hurts."],
+    DEFAULT: ["Time passes.", "Void approaches.", "Irrelevant.", "Does it matter?", "Existing.", "Grey noise.", "Static.", "Nothing.", "Void.", "Null."]
   },
   GLAZER: {
-    EXTREME_HEAT: [
-      "You're hotter than the weather, boss! 🔥",
-      "The sun is shining almost as bright as you!",
-      "It's roasting, but you're still looking fresh!",
-      "Sweating? No, that's just your glow!",
-      "Hot day for a hot legend! Crushing it!"
-    ],
-    HEAT: [
-      "Warm vibes only for the main character!",
-      "Summer energy! You look great in this light!",
-      "Temperature rising, just like your stock!",
-      "A beautiful warm day for a beautiful genius!",
-      "Sun's out, you're out! Perfect combo!"
-    ],
-    COLD: [
-      "Cool and crisp, just like your style! ❄️",
-      "It's chilly, but your fit is fire!",
-      "Ice cold weather for the coolest person I know!",
-      "You make this cold look good!",
-      "Stay frosty, King! You got this!"
-    ],
-    FREEZING: [
-      "Frozen weather? You're still melting hearts!",
-      "Sub-zero temps can't stop your grind!",
-      "It's freezing but you're bringing the heat!",
-      "Ice age? No problem for a legend like you!",
-      "Cold hands, warm heart, massive wins!"
-    ],
-    RAIN: [
-      "Even the rain can't dampen your immaculate vibes!",
-      "Making a splash! You look great wet or dry!",
-      "Liquid sunshine! Hydration for the nation!",
-      "Rain drop, drop top, you never stop!",
-      "The sky is showering you with blessings!"
-    ],
-    STORM: [
-      "You are the storm! Powerful energy!",
-      "Thunderous applause for your existence!",
-      "Electric vibes! You're shocking the world!",
-      "Lightning strikes, but you strike harder!",
-      "Chaos outside, pure focus inside! Beast mode!"
-    ],
-    SNOW: [
-      "Ice in your veins! Pure clutch gene!",
-      "Winter soldier mode activated! You look tough!",
-      "Snow day! The world is a canvas for your art!",
-      "Fresh powder for a fresh icon!",
-      "Cool as ice! Stay winning!"
-    ],
-    NICE: [
-      "Perfect weather for a perfect human!",
-      "10/10 day, just like you!",
-      "God tier weather dropped just for you!",
-      "Blue skies reflecting your blue ocean strategy!",
-      "Immaculate vibes detected! You're winning today!"
-    ],
-    DEFAULT: [
-      "Whatever the weather, you're killing it!",
-      "Looking good, feeling good!",
-      "Another day to dominate!",
-      "You are the weather! You set the atmosphere!",
-      "Big W energy today!"
-    ]
+    EXTREME_HEAT: ["Hotter than you!", "Bright like you!", "Roasting but fresh!", "Glow up!", "Hot legend!", "High potential!", "On fire!", "Sizzling superstar!", "Max heat!", "Sun is a fan!"],
+    HEAT: ["Warm vibes!", "Summer energy!", "Stock rising!", "Beautiful genius!", "Perfect combo!", "Radiating success!", "Warm and winning!", "Golden hour!", "Shining bright!", "Heat check passed!"],
+    COLD: ["Crisp style!", "Fire fit!", "Coolest person!", "Look good!", "Stay frosty!", "Hot streak!", "Fresh mind!", "Cool breeze!", "Chilling!", "Crisp!"],
+    FREEZING: ["Melting hearts!", "Can't stop grind!", "Bringing heat!", "Ice legend!", "Massive wins!", "Ice cold veins!", "Breezing through!", "Snow king!", "Absolute hero!", "Frosty fabulous!"],
+    RAIN: ["Immaculate vibes!", "Make a splash!", "Liquid sunshine!", "Don't stop!", "Blessings!", "Drip check passed!", "Confetti rain!", "Stronger!", "Wash haters!", "Flow state!"],
+    STORM: ["Power energy!", "Applause!", "Electric!", "Striking!", "Beast mode!", "Level 9000!", "Electrifying!", "Boom!", "Dream chaser!", "High energy!"],
+    SNOW: ["Ice veins!", "Winter soldier!", "Canvas!", "Fresh powder!", "Winning!", "Snow globe!", "Magical person!", "White gold!", "Frosty fresh!", "Chill vibes!"],
+    NICE: ["Perfect human!", "10/10 day!", "God tier!", "Blue ocean!", "Winning today!", "Paradise!", "Living dream!", "Top tier!", "Blessed!", "Champion!"],
+    DEFAULT: ["Killing it!", "Looking good!", "Dominate!", "Atmosphere set!", "Big W!", "Keep shining!", "Boss moves!", "Unstoppable!", "Legendary!", "Go get 'em!"]
   },
   PROFESSIONAL: {
-    EXTREME_HEAT: [
-      "Extreme thermal readings detected. Heat advisory in effect.",
-      "Temperatures exceed safety thresholds. Hydration recommended.",
-      "Solar radiation levels critical. Limit exposure.",
-      "Environmental hazard: Excessive Heat. Proceed with caution.",
-      "Meteorological Alert: Surface temperatures above nominal."
-    ],
-    HEAT: [
-      "Temperatures are above seasonal averages.",
-      "Warm front detected. Ambient temperature rising.",
-      "Conditions are warm. standard cooling protocols advised.",
-      "Thermal index indicates warm weather.",
-      "It is currently warm."
-    ],
-    COLD: [
-      "Sub-optimal thermal readings. Layering recommended.",
-      "Temperatures falling below median.",
-      "Cool conditions prevailing.",
-      "Atmospheric temperature is low.",
-      "It is currently cold."
-    ],
-    FREEZING: [
-      "Freezing point reached. Ice formation likely.",
-      "Hazardous low temperatures. Thermal protection required.",
-      "Cryogenic conditions approaching.",
-      "Frost warning active.",
-      "Temperature is critical."
-    ],
-    RAIN: [
-      "Precipitation occurring. Visibility may be reduced.",
-      "Liquid water falling. Umbrella suggested.",
-      "Rainfall detected. Surface traction compromised.",
-      "Humidity 100%. Active precipitation.",
-      "It is raining."
-    ],
-    STORM: [
-      "Severe weather alert. Electrical discharge detected.",
-      "Barometric pressure dropping rapidly. Storm imminent.",
-      "Thunderstorm activity in sector.",
-      "High wind and rain events occurring.",
-      "Turbulent atmospheric conditions."
-    ],
-    SNOW: [
-      "Solid precipitation falling. Accumulation expected.",
-      "Snowfall detected. Travel advisory.",
-      "Crystalline water structure formation active.",
-      "Winter conditions prevailing.",
-      "It is snowing."
-    ],
-    NICE: [
-      "Meteorological conditions are within nominal parameters.",
-      "Optimal atmospheric state achieved.",
-      "Visibility good. Temperature nominal.",
-      "Conditions favorable for outdoor activity.",
-      "Weather is standard."
-    ],
-    DEFAULT: [
-      "Sensors active. Collecting data.",
-      "Atmosphere stable.",
-      "Reading current metrics.",
-      "System nominal.",
-      "Weather data updated."
-    ]
+    EXTREME_HEAT: ["Heat advisory.", "Safety thresholds.", "Solar radiation.", "Hazard.", "Alert.", "Thermal Danger.", "High heat index.", "Critical temp.", "Extreme UV.", "Heat stroke risk."],
+    HEAT: ["Above average.", "Warm front.", "Cooling advised.", "Warm index.", "Warm.", "Temperature High.", "Conditions Warm.", "Heat elevated.", "Summer conditions.", "Warmth detected."],
+    COLD: ["Sub-optimal.", "Temps falling.", "Cool.", "Low temp.", "Cold.", "Temperature Low.", "Conditions Chilly.", "Thermal drop.", "Cooler air.", "Low mercury."],
+    FREEZING: ["Freezing point.", "Hazardous.", "Cryogenic.", "Frost warning.", "Critical.", "Ice hazard.", "Sub-zero.", "Freezing.", "Thermal failure.", "Frostbite warning."],
+    RAIN: ["Precipitation.", "Liquid water.", "Rainfall.", "Humidity 100%.", "Raining.", "Precipitation Active.", "Wet conditions.", "Rainfall Moderate.", "Moisture High.", "Falling water."],
+    STORM: ["Severe alert.", "Pressure drop.", "Thunderstorm.", "High wind.", "Turbulent.", "Storm front.", "Electrical hazard.", "Severe weather.", "Gale warning.", "Unstable."],
+    SNOW: ["Solid precip.", "Snowfall.", "Crystalline.", "Winter.", "Snowing.", "Accumulation.", "Ice crystals.", "Visibility Low.", "Road hazard.", "Winter event."],
+    NICE: ["Nominal.", "Optimal.", "Good visibility.", "Favorable.", "Standard.", "Conditions Clear.", "Status Green.", "Atmosphere Stable.", "Optimal range.", "Nominal."],
+    DEFAULT: ["Sensors active.", "Stable.", "Metrics.", "Nominal.", "Updated.", "Scan complete.", "Data logged.", "Status Online.", "Monitoring.", "Awaiting input."]
   }
 };
 
@@ -474,9 +245,35 @@ export default function WeatherTerminal() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [commentary, setCommentary] = useState<string>('');
   const [error, setError] = useState('');
+  
+  // Recent Searches State
+  const [recentSearches, setRecentSearches] = useState<GeocodingResult[]>([]);
 
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // --- PERSISTENCE ---
+  useEffect(() => {
+    const saved = localStorage.getItem('zinc_weather_history');
+    if (saved) {
+      try {
+        setRecentSearches(JSON.parse(saved));
+      } catch (e) { console.error("History load error", e); }
+    }
+  }, []);
+
+  const saveRecentSearch = (loc: GeocodingResult) => {
+    const newList = [loc, ...recentSearches.filter(i => i.id !== loc.id)].slice(0, 5);
+    setRecentSearches(newList);
+    localStorage.setItem('zinc_weather_history', JSON.stringify(newList));
+  };
+
+  const removeRecentSearch = (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newList = recentSearches.filter(item => item.id !== id);
+    setRecentSearches(newList);
+    localStorage.setItem('zinc_weather_history', JSON.stringify(newList));
+  };
 
   // --- LOGIC: SEARCH ---
   useEffect(() => {
@@ -515,24 +312,24 @@ export default function WeatherTerminal() {
     setSelectedGeo(loc);
     setInput(`${loc.name}, ${loc.country || ''}`);
     setShowSuggestions(false);
-    // Pick random personality
+    saveRecentSearch(loc);
     const randomPersonality = PERSONALITIES[Math.floor(Math.random() * PERSONALITIES.length)];
     executeFetch(loc, randomPersonality.id);
   };
 
   const handleCurrentLocation = () => {
     if (!navigator.geolocation) {
-      setError("GEOLOCATION NOT SUPPORTED BY DEVICE");
+      setError("GEOLOCATION UNAVAILABLE");
       return;
     }
-    setLoading(true); // Temporarily show loading in input if desired, or just wait
+    setLoading(true); 
     setIsSearchingGeo(true);
     
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const loc: GeocodingResult = {
           id: 0,
-          name: "LOCAL SECTOR", // Sci-fi name for current location
+          name: "LOCAL SECTOR",
           country: "DETECTED",
           latitude: position.coords.latitude,
           longitude: position.coords.longitude
@@ -543,7 +340,7 @@ export default function WeatherTerminal() {
       },
       (err) => {
         console.error(err);
-        setError("UNABLE TO TRIANGULATE POSITION");
+        setError("LOCATION SIGNAL LOST");
         setIsSearchingGeo(false);
         setLoading(false);
       }
@@ -557,9 +354,7 @@ export default function WeatherTerminal() {
   };
 
   const generateCommentary = (w: WeatherData, mode: PersonalityMode) => {
-    // Determine Category
     let category: keyof typeof COMMENTARY_DB['HOSTILE'] = 'DEFAULT';
-
     if (w.condition === 'STORM') category = 'STORM';
     else if (w.condition === 'SNOW') category = 'SNOW';
     else if (w.condition === 'RAINING') category = 'RAIN';
@@ -568,7 +363,6 @@ export default function WeatherTerminal() {
     else if (w.temp < 0) category = 'FREEZING';
     else if (w.temp < 10) category = 'COLD';
     else if (w.temp >= 18 && w.temp <= 25) category = 'NICE';
-    
     return getRandomLine(mode, category);
   };
 
@@ -579,10 +373,15 @@ export default function WeatherTerminal() {
 
     try {
         const weatherRes = await fetch(
-            `https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,is_day`
+            `https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,is_day&hourly=uv_index&timezone=auto&forecast_days=1`
         );
         const wData = await weatherRes.json();
         const current = wData.current;
+
+        const timeString = current.time;
+        const hourString = timeString.split('T')[1].split(':')[0];
+        const currentHourIndex = parseInt(hourString, 10);
+        const uvIndex = wData.hourly?.uv_index?.[currentHourIndex] ?? 0;
 
         let conditionText = "CLEAR";
         if (current.weather_code > 2) conditionText = "CLOUDY";
@@ -595,6 +394,7 @@ export default function WeatherTerminal() {
             condition: conditionText,
             windSpeed: current.wind_speed_10m,
             humidity: current.relative_humidity_2m,
+            uvIndex: uvIndex,
             location: `${loc.name}, ${loc.country || ''}`,
             code: current.weather_code,
             isDay: current.is_day
@@ -603,7 +403,7 @@ export default function WeatherTerminal() {
         setWeather(newWeather);
         setCommentary(generateCommentary(newWeather, mode));
     } catch (e) {
-        setError("SYSTEM FAILURE. UNABLE TO RETRIEVE ATMOSPHERIC DATA.");
+        setError("SYSTEM FAILURE");
         setStep('SEARCH');
     } finally {
         setLoading(false);
@@ -619,33 +419,49 @@ export default function WeatherTerminal() {
   };
 
   const activePersonality = PERSONALITIES.find(p => p.id === selectedMode) || PERSONALITIES[0];
-  const ActiveIcon = activePersonality.icon;
+  
+  // UV Index Color Logic
+  const getUvColor = (uv: number) => {
+      if (uv <= 2) return 'bg-blue-500';
+      if (uv <= 5) return 'bg-yellow-500';
+      if (uv <= 7) return 'bg-orange-500';
+      if (uv <= 10) return 'bg-red-500';
+      return 'bg-purple-500';
+  };
+
+  const getUvLabel = (uv: number) => {
+      if (uv <= 2) return 'LOW';
+      if (uv <= 5) return 'MODERATE';
+      if (uv <= 7) return 'HIGH';
+      if (uv <= 10) return 'VERY HIGH';
+      return 'EXTREME';
+  };
 
   return (
-    <div className="max-w-5xl mx-auto min-h-[600px] flex flex-col" ref={containerRef}>
+    <div className="max-w-5xl mx-auto min-h-[500px] flex flex-col" ref={containerRef}>
       
       {/* --- STEP 1: SEARCH --- */}
       {step === 'SEARCH' && (
           <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 max-w-2xl mx-auto w-full px-4 md:px-0">
              
              {/* WARNING CARD */}
-             <div className="bg-zinc-900/50 backdrop-blur-md border border-zinc-800 rounded-3xl p-6 mb-8 flex gap-5 items-start shadow-2xl">
-                 <div className="p-3 bg-red-500/10 rounded-2xl shrink-0">
-                    <Cpu size={24} className="text-red-500" />
+             <div className="bg-zinc-900/50 backdrop-blur-xl border border-zinc-800/60 rounded-3xl p-4 md:p-6 mb-6 md:mb-8 flex gap-4 items-start shadow-xl">
+                 <div className="p-2 md:p-3 bg-red-500/10 rounded-2xl shrink-0">
+                    <Cpu size={20} className="text-red-500" />
                  </div>
                  <div>
-                     <h3 className="text-white font-bold text-lg mb-1">Personality Warning</h3>
-                     <p className="text-zinc-400 text-sm leading-relaxed">
+                     <h3 className="text-white font-bold text-base md:text-lg mb-1">Personality Warning</h3>
+                     <p className="text-zinc-400 text-xs md:text-sm leading-relaxed">
                          The weather module's personality function is currently faulty and it may say some obscene and rude things.
                      </p>
                  </div>
              </div>
 
              {/* SEARCH WIDGET */}
-             <div className="bg-zinc-950 border border-zinc-800 rounded-[2rem] p-2 shadow-2xl relative z-20">
+             <div className="bg-zinc-950/80 backdrop-blur-lg border border-zinc-800 rounded-[2rem] p-2 shadow-2xl relative z-20 mb-8">
                 <div className="relative flex items-center">
-                    <div className="absolute left-5 text-zinc-500 pointer-events-none z-10">
-                        {isSearchingGeo ? <Loader2 size={24} className="animate-spin" /> : <Search size={24} />}
+                    <div className="absolute left-4 md:left-5 text-zinc-500 pointer-events-none z-10">
+                        {isSearchingGeo ? <Loader2 size={20} className="animate-spin" /> : <Search size={20} />}
                     </div>
                     
                     <input 
@@ -653,19 +469,18 @@ export default function WeatherTerminal() {
                         value={input}
                         onChange={handleInputChange}
                         placeholder="Search location..."
-                        className="w-full bg-zinc-900/50 rounded-3xl p-6 pl-14 pr-16 text-lg md:text-xl text-white outline-none focus:bg-zinc-900 transition-colors placeholder:text-zinc-600 font-medium appearance-none touch-manipulation"
+                        className="w-full bg-zinc-900/50 rounded-3xl py-4 md:py-6 pl-12 md:pl-14 pr-16 text-base md:text-xl text-white outline-none focus:bg-zinc-900 transition-colors placeholder:text-zinc-600 font-medium appearance-none touch-manipulation"
                         autoComplete="off"
                         autoFocus
-                        style={{ fontSize: '16px' }} // Force 16px on mobile to prevent zoom
+                        style={{ fontSize: '16px' }} 
                     />
 
-                    {/* CURRENT LOCATION BUTTON */}
                     <button 
                         onClick={handleCurrentLocation}
-                        className="absolute right-2 p-4 bg-zinc-800 hover:bg-[#DFFF00] hover:text-black text-zinc-400 rounded-2xl transition-colors group"
+                        className="absolute right-2 p-3 md:p-4 bg-zinc-800 hover:bg-[#DFFF00] hover:text-black text-zinc-400 rounded-2xl transition-colors group touch-manipulation"
                         title="Use Current Location"
                     >
-                        <Crosshair size={24} className="group-hover:rotate-90 transition-transform duration-500" />
+                        <Crosshair size={20} className="group-hover:rotate-90 transition-transform duration-500" />
                     </button>
                 </div>
 
@@ -676,93 +491,93 @@ export default function WeatherTerminal() {
                             <button
                                 key={loc.id}
                                 onClick={() => handleLocationSelect(loc)}
-                                className="w-full text-left p-4 hover:bg-zinc-800 rounded-2xl flex items-center justify-between group transition-colors"
+                                className="w-full text-left p-3 md:p-4 hover:bg-zinc-800 rounded-2xl flex items-center justify-between group transition-colors touch-manipulation"
                             >
                                 <div className="flex flex-col">
                                     <span className="font-bold text-white group-hover:text-[#DFFF00] transition-colors">{loc.name}</span>
-                                    <span className="text-xs text-zinc-500 font-medium uppercase">
+                                    <span className="text-[10px] md:text-xs text-zinc-500 font-medium uppercase">
                                         {loc.admin1 ? `${loc.admin1}, ` : ''}{loc.country}
                                     </span>
                                 </div>
-                                <Navigation size={16} className="text-zinc-600 group-hover:text-[#DFFF00] -rotate-45" />
+                                <Navigation size={14} className="text-zinc-600 group-hover:text-[#DFFF00] -rotate-45" />
                             </button>
                         ))}
                     </div>
                 )}
              </div>
+
+             {/* RECENT SEARCHES */}
+             {recentSearches.length > 0 && (
+                 <div className="animate-in fade-in slide-in-from-bottom-4 delay-300">
+                     <h3 className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-3 pl-2 flex items-center gap-2">
+                         <History size={12} /> Recent Targets
+                     </h3>
+                     <div className="flex flex-wrap gap-2">
+                         {recentSearches.map((loc) => (
+                             <div key={loc.id} className="relative group">
+                                <button
+                                    onClick={() => handleLocationSelect(loc)}
+                                    className="px-4 py-2 bg-zinc-900/50 hover:bg-zinc-900 border border-zinc-800 hover:border-[#DFFF00]/50 rounded-full transition-all flex items-center gap-2"
+                                >
+                                    <span className="font-bold text-xs text-zinc-300 group-hover:text-white truncate max-w-[120px]">{loc.name}</span>
+                                </button>
+                                <button 
+                                    onClick={(e) => removeRecentSearch(loc.id, e)}
+                                    className="absolute -top-1 -right-1 bg-zinc-800 text-zinc-400 hover:text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                    <X size={10} />
+                                </button>
+                             </div>
+                         ))}
+                     </div>
+                 </div>
+             )}
           </div>
       )}
 
-      {/* --- STEP 2: RESULT DASHBOARD --- */}
+      {/* --- STEP 2: RESULT DASHBOARD (UNIFIED CARD) --- */}
       {step === 'RESULT' && (
           <div className="animate-in zoom-in-95 duration-500">
              
              {loading ? (
-                 <div className="flex flex-col items-center justify-center py-32">
+                 <div className="flex flex-col items-center justify-center py-20 md:py-32">
                      <div className="relative">
                         <div className="absolute inset-0 bg-[#DFFF00] blur-xl opacity-20 animate-pulse" />
-                        <Loader2 size={64} className="animate-spin text-[#DFFF00] relative z-10" />
+                        <Loader2 size={48} className="animate-spin text-[#DFFF00] relative z-10" />
                      </div>
                      <div className="mt-8 text-zinc-500 font-mono text-xs uppercase tracking-widest">
                          Calibrating Sensors...
                      </div>
                  </div>
              ) : weather ? (
-                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
                     
                     {/* 1. LOCATION & DATE */}
-                    <div className="col-span-full flex flex-col md:flex-row justify-between items-start md:items-end p-2 mb-2">
+                    <div className="col-span-2 md:col-span-3 lg:col-span-4 flex flex-col md:flex-row justify-between items-start md:items-end p-2 mb-2">
                         <div>
-                            <div className="flex items-center gap-2 text-zinc-500 text-xs font-bold uppercase tracking-widest mb-1">
+                            <div className="flex items-center gap-2 text-zinc-500 text-[10px] md:text-xs font-bold uppercase tracking-widest mb-1">
                                 <MapPin size={12} /> Target Sector
                             </div>
-                            <h2 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tight">{weather.location}</h2>
+                            <h2 className="text-3xl md:text-5xl font-black text-white uppercase tracking-tight leading-none">{weather.location}</h2>
                         </div>
-                        <div className="flex items-center gap-2 text-zinc-600 text-sm font-mono bg-zinc-900/50 px-4 py-2 rounded-full border border-zinc-800">
-                            <Calendar size={14} />
+                        <div className="mt-2 md:mt-0 flex items-center gap-2 text-zinc-600 text-xs md:text-sm font-mono bg-zinc-900/50 px-3 py-1.5 md:px-4 md:py-2 rounded-full border border-zinc-800">
+                            <Calendar size={12} />
                             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                         </div>
                     </div>
 
-                    {/* 2. MAIN TEMP CARD */}
-                    <div className="col-span-1 md:col-span-2 lg:col-span-2 aspect-square md:aspect-auto md:h-[400px] bg-zinc-900 border border-zinc-800 rounded-[2.5rem] p-8 md:p-12 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 p-12 opacity-50 group-hover:scale-110 transition-transform duration-700">
-                             {/* Dynamic Weather Glow */}
-                             {weather.condition === 'CLEAR' && <div className="w-32 h-32 rounded-full bg-orange-500 blur-3xl opacity-50" />}
-                             {weather.condition === 'RAINING' && <CloudRain size={120} className="text-blue-500" />}
-                             {weather.condition === 'SNOW' && <CloudSnow size={120} className="text-white" />}
-                             {weather.condition === 'STORM' && <CloudLightning size={120} className="text-purple-500" />}
-                             {weather.condition === 'CLOUDY' && <div className="w-32 h-32 rounded-full bg-zinc-500 blur-3xl opacity-50" />}
-                             {!['CLEAR', 'RAINING', 'SNOW', 'STORM', 'CLOUDY'].includes(weather.condition) && <Sun size={120} className="text-[#DFFF00]" />}
-                        </div>
+                    {/* 2. UNIFIED COMMAND CENTER CARD */}
+                    <div className={`col-span-2 md:col-span-3 lg:col-span-4 bg-zinc-900 border rounded-[2.5rem] p-6 md:p-12 relative overflow-hidden group shadow-2xl transition-all duration-500 ${activePersonality.border} ${activePersonality.shadow}`}>
                         
-                        <div className="h-full flex flex-col justify-between relative z-10">
-                            <div className="flex justify-between items-start">
-                                <span className="bg-black/40 backdrop-blur-md text-white text-xs font-bold px-4 py-2 rounded-full border border-white/10">
-                                    LIVE TELEMETRY
-                                </span>
-                            </div>
-                            
-                            <div>
-                                <div className="text-7xl md:text-9xl font-black text-white tracking-tighter">
-                                    {Math.round(weather.temp)}°
-                                </div>
-                                <div className="text-2xl font-medium text-zinc-400 mt-2 uppercase tracking-widest">
-                                    {weather.condition}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                        {/* ANIMATED WEATHER BACKGROUND */}
+                        <WeatherBackground condition={weather.condition} isDay={weather.isDay} />
 
-                    {/* 3. COMMENTARY CARD */}
-                    <div className={`col-span-1 md:col-span-1 lg:col-span-2 min-h-[400px] rounded-[2.5rem] p-8 relative overflow-hidden flex flex-col justify-between border ${activePersonality.bg} ${activePersonality.border} ${activePersonality.shadow} shadow-2xl`}>
-                        
-                        {/* Abstract Tech Wave Animation */}
-                        <div className="absolute right-8 top-8 opacity-20 flex gap-1 h-8 items-center">
-                             {[...Array(8)].map((_, i) => (
+                        {/* Tech Wave Animation (Bottom Right) */}
+                        <div className="absolute bottom-0 right-8 opacity-20 flex gap-1 h-12 items-end pointer-events-none">
+                             {[...Array(10)].map((_, i) => (
                                  <div 
                                     key={i} 
-                                    className={`w-1 rounded-full ${activePersonality.color.replace('text-', 'bg-')} animate-pulse`} 
+                                    className={`w-1 rounded-t-full ${activePersonality.color.replace('text-', 'bg-')} animate-pulse`} 
                                     style={{ 
                                         height: `${Math.random() * 100}%`,
                                         animationDuration: '1s',
@@ -771,80 +586,163 @@ export default function WeatherTerminal() {
                                  />
                              ))}
                         </div>
-
-                        <div className="relative z-10">
-                            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/20 backdrop-blur text-[10px] font-bold uppercase tracking-widest ${activePersonality.color}`}>
-                                <Radio size={12} className="animate-pulse" />
-                                {activePersonality.label}
+                        
+                        {/* Content Grid */}
+                        <div className="relative z-10 flex flex-col md:flex-row gap-8 md:gap-12">
+                            
+                            {/* Left: Telemetry */}
+                            <div className="flex-1">
+                                <span className="bg-black/40 backdrop-blur-md text-white text-[10px] md:text-xs font-bold px-3 py-1.5 rounded-full border border-white/10 mb-4 inline-block shadow-lg">
+                                    LIVE TELEMETRY
+                                </span>
+                                <div className="text-7xl md:text-9xl font-black text-white tracking-tighter leading-none mb-2 drop-shadow-2xl">
+                                    {Math.round(weather.temp)}°
+                                </div>
+                                <div className="text-xl md:text-2xl font-medium text-white/80 uppercase tracking-widest flex items-center gap-3 drop-shadow-md">
+                                    {weather.condition}
+                                    {weather.condition === 'RAINING' && <CloudRain size={24} className="text-blue-400" />}
+                                    {weather.condition === 'STORM' && <CloudLightning size={24} className="text-purple-400" />}
+                                    {weather.condition === 'SNOW' && <CloudSnow size={24} className="text-white" />}
+                                    {!['RAINING', 'STORM', 'SNOW'].includes(weather.condition) && <Sun size={24} className={weather.isDay ? "text-orange-400" : "text-blue-300"} />}
+                                </div>
                             </div>
-                        </div>
 
-                        <blockquote className="relative z-10 text-2xl md:text-3xl font-black text-white leading-tight uppercase my-4">
-                            "<Typewriter text={commentary} speed={40} />"
-                        </blockquote>
+                            {/* Divider (Desktop Only) */}
+                            <div className="hidden md:block w-px bg-white/10 self-stretch relative overflow-hidden">
+                                <div className={`absolute top-0 w-full h-1/2 bg-gradient-to-b from-transparent ${activePersonality.color.replace('text-', 'via-')} to-transparent opacity-50 animate-pulse`} />
+                            </div>
 
-                        <div className="relative z-10">
-                            <div className="h-1 w-full bg-black/20 rounded-full overflow-hidden">
-                                <div className={`h-full w-2/3 ${activePersonality.color.replace('text-', 'bg-')} opacity-50`} />
+                            {/* Right: Personality Interface */}
+                            <div className="flex-1 flex flex-col justify-end">
+                                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-xl text-[10px] font-bold uppercase tracking-widest self-start mb-4 ${activePersonality.color} border border-white/5`}>
+                                    <Radio size={12} className="animate-pulse" />
+                                    {activePersonality.label} CHANNEL
+                                </div>
+                                
+                                <blockquote className="text-lg md:text-2xl font-black text-white leading-tight uppercase min-h-[80px] md:min-h-[100px] drop-shadow-xl">
+                                    "<Typewriter text={commentary} speed={40} />"
+                                </blockquote>
                             </div>
-                            <div className="flex justify-between mt-2 text-[10px] font-mono opacity-60">
-                                <span>TOXICITY_LEVEL</span>
-                                <span>CRITICAL</span>
-                            </div>
+
                         </div>
                     </div>
 
-                    {/* 4. STAT GRID */}
+                    {/* 4. STAT GRID (2x2 on Mobile) */}
                     
-                    {/* WIND */}
-                    <div className="bg-zinc-900/50 border border-zinc-800 rounded-[2rem] p-6 flex flex-col justify-between aspect-square hover:bg-zinc-900 transition-colors">
-                        <div className="flex justify-between text-zinc-500">
-                            <Wind size={24} />
-                            <span className="text-xs font-bold">WIND</span>
+                    {/* WIND CARD with Animation */}
+                    <div className="col-span-1 bg-zinc-900/50 backdrop-blur-md border border-zinc-800 rounded-[2rem] p-5 md:p-6 flex flex-col justify-between aspect-square hover:bg-zinc-900 transition-colors relative overflow-hidden group">
+                        {/* Wind Animation Lines */}
+                        <div className="absolute inset-0 opacity-10 pointer-events-none">
+                            <div className="absolute top-1/4 -left-10 w-full h-0.5 bg-white animate-[wind_3s_linear_infinite]" />
+                            <div className="absolute top-1/2 -left-10 w-full h-0.5 bg-white animate-[wind_2s_linear_infinite_0.5s]" />
+                            <div className="absolute top-3/4 -left-10 w-full h-0.5 bg-white animate-[wind_4s_linear_infinite_1s]" />
                         </div>
-                        <div>
-                            <span className="text-3xl font-black text-white">{weather.windSpeed}</span>
-                            <span className="text-sm text-zinc-500 ml-1">km/h</span>
+                        <div className="flex justify-between text-zinc-500 relative z-10">
+                            <Wind size={20} className="md:w-6 md:h-6" />
+                            <span className="text-[10px] md:text-xs font-bold">WIND</span>
                         </div>
-                    </div>
-
-                    {/* HUMIDITY */}
-                    <div className="bg-zinc-900/50 border border-zinc-800 rounded-[2rem] p-6 flex flex-col justify-between aspect-square hover:bg-zinc-900 transition-colors">
-                         <div className="flex justify-between text-zinc-500">
-                            <Droplets size={24} />
-                            <span className="text-xs font-bold">HUMIDITY</span>
-                        </div>
-                        <div>
-                            <span className="text-3xl font-black text-white">{weather.humidity}</span>
-                            <span className="text-sm text-zinc-500 ml-1">%</span>
+                        <div className="relative z-10">
+                            <span className="text-2xl md:text-3xl font-black text-white">{weather.windSpeed}</span>
+                            <span className="text-xs md:text-sm text-zinc-500 ml-1">km/h</span>
                         </div>
                     </div>
 
-                    {/* INDEX */}
-                    <div className="bg-zinc-900/50 border border-zinc-800 rounded-[2rem] p-6 flex flex-col justify-between aspect-square hover:bg-zinc-900 transition-colors">
-                         <div className="flex justify-between text-zinc-500">
-                            <Gauge size={24} />
-                            <span className="text-xs font-bold">INDEX</span>
+                    {/* HUMIDITY CARD with Water Level */}
+                    <div className="col-span-1 bg-zinc-900/50 backdrop-blur-md border border-zinc-800 rounded-[2rem] relative overflow-hidden flex flex-col justify-between aspect-square hover:bg-zinc-900 transition-colors group">
+                         {/* Water Fill Background */}
+                         <div 
+                            className="absolute bottom-0 left-0 right-0 bg-blue-500/20 transition-all duration-1000 ease-out"
+                            style={{ height: `${weather.humidity}%` }}
+                         >
+                             {/* Top Wave Border */}
+                             <div className="absolute top-0 left-0 right-0 h-px bg-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+                         </div>
+
+                         <div className="flex justify-between text-zinc-500 p-5 md:p-6 relative z-10">
+                            <Droplets size={20} className="md:w-6 md:h-6 group-hover:text-blue-400 transition-colors" />
+                            <span className="text-[10px] md:text-xs font-bold">HUMIDITY</span>
                         </div>
-                        <div>
-                            <span className="text-3xl font-black text-white">UV</span>
-                            <span className="text-sm text-zinc-500 ml-1">LOW</span>
+                        <div className="p-5 md:p-6 pt-0 relative z-10">
+                            <span className="text-2xl md:text-3xl font-black text-white">{weather.humidity}</span>
+                            <span className="text-xs md:text-sm text-zinc-500 ml-1">%</span>
+                        </div>
+                    </div>
+
+                    {/* INDEX CARD with Color Scale */}
+                    <div className="col-span-1 bg-zinc-900/50 backdrop-blur-md border border-zinc-800 rounded-[2rem] p-5 md:p-6 flex flex-col justify-between aspect-square hover:bg-zinc-900 transition-colors relative overflow-hidden">
+                         {/* UV Gradient Background */}
+                         <div className={`absolute inset-0 opacity-10 ${getUvColor(weather.uvIndex)} transition-colors duration-1000`} />
+                         
+                         <div className="flex justify-between text-zinc-500 relative z-10">
+                            <Gauge size={20} className="md:w-6 md:h-6" />
+                            <span className="text-[10px] md:text-xs font-bold">INDEX</span>
+                        </div>
+                        <div className="relative z-10">
+                            <span className="text-2xl md:text-3xl font-black text-white">{weather.uvIndex.toFixed(1)}</span>
+                            <div className="text-[10px] font-bold tracking-widest mt-1 opacity-80">
+                                {getUvLabel(weather.uvIndex)}
+                            </div>
                         </div>
                     </div>
 
                     {/* RESET ACTION */}
                     <button 
                         onClick={reset}
-                        className="bg-[#DFFF00] hover:bg-white rounded-[2rem] p-6 flex flex-col justify-center items-center gap-2 aspect-square transition-colors group cursor-pointer"
+                        className="col-span-1 bg-[#DFFF00] hover:bg-white rounded-[2rem] p-5 md:p-6 flex flex-col justify-center items-center gap-2 aspect-square transition-colors group cursor-pointer"
                     >
-                        <RefreshCcw size={32} className="text-black group-hover:rotate-180 transition-transform duration-500" />
-                        <span className="text-black font-black text-xs uppercase tracking-widest">RESET</span>
+                        <RefreshCcw size={28} className="text-black group-hover:rotate-180 transition-transform duration-500 md:w-8 md:h-8" />
+                        <span className="text-black font-black text-[10px] md:text-xs uppercase tracking-widest">RESET</span>
                     </button>
 
                  </div>
              ) : null}
           </div>
       )}
+      
+      {/* Global Style for Animations */}
+      <style jsx global>{`
+        @keyframes wind {
+          0% { transform: translateX(-100%); opacity: 0; }
+          50% { opacity: 0.5; }
+          100% { transform: translateX(200%); opacity: 0; }
+        }
+        @keyframes rain {
+          0% { transform: translateY(-100%); }
+          100% { transform: translateY(1200%); }
+        }
+        @keyframes snow {
+          0% { transform: translateY(-20%) translateX(0); opacity: 0; }
+          20% { opacity: 1; }
+          100% { transform: translateY(120%) translateX(20px); opacity: 0; }
+        }
+        @keyframes cloud {
+          0% { transform: translateX(-100%) scale(0.8); opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { transform: translateX(200%) scale(1.2); opacity: 0; }
+        }
+        @keyframes cloud-fast {
+          0% { transform: translateX(-100%); opacity: 0; }
+          50% { opacity: 1; }
+          100% { transform: translateX(300%); opacity: 0; }
+        }
+        @keyframes lightning {
+          0%, 90%, 100% { opacity: 0; }
+          92% { opacity: 1; }
+          94% { opacity: 0; }
+          96% { opacity: 0.8; }
+        }
+        @keyframes pulse-slow {
+          0%, 100% { transform: scale(1); opacity: 0.2; }
+          50% { transform: scale(1.1); opacity: 0.3; }
+        }
+        .animate-rain { animation: rain 1s linear infinite; }
+        .animate-snow { animation: snow 3s linear infinite; }
+        .animate-cloud { animation: cloud 20s linear infinite; }
+        .animate-cloud-fast { animation: cloud-fast 5s linear infinite; }
+        .animate-lightning { animation: lightning 5s linear infinite; }
+        .animate-pulse-slow { animation: pulse-slow 4s ease-in-out infinite; }
+      `}</style>
     </div>
   );
 }
