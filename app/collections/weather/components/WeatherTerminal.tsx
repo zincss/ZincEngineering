@@ -134,6 +134,9 @@ const WeatherBackground = ({ condition, isDay }: { condition: string, isDay: num
 // --- TYPES ---
 interface WeatherData {
   temp: number;
+  feelsLike: number; // Added
+  minTemp: number;   // Added
+  maxTemp: number;   // Added
   condition: string;
   windSpeed: number;
   humidity: number;
@@ -307,10 +310,11 @@ export default function WeatherTerminal() {
 
     try {
         const weatherRes = await fetch(
-            `https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,is_day&hourly=uv_index&timezone=auto&forecast_days=1`
+            `https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,is_day&hourly=uv_index&daily=temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=1`
         );
         const wData = await weatherRes.json();
         const current = wData.current;
+        const daily = wData.daily;
 
         const timeString = current.time;
         const hourString = timeString.split('T')[1].split(':')[0];
@@ -325,6 +329,9 @@ export default function WeatherTerminal() {
 
         const newWeather: WeatherData = {
             temp: current.temperature_2m,
+            feelsLike: current.apparent_temperature,
+            minTemp: daily.temperature_2m_min[0],
+            maxTemp: daily.temperature_2m_max[0],
             condition: conditionText,
             windSpeed: current.wind_speed_10m,
             humidity: current.relative_humidity_2m,
@@ -337,6 +344,7 @@ export default function WeatherTerminal() {
         setWeather(newWeather);
         setCommentary(generateCommentary(newWeather, mode));
     } catch (e) {
+        console.error(e);
         setError("SYSTEM FAILURE");
         setStep('SEARCH');
     } finally {
@@ -525,19 +533,37 @@ export default function WeatherTerminal() {
                         <div className="relative z-10 flex flex-col md:flex-row gap-8 md:gap-12">
                             
                             {/* Left: Telemetry */}
-                            <div className="flex-1">
-                                <span className="bg-black/40 backdrop-blur-md text-white text-[10px] md:text-xs font-bold px-3 py-1.5 rounded-full border border-white/10 mb-4 inline-block shadow-lg">
+                            <div className="flex-1 flex flex-col justify-center">
+                                <span className="bg-black/40 backdrop-blur-md text-white text-[10px] md:text-xs font-bold px-3 py-1.5 rounded-full border border-white/10 mb-4 inline-block shadow-lg self-start">
                                     LIVE TELEMETRY
                                 </span>
                                 <div className="text-7xl md:text-9xl font-black text-white tracking-tighter leading-none mb-2 drop-shadow-2xl">
                                     {Math.round(weather.temp)}°
                                 </div>
-                                <div className="text-xl md:text-2xl font-medium text-white/80 uppercase tracking-widest flex items-center gap-3 drop-shadow-md">
+                                <div className="text-xl md:text-2xl font-medium text-white/80 uppercase tracking-widest flex items-center gap-3 drop-shadow-md mb-6">
                                     {weather.condition}
                                     {weather.condition === 'RAINING' && <CloudRain size={24} className="text-blue-400" />}
                                     {weather.condition === 'STORM' && <CloudLightning size={24} className="text-purple-400" />}
                                     {weather.condition === 'SNOW' && <CloudSnow size={24} className="text-white" />}
                                     {!['RAINING', 'STORM', 'SNOW'].includes(weather.condition) && <Sun size={24} className={weather.isDay ? "text-orange-400" : "text-blue-300"} />}
+                                </div>
+
+                                {/* NEW: Feels Like / High / Low Grid */}
+                                <div className="flex items-center gap-4 md:gap-8 bg-black/20 rounded-2xl p-3 md:p-4 border border-white/5 backdrop-blur-sm self-start">
+                                    <div className="flex flex-col gap-0.5">
+                                        <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Feels Like</span>
+                                        <span className="text-lg md:text-xl font-bold text-white">{Math.round(weather.feelsLike)}°</span>
+                                    </div>
+                                    <div className="w-px h-8 bg-white/10" />
+                                    <div className="flex flex-col gap-0.5">
+                                        <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Low</span>
+                                        <span className="text-lg md:text-xl font-bold text-blue-200">{Math.round(weather.minTemp)}°</span>
+                                    </div>
+                                    <div className="w-px h-8 bg-white/10" />
+                                    <div className="flex flex-col gap-0.5">
+                                        <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">High</span>
+                                        <span className="text-lg md:text-xl font-bold text-orange-200">{Math.round(weather.maxTemp)}°</span>
+                                    </div>
                                 </div>
                             </div>
 
