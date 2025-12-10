@@ -4,46 +4,99 @@ import React, { useEffect, useState } from 'react';
 import Marquee from 'react-fast-marquee';
 import { 
   Trophy, 
-  TrendingUp, 
-  TrendingDown, 
-  CloudHail, 
   Zap, 
-  Globe,
-  Activity
+  Activity,
+  CheckCircle2
 } from 'lucide-react';
-import { createClient } from '@/utils/supabase/client';
+import { getLiveScores as getNBAScores } from '@/app/sports/nba/actions';
+import { getDashboardData as getNFLData } from '@/app/sports/nfl/actions';
+import { getF1DashboardData } from '@/app/sports/f1/actions';
 
 export default function GlobalTicker() {
   const [tickerItems, setTickerItems] = useState<any[]>([]);
-  const supabase = createClient();
 
   useEffect(() => {
     const fetchData = async () => {
-      // 1. Weather (Placeholder or Real if available)
-      const weather = { type: 'weather', location: 'SYD', temp: '24°C', condition: 'Clear', icon: <CloudHail size={12} /> };
+      try {
+          const [nbaData, nflData, f1Data] = await Promise.all([
+            getNBAScores(),
+            getNFLData(),
+            getF1DashboardData()
+          ]);
 
-      // 2. F1 (Mock or latest DB)
-      const f1 = { type: 'f1', label: 'NEXT GP', value: 'Monaco [T-minus 4d]', icon: <Trophy size={12} /> };
+          const items: any[] = [];
 
-      // 3. Market (Mock or DB)
-      const market = [
-        { symbol: 'VOID', price: '450 CR', change: '+12%', trend: 'up' },
-        { symbol: 'FADE', price: '120 CR', change: '-5%', trend: 'down' },
-        { symbol: 'ZINC', price: '1,200 CR', change: '+2.4%', trend: 'up' },
-      ];
+          // 1. F1 WINNER (From latest race)
+          if (f1Data?.drivers) {
+             const winner = f1Data.drivers.find((d: any) => d.stats?.latest?.pos === 'P1');
+             if (winner) {
+                 items.push({ 
+                    type: 'f1', 
+                    label: 'F1 WINNER', 
+                    value: `${winner.givenName} ${winner.familyName} (${winner.stats.latest.race})`, 
+                    icon: <Trophy size={12} /> 
+                 });
+             }
+          }
 
-      // 4. System Status
-      const system = { type: 'system', label: 'SERVER', value: 'OPTIMAL 99.9%', icon: <Zap size={12} /> };
+          // 2. NFL SCORES (Logic: Show Finals until a Live game starts, then swap to Live)
+          if (nflData?.scores && Array.isArray(nflData.scores)) {
+             const allGames = nflData.scores;
+             
+             // Detect if there is any LIVE action right now
+             const liveGames = allGames.filter((g: any) => 
+                g.status === 'LIVE' || 
+                g.status.includes('Q') || 
+                g.status.includes('Halftime') ||
+                g.status.includes('OT')
+             );
 
-      // Combine
-      const items = [
-        system,
-        weather,
-        f1,
-        ...market.map(m => ({ type: 'market', ...m }))
-      ];
-      
-      setTickerItems(items);
+             // Detect Final games
+             const finalGames = allGames.filter((g: any) => g.status.includes('Final'));
+
+             // DECISION: If Live games exist, prioritize them (Swap to Live). 
+             // Otherwise, keep showing the week's results (Finals).
+             const gamesToShow = liveGames.length > 0 ? liveGames : finalGames;
+
+             gamesToShow.forEach((game: any) => {
+                const isLive = game.status === 'LIVE' || game.status.includes('Q') || game.status.includes('OT');
+                const isFinal = game.status.includes('Final');
+                
+                items.push({
+                   type: 'score',
+                   sport: 'NFL',
+                   label: isFinal ? 'FINAL' : game.status,
+                   matchup: `${game.home.code} ${game.home.score} - ${game.away.score} ${game.away.code}`,
+                   isLive: isLive,
+                   isFinal: isFinal
+                });
+             });
+          }
+
+          // 3. NBA SCORES
+          if (nbaData && Array.isArray(nbaData)) {
+             nbaData.forEach((game: any) => {
+                const isLive = game.status === 'LIVE' || game.status.includes('Q');
+                const isFinal = game.status.includes('Final');
+
+                items.push({
+                   type: 'score',
+                   sport: 'NBA',
+                   label: isFinal ? 'FINAL' : game.status,
+                   matchup: `${game.home.code} ${game.home.score} - ${game.away.score} ${game.away.code}`,
+                   isLive: isLive,
+                   isFinal: isFinal
+                });
+             });
+          }
+          
+          // 4. SYSTEM STATUS
+          items.push({ type: 'system', label: 'SYSTEM', value: 'ONLINE', icon: <Zap size={12} /> });
+
+          setTickerItems(items);
+      } catch (e) {
+          console.error("Ticker Error", e);
+      }
     };
 
     fetchData();
@@ -78,28 +131,26 @@ export default function GlobalTicker() {
                 <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider">
                    
                    {/* ICONS */}
-                   {item.type === 'weather' && <span className="text-blue-400">{item.icon}</span>}
                    {item.type === 'f1' && <span className="text-[#DFFF00]">{item.icon}</span>}
                    {item.type === 'system' && <span className="text-emerald-500">{item.icon}</span>}
-                   {item.type === 'market' && (
-                      item.trend === 'up' 
-                        ? <TrendingUp size={12} className="text-emerald-500" />
-                        : <TrendingDown size={12} className="text-rose-500" />
+                   {item.type === 'score' && (
+                       item.isLive 
+                        ? <Activity size={12} className="text-red-500 animate-pulse"/> 
+                        : (item.isFinal ? <CheckCircle2 size={12} className="text-zinc-600"/> : <Activity size={12} className="text-zinc-600"/>)
                    )}
 
                    {/* LABELS & VALUES */}
-                   {item.type === 'market' ? (
+                   {item.type === 'score' ? (
                       <span className="flex gap-2">
-                         <span className="font-bold text-zinc-400">{item.symbol}</span>
-                         <span className="text-white">{item.price}</span>
-                         <span className={item.trend === 'up' ? 'text-emerald-400' : 'text-rose-400'}>
-                            {item.change}
-                         </span>
+                         <span className="font-bold text-zinc-500">{item.sport}</span>
+                         <span className={item.isLive ? "text-red-400 font-bold" : "text-zinc-300"}>{item.matchup}</span>
+                         {item.isLive && <span className="text-red-500 font-black px-1 rounded bg-red-500/10">LIVE</span>}
+                         {item.isFinal && <span className="text-zinc-600 font-bold">F</span>}
                       </span>
                    ) : (
                       <span className="flex gap-2">
-                         <span className="font-bold text-zinc-500">{item.label || item.location}</span>
-                         <span className="text-zinc-200">{item.value || `${item.temp} ${item.condition}`}</span>
+                         <span className="font-bold text-zinc-500">{item.label}</span>
+                         <span className="text-zinc-200">{item.value}</span>
                       </span>
                    )}
 
@@ -107,7 +158,7 @@ export default function GlobalTicker() {
              </div>
            ))}
            
-           {/* FILLER FOR EMPTY STATE */}
+           {/* EMPTY STATE */}
            {tickerItems.length === 0 && (
               <span className="mx-10 text-[10px] font-mono uppercase text-zinc-600 animate-pulse">
                  Establishing Secure Uplink...

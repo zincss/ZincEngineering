@@ -114,7 +114,8 @@ export default function PlayHub() {
                 href="/play/poker" 
                 className="group md:col-span-4 relative min-h-[360px] rounded-[2.5rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500"
             >
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1605020420620-20c943cc4669?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
+                {/* NEW IMAGE: Dark Poker Cards/Table */}
+                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=2671&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent" />
                 
                 <div className="absolute top-8 left-8">
@@ -122,7 +123,7 @@ export default function PlayHub() {
                 </div>
 
                 <div className="absolute bottom-0 left-0 p-10 w-full">
-                   <h2 className="text-3xl font-black uppercase text-white mb-2 leading-none">Texas<br/>Hold'em</h2>
+                   <h2 className="text-3xl font-black uppercase text-white mb-2 leading-none">Texas<br/>Hold&apos;em</h2>
                    <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest mb-6 group-hover:text-zinc-300 transition-colors">
                      No-Limit Protocol
                    </p>
@@ -158,7 +159,8 @@ export default function PlayHub() {
                 href="/play/stocks" 
                 className="group md:col-span-4 relative h-80 rounded-[2.5rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500"
             >
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1611974765270-ca1258634369?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
+                {/* NEW IMAGE: Dark Financial Charts */}
+                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1642543492481-44e81e3914a7?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-gradient-to-br from-zinc-950/90 to-transparent" />
                 
                 <div className="absolute top-0 left-0 w-full p-8 flex justify-between items-start">

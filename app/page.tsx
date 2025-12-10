@@ -14,7 +14,7 @@ export default function Home() {
       <div className="bg-starfield" />
 
       {/* --- HERO SECTION: SCALED BRANDING --- */}
-      <section className="relative h-[85vh] flex flex-col items-center justify-center border-b border-zinc-800/50 overflow-hidden">
+      <section className="relative min-h-[85vh] flex flex-col items-center justify-center border-b border-zinc-800/50 overflow-hidden py-20">
         
         {/* CINEMATIC BACKGROUND */}
         <div className="absolute inset-0 z-0">
@@ -74,10 +74,10 @@ export default function Home() {
 
         </div>
 
-        {/* SCROLL INDICATOR (Fixed Centering) */}
-        <div className="absolute bottom-8 md:bottom-12 left-0 w-full flex flex-col items-center justify-center gap-2 animate-bounce opacity-50 z-30 pointer-events-none">
-           <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Access Modules</span>
-           <ArrowRight className="rotate-90 text-zinc-500" size={16} />
+        {/* SCROLL INDICATOR (Fixed Centering with Acid Green) */}
+        <div className="absolute bottom-6 md:bottom-12 left-0 w-full flex flex-col items-center justify-center gap-2 animate-bounce opacity-80 z-30 pointer-events-none">
+           <span className="text-[10px] font-mono uppercase tracking-widest text-[#DFFF00]">Access Modules</span>
+           <ArrowRight className="rotate-90 text-[#DFFF00]" size={16} />
         </div>
       </section>
 
@@ -96,35 +96,12 @@ export default function Home() {
             <div className="h-px flex-1 bg-zinc-800" />
         </div>
 
-        {/* THE GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-fr mb-24">
+        {/* THE GRID (3 Columns Equal Width) */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-fr mb-12">
           
-          {/* 1. BLACK MARKET (Wide Featured) */}
-          <Link href="/play/market" className="group md:col-span-8 relative min-h-[320px] rounded-[2.5rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500 hover:shadow-[0_0_50px_rgba(0,0,0,0.5)]">
-             <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1614726365723-49cfae9f0294?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-40 group-hover:opacity-20 grayscale transition-all duration-700 group-hover:scale-105" />
-             <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/60 to-transparent" />
-             
-             {/* Floating Icon */}
-             <div className="absolute top-8 right-8 bg-black/40 backdrop-blur-xl p-4 rounded-2xl border border-white/10 group-hover:border-[#DFFF00] transition-colors">
-                <Package className="text-[#DFFF00]" size={24} />
-             </div>
-
-             <div className="absolute bottom-0 left-0 p-8 md:p-12 w-full max-w-3xl">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="px-3 py-1 rounded-full bg-[#DFFF00] text-black text-[10px] font-black uppercase tracking-widest">
-                     New Arrival
-                  </span>
-                  <span className="text-zinc-500 font-mono text-xs font-bold uppercase tracking-widest">Economy Update</span>
-                </div>
-                <h2 className="text-4xl md:text-6xl font-black uppercase text-white mb-4 italic tracking-tight">Black Market</h2>
-                <p className="text-zinc-400 font-mono text-sm md:text-base leading-relaxed max-w-xl group-hover:text-zinc-200 transition-colors">
-                   Acquire serialized assets, trade commodities, and manage your inventory in the new secure exchange protocol.
-                </p>
-             </div>
-          </Link>
-
-          {/* 2. ARCADE (Tall Square) */}
-          <Link href="/play" className="group md:col-span-4 md:row-span-2 relative min-h-[320px] rounded-[2.5rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500">
+          {/* 1. ARCADE (RESTORED ORIGINAL IMAGE) */}
+          <Link href="/play" className="group md:col-span-4 relative min-h-[320px] rounded-[2.5rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500">
+            {/* ORIGINAL NEON/GUITAR ARCADE IMAGE */}
             <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
             <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/50 to-transparent" />
             
@@ -149,9 +126,10 @@ export default function Home() {
             </div>
           </Link>
 
-          {/* 3. SPORTS (Square Rounded) */}
-          <Link href="/sports" className="group md:col-span-4 relative h-80 rounded-[2.5rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500">
-            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1504285514631-152cb5ee488d?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
+          {/* 2. SPORTS */}
+          <Link href="/sports" className="group md:col-span-4 relative min-h-[320px] rounded-[2.5rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500">
+            {/* STADIUM IMAGE */}
+            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
             <div className="absolute inset-0 bg-zinc-950/30" />
             
             <div className="absolute top-0 left-0 w-full p-8 flex justify-between items-start">
@@ -169,8 +147,8 @@ export default function Home() {
             </div>
           </Link>
 
-          {/* 4. WEATHER & COLLECTIONS (Square Rounded) */}
-          <Link href="/collections" className="group md:col-span-4 relative h-80 rounded-[2.5rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500">
+          {/* 3. WEATHER & COLLECTIONS */}
+          <Link href="/collections" className="group md:col-span-4 relative min-h-[320px] rounded-[2.5rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500">
             <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
             <div className="absolute inset-0 bg-gradient-to-br from-zinc-950/80 to-transparent" />
             
@@ -194,6 +172,43 @@ export default function Home() {
             </div>
           </Link>
 
+        </div>
+
+        {/* SECTION HEADER: BLACK MARKET */}
+        <div className="flex items-center gap-4 mb-10 px-2">
+            <div className="h-px flex-1 bg-zinc-800" />
+            <div className="flex items-center gap-2 bg-zinc-900/50 px-4 py-2 rounded-full border border-zinc-800 backdrop-blur-md">
+                 <Package size={16} className="text-[#DFFF00]" />
+                 <span className="text-xs font-mono font-bold text-zinc-300 uppercase tracking-widest">Underground Exchange</span>
+            </div>
+            <div className="h-px flex-1 bg-zinc-800" />
+        </div>
+
+        {/* BLACK MARKET (Updated Image) */}
+        <div className="mb-24">
+           <Link href="/play/market" className="group relative block w-full min-h-[320px] rounded-[2.5rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500 hover:shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+             {/* CYBERPUNK/MARKET IMAGE */}
+             <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1555680202-c86f0e12f086?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-40 group-hover:opacity-20 grayscale transition-all duration-700 group-hover:scale-105" />
+             <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/60 to-transparent" />
+             
+             {/* Floating Icon */}
+             <div className="absolute top-8 right-8 bg-black/40 backdrop-blur-xl p-4 rounded-2xl border border-white/10 group-hover:border-[#DFFF00] transition-colors">
+                <Package className="text-[#DFFF00]" size={24} />
+             </div>
+
+             <div className="absolute bottom-0 left-0 p-8 md:p-12 w-full max-w-3xl">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="px-3 py-1 rounded-full bg-[#DFFF00] text-black text-[10px] font-black uppercase tracking-widest">
+                     New Arrival
+                  </span>
+                  <span className="text-zinc-500 font-mono text-xs font-bold uppercase tracking-widest">Economy Update</span>
+                </div>
+                <h2 className="text-4xl md:text-6xl font-black uppercase text-white mb-4 italic tracking-tight">Black Market</h2>
+                <p className="text-zinc-400 font-mono text-sm md:text-base leading-relaxed max-w-xl group-hover:text-zinc-200 transition-colors">
+                   Acquire serialized assets, trade commodities, and manage your inventory in the new secure exchange protocol.
+                </p>
+             </div>
+           </Link>
         </div>
 
         {/* SECTION HEADER: PERSONAL LOGS */}
