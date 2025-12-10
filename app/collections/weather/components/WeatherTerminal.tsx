@@ -173,7 +173,7 @@ export default function WeatherTerminal() {
   const [suggestions, setSuggestions] = useState<GeocodingResult[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearchingGeo, setIsSearchingGeo] = useState(false);
-  const [showWarning, setShowWarning] = useState(true); // NEW: State for warning visibility
+  const [showWarning, setShowWarning] = useState(true); 
   
   const [selectedGeo, setSelectedGeo] = useState<GeocodingResult | null>(null);
   const [selectedMode, setSelectedMode] = useState<PersonalityMode>('HOSTILE');
@@ -190,11 +190,18 @@ export default function WeatherTerminal() {
 
   // --- PERSISTENCE ---
   useEffect(() => {
-    const saved = localStorage.getItem('zinc_weather_history');
-    if (saved) {
+    // History Persistence
+    const savedHistory = localStorage.getItem('zinc_weather_history');
+    if (savedHistory) {
       try {
-        setRecentSearches(JSON.parse(saved));
+        setRecentSearches(JSON.parse(savedHistory));
       } catch (e) { console.error("History load error", e); }
+    }
+
+    // Warning Persistence
+    const warningDismissed = localStorage.getItem('zinc_weather_warning_dismissed');
+    if (warningDismissed === 'true') {
+        setShowWarning(false);
     }
   }, []);
 
@@ -209,6 +216,11 @@ export default function WeatherTerminal() {
     const newList = recentSearches.filter(item => item.id !== id);
     setRecentSearches(newList);
     localStorage.setItem('zinc_weather_history', JSON.stringify(newList));
+  };
+
+  const dismissWarning = () => {
+    setShowWarning(false);
+    localStorage.setItem('zinc_weather_warning_dismissed', 'true');
   };
 
   // --- LOGIC: SEARCH ---
@@ -411,7 +423,7 @@ export default function WeatherTerminal() {
              {showWarning && (
                 <div className="relative bg-zinc-900/50 backdrop-blur-xl border border-zinc-800/60 rounded-3xl p-4 md:p-6 mb-6 md:mb-8 flex gap-4 items-start shadow-xl group">
                     <button 
-                        onClick={() => setShowWarning(false)}
+                        onClick={dismissWarning}
                         className="absolute top-2 right-2 p-2 text-zinc-600 hover:text-white transition-colors"
                     >
                         <X size={16} />
@@ -442,7 +454,6 @@ export default function WeatherTerminal() {
                         placeholder="Search location..."
                         className="w-full bg-zinc-900/50 rounded-3xl py-4 md:py-6 pl-12 md:pl-14 pr-16 text-base md:text-xl text-white outline-none focus:bg-zinc-900 transition-colors placeholder:text-zinc-600 font-medium appearance-none touch-manipulation"
                         autoComplete="off"
-                        autoFocus
                         style={{ fontSize: '16px' }} 
                     />
 
