@@ -4,7 +4,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   CloudRain, Wind, Search, Skull, 
   MapPin, Loader2, Smile, Frown, Zap, Baby, Briefcase, RefreshCcw, 
-  Cpu, Droplets, Gauge, Navigation, Calendar, Radio, CloudSnow, CloudLightning, Sun, Crosshair, History, X
+  Cpu, Droplets, Gauge, Navigation, Calendar, Radio, CloudSnow, CloudLightning, Sun, Crosshair, History, X,
+  CloudHail // Added CloudHail for the Header
 } from 'lucide-react';
 
 // Import the massive commentary database
@@ -134,9 +135,9 @@ const WeatherBackground = ({ condition, isDay }: { condition: string, isDay: num
 // --- TYPES ---
 interface WeatherData {
   temp: number;
-  feelsLike: number; // Added
-  minTemp: number;   // Added
-  maxTemp: number;   // Added
+  feelsLike: number;
+  minTemp: number;
+  maxTemp: number;
   condition: string;
   windSpeed: number;
   humidity: number;
@@ -172,6 +173,7 @@ export default function WeatherTerminal() {
   const [suggestions, setSuggestions] = useState<GeocodingResult[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearchingGeo, setIsSearchingGeo] = useState(false);
+  const [showWarning, setShowWarning] = useState(true); // NEW: State for warning visibility
   
   const [selectedGeo, setSelectedGeo] = useState<GeocodingResult | null>(null);
   const [selectedMode, setSelectedMode] = useState<PersonalityMode>('HOSTILE');
@@ -290,7 +292,6 @@ export default function WeatherTerminal() {
   const generateCommentary = (w: WeatherData, mode: PersonalityMode) => {
     let category = 'DEFAULT';
     
-    // Priority Logic for Category Selection
     if (w.condition === 'STORM') category = 'STORM';
     else if (w.condition === 'SNOW') category = 'SNOW';
     else if (w.condition === 'RAINING') category = 'RAIN';
@@ -362,7 +363,6 @@ export default function WeatherTerminal() {
 
   const activePersonality = PERSONALITIES.find(p => p.id === selectedMode) || PERSONALITIES[0];
   
-  // UV Index Color Logic
   const getUvColor = (uv: number) => {
       if (uv <= 2) return 'bg-blue-500';
       if (uv <= 5) return 'bg-yellow-500';
@@ -382,22 +382,51 @@ export default function WeatherTerminal() {
   return (
     <div className="max-w-5xl mx-auto min-h-[500px] flex flex-col" ref={containerRef}>
       
+      {/* --- HEADER (MOVED HERE TO COLLAPSE ON SEARCH) --- */}
+      {step === 'SEARCH' && (
+        <div className="pt-20 pb-8 px-6 border-b border-zinc-800 mb-8 animate-in fade-in slide-in-from-top-4 duration-700">
+            <div className="flex flex-col md:flex-row justify-between items-end gap-6">
+                <div>
+                    <div className="flex items-center gap-2 text-[#DFFF00] font-mono text-[10px] font-black tracking-widest uppercase mb-2">
+                        <span>ATMOSPHERIC_SENSORS</span>
+                        <span className="text-zinc-600">/</span>
+                        <span>PERSONALITY_MATRIX</span>
+                    </div>
+                    <h1 className="text-5xl md:text-8xl font-black uppercase tracking-tighter">
+                        Weather <span className="text-zinc-800 text-stroke-white">Station</span>
+                    </h1>
+                    <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest mt-2 flex items-center gap-2">
+                        <CloudHail size={12} /> Live Environment Analysis
+                    </p>
+                </div>
+            </div>
+        </div>
+      )}
+
       {/* --- STEP 1: SEARCH --- */}
       {step === 'SEARCH' && (
           <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 max-w-2xl mx-auto w-full px-4 md:px-0">
              
-             {/* WARNING CARD */}
-             <div className="bg-zinc-900/50 backdrop-blur-xl border border-zinc-800/60 rounded-3xl p-4 md:p-6 mb-6 md:mb-8 flex gap-4 items-start shadow-xl">
-                 <div className="p-2 md:p-3 bg-red-500/10 rounded-2xl shrink-0">
-                    <Cpu size={20} className="text-red-500" />
-                 </div>
-                 <div>
-                     <h3 className="text-white font-bold text-base md:text-lg mb-1">Personality Warning</h3>
-                     <p className="text-zinc-400 text-xs md:text-sm leading-relaxed">
-                         The weather module's personality function is currently faulty and it may say some obscene and rude things.
-                     </p>
-                 </div>
-             </div>
+             {/* WARNING CARD (NOW DISMISSIBLE) */}
+             {showWarning && (
+                <div className="relative bg-zinc-900/50 backdrop-blur-xl border border-zinc-800/60 rounded-3xl p-4 md:p-6 mb-6 md:mb-8 flex gap-4 items-start shadow-xl group">
+                    <button 
+                        onClick={() => setShowWarning(false)}
+                        className="absolute top-2 right-2 p-2 text-zinc-600 hover:text-white transition-colors"
+                    >
+                        <X size={16} />
+                    </button>
+                    <div className="p-2 md:p-3 bg-red-500/10 rounded-2xl shrink-0">
+                        <Cpu size={20} className="text-red-500" />
+                    </div>
+                    <div>
+                        <h3 className="text-white font-bold text-base md:text-lg mb-1">Personality Warning</h3>
+                        <p className="text-zinc-400 text-xs md:text-sm leading-relaxed pr-6">
+                            The weather module's personality function is currently faulty and it may say some obscene and rude things.
+                        </p>
+                    </div>
+                </div>
+             )}
 
              {/* SEARCH WIDGET */}
              <div className="bg-zinc-950/80 backdrop-blur-lg border border-zinc-800 rounded-[2rem] p-2 shadow-2xl relative z-20 mb-8">
@@ -479,7 +508,7 @@ export default function WeatherTerminal() {
 
       {/* --- STEP 2: RESULT DASHBOARD (UNIFIED CARD) --- */}
       {step === 'RESULT' && (
-          <div className="animate-in zoom-in-95 duration-500">
+          <div className="animate-in zoom-in-95 duration-500 pt-8">
              
              {loading ? (
                  <div className="flex flex-col items-center justify-center py-20 md:py-32">
