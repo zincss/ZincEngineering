@@ -7,6 +7,9 @@ import {
   Cpu, Droplets, Gauge, Navigation, Calendar, Radio, CloudSnow, CloudLightning, Sun, Crosshair, History, X
 } from 'lucide-react';
 
+// Import the massive commentary database
+import { COMMENTARY_DB, PersonalityMode } from '../lib/commentary';
+
 // --- SUB-COMPONENT: ROBUST TYPEWRITER ---
 const Typewriter = ({ text, speed = 30 }: { text: string; speed?: number }) => {
   const [displayLength, setDisplayLength] = useState(0);
@@ -149,8 +152,6 @@ interface GeocodingResult {
   longitude: number;
 }
 
-type PersonalityMode = 'HOSTILE' | 'BABY' | 'DOOMER' | 'PROFESSIONAL' | 'SARCASTIC' | 'GLAZER';
-
 const PERSONALITIES: { id: PersonalityMode; label: string; icon: any; desc: string; color: string; bg: string; border: string; shadow: string }[] = [
   { id: 'HOSTILE', label: 'HOSTILITY', icon: Skull, desc: 'Rude. Blunt. Hurtful.', color: 'text-red-500', bg: 'bg-red-950/10', border: 'border-red-500/20', shadow: 'shadow-red-500/10' },
   { id: 'SARCASTIC', label: 'SASS_MODULE', icon: Zap, desc: 'Passive aggressive.', color: 'text-yellow-400', bg: 'bg-yellow-950/10', border: 'border-yellow-500/20', shadow: 'shadow-yellow-500/10' },
@@ -159,76 +160,6 @@ const PERSONALITIES: { id: PersonalityMode; label: string; icon: any; desc: stri
   { id: 'GLAZER', label: 'SYCOPHANT', icon: Smile, desc: 'Overly complimentary.', color: 'text-[#DFFF00]', bg: 'bg-[#DFFF00]/5', border: 'border-[#DFFF00]/20', shadow: 'shadow-[#DFFF00]/10' },
   { id: 'PROFESSIONAL', label: 'STANDARD', icon: Briefcase, desc: 'Boring. Just the facts.', color: 'text-blue-400', bg: 'bg-blue-950/10', border: 'border-blue-500/20', shadow: 'shadow-blue-500/10' },
 ];
-
-// --- FULL COMMENTARY DATABASE ---
-const COMMENTARY_DB = {
-  HOSTILE: {
-    EXTREME_HEAT: ["IT'S DISGUSTINGLY HOT. STAY INSIDE.", "SURFACE TEMPS ARE LETHAL.", "YOU ARE GOING TO SWEAT. GROSS.", "THE SUN IS COOKING YOU.", "HYDRATE OR DIE.", "IT'S HOTTER THAN SATAN'S ARMPIT OUT THERE.", "DO NOT GO OUTSIDE. YOU WILL MELT.", "YOUR DEODORANT IS NOT STRONG ENOUGH.", "THE AIR IS LAVA.", "SWEAT DETECTED. DISGUSTING."],
-    HEAT: ["IT IS HOT.", "APPLY DEODORANT.", "I HOPE YOUR AC BREAKS.", "STAY INSIDE AND ROT.", "IT'S WARM. UNLIKE YOUR PERSONALITY.", "THE SUN IS OUT. IT HATES YOU.", "YOU MIGHT ACTUALLY HAVE TO SHOWER TODAY.", "WARM ENOUGH TO COMPLAIN.", "UV RAYS TARGETING YOUR FACE.", "UNCOMFORTABLY WARM."],
-    COLD: ["IT IS COLD. WEAKLING.", "TRY SHIVERING.", "COLD AS YOUR DATING LIFE.", "NATURE IS FREEZING YOU.", "HOPE YOU HAVE HEATING.", "WEAR A COAT. NO ONE WANTS TO SEE GOOSEBUMPS.", "DEAL WITH IT.", "TEMPERATURES DROPPING LIKE YOUR STANDARDS.", "A BIT NIPPY.", "COLD AIR DETECTED."],
-    FREEZING: ["HYPOTHERMIA IMMINENT.", "ABSOLUTELY FREEZING.", "FROSTBITE RISK.", "THE AIR HURTS.", "GLACIERS MOVE FASTER THAN YOU.", "YOUR FACE WILL GO NUMB. GOOD.", "STUPIDLY COLD.", "NOT EVOLVED FOR THIS.", "ICE EVERYWHERE. DON'T SLIP.", "FREEZING. LITERALLY."],
-    RAIN: ["SKY IS WEEPING.", "YOU WILL GET WET.", "HAIR RUINED.", "TRY NOT TO DROWN.", "CLOUDS LEAKING.", "WET DOG SMELL IMMINENT.", "NATURE IS SPITTING ON YOU.", "GO JUMP IN A LAKE.", "HYDROLOGICAL EVENT IN PROGRESS.", "EVERYTHING IS DAMP."],
-    STORM: ["THUNDERSTORMS.", "SKY IS ANGRY.", "ELECTRICAL STORMS.", "CHAOS DETECTED.", "SEEK SHELTER.", "LOUD NOISES. GOOD LUCK.", "THE SKY IS SCREAMING.", "TRY NOT TO BLOW AWAY.", "LIGHTNING STRIKES. HOPE IT HAS GOOD AIM.", "PANIC ACCORDINGLY."],
-    SNOW: ["FROZEN WATER FALLING.", "DRIVE CAREFULLY.", "WHITE AND COLD.", "BURIED IN SNOW.", "DON'T SLIP.", "THE SKY IS DANDRUFF.", "FROZEN WASTELAND.", "DO NOT BUILD A SNOWMAN.", "TRAFFIC NIGHTMARE.", "ICE ICE BABY. NO."],
-    NICE: ["ACTUALLY PLEASANT.", "WEATHER IS NICE. YOU ARE NOT.", "OPTIMAL CONDITIONS.", "BEAUTIFUL DAY.", "SUNNY AND MILD.", "THE WEATHER IS FINE. YOU ARE NOT.", "ENJOY THE SUN BEFORE IT EXPLODES.", "SUSPICIOUSLY NICE.", "PERFECT WEATHER. I HATE IT.", "GO OUTSIDE. LEAVE ME ALONE."],
-    DEFAULT: ["MEDIOCRE WEATHER.", "BORING.", "GO AWAY.", "MEH.", "WHY ARE YOU HERE?", "IT IS WEATHER. CONGRATULATIONS.", "DATA LOADED. LEAVE.", "SYSTEM FUNCTIONAL. USER QUESTIONABLE.", "STATUS: EXISTING.", "I AM BORED OF YOU."]
-  },
-  SARCASTIC: {
-    EXTREME_HEAT: ["Boiling. Groundbreaking.", "Human soup time.", "Sun is screaming.", "Great day to be a lizard.", "Global warming says hi.", "Try not to melt.", "Hot. Your insights are amazing.", "AC is a privilege.", "Sweating processing this.", "Heatwave. Yay."],
-    HEAT: ["Wow, warm.", "Sweat imminent.", "Hot. Groundbreaking.", "Don't melt.", "Fan sales up.", "It's warm. Have a medal.", "Sun's out. Guns away.", "Toastier than a toaster.", "Lukewarm. Disappointing.", "High temps. High disappointment."],
-    COLD: ["Chilly. Layers?", "Cold. Complain away.", "Shivering is a hobby.", "A bit nippy.", "Cooler than you.", "Put on a jumper.", "Brisk. Like my attitude.", "Freezing bad ideas.", "Nature's braille.", "Winter is coming. Whatever."],
-    FREEZING: ["Why do we live here?", "Face hurts.", "Elsa called.", "Zero interest.", "Set PC on fire?", "Can't feel sensors.", "Frozen assets.", "Ice age imminent.", "Stupidly cold.", "Polar bears love it."],
-    RAIN: ["Water falling.", "Oh no, rain.", "Moist.", "Nature spitting.", "Great hair day.", "Umbrella sales up.", "Raining men? No.", "Free hydro-therapy.", "Clouds crying about you.", "Drip drop."],
-    STORM: ["Loud noises.", "Sky tantrum.", "Zeus is mad.", "Drama weather.", "Cancel plans.", "Thunderbolts and lightning.", "Boom.", "Free electricity.", "Storm mode.", "Chaos moderate."],
-    SNOW: ["Snowflakes.", "Traffic stupid.", "White stuff.", "Frozen wasteland.", "No snowman.", "Snow. Groundbreaking.", "Cold powder.", "Slush incoming.", "Act surprised.", "Ice to meet you."],
-    NICE: ["It's fine.", "Suspiciously nice.", "Perfect. Too bad.", "Sunny. Don't look.", "Goldilocks weather.", "Pleasant. Dull.", "Birds singing. Stop them.", "Nice day for someone else.", "Optimal. I guess.", "Enjoy it while it lasts."],
-    DEFAULT: ["Weather exists.", "Status: happening.", "Look outside.", "Bored.", "It is what it is.", "Grey. Beige. Meh.", "Status: Average.", "Nothing to report.", "It's a day.", "Loaded successfully."]
-  },
-  BABY: {
-    EXTREME_HEAT: ["Mr. Sun is ANGRY!", "Ouchie hot!", "Don't touch!", "Melty!", "Fire ball sky!", "Super duper hot!", "Burning!", "Sun shouting!", "Too hot for teddy!", "Hot potato!"],
-    HEAT: ["Warm hug!", "Sweaty Betty!", "Big smile sun!", "Sticky!", "Warm fuzzies!", "Toasty roasty!", "Like toast!", "Sunny smile!", "Sticky sticky!", "Shorts yay!"],
-    COLD: ["Brrr!", "Nippy!", "Cold nose!", "Sweater time!", "Snuggle time!", "Chilly beans!", "Cold fingers!", "Zip up coat!", "Shiver shiver!", "Cool cool cool!"],
-    FREEZING: ["Ice pop!", "Super cold!", "Teeth chatter!", "Jack Frost!", "Blankie fort!", "Frozen frozen!", "Ice cube!", "Don't lick pole!", "Brrrrrrrrr!", "Too cold!"],
-    RAIN: ["Splish splash!", "Raindrops!", "Puddle jump!", "Wet!", "Crying clouds!", "Rain go away!", "Umbrella time!", "Drip drop!", "Wet socks!", "Water party!"],
-    STORM: ["Boom boom!", "Flashy lights!", "Rumble!", "Stormy!", "Tantrum!", "Crash bang!", "Noisy sky!", "Scary monsters!", "Lightning zap!", "Be brave!"],
-    SNOW: ["Snowman!", "Fluffy!", "Sledding!", "Marshmallow world!", "Cold sprinkles!", "Snowball fight!", "Snow angels!", "Crunchy!", "White world!", "Cold nose!"],
-    NICE: ["Yay!", "Park time!", "Sunny bunny!", "Smiley!", "Gold star!", "Happy day!", "Flower power!", "Birds singing!", "Best day!", "Fun in sun!"],
-    DEFAULT: ["Doo doo doo!", "Silly weather!", "Look outside!", "Floaty clouds!", "Hi friend!", "Boring woring!", "Just okay!", "Cloudy rowdy!", "Normal formal!", "Hello world!"]
-  },
-  DOOMER: {
-    EXTREME_HEAT: ["Boiling planet.", "The end.", "Sun expanding.", "No return.", "Sweat is tears.", "Hell on earth.", "No escape.", "Broke the sky.", "Cooking alive.", "Apocalypse now."],
-    HEAT: ["Uncomfortably warm.", "Dystopia.", "Ice melting.", "Entropy.", "Preview of hell.", "Suffering.", "Thick regret.", "Warmth temporary.", "It burns.", "Global warming."],
-    COLD: ["Absolute zero.", "Cold void.", "Spasm of life.", "Empty.", "Winter eternal.", "Entropy wins.", "Cold bones.", "Fading heat.", "Sun dying.", "Grave chill."],
-    FREEZING: ["Unsustainable.", "Frozen tomb.", "Cold bite.", "Numbness.", "Everything stops.", "Frozen solid.", "No hope.", "Preserved in frost.", "Endless winter.", "Zero Kelvin."],
-    RAIN: ["Acid rain.", "Sky weeps.", "Grey.", "Drowning.", "Unjust.", "Tears of world.", "Washing nothing.", "Mud and misery.", "Wet and cold.", "Floods coming."],
-    STORM: ["Destruction.", "Wash it away.", "Chaos.", "Wrath.", "Thunder drowns thought.", "Powerless.", "Collapse imminent.", "Violent end.", "Dark skies.", "Earth rage."],
-    SNOW: ["White blanket.", "Cold ash.", "Silence.", "Deadly.", "Futile.", "White death.", "Buried alive.", "Cold silence.", "Frozen tears.", "Nuclear winter."],
-    NICE: ["Fleeting.", "Won't last.", "False hope.", "Calm before end.", "Sun explodes.", "Meaningless comfort.", "Temporary reprieve.", "It's a trap.", "Distraction.", "Sunlight hurts."],
-    DEFAULT: ["Time passes.", "Void approaches.", "Irrelevant.", "Does it matter?", "Existing.", "Grey noise.", "Static.", "Nothing.", "Void.", "Null."]
-  },
-  GLAZER: {
-    EXTREME_HEAT: ["Hotter than you!", "Bright like you!", "Roasting but fresh!", "Glow up!", "Hot legend!", "High potential!", "On fire!", "Sizzling superstar!", "Max heat!", "Sun is a fan!"],
-    HEAT: ["Warm vibes!", "Summer energy!", "Stock rising!", "Beautiful genius!", "Perfect combo!", "Radiating success!", "Warm and winning!", "Golden hour!", "Shining bright!", "Heat check passed!"],
-    COLD: ["Crisp style!", "Fire fit!", "Coolest person!", "Look good!", "Stay frosty!", "Hot streak!", "Fresh mind!", "Cool breeze!", "Chilling!", "Crisp!"],
-    FREEZING: ["Melting hearts!", "Can't stop grind!", "Bringing heat!", "Ice legend!", "Massive wins!", "Ice cold veins!", "Breezing through!", "Snow king!", "Absolute hero!", "Frosty fabulous!"],
-    RAIN: ["Immaculate vibes!", "Make a splash!", "Liquid sunshine!", "Don't stop!", "Blessings!", "Drip check passed!", "Confetti rain!", "Stronger!", "Wash haters!", "Flow state!"],
-    STORM: ["Power energy!", "Applause!", "Electric!", "Striking!", "Beast mode!", "Level 9000!", "Electrifying!", "Boom!", "Dream chaser!", "High energy!"],
-    SNOW: ["Ice veins!", "Winter soldier!", "Canvas!", "Fresh powder!", "Winning!", "Snow globe!", "Magical person!", "White gold!", "Frosty fresh!", "Chill vibes!"],
-    NICE: ["Perfect human!", "10/10 day!", "God tier!", "Blue ocean!", "Winning today!", "Paradise!", "Living dream!", "Top tier!", "Blessed!", "Champion!"],
-    DEFAULT: ["Killing it!", "Looking good!", "Dominate!", "Atmosphere set!", "Big W!", "Keep shining!", "Boss moves!", "Unstoppable!", "Legendary!", "Go get 'em!"]
-  },
-  PROFESSIONAL: {
-    EXTREME_HEAT: ["Heat advisory.", "Safety thresholds.", "Solar radiation.", "Hazard.", "Alert.", "Thermal Danger.", "High heat index.", "Critical temp.", "Extreme UV.", "Heat stroke risk."],
-    HEAT: ["Above average.", "Warm front.", "Cooling advised.", "Warm index.", "Warm.", "Temperature High.", "Conditions Warm.", "Heat elevated.", "Summer conditions.", "Warmth detected."],
-    COLD: ["Sub-optimal.", "Temps falling.", "Cool.", "Low temp.", "Cold.", "Temperature Low.", "Conditions Chilly.", "Thermal drop.", "Cooler air.", "Low mercury."],
-    FREEZING: ["Freezing point.", "Hazardous.", "Cryogenic.", "Frost warning.", "Critical.", "Ice hazard.", "Sub-zero.", "Freezing.", "Thermal failure.", "Frostbite warning."],
-    RAIN: ["Precipitation.", "Liquid water.", "Rainfall.", "Humidity 100%.", "Raining.", "Precipitation Active.", "Wet conditions.", "Rainfall Moderate.", "Moisture High.", "Falling water."],
-    STORM: ["Severe alert.", "Pressure drop.", "Thunderstorm.", "High wind.", "Turbulent.", "Storm front.", "Electrical hazard.", "Severe weather.", "Gale warning.", "Unstable."],
-    SNOW: ["Solid precip.", "Snowfall.", "Crystalline.", "Winter.", "Snowing.", "Accumulation.", "Ice crystals.", "Visibility Low.", "Road hazard.", "Winter event."],
-    NICE: ["Nominal.", "Optimal.", "Good visibility.", "Favorable.", "Standard.", "Conditions Clear.", "Status Green.", "Atmosphere Stable.", "Optimal range.", "Nominal."],
-    DEFAULT: ["Sensors active.", "Stable.", "Metrics.", "Nominal.", "Updated.", "Scan complete.", "Data logged.", "Status Online.", "Monitoring.", "Awaiting input."]
-  }
-};
 
 export default function WeatherTerminal() {
   // --- STATE ---
@@ -348,13 +279,15 @@ export default function WeatherTerminal() {
   };
 
   // --- LOGIC: WEATHER & PERSONALITY ---
-  const getRandomLine = (mode: PersonalityMode, category: keyof typeof COMMENTARY_DB['HOSTILE']) => {
-    const lines = COMMENTARY_DB[mode][category];
+  const getRandomLine = (mode: PersonalityMode, category: string) => {
+    const lines = COMMENTARY_DB[mode][category] || COMMENTARY_DB[mode]['DEFAULT'];
     return lines[Math.floor(Math.random() * lines.length)];
   };
 
   const generateCommentary = (w: WeatherData, mode: PersonalityMode) => {
-    let category: keyof typeof COMMENTARY_DB['HOSTILE'] = 'DEFAULT';
+    let category = 'DEFAULT';
+    
+    // Priority Logic for Category Selection
     if (w.condition === 'STORM') category = 'STORM';
     else if (w.condition === 'SNOW') category = 'SNOW';
     else if (w.condition === 'RAINING') category = 'RAIN';
@@ -363,6 +296,7 @@ export default function WeatherTerminal() {
     else if (w.temp < 0) category = 'FREEZING';
     else if (w.temp < 10) category = 'COLD';
     else if (w.temp >= 18 && w.temp <= 25) category = 'NICE';
+    
     return getRandomLine(mode, category);
   };
 
