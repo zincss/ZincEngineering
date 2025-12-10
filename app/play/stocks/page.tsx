@@ -3,7 +3,17 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { getMarketStatus, getPortfolio, buyStock, sellStock } from './actions';
 import BackButton from '@/app/components/BackButton';
-import { TrendingUp, TrendingDown, RefreshCw, Activity, Wallet, PieChart, ArrowRight, BarChart3 } from 'lucide-react';
+import { 
+  TrendingUp, 
+  TrendingDown, 
+  RefreshCw, 
+  Activity, 
+  Wallet, 
+  PieChart, 
+  ArrowRight, 
+  BarChart3,
+  Briefcase // Added this missing import
+} from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import { Category } from './data';
 
