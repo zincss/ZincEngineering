@@ -22,6 +22,7 @@ export const createDeck = (): Card[] => {
 };
 
 // --- HAND EVALUATION ---
+// Returns a numeric score to rank hands against each other
 export const evaluateHand = (holeCards: Card[], communityCards: Card[]): { type: string, score: number, name: string, winningCards: Card[] } => {
   const allCards = [...holeCards, ...communityCards].sort((a, b) => b.value - a.value);
   
@@ -125,117 +126,167 @@ export const evaluateHand = (holeCards: Card[], communityCards: Card[]): { type:
   return { type: 'HIGH_CARD', score: allCards[0].value, name: 'High Card', winningCards: allCards.slice(0, 5) };
 };
 
-// --- IMPROVED AI BRAIN ---
+// --- HELPER: DETECT DRAWS (Improves AI "Smartness") ---
+// Checks if we have 4 cards to a flush or open straight
+const getDrawStrength = (hand: Card[], community: Card[]): number => {
+    if (community.length === 0) return 0;
+    const all = [...hand, ...community];
+    
+    // Flush Draw (4 same suit)
+    const suits = { H: 0, D: 0, C: 0, S: 0 };
+    all.forEach(c => suits[c.suit]++);
+    const hasFlushDraw = Object.values(suits).some(count => count === 4);
+
+    // Straight Draw (simplified: 4 unique values in a 5-range)
+    // This is computationally lighter than a full straight check but decent for AI approximation
+    const vals = Array.from(new Set(all.map(c => c.value))).sort((a,b) => a-b);
+    let hasStraightDraw = false;
+    for(let i=0; i<vals.length-3; i++) {
+        if(vals[i+3] - vals[i] <= 4) hasStraightDraw = true;
+    }
+
+    let strength = 0;
+    if (hasFlushDraw) strength += 0.25; // Roughly 20-35% equity
+    if (hasStraightDraw) strength += 0.15; // Roughly 15-30% equity
+    return strength;
+};
+
+// --- HUMANIZED AI BRAIN ---
 export const getAIDecision = (
   difficulty: 'ROOKIE' | 'PRO' | 'ELITE', 
   hand: Card[], 
   community: Card[], 
   currentBet: number, 
   botCurrentBet: number,
-  isPreFlop: boolean
+  isPreFlop: boolean,
+  blind: number,
+  potSize: number, // NEW: Needed for Pot Odds
+  botChips: number // NEW: Needed for Stack Commitment
 ): 'FOLD' | 'CALL' | 'RAISE' | 'CHECK' => {
   
-  const costToCall = currentBet - botCurrentBet;
-  const handStrength = evaluateHand(hand, community);
-  const score = handStrength.score;
-  const random = Math.random();
+  const callCost = currentBet - botCurrentBet;
+  const totalPotAfterCall = potSize + callCost;
   
-  // Basic Hand Analysis
-  const isPair = hand[0].value === hand[1].value;
-  const isSuited = hand[0].suit === hand[1].suit;
-  const highCard = Math.max(hand[0].value, hand[1].value);
-  const lowCard = Math.min(hand[0].value, hand[1].value);
-  const isConnected = highCard - lowCard === 1;
+  // 1. CALCULATE POT ODDS (The "Price" of the call)
+  // 0.1 means we only need 10% equity to call. 0.8 means we need 80%.
+  // If callCost is 0, odds are 0 (free card).
+  const potOdds = totalPotAfterCall > 0 ? callCost / totalPotAfterCall : 0;
 
-  // --- ROOKIE AI ---
-  // Loose-Passive. Calls too much. Rarely raises unless monster. Folds only garbage.
+  // 2. ASSESS HAND EQUITY (0.0 - 1.0)
+  // We approximate win chance based on score tier
+  const result = evaluateHand(hand, community);
+  const score = result.score;
+  let estimatedEquity = 0.0;
+
+  if (score > 8000000) estimatedEquity = 0.99; // Straight Flush
+  else if (score > 7000000) estimatedEquity = 0.95; // Quads
+  else if (score > 6000000) estimatedEquity = 0.85; // Full House
+  else if (score > 5000000) estimatedEquity = 0.80; // Flush
+  else if (score > 4000000) estimatedEquity = 0.70; // Straight
+  else if (score > 3000000) estimatedEquity = 0.60; // Trips
+  else if (score > 2000000) estimatedEquity = 0.50; // Two Pair
+  else if (score > 1000000) estimatedEquity = 0.35; // One Pair (varies wildly, avg 35-50)
+  else estimatedEquity = 0.10; // High Card
+
+  // Adjust Pre-Flop Equity specifically
+  if (isPreFlop) {
+      const v1 = hand[0].value;
+      const v2 = hand[1].value;
+      const high = Math.max(v1, v2);
+      const isPair = v1 === v2;
+      const isSuited = hand[0].suit === hand[1].suit;
+
+      // Tiered Preflop Strength
+      if (isPair) {
+          if (high >= 10) estimatedEquity = 0.8; // TT+ (Monster)
+          else estimatedEquity = 0.6; // 22-99 (Decent)
+      } else if (high >= 12 && v2 >= 10) {
+          estimatedEquity = 0.55; // AJ+ (Strong)
+      } else if (isSuited && high >= 10) {
+          estimatedEquity = 0.45; // Speculative
+      } else {
+          estimatedEquity = 0.15; // Trash
+      }
+  } else {
+      // Add Draw Potential Post-Flop
+      estimatedEquity += getDrawStrength(hand, community);
+  }
+
+  // 3. ADD "HUMAN NOISE" (Fuzziness)
+  // This prevents robots from always folding 49% and calling 50%.
+  // ELITE has less noise (more precise), ROOKIE has high noise.
+  const noiseFactor = difficulty === 'ROOKIE' ? 0.20 : difficulty === 'PRO' ? 0.10 : 0.05;
+  const humanEquity = estimatedEquity + (Math.random() * noiseFactor * 2 - noiseFactor); // +/- noise
+
+  // 4. DETERMINE VALUE RATIO
+  // Ratio > 1.0 means Positive Expected Value (+EV)
+  // If Pot Odds are 0 (Check), Ratio is Infinity (Always check unless bluffing)
+  const valueRatio = potOdds > 0 ? humanEquity / potOdds : 999;
+
+  // 5. SAFETY VALVES (Prevent Infinite Loops)
+  // If we are already deep in the pot (e.g. 50% of stack committed) or bet is huge
+  const isCommitted = (callCost / botChips) > 0.4; 
+  const isMonster = score > 3000000 || (isPreFlop && hand[0].value === hand[1].value && hand[0].value >= 12); // Trips+ or QQ+
+  
+  // --- DECISION LOGIC BY PERSONALITY ---
+
   if (difficulty === 'ROOKIE') {
-      if (costToCall === 0) return 'CHECK';
+      // Volatile. Chases draws too much.
+      if (potOdds === 0) return 'CHECK';
       
-      if (isPreFlop) {
-          // Calls almost any face card or pair
-          if (highCard >= 10 || isPair || isSuited) return 'CALL';
-          // Randomly calls with trash 30% of time
-          return random > 0.7 ? 'CALL' : 'FOLD';
-      } else {
-          // Post-flop: Calls with any pair or draw
-          if (score >= 1000000) return 'CALL'; // Pair or better
-          // Chase any flush/straight draw (naive check: just random call frequency)
-          if (random > 0.6) return 'CALL'; 
-          return 'FOLD';
-      }
+      // Calls if ratio is barely okay, or just feels lucky (random 15%)
+      if (valueRatio > 0.8 || Math.random() < 0.15) return 'CALL';
+      return 'FOLD';
   }
 
-  // --- PRO AI ---
-  // Tight-Aggressive (TAG). Folds weak hands. Raises strong hands. Value bets.
   if (difficulty === 'PRO') {
-      if (isPreFlop) {
-          // Raise Pairs 10+, AK, AQ
-          if (isPair && highCard >= 10) return 'RAISE';
-          if (highCard === 14 && lowCard >= 12) return 'RAISE';
-          
-          // Call Small Pairs, Suited Connectors, High Cards
-          if (isPair) return 'CALL';
-          if (isSuited && isConnected) return 'CALL';
-          if (highCard >= 12) return 'CALL';
+      // Solid Math.
+      if (potOdds === 0) return 'CHECK';
 
-          if (costToCall === 0) return 'CHECK';
-          return 'FOLD';
-      } else {
-          // Post-Flop
-          if (score >= 3000000) return 'RAISE'; // Trips or better
-          if (score >= 2000000) return 'RAISE'; // Two Pair (Aggressive)
-          if (score >= 1000000) {
-              // Top Pair check (approximate)
-              if (handStrength.winningCards[0].value >= 12) return 'RAISE';
-              return 'CALL';
-          }
-          
-          if (costToCall === 0) return 'CHECK';
-          return 'FOLD';
-      }
+      // Raise Value: Strong +EV and not just trying to trap
+      if (valueRatio > 2.0 && !isCommitted) return 'RAISE';
+      
+      // Call Value: Decent +EV
+      if (valueRatio > 1.0) return 'CALL';
+      
+      return 'FOLD';
   }
 
-  // --- ELITE AI ---
-  // Loose-Aggressive / Balanced (LAG). Mixes it up. Bluffs. Defends blinds.
   if (difficulty === 'ELITE') {
-    // Bluff chance
-    const bluff = random < 0.15; 
+      // Aggressive but Smart.
+      const bluffChance = 0.15; 
+      
+      // Prevent infinite raising wars:
+      // If the bet is already high relative to stack, just CALL unless we have the absolute nuts.
+      const isHighStakes = currentBet > (blind * 10);
+      
+      if (potOdds === 0) {
+          // Check-Raise Bluff Opportunity
+          if (Math.random() < bluffChance) return 'RAISE';
+          return 'CHECK';
+      }
 
-    if (isPreFlop) {
-        // Aggressive Raising
-        if (isPair || (highCard >= 13) || (isSuited && highCard >= 10)) return 'RAISE';
-        
-        // Defend wide
-        if (highCard >= 10 || isConnected || isSuited) return 'CALL';
-        
-        // 3-bet bluff light
-        if (bluff && costToCall > 0) return 'RAISE';
+      // If we have a monster, mix up calling and raising (trapping)
+      if (isMonster) {
+          // If stakes are already high, just call to keep them in.
+          if (isHighStakes) return 'CALL';
+          return Math.random() > 0.3 ? 'RAISE' : 'CALL';
+      }
 
-        if (costToCall === 0) return 'CHECK';
-        return 'FOLD';
-    } else {
-        // Monster: Slow play or Fast play mixed
-        if (score >= 4000000) { // Straight or better
-             return random > 0.7 ? 'CALL' : 'RAISE'; // Trapping 30% of time
-        }
+      // Strong Hand
+      if (valueRatio > 1.3) {
+          // If committed or high stakes, just call (stop re-raising loops)
+          if (isCommitted || isHighStakes) return 'CALL';
+          return 'RAISE';
+      }
 
-        // Strong Value
-        if (score >= 2000000) return 'RAISE'; 
+      // Marginal / Draw Hand
+      if (valueRatio > 0.95) return 'CALL';
 
-        // Marginal / Draws
-        if (score >= 1000000) return 'CALL'; // Pair
-        
-        // Bluff at pot if checked to
-        if (costToCall === 0 && bluff) return 'RAISE';
+      // Bluff Raise (Only if not expensive)
+      if (potOdds < 0.3 && Math.random() < bluffChance) return 'RAISE';
 
-        if (costToCall === 0) return 'CHECK';
-        
-        // Float occasionally
-        if (random > 0.8 && highCard >= 13) return 'CALL';
-
-        return 'FOLD';
-    }
+      return 'FOLD';
   }
 
   return 'CHECK';

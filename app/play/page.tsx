@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Brain, 
@@ -12,11 +12,35 @@ import {
   Package, 
   TrendingUp, 
   Activity,
-  ArrowRight
+  ArrowRight,
+  Info,
+  X,
+  LogIn,
+  Flame
 } from 'lucide-react';
 import BackButton from '../components/BackButton';
+import { useAuth } from '../context/AuthContext';
 
 export default function PlayHub() {
+  const { user, loading } = useAuth();
+  const [showInfoModal, setShowInfoModal] = useState(false);
+
+  useEffect(() => {
+    // Show modal if not loading and no user found
+    // Uses sessionStorage to prevent spamming the user if they've already closed it this session
+    if (!loading && !user) {
+      const hasSeenIntro = sessionStorage.getItem('zinc_play_intro_seen');
+      if (!hasSeenIntro) {
+        setShowInfoModal(true);
+      }
+    }
+  }, [loading, user]);
+
+  const closeInfoModal = () => {
+    setShowInfoModal(false);
+    sessionStorage.setItem('zinc_play_intro_seen', 'true');
+  };
+
   return (
     <main className="min-h-screen bg-zinc-950 text-white selection:bg-[#DFFF00] selection:text-black pb-20 relative overflow-x-hidden">
       
@@ -25,6 +49,90 @@ export default function PlayHub() {
 
       {/* GLOBAL BACK BUTTON */}
       <BackButton href="/" label="MAIN TERMINAL" />
+
+      {/* --- NOT AUTHENTICATED POPUP MODAL --- */}
+      {showInfoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-500"
+            onClick={closeInfoModal}
+          />
+          
+          {/* Modal Content */}
+          <div className="relative bg-zinc-900 border border-[#DFFF00]/30 rounded-3xl p-8 max-w-lg w-full shadow-[0_0_50px_rgba(223,255,0,0.1)] animate-in zoom-in-95 slide-in-from-bottom-4 duration-500">
+            
+            {/* Close Button */}
+            <button 
+              onClick={closeInfoModal}
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-zinc-800 text-zinc-500 hover:text-white transition-colors"
+            >
+              <X size={20} />
+            </button>
+
+            {/* Icon Header */}
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 bg-[#DFFF00]/10 rounded-full border border-[#DFFF00]/20">
+                <Info className="text-[#DFFF00]" size={24} />
+              </div>
+              <div>
+                <h3 className="text-xl font-black uppercase tracking-tight text-white">
+                  Ecosystem Access
+                </h3>
+                <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+                  Guest Mode Detected
+                </p>
+              </div>
+            </div>
+
+            {/* Content Body */}
+            <div className="space-y-4 font-mono text-sm text-zinc-400 leading-relaxed border-t border-b border-zinc-800 py-6 mb-6">
+              <p>
+                <strong className="text-white">Welcome to the Zinc Arcade.</strong> 
+              </p>
+              <p>
+                This platform is designed to work with our proprietary <span className="text-[#DFFF00]">currency system</span>. 
+                Signing in unlocks the full persistence ecosystem, including:
+              </p>
+              <ul className="grid grid-cols-2 gap-2 mt-2">
+                <li className="flex items-center gap-2 text-xs text-zinc-300">
+                  <span className="w-1 h-1 bg-[#DFFF00] rounded-full" /> Pack Openings
+                </li>
+                <li className="flex items-center gap-2 text-xs text-zinc-300">
+                  <span className="w-1 h-1 bg-[#DFFF00] rounded-full" /> Zinc Exchange
+                </li>
+                <li className="flex items-center gap-2 text-xs text-zinc-300">
+                  <span className="w-1 h-1 bg-[#DFFF00] rounded-full" /> Persistent Profiles
+                </li>
+                <li className="flex items-center gap-2 text-xs text-zinc-300">
+                  <span className="w-1 h-1 bg-[#DFFF00] rounded-full" /> Global Stat Tracking
+                </li>
+              </ul>
+              <p className="text-xs italic opacity-70 mt-2">
+                ...and more modules currently in development.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Link 
+                href="/login"
+                className="flex-1 flex items-center justify-center gap-2 bg-[#DFFF00] hover:bg-[#cce600] text-black font-bold py-3 px-4 rounded-xl transition-all uppercase text-xs tracking-widest"
+              >
+                <LogIn size={16} />
+                Initialize Session
+              </Link>
+              <button 
+                onClick={closeInfoModal}
+                className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 px-4 rounded-xl transition-all uppercase text-xs tracking-widest border border-zinc-700"
+              >
+                Continue as Guest
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* --- HEADER SECTION --- */}
       <section className="relative pt-32 pb-12 px-6 border-b border-zinc-800/50">
@@ -83,49 +191,62 @@ export default function PlayHub() {
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-fr">
             
-            {/* 1. BLACKJACK (FEATURED - WIDE) */}
+            {/* 1. TEXAS HOLD'EM (FEATURED - WIDE) - NOW WITH VIDEO */}
             <Link 
-                href="/play/blackjack" 
+                href="/play/poker" 
                 className="group md:col-span-8 relative min-h-[360px] rounded-[2.5rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500 hover:shadow-[0_0_50px_rgba(0,0,0,0.5)]"
             >
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1511193311914-0346f16efe90?q=80&w=2674&auto=format&fit=crop')] bg-cover bg-center opacity-40 group-hover:opacity-20 grayscale transition-all duration-700 group-hover:scale-105" />
+                {/* VIDEO BACKGROUND */}
+                <div className="absolute inset-0 overflow-hidden">
+                   <video 
+                     autoPlay 
+                     loop 
+                     muted 
+                     playsInline 
+                     className="w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity duration-700 group-hover:scale-105"
+                   >
+                      {/* IMPORTANT: You must download the video from Pexels and place it in your public folder.
+                          Recommended path: public/videos/casino-bg.mp4 
+                      */}
+                      <source src="/videos/casino-bg.mp4" type="video/mp4" />
+                   </video>
+                </div>
+
                 <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/80 to-transparent" />
 
-                {/* Floating Icon */}
                 <div className="absolute top-8 right-8 bg-black/40 backdrop-blur-xl p-4 rounded-2xl border border-white/10 group-hover:border-[#DFFF00] transition-colors">
-                    <Spade className="text-[#DFFF00]" size={24} />
+                    <Trophy className="text-[#DFFF00]" size={24} />
                 </div>
 
                 <div className="absolute bottom-0 left-0 p-8 md:p-12 w-full max-w-2xl">
                     <div className="flex items-center gap-3 mb-4">
                        <span className="px-3 py-1 rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700 text-[10px] font-black uppercase tracking-widest group-hover:bg-[#DFFF00] group-hover:text-black group-hover:border-[#DFFF00] transition-colors">
-                          High Stakes
+                          Elite Stakes
                        </span>
                     </div>
-                    <h2 className="text-4xl md:text-5xl font-black uppercase text-white mb-4 italic tracking-tight">Tactical Blackjack</h2>
+                    <h2 className="text-4xl md:text-5xl font-black uppercase text-white mb-4 italic tracking-tight">Texas Hold&apos;em</h2>
                     <p className="text-zinc-400 font-mono text-sm leading-relaxed group-hover:text-zinc-200 transition-colors">
-                        High-stakes probability simulation. Wager credits against the house algorithm in a secure environment.
+                        No-Limit Protocol. Compete against neural network agents in a high-stakes environment.
                     </p>
                 </div>
             </Link>
 
-            {/* 2. POKER (TALL) */}
+            {/* 2. BLACKJACK (STANDARD) */}
             <Link 
-                href="/play/poker" 
+                href="/play/blackjack" 
                 className="group md:col-span-4 relative min-h-[360px] rounded-[2.5rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500"
             >
-                {/* NEW IMAGE: Dark Poker Cards/Table */}
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=2671&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
+                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1511193311914-0346f16efe90?q=80&w=2674&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent" />
                 
                 <div className="absolute top-8 left-8">
-                   <Trophy size={32} className="text-zinc-700 group-hover:text-[#DFFF00] transition-colors duration-500" />
+                   <Spade size={32} className="text-zinc-700 group-hover:text-[#DFFF00] transition-colors duration-500" />
                 </div>
 
                 <div className="absolute bottom-0 left-0 p-10 w-full">
-                   <h2 className="text-3xl font-black uppercase text-white mb-2 leading-none">Texas<br/>Hold&apos;em</h2>
+                   <h2 className="text-3xl font-black uppercase text-white mb-2 leading-none">Tactical<br/>Blackjack</h2>
                    <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest mb-6 group-hover:text-zinc-300 transition-colors">
-                     No-Limit Protocol
+                     Probability Sim
                    </p>
                    
                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500 group-hover:text-[#DFFF00] transition-colors">
@@ -134,7 +255,30 @@ export default function PlayHub() {
                 </div>
             </Link>
 
-            {/* 3. TRIVIA (SQUARE) */}
+            {/* 3. HOTSEAT (UPDATED IMAGE) */}
+            <Link 
+                href="/play/hotseat" 
+                className="group md:col-span-4 relative h-80 rounded-[2.5rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500"
+            >
+                {/* Updated Background: Paper taped on wall */}
+                <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/3826581/pexels-photo-3826581.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1')] bg-cover bg-center opacity-30 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
+                <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/50 to-transparent" />
+                
+                <div className="absolute top-0 left-0 w-full p-8 flex justify-between items-start">
+                   <div className="bg-red-500/10 p-2 rounded-xl border border-red-500/20 group-hover:border-red-500 group-hover:bg-red-500 text-red-500 group-hover:text-black transition-all">
+                       <Flame size={24} />
+                   </div>
+                </div>
+
+                <div className="absolute bottom-0 left-0 p-8 w-full">
+                   <h2 className="text-2xl font-black uppercase text-white mb-2 italic">Protocol: Hotseat</h2>
+                   <p className="text-zinc-500 font-mono text-xs mt-2 group-hover:text-zinc-300 transition-colors">
+                      15 Questions. 5,000 Credits. High voltage trivia.
+                   </p>
+                </div>
+            </Link>
+
+            {/* 4. TRIVIA */}
             <Link 
                 href="/collections/trivia" 
                 className="group md:col-span-4 relative h-80 rounded-[2.5rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500"
@@ -149,18 +293,18 @@ export default function PlayHub() {
                 <div className="absolute bottom-0 left-0 p-8 w-full">
                    <h2 className="text-2xl font-black uppercase text-white mb-2">Trivia Matrix</h2>
                    <p className="text-zinc-500 font-mono text-xs mt-2 group-hover:text-zinc-300 transition-colors">
-                      Procedural knowledge assessment generator.
+                      Standard assessment generator.
                    </p>
                 </div>
             </Link>
 
-            {/* 4. STOCKS (SQUARE) */}
+            {/* 5. STOCKS (UPDATED IMAGE) */}
             <Link 
                 href="/play/stocks" 
                 className="group md:col-span-4 relative h-80 rounded-[2.5rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500"
             >
-                {/* NEW IMAGE: Dark Financial Charts */}
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1642543492481-44e81e3914a7?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
+                {/* Updated Background: Stock Exchange Board */}
+                <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/210607/pexels-photo-210607.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1')] bg-cover bg-center opacity-30 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-gradient-to-br from-zinc-950/90 to-transparent" />
                 
                 <div className="absolute top-0 left-0 w-full p-8 flex justify-between items-start">
@@ -170,28 +314,23 @@ export default function PlayHub() {
                 <div className="absolute bottom-0 left-0 p-8 w-full">
                    <h2 className="text-2xl font-black uppercase text-white mb-2">Zinc Exchange</h2>
                    <p className="text-zinc-500 font-mono text-xs mt-2 group-hover:text-zinc-300 transition-colors">
-                      Volatile market simulation. Trade commodities.
+                      Volatile market simulation.
                    </p>
                 </div>
             </Link>
 
-            {/* 5. COMING SOON (SQUARE DASHED) */}
-            <div className="group md:col-span-4 relative h-80 rounded-[2.5rem] border border-dashed border-zinc-800 bg-zinc-950/30 flex flex-col items-center justify-center text-center p-8 opacity-60 hover:opacity-100 transition-all hover:border-zinc-700">
-                <div className="mb-6 text-zinc-700 group-hover:text-zinc-500 transition-colors">
-                    <Dna size={48} strokeWidth={1} />
-                </div>
-                <h3 className="text-xl font-black uppercase tracking-tight text-zinc-700 mb-4 group-hover:text-zinc-400">
-                    Memory Core
-                </h3>
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-full text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+            {/* 6. COMING SOON */}
+            <div className="group md:col-span-12 relative h-40 rounded-[2.5rem] border border-dashed border-zinc-800 bg-zinc-950/30 flex flex-col items-center justify-center text-center p-8 opacity-60 hover:opacity-100 transition-all hover:border-zinc-700">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-full text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-2">
                     <Construction size={10} />
                     In Development
                 </div>
+                <h3 className="text-xl font-black uppercase tracking-tight text-zinc-700 group-hover:text-zinc-400">
+                    Memory Core
+                </h3>
             </div>
-
         </div>
       </section>
-
     </main>
   );
 }

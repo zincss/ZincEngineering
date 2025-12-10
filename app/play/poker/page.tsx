@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import { supabase } from '@/lib/supabaseClient'; 
 import BackButton from '@/app/components/BackButton';
-import { Coins, User, Trophy, Cpu, LogOut, Eye, Loader2, RefreshCw, AlertTriangle, Smartphone } from 'lucide-react';
+import { Coins, User, Trophy, Cpu, LogOut, Loader2, RefreshCw, AlertTriangle, Smartphone } from 'lucide-react';
 import { createDeck, evaluateHand, getAIDecision, Card } from './poker-utils';
 
 // --- VISUAL COMPONENTS ---
@@ -29,11 +29,10 @@ const CardView = ({
     highlight?: boolean, 
     dim?: boolean 
 }) => {
-    // Increased base sizes slightly for mobile readability
     const dims = size === 'sm' 
-        ? 'w-10 h-14 md:w-11 md:h-16 text-xs' // Hand cards
+        ? 'w-10 h-14 md:w-11 md:h-16 text-xs' 
         : size === 'md' 
-        ? 'w-10 h-[60px] md:w-16 md:h-24 text-xs md:text-base' // Community cards
+        ? 'w-10 h-[60px] md:w-16 md:h-24 text-xs md:text-base'
         : 'w-20 h-28 md:w-24 md:h-36 text-xl md:text-2xl';
 
     if (hidden || !card) {
@@ -171,7 +170,7 @@ export default function PokerPage() {
         vibrate();
         if (!table) return;
 
-        // 1. RESET UI STATE IMMEDIATELY (Fixes Rebuy Overlay Bug)
+        // 1. RESET UI STATE
         setWinnerMsg('');
         setWinnerId(null);
         setWinningCards([]);
@@ -189,7 +188,7 @@ export default function PokerPage() {
 
         if (solventPlayers[0].chips < table.blind) {
             setPlayers(solventPlayers);
-            setGameStatus('BANKRUPT'); // This will now show clearly without the Winner Overlay
+            setGameStatus('BANKRUPT'); 
             return;
         }
 
@@ -228,7 +227,7 @@ export default function PokerPage() {
         setPhase('PRE-FLOP');
         setGameStatus('PLAYING');
         setTurnIdx((nextDealer + 3) % 4); 
-        addToLog("Dealing cards...");
+        addToLog("Cards Dealt");
     };
 
     const handleRebuy = async () => {
@@ -260,6 +259,9 @@ export default function PokerPage() {
         }
 
         if (currentPlayer.isBot) {
+            // Randomize thinking time to feel more human (0.8s - 2.5s)
+            const thinkTime = 800 + Math.random() * 1700;
+            
             const timer = setTimeout(() => {
                 const decision = getAIDecision(
                     table!.difficulty, 
@@ -267,13 +269,16 @@ export default function PokerPage() {
                     communityCards, 
                     currentBet, 
                     currentPlayer.currentBet,
-                    phase === 'PRE-FLOP'
+                    phase === 'PRE-FLOP',
+                    table!.blind,
+                    pot,                // NEW: Passed Pot
+                    currentPlayer.chips // NEW: Passed Chips
                 );
                 handleAction(decision);
-            }, 800 + Math.random() * 1000); 
+            }, thinkTime); 
             return () => clearTimeout(timer);
         }
-    }, [turnIdx, gameStatus, players]);
+    }, [turnIdx, gameStatus, players, communityCards, currentBet, phase, pot]);
 
     const handleAction = (action: 'FOLD' | 'CHECK' | 'CALL' | 'RAISE') => {
         if (!players[turnIdx].isBot) vibrate(20);
@@ -313,7 +318,9 @@ export default function PokerPage() {
             }
         }
         else if (action === 'RAISE') {
-            const raiseAmt = currentBet + (table?.blind || 100); 
+            // Determine decent raise size (Min raise = 2x previous bet or 1 BB)
+            const minRaise = table!.blind;
+            const raiseAmt = currentBet + minRaise; 
             const totalCost = raiseAmt - p.currentBet;
             
             if (p.chips >= totalCost) {
@@ -323,6 +330,7 @@ export default function PokerPage() {
                 setCurrentBet(raiseAmt);
                 addToLog(`${p.name} Raises to ${raiseAmt}`);
             } else {
+                // Not enough to raise, just call/shove
                 actionStr = 'CALL'; 
                 const callCost = currentBet - p.currentBet;
                 const actualCost = Math.min(callCost, p.chips);
