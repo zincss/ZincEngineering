@@ -1,116 +1,124 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-// Correct import path for the global component location
-import { getLiveScores as getNBAScores } from '../sports/nba/actions';
-
-const fetchJson = async (url: string) => {
-    try {
-        const res = await fetch(url, { next: { revalidate: 30 } });
-        return res.ok ? await res.json() : null;
-    } catch { return null; }
-};
+import React, { useEffect, useState } from 'react';
+import Marquee from 'react-fast-marquee';
+import { 
+  Trophy, 
+  TrendingUp, 
+  TrendingDown, 
+  CloudHail, 
+  Zap, 
+  Globe,
+  Activity
+} from 'lucide-react';
+import { createClient } from '@/utils/supabase/client';
 
 export default function GlobalTicker() {
-    const [items, setItems] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+  const [tickerItems, setTickerItems] = useState<any[]>([]);
+  const supabase = createClient();
 
-    useEffect(() => {
-        const initFeed = async () => {
-            const feed: any[] = [];
+  useEffect(() => {
+    const fetchData = async () => {
+      // 1. Weather (Placeholder or Real if available)
+      const weather = { type: 'weather', location: 'SYD', temp: '24°C', condition: 'Clear', icon: <CloudHail size={12} /> };
 
-            // 1. NBA SCORES
-            try {
-                const nbaGames = await getNBAScores();
-                if (nbaGames && nbaGames.length > 0) {
-                    nbaGames.forEach((g: any) => {
-                        feed.push({
-                            sport: 'NBA',
-                            color: 'text-[#DFFF00]',
-                            text: `${g.home.code} ${g.home.score} - ${g.away.code} ${g.away.score}`,
-                            isLive: g.isLive
-                        });
-                    });
-                }
-            } catch (e) {}
+      // 2. F1 (Mock or latest DB)
+      const f1 = { type: 'f1', label: 'NEXT GP', value: 'Monaco [T-minus 4d]', icon: <Trophy size={12} /> };
 
-            // 2. NFL SCORES
-            try {
-                const nflData = await fetchJson('https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard');
-                if (nflData && nflData.events) {
-                    const activeGames = nflData.events.filter((e: any) => e.status.type.state !== 'pre');
-                    if (activeGames.length > 0) {
-                        activeGames.forEach((e: any) => {
-                            const h = e.competitions[0].competitors.find((c:any)=>c.homeAway==='home');
-                            const a = e.competitions[0].competitors.find((c:any)=>c.homeAway==='away');
-                            const isLive = e.status.type.state === 'in';
-                            feed.push({
-                                sport: 'NFL',
-                                color: 'text-blue-400',
-                                text: `${h.team.abbreviation} ${h.score} - ${a.team.abbreviation} ${a.score}`,
-                                isLive: isLive
-                            });
-                        });
-                    }
-                }
-            } catch (e) {}
+      // 3. Market (Mock or DB)
+      const market = [
+        { symbol: 'VOID', price: '450 CR', change: '+12%', trend: 'up' },
+        { symbol: 'FADE', price: '120 CR', change: '-5%', trend: 'down' },
+        { symbol: 'ZINC', price: '1,200 CR', change: '+2.4%', trend: 'up' },
+      ];
 
-            // 3. F1 LATEST
-            try {
-                const f1Res = await fetch('https://api.jolpi.ca/ergast/f1/current/last/results.json');
-                const f1Data = await f1Res.json();
-                const race = f1Data.MRData.RaceTable.Races[0];
-                const winner = race.Results[0].Driver.familyName.toUpperCase();
-                feed.push({
-                    sport: 'F1',
-                    color: 'text-red-500',
-                    text: `${race.raceName.toUpperCase()} // ${winner}`,
-                    isLive: false
-                });
-            } catch (e) {}
+      // 4. System Status
+      const system = { type: 'system', label: 'SERVER', value: 'OPTIMAL 99.9%', icon: <Zap size={12} /> };
 
-            setItems(feed);
-            setLoading(false);
-        };
+      // Combine
+      const items = [
+        system,
+        weather,
+        f1,
+        ...market.map(m => ({ type: 'market', ...m }))
+      ];
+      
+      setTickerItems(items);
+    };
 
-        initFeed();
-    }, []);
+    fetchData();
+  }, []);
 
-    if (loading || items.length === 0) return null;
-
-    // Duplicate enough items to ensure smooth scrolling
-    const loopItems = [...items, ...items, ...items, ...items, ...items, ...items];
-
-    return (
-        <div className="fixed bottom-0 left-0 right-0 h-10 bg-white dark:bg-black border-t border-zinc-200 dark:border-zinc-800 z-50 flex items-center">
-            
-            {/* STATIC LABEL: Optimized for Mobile */}
-            <div className="h-full bg-white dark:bg-black px-2 md:px-4 flex items-center gap-3 font-mono text-[10px] font-bold tracking-widest uppercase z-20 border-r border-zinc-200 dark:border-zinc-800">
-                <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#DFFF00] opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#DFFF00]"></span>
-                </span>
-                {/* Hidden on mobile to save space */}
-                <span className="hidden md:inline text-black dark:text-white">LIVE WIRE</span>
+  return (
+    <div className="relative w-full h-10 bg-zinc-950/80 backdrop-blur-md border-y border-white/5 overflow-hidden flex items-center z-40">
+      
+      {/* LEFT ANCHOR: LABEL */}
+      <div className="absolute left-0 top-0 bottom-0 z-20 bg-zinc-950/90 backdrop-blur-xl pl-4 pr-6 flex items-center gap-3 border-r border-white/5 clip-path-slant">
+         <div className="flex items-center gap-2">
+            <div className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
             </div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-300">
+               Live Wire
+            </span>
+         </div>
+      </div>
 
-            {/* SCROLLING AREA */}
-            <div className="flex-1 overflow-hidden h-full flex items-center">
-                {/* Slowed down animation duration manually here */}
-                <div className="animate-ticker flex items-center" style={{ animationDuration: '150s' }}>
-                    {loopItems.map((item, i) => (
-                        <div key={i} className="flex items-center whitespace-nowrap px-3 md:px-6 h-full">
-                            <span className={`text-[10px] font-black mr-2 ${item.color}`}>
-                                {item.sport}
-                            </span>
-                            <span className="text-[10px] font-mono text-zinc-600 dark:text-zinc-400 font-bold uppercase">
-                                {item.text}
-                            </span>
-                            <span className="ml-3 md:ml-6 text-zinc-300 dark:text-zinc-800">/</span>
-                        </div>
-                    ))}
+      {/* MARQUEE CONTENT */}
+      <div className="w-full mask-linear-fade">
+        <Marquee gradient={false} speed={40} className="flex items-center h-full">
+           {tickerItems.map((item, i) => (
+             <div key={i} className="flex items-center gap-3 mx-6 select-none">
+                
+                {/* SEPARATOR */}
+                <span className="text-zinc-800 text-[10px] font-black">///</span>
+
+                {/* CONTENT */}
+                <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider">
+                   
+                   {/* ICONS */}
+                   {item.type === 'weather' && <span className="text-blue-400">{item.icon}</span>}
+                   {item.type === 'f1' && <span className="text-[#DFFF00]">{item.icon}</span>}
+                   {item.type === 'system' && <span className="text-emerald-500">{item.icon}</span>}
+                   {item.type === 'market' && (
+                      item.trend === 'up' 
+                        ? <TrendingUp size={12} className="text-emerald-500" />
+                        : <TrendingDown size={12} className="text-rose-500" />
+                   )}
+
+                   {/* LABELS & VALUES */}
+                   {item.type === 'market' ? (
+                      <span className="flex gap-2">
+                         <span className="font-bold text-zinc-400">{item.symbol}</span>
+                         <span className="text-white">{item.price}</span>
+                         <span className={item.trend === 'up' ? 'text-emerald-400' : 'text-rose-400'}>
+                            {item.change}
+                         </span>
+                      </span>
+                   ) : (
+                      <span className="flex gap-2">
+                         <span className="font-bold text-zinc-500">{item.label || item.location}</span>
+                         <span className="text-zinc-200">{item.value || `${item.temp} ${item.condition}`}</span>
+                      </span>
+                   )}
+
                 </div>
-            </div>
-        </div>
-    );
+             </div>
+           ))}
+           
+           {/* FILLER FOR EMPTY STATE */}
+           {tickerItems.length === 0 && (
+              <span className="mx-10 text-[10px] font-mono uppercase text-zinc-600 animate-pulse">
+                 Establishing Secure Uplink...
+              </span>
+           )}
+        </Marquee>
+      </div>
+
+      {/* RIGHT FADE OVERLAY */}
+      <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-zinc-950 to-transparent pointer-events-none z-10" />
+
+    </div>
+  );
 }
