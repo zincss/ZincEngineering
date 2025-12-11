@@ -1,44 +1,80 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { Layers, Grid3X3, Info, ChevronUp, ChevronDown, Lock, Zap, CarFront, Loader2, X } from 'lucide-react';
+import { Layers, Grid3X3, Info, Lock, Zap, CarFront, Loader2, X, Sparkles, Cpu } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   REEL_ITEMS_SOURCE, CAR_PACK_SOURCE, FLAIR_ITEMS_SOURCE, BasePackIcon, ItemImage, 
   getScrollRarityStyle, getRarityBorder, getRarityBadge 
 } from './shared';
 
+// Foil Pack Component (Unchanged, just ensuring it's included)
+const FoilPack = ({ config, isSelected }: { config: any, isSelected: boolean }) => {
+    return (
+        <div className={`relative w-48 h-72 transition-all duration-500 ${isSelected ? 'scale-110 z-10' : 'scale-90 opacity-60 hover:opacity-100 hover:scale-95'}`}>
+            <div className={`absolute inset-0 bg-${config.color === '#DFFF00' ? 'yellow' : 'red'}-500/20 blur-3xl rounded-full transition-opacity duration-500 ${isSelected ? 'opacity-100' : 'opacity-0'}`} />
+            <div 
+                className="relative w-full h-full flex flex-col items-center justify-between overflow-hidden shadow-2xl"
+                style={{
+                    background: `linear-gradient(135deg, #18181b 0%, #27272a 20%, #18181b 40%, #3f3f46 50%, #18181b 60%, #27272a 80%, #18181b 100%)`,
+                    boxShadow: isSelected ? `0 0 30px -5px ${config.color}40` : 'none',
+                    borderRadius: '4px'
+                }}
+            >
+                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none z-20" />
+                <div className="w-full h-4 bg-[#111] relative z-20" style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 2px, #333 2px, #333 4px)', boxShadow: '0 2px 5px rgba(0,0,0,0.5)' }} />
+                <div className="flex-1 w-full flex flex-col items-center justify-center p-4 relative z-10">
+                    <div className={`w-24 h-24 mb-4 rounded-full border-2 flex items-center justify-center bg-black/50 backdrop-blur-sm`} style={{ borderColor: config.color }}>
+                        <config.icon size={48} style={{ color: config.color }} />
+                    </div>
+                    <h3 className="text-2xl font-black uppercase text-center italic leading-none text-white drop-shadow-md">
+                        {config.label.split(' ').map((word: string, i: number) => <div key={i}>{word}</div>)}
+                    </h3>
+                    <div className="mt-2 text-[10px] font-mono font-bold uppercase tracking-widest text-zinc-400 bg-black/40 px-2 py-1 rounded">
+                        {config.name}
+                    </div>
+                </div>
+                <div className="w-full text-center py-6 relative z-10">
+                    <div className="text-xs font-black text-white bg-black/30 mx-4 py-1 rounded border border-white/10">
+                        {config.cost} CREDITS
+                    </div>
+                </div>
+                <div className="w-full h-4 bg-[#111] relative z-20" style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 2px, #333 2px, #333 4px)', boxShadow: '0 -2px 5px rgba(0,0,0,0.5)' }} />
+                {isSelected && <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 animate-shine pointer-events-none z-30" />}
+            </div>
+        </div>
+    );
+};
+
 export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: any) => {
     const supabase = createClient();
-    const [stage, setStage] = useState<'IDLE' | 'RUMBLE' | 'SCROLLING' | 'REVEAL'>('IDLE');
-    const [results, setResults] = useState<any[]>([]); 
+    const [stage, setStage] = useState<'IDLE' | 'CHARGING' | 'SCANNING' | 'REVEAL'>('IDLE');
+    const [packQueue, setPackQueue] = useState<any[]>([]);
+    const [currentPackIndex, setCurrentPackIndex] = useState(0);
     const [error, setError] = useState('');
     const [showOdds, setShowOdds] = useState(false);
-    const [showInfo, setShowInfo] = useState(false); // New state for info toggle
+    const [showInfo, setShowInfo] = useState(false);
     const [packQuantity, setPackQuantity] = useState<1 | 3>(1);
-    const [activeReels, setActiveReels] = useState<{items: any[]}[]>([]);
+    const [activeReel, setActiveReel] = useState<{items: any[]} | null>(null);
     const [selectedPack, setSelectedPack] = useState<'BASE' | 'CARS'>('BASE');
+    const [isDesktop, setIsDesktop] = useState(false);
+
+    useEffect(() => {
+        const checkDesktop = () => setIsDesktop(window.innerWidth >= 768);
+        checkDesktop();
+        window.addEventListener('resize', checkDesktop);
+        return () => window.removeEventListener('resize', checkDesktop);
+    }, []);
 
     const PACK_CONFIG = {
         BASE: { 
-            cost: 100, 
-            name: 'Series 1', 
-            label: 'BASE PACK NO.1', 
-            icon: BasePackIcon, 
-            source: REEL_ITEMS_SOURCE, 
-            comingSoon: false,
-            // Added Base Set Description
-            desc: "The essential collection of everyday artifacts. Discover the beauty in the mundane, from the humble Plastic Spork to the elusive Zinc Cube. A perfect starting point for new collectors."
+            cost: 100, name: 'Series 1', label: 'BASE PACK', icon: BasePackIcon, source: REEL_ITEMS_SOURCE, comingSoon: false, color: '#DFFF00',
+            desc: "The essential collection of everyday artifacts. Discover the beauty in the mundane."
         },
         CARS: { 
-            cost: 250, 
-            name: 'Legends', 
-            label: 'AUTOMOTIVE PACK', 
-            icon: CarFront, 
-            source: CAR_PACK_SOURCE, 
-            comingSoon: false, 
-            // Updated Description (Removed Garage reference)
-            desc: "The ultimate collection for petrolheads. Collect 100+ unique vehicles including WRC Legends, F1 icons, and Hypercars. Chase the 1/5 Zenith 919 Evo." 
+            cost: 250, name: 'Legends', label: 'AUTO LEGENDS', icon: CarFront, source: CAR_PACK_SOURCE, comingSoon: false, color: '#ef4444', 
+            desc: "The ultimate collection for petrolheads. Collect 100+ unique vehicles including WRC Legends, F1 icons, and Hypercars." 
         }
     };
 
@@ -47,77 +83,108 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
     const canAfford = (profile?.credits || 0) >= cost;
     const isReady = !authLoading && user;
 
-    let buttonText = `Authorize Payment (${cost})`;
+    const NUM_PRE_FILLERS = 60; 
+    const NUM_POST_FILLERS = 5; 
+    const SPIN_DURATION = 6; 
+    const ITEM_SIZE_PX = 192; 
+
+    let buttonText = `PURCHASE (${cost})`;
     if (currentConfig.comingSoon) buttonText = "DROPPING SOON";
     else if (authLoading) buttonText = "CONNECTING...";
     else if (!user) buttonText = "LOGIN REQUIRED";
     else if (!canAfford) buttonText = "INSUFFICIENT CREDITS";
 
+    // --- MAIN ACTION: OPEN PACK ---
     const handleOpenPack = async () => {
         if (authLoading || !profile || profile.credits < cost || currentConfig.comingSoon) return;
-        setStage('RUMBLE');
+        setStage('CHARGING');
         setError('');
-        setResults([]);
-        setShowInfo(false); // Close info if open
-        setShowOdds(false); // Close odds if open
+        setPackQueue([]);
+        setCurrentPackIndex(0);
+        setShowInfo(false);
+        setShowOdds(false);
 
         try {
-            // 1. Open Standard Packs via RPC
-            const promises = Array(packQuantity).fill(null).map(() => supabase.rpc('open_base_set_pack'));
-            const responses = await Promise.all(promises);
-            const tempResults: any[] = [];
-            
-            for (const res of responses) {
-                if (res.error) throw res.error;
-                if (res.data && res.data.error === 'INSUFFICIENT_FUNDS') throw new Error("Insufficient Funds");
-                tempResults.push(res.data);
-            }
+            // 1. DEDUCT CREDITS
+            // We use 'add_credits' with a negative value since a specific 'purchase_pack' RPC might not exist yet for cars
+            const { error: txError } = await supabase.rpc('add_credits', { amount: -cost });
+            if (txError) throw txError;
 
             // 2. RECORD TRANSACTION
             await supabase.from('transactions').insert({
                 sender_id: user.id,
-                receiver_id: null, // Null indicates System/Market
+                receiver_id: null,
                 amount: cost,
                 created_at: new Date().toISOString()
             });
 
-            // 3. SECRET BONUS LOGIC
-            const ROLL_CHANCE = 0.05 * packQuantity; 
-            if (Math.random() < ROLL_CHANCE) {
-                const bonusItem = FLAIR_ITEMS_SOURCE[Math.floor(Math.random() * FLAIR_ITEMS_SOURCE.length)];
-                tempResults.push({ ...bonusItem, isBonus: true });
+            // 3. GENERATE ITEMS (Client-Side Logic for Prototype)
+            const generatedItems: any[] = [];
+            const source = currentConfig.source;
+
+            for (let i = 0; i < packQuantity; i++) {
+                // Determine Rarity
+                const rand = Math.random() * 100;
+                let rarity = 'COMMON';
+                if (rand <= 0.1) rarity = 'ZENITH';
+                else if (rand <= 1.0) rarity = 'ULTRA';
+                else if (rand <= 5.0) rarity = 'SUPER_RARE';
+                else if (rand <= 20.0) rarity = 'RARE';
+                else if (rand <= 50.0) rarity = 'UNCOMMON';
+
+                // Pick Item of Rarity
+                const itemsOfRarity = source.filter((item: any) => item.rarity === rarity);
+                const pool = itemsOfRarity.length > 0 ? itemsOfRarity : source; 
+                const wonItem = pool[Math.floor(Math.random() * pool.length)];
+                
+                generatedItems.push({ ...wonItem, rarity });
             }
 
-            // 4. Generate Reels
-            const source = currentConfig.source;
-            const mappedResults = tempResults.map((res) => {
-                if (res.isBonus) return res;
+            // 4. DATABASE SYNC (Fix for Missing Assets)
+            // We must ensure these items exist in 'item_templates' and then insert into 'user_items'
+            for (const item of generatedItems) {
+                // A. Check/Create Template
+                const { data: existingTemplate } = await supabase
+                    .from('item_templates')
+                    .select('id')
+                    .eq('name', item.name)
+                    .single();
 
-                const itemsOfRarity = source.filter(i => i.rarity === res.rarity);
-                const pool = itemsOfRarity.length > 0 ? itemsOfRarity : source; 
-                const pickedItem = pool[Math.floor(Math.random() * pool.length)];
-                
-                return { ...pickedItem, rarity: res.rarity }; 
-            });
+                let templateId = existingTemplate?.id;
 
-            const finalResults = mappedResults;
-
-            const reels = finalResults.map((result) => {
-                if (result.isBonus) {
-                     return { items: Array.from({ length: 30 }, () => ({ ...result })) };
+                if (!templateId) {
+                    // Create template on the fly if it doesn't exist
+                    const { data: newTemplate, error: createError } = await supabase
+                        .from('item_templates')
+                        .insert({
+                            name: item.name,
+                            rarity: item.rarity,
+                            description: item.description,
+                            image_url: `https://image.pollinations.ai/prompt/${encodeURIComponent(item.name)}` // Fallback URL
+                        })
+                        .select('id')
+                        .single();
+                    
+                    if (createError) {
+                        console.error("Template creation failed:", createError);
+                        continue; // Skip insertion if template fails
+                    }
+                    templateId = newTemplate.id;
                 }
-                const randomFillers = Array.from({ length: 30 }, () => source[Math.floor(Math.random() * source.length)]);
-                return { items: [...randomFillers, { name: result.name, rarity: result.rarity }] };
-            });
 
-            setActiveReels(reels);
-            setResults(finalResults); 
+                // B. Insert User Item
+                await supabase.from('user_items').insert({
+                    user_id: user.id,
+                    template_id: templateId,
+                    is_shiny: Math.random() < 0.05, // 5% shiny chance
+                    serial_number: Math.floor(Math.random() * 9000) + 1000, // Mock serial
+                    obtained_at: new Date().toISOString()
+                });
+            }
+
+            setPackQueue(generatedItems);
             refreshProfile();
-
-            setTimeout(() => {
-                setStage('SCROLLING');
-                setTimeout(() => { setStage('REVEAL'); }, 6000);
-            }, 1500);
+            runSpinSequence(generatedItems[0]);
 
         } catch (err: any) {
             console.error(err);
@@ -126,138 +193,200 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
         }
     };
 
-    const reset = () => { setResults([]); setStage('IDLE'); };
+    const runSpinSequence = (targetItem: any) => {
+        setStage('CHARGING');
+        const source = currentConfig.source;
+        
+        // Build the reel visual
+        const preFillers = Array.from({ length: NUM_PRE_FILLERS }, () => source[Math.floor(Math.random() * source.length)]);
+        const postFillers = Array.from({ length: NUM_POST_FILLERS }, () => source[Math.floor(Math.random() * source.length)]);
+        setActiveReel({ items: [...preFillers, targetItem, ...postFillers] });
+
+        setTimeout(() => { setStage('SCANNING'); }, 1500); 
+        setTimeout(() => { setStage('REVEAL'); }, 1500 + (SPIN_DURATION * 1000) + 500);
+    };
+
+    const handleNextPack = () => {
+        const nextIndex = currentPackIndex + 1;
+        if (nextIndex < packQueue.length) {
+            setCurrentPackIndex(nextIndex);
+            runSpinSequence(packQueue[nextIndex]);
+        } else {
+            reset();
+        }
+    };
+
+    const reset = () => { setPackQueue([]); setStage('IDLE'); };
+
+    const FINAL_POS = `calc(50% - (${NUM_PRE_FILLERS} * ${ITEM_SIZE_PX}px) - ${ITEM_SIZE_PX / 2}px)`;
+    const currentResult = packQueue[currentPackIndex];
+    const remainingPacks = packQueue.length - 1 - currentPackIndex;
 
     return (
-        <div className="w-full flex flex-col items-center justify-center py-12 px-4 relative min-h-[600px]">
-            {/* PACK SELECTION TABS */}
-            <div className={`flex gap-4 mb-8 transition-all duration-500 ${stage !== 'IDLE' ? 'opacity-0 translate-y-10 pointer-events-none' : 'opacity-100'}`}>
-                <button onClick={() => { setSelectedPack('BASE'); setShowInfo(false); }} className={`group relative w-36 md:w-48 p-4 rounded-xl border-2 transition-all duration-300 text-left ${selectedPack === 'BASE' ? 'border-[#DFFF00] bg-zinc-900' : 'border-zinc-800 bg-zinc-950 opacity-60 hover:opacity-100'}`}>
-                    <div className="text-[10px] font-bold text-zinc-500 uppercase mb-2">Series 1</div><div className="text-white font-black uppercase text-sm md:text-base">Base Set</div><div className="text-xs font-mono text-zinc-400 mt-1">100 CR</div>
-                </button>
-                <button onClick={() => { setSelectedPack('CARS'); setShowInfo(false); }} className={`group relative w-36 md:w-48 p-4 rounded-xl border-2 transition-all duration-300 text-left ${selectedPack === 'CARS' ? 'border-[#DFFF00] bg-zinc-900' : 'border-zinc-800 bg-zinc-950 opacity-60 hover:opacity-100'}`}>
-                    <div className="text-[10px] font-bold text-zinc-500 uppercase mb-2">Legends</div><div className="text-white font-black uppercase text-sm md:text-base">Automotive</div><div className="text-xs font-mono text-zinc-400 mt-1">250 CR</div>
-                </button>
-            </div>
-
-            {/* MAIN CARD AREA */}
-            <div className={`w-full max-w-md transition-all duration-500 ease-in-out px-4 ${stage !== 'IDLE' ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-100 scale-100'}`}>
-                <div className="group relative border border-zinc-800 bg-zinc-900/80 backdrop-blur-md rounded-3xl p-6 md:p-8 hover:border-[#DFFF00] transition-all duration-500 shadow-2xl">
-                    
-                    {/* TOP LABELS & ICONS */}
-                    <div className="absolute top-4 right-4 bg-[#DFFF00] text-black font-bold font-mono text-[10px] px-3 py-1 rounded uppercase shadow-[0_0_15px_rgba(223,255,0,0.4)] z-20">{currentConfig.name}</div>
-                    
-                    {/* INFO BUTTON TOGGLE */}
-                    <button 
-                        onClick={() => setShowInfo(!showInfo)} 
-                        className={`absolute top-4 left-4 p-2 rounded-full transition-all z-30 ${showInfo ? 'bg-white text-black' : 'text-zinc-500 hover:text-white hover:bg-zinc-800'}`}
+        <div className="w-full flex flex-col items-center justify-center py-12 px-4 relative min-h-[700px]">
+            
+            {/* --- IDLE STATE --- */}
+            <AnimatePresence>
+                {stage === 'IDLE' && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9, filter: 'blur(10px)' }}
+                        className="w-full max-w-4xl flex flex-col items-center z-10"
                     >
-                        {showInfo ? <X size={16} /> : <Info size={16} />}
-                    </button>
-
-                    <div className="flex justify-center py-8 md:py-10">
-                        <div className={`relative w-40 h-56 md:w-48 md:h-64 foil-gradient rounded-xl border border-white/20 shadow-2xl flex flex-col items-center justify-center p-4 transform group-hover:scale-105 transition-transform duration-500 ${currentConfig.comingSoon ? 'grayscale brightness-75' : ''}`}>
-                            <div className="bg-black/80 backdrop-blur border border-[#DFFF00] rounded-lg p-3 mb-4 w-20 h-20 flex items-center justify-center text-[#DFFF00]"><currentConfig.icon size={40} /></div>
-                            <h3 className="text-xl md:text-2xl font-black uppercase text-white italic tracking-tighter text-center leading-none mt-2">{currentConfig.label.split(' ').map((word, i) => <div key={i}>{word}</div>)}</h3>
-                            {currentConfig.comingSoon && <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-xl"><Lock size={48} className="text-white/50" /></div>}
-                        </div>
-                    </div>
-
-                    {/* TOGGLEABLE INFO SECTION */}
-                    {showInfo && currentConfig.desc && (
-                        <div className="mb-6 text-center bg-zinc-950/80 p-4 rounded-xl border border-zinc-700 animate-in slide-in-from-top-2 fade-in duration-200">
-                            <p className="text-[#DFFF00] text-[10px] font-bold uppercase tracking-widest mb-3 flex items-center justify-center gap-2">
-                                <Info size={12}/> Pack Contents
-                            </p>
-                            <p className="text-zinc-300 text-xs font-mono leading-relaxed whitespace-pre-wrap">
-                                {currentConfig.desc}
-                            </p>
-                        </div>
-                    )}
-
-                    {/* CONTROLS */}
-                    <div className="space-y-6">
-                        <div className={`grid grid-cols-2 gap-3 ${currentConfig.comingSoon ? 'opacity-50 pointer-events-none' : ''}`}>
-                            <button onClick={() => setPackQuantity(1)} className={`p-3 rounded-xl border-2 flex items-center justify-center gap-2 transition-all ${packQuantity === 1 ? 'border-[#DFFF00] bg-[#DFFF00]/10 text-white' : 'border-zinc-800 bg-zinc-900 text-zinc-500 hover:border-zinc-700'}`}><Layers size={16} /><span className="font-bold text-xs">SINGLE ({currentConfig.cost})</span></button>
-                            <button onClick={() => setPackQuantity(3)} className={`p-3 rounded-xl border-2 flex items-center justify-center gap-2 transition-all ${packQuantity === 3 ? 'border-[#DFFF00] bg-[#DFFF00]/10 text-white' : 'border-zinc-800 bg-zinc-900 text-zinc-500 hover:border-zinc-700'}`}><Grid3X3 size={16} /><span className="font-bold text-xs">TRIPLE ({currentConfig.cost * 3})</span></button>
-                        </div>
-                        <div className="bg-zinc-950/50 rounded-xl border border-zinc-800 overflow-hidden transition-all duration-300">
-                            <button onClick={() => setShowOdds(!showOdds)} className="w-full flex items-center justify-between p-3 border-b border-zinc-800 bg-zinc-900/50 hover:bg-zinc-900 transition-colors"><span className="text-[10px] font-bold text-zinc-500 uppercase flex items-center gap-2"><Zap size={12}/> Odds Protocol</span><span className="text-zinc-500 flex items-center gap-2 text-[10px] font-bold uppercase">{showOdds ? <ChevronUp size={12} /> : <ChevronDown size={12} />}</span></button>
-                            {showOdds && (
-                                <div className="grid grid-cols-2 text-[10px] font-mono uppercase animate-in slide-in-from-top-2 duration-200">
-                                    <div className="p-2 border-r border-b border-zinc-800 text-zinc-400">Common</div><div className="p-2 border-b border-zinc-800 text-right text-zinc-400">50.0%</div>
-                                    <div className="p-2 border-r border-b border-zinc-800 text-green-500">Uncommon</div><div className="p-2 border-b border-zinc-800 text-right text-green-500">30.0%</div>
-                                    <div className="p-2 border-r border-b border-zinc-800 text-blue-500">Rare</div><div className="p-2 border-b border-zinc-800 text-right text-blue-500">15.0%</div>
-                                    <div className="p-2 border-r border-b border-zinc-800 text-orange-500">Super Rare</div><div className="p-2 border-b border-zinc-800 text-right text-orange-500">4.0%</div>
-                                    <div className="p-2 border-r border-b border-zinc-800 text-purple-500">Ultra</div><div className="p-2 border-b border-zinc-800 text-right text-purple-500">0.9%</div>
-                                    <div className="p-2 border-r border-b border-zinc-800 text-[#DFFF00] bg-[#DFFF00]/5 font-bold">Zenith</div><div className="p-2 border-b text-right text-[#DFFF00] bg-[#DFFF00]/5 font-bold">0.1%</div>
-                                    <div className="p-2 border-r border-zinc-800 text-pink-500 bg-pink-500/10 font-bold animate-pulse">COSMIC</div><div className="p-2 text-right text-pink-500 bg-pink-500/10 font-bold">BONUS</div>
+                        {/* 3D PACK SELECTION CAROUSEL */}
+                        <div className="flex items-center justify-center gap-8 mb-12 h-[350px]">
+                            {['BASE', 'CARS'].map((packId) => (
+                                <div key={packId} onClick={() => { setSelectedPack(packId as any); setShowInfo(false); }} className="cursor-pointer">
+                                    <FoilPack config={PACK_CONFIG[packId as keyof typeof PACK_CONFIG]} isSelected={selectedPack === packId} />
                                 </div>
-                            )}
-                        </div>
-                    </div>
-                    <div className="mt-6">
-                        <button onClick={handleOpenPack} disabled={!isReady || !canAfford || currentConfig.comingSoon} className={`w-full font-black uppercase py-4 rounded-xl transition-all disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg ${currentConfig.comingSoon ? 'bg-zinc-800 text-zinc-500 border border-zinc-700' : 'bg-white text-black hover:bg-[#DFFF00] disabled:opacity-50'}`}>{authLoading ? <Loader2 size={16} className="animate-spin" /> : currentConfig.comingSoon ? <Lock size={16} /> : <Zap size={16} fill="currentColor" />}<span>{buttonText}</span></button>
-                    </div>
-                    {error && <div className="text-red-500 text-center text-xs font-mono mt-4">{error}</div>}
-                </div>
-            </div>
-
-            {/* REVEAL ANIMATION SECTION (Unchanged) */}
-            <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-center p-4 transition-all duration-500 ease-out ${stage !== 'IDLE' ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}>
-                <div className="absolute inset-0 bg-black/95 backdrop-blur-md" />
-                <div className="w-full max-w-7xl h-auto min-h-[60vh] max-h-[90vh] rounded-3xl overflow-hidden border-2 border-[#DFFF00]/50 bg-zinc-950 shadow-[0_0_100px_rgba(0,0,0,1)] flex flex-col items-center justify-center relative overflow-y-auto custom-scrollbar">
-                    {stage === 'RUMBLE' && (
-                        <div className="animate-rumble relative z-10 flex gap-4 flex-wrap justify-center p-8">
-                            {Array.from({ length: packQuantity }).map((_, i) => (
-                                <div key={i} className="w-32 h-44 md:w-48 md:h-64 foil-gradient rounded-xl border border-white/30 flex items-center justify-center shadow-[0_0_50px_rgba(223,255,0,0.5)]"><div className="w-12 h-12 md:w-16 md:h-16 text-white flex items-center justify-center"><currentConfig.icon size={64} /></div></div>
                             ))}
                         </div>
-                    )}
-                    {stage === 'SCROLLING' && (
-                        <div className="flex gap-2 md:gap-4 z-10 overflow-hidden py-10 px-4">
-                            {activeReels.map((reel, index) => (
-                                <div key={index} className="reel-container relative h-40 md:h-64 w-28 md:w-48 overflow-hidden border-y-4 border-[#DFFF00] bg-zinc-900 rounded-lg shadow-2xl">
-                                    <div className={`animate-scroll-${index + 1}`}>
-                                        {reel.items.map((item, i) => (
-                                            <div key={i} className={`h-32 md:h-48 w-full flex flex-col items-center justify-center border-b p-2 ${getScrollRarityStyle(item.rarity)}`}>
-                                                <div className="w-16 h-16 md:w-28 md:h-28 opacity-90 drop-shadow-xl transform scale-90"><ItemImage name={item.name} rarity={item.rarity} className="w-full h-full" /></div>
-                                                <div className="flex flex-col items-center mt-2 bg-black/50 px-2 py-1 rounded backdrop-blur-sm w-full"><span className="text-[9px] md:text-[12px] font-mono uppercase text-white font-black text-center leading-none truncate w-full">{item.name}</span></div>
+
+                        {/* CONTROLS AREA */}
+                        <div className="w-full max-w-md bg-zinc-900/50 backdrop-blur-md rounded-2xl border border-zinc-800 p-6 shadow-xl">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-white font-black uppercase italic tracking-tighter text-xl">{currentConfig.name}</h3>
+                                <div className="flex gap-2">
+                                    <button onClick={() => setShowInfo(!showInfo)} className="p-2 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors">
+                                        {showInfo ? <X size={18} /> : <Info size={18} />}
+                                    </button>
+                                    <button onClick={() => setShowOdds(!showOdds)} className="p-2 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors">
+                                        <Cpu size={18} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <AnimatePresence>
+                                {showInfo && currentConfig.desc && (
+                                    <motion.div 
+                                        initial={{ height: 0, opacity: 0, marginBottom: 0 }} 
+                                        animate={{ height: 'auto', opacity: 1, marginBottom: 24 }} 
+                                        exit={{ height: 0, opacity: 0, marginBottom: 0 }}
+                                        className="overflow-hidden bg-zinc-950/50 rounded-xl border border-zinc-700/50"
+                                    >
+                                        <div className="p-4 text-xs font-mono text-zinc-300 leading-relaxed">{currentConfig.desc}</div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            <AnimatePresence>
+                                {showOdds && (
+                                    <motion.div 
+                                        initial={{ height: 0, opacity: 0, marginBottom: 0 }} 
+                                        animate={{ height: 'auto', opacity: 1, marginBottom: 24 }} 
+                                        exit={{ height: 0, opacity: 0, marginBottom: 0 }}
+                                        className="overflow-hidden"
+                                    >
+                                        <div className="grid grid-cols-2 text-[10px] font-mono uppercase gap-px bg-zinc-800 border border-zinc-800 rounded-lg overflow-hidden">
+                                            {['Common|50%', 'Uncommon|30%', 'Rare|15%', 'Super Rare|4%', 'Ultra|0.9%', 'Zenith|0.1%'].map(r => {
+                                                const [label, chance] = r.split('|');
+                                                return <React.Fragment key={label}><div className="bg-zinc-900 p-2 text-zinc-400">{label}</div><div className="bg-zinc-900 p-2 text-right text-white">{chance}</div></React.Fragment>
+                                            })}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            <div className="grid grid-cols-2 gap-3 mb-6">
+                                {[1, 3].map(qty => (
+                                    <button 
+                                        key={qty} onClick={() => setPackQuantity(qty as 1|3)}
+                                        className={`p-3 rounded-xl border flex items-center justify-center gap-2 transition-all ${packQuantity === qty ? 'bg-zinc-800 border-white/20 text-white shadow-lg' : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}
+                                    >
+                                        {qty === 1 ? <Layers size={16} /> : <Grid3X3 size={16} />}
+                                        <span className="font-bold text-xs">{qty === 1 ? 'SINGLE PACK' : 'BUNDLE (x3)'}</span>
+                                    </button>
+                                ))}
+                            </div>
+
+                            <button 
+                                onClick={handleOpenPack} disabled={!isReady || !canAfford || currentConfig.comingSoon}
+                                className={`w-full py-4 rounded-xl font-black uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-3 ${currentConfig.comingSoon ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' : 'bg-white text-black hover:bg-[#DFFF00]'}`}
+                            >
+                                {authLoading ? <Loader2 size={18} className="animate-spin" /> : <Zap size={18} fill="currentColor" />}
+                                <span>{buttonText}</span>
+                            </button>
+                            
+                            {error && <div className="text-red-500 text-center text-xs font-mono mt-4">{error}</div>}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* --- ANIMATION STAGE --- */}
+            <AnimatePresence>
+                {stage !== 'IDLE' && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-zinc-950/98 backdrop-blur-xl">
+                        
+                        {stage === 'CHARGING' && (
+                            <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center">
+                                <motion.div 
+                                    animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.05, 1] }} 
+                                    transition={{ duration: 0.5, repeat: Infinity }}
+                                    className="mb-8"
+                                >
+                                    <FoilPack config={currentConfig} isSelected={true} />
+                                </motion.div>
+                                <div className="text-[#DFFF00] font-mono text-sm font-bold uppercase tracking-[0.5em] animate-pulse">Breaching Protocol...</div>
+                                {packQueue.length > 1 && <div className="mt-2 text-zinc-500 font-mono text-xs">Opening Pack {currentPackIndex + 1} of {packQueue.length}</div>}
+                            </motion.div>
+                        )}
+
+                        {stage === 'SCANNING' && activeReel && (
+                            <div className="w-full flex flex-col items-center">
+                                <div className={`relative bg-zinc-900 border-[#DFFF00] overflow-hidden flex items-center justify-center ${isDesktop ? 'w-full max-w-5xl border-y-2' : 'w-64 border-x-2'}`} style={{ height: isDesktop ? `${ITEM_SIZE_PX + 32}px` : '60vh' }}>
+                                    <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0)_50%,rgba(0,0,0,0.5)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(255,0,0,0.02),rgba(255,0,0,0.06))] z-20 pointer-events-none bg-[length:100%_4px,3px_100%]" />
+                                    <div className={`absolute inset-0 z-20 ${isDesktop ? 'bg-gradient-to-r' : 'bg-gradient-to-t'} from-zinc-950 via-transparent to-zinc-950`} />
+                                    <div className={`absolute bg-red-500/50 z-30 shadow-[0_0_15px_red] ${isDesktop ? 'top-0 bottom-0 left-1/2 w-[2px]' : 'left-0 right-0 top-1/2 h-[2px]'}`} />
+
+                                    <motion.div 
+                                        initial={isDesktop ? { x: "0%" } : { y: "0%" }}
+                                        animate={isDesktop ? { x: FINAL_POS } : { y: FINAL_POS }}
+                                        transition={{ duration: SPIN_DURATION, ease: [0.1, 0, 0.05, 1] }} 
+                                        className="flex"
+                                        style={{ flexDirection: isDesktop ? 'row' : 'column' }}
+                                    >
+                                        {activeReel.items.map((item, i) => (
+                                            <div key={i} className={`flex flex-col items-center justify-center relative p-4 ${getScrollRarityStyle(item.rarity)}`} style={{ width: ITEM_SIZE_PX, height: ITEM_SIZE_PX, flexShrink: 0 }}>
+                                                <div className={`absolute bg-zinc-900/50 ${isDesktop ? 'top-4 bottom-4 right-0 w-px' : 'bottom-0 left-4 right-4 h-px'}`} />
+                                                <div className="w-24 h-24 mb-2"><ItemImage name={item.name} rarity={item.rarity} className="w-full h-full grayscale opacity-80" /></div>
+                                                <span className="text-[10px] font-mono uppercase text-zinc-500 text-center truncate w-full px-2">{item.name}</span>
                                             </div>
                                         ))}
-                                    </div>
-                                    <div className="absolute top-1/2 left-0 right-0 h-1 bg-[#DFFF00] z-20 -translate-y-1/2 shadow-[0_0_15px_#DFFF00] animate-pulse" />
+                                    </motion.div>
                                 </div>
-                            ))}
-                        </div>
-                    )}
-                    {stage === 'REVEAL' && results.length > 0 && (
-                        <div className="relative z-10 w-full max-w-6xl mx-auto p-6 animate-in zoom-in-50 duration-500 flex flex-col items-center">
-                            {results.some(r => r.isBonus) && (
-                                <div className="mb-8 text-center animate-bounce">
-                                    <h2 className="text-4xl font-black text-pink-500 uppercase tracking-tighter drop-shadow-[0_0_20px_rgba(236,72,153,0.8)]">COSMIC ANOMALY DETECTED</h2>
-                                    <p className="text-white font-mono text-sm">HIDDEN STASH UNLOCKED</p>
-                                </div>
-                            )}
-                            <div className="flex flex-wrap justify-center gap-6 mb-8 w-full">
-                                {results.map((result, idx) => {
-                                    const sourceItem = [...currentConfig.source, ...FLAIR_ITEMS_SOURCE].find(i => i.name === result.name);
-                                    const desc = sourceItem?.description || result.description || "A mysterious artifact.";
-                                    return (
-                                        <div key={idx} className={`relative w-64 h-auto bg-zinc-900 border-4 rounded-2xl p-4 text-center shadow-2xl overflow-hidden transform hover:scale-105 transition-transform duration-300 ${getRarityBorder(result.rarity)}`}>
-                                            <div className="w-32 h-32 mx-auto mb-4 bg-zinc-950/50 rounded-xl p-2 border border-zinc-800 shadow-inner flex items-center justify-center relative z-10"><ItemImage name={result.name} rarity={result.rarity} className="w-full h-full shadow-lg" /></div>
-                                            <h3 className="text-sm font-black uppercase text-white mb-2 tracking-tighter relative z-10">{result.name}</h3>
-                                            <div className={`inline-block px-2 py-1 rounded text-[9px] font-bold uppercase tracking-widest mb-4 relative z-10 ${getRarityBadge(result.rarity)}`}>{result.rarity.replace('_', ' ')}</div>
-                                            <div className="relative z-10 border-t border-white/10 pt-4 mt-2"><p className="text-zinc-400 font-mono text-[10px] leading-relaxed italic">"{desc}"</p></div>
-                                        </div>
-                                    );
-                                })}
+                                <div className="mt-8 flex items-center gap-2 text-zinc-500 font-mono text-xs uppercase tracking-widest"><Loader2 className="animate-spin" size={14} /> Decrypting Data Stream</div>
                             </div>
-                            <button onClick={reset} className="w-full max-w-sm bg-zinc-800 hover:bg-white hover:text-black text-white py-4 rounded-xl font-mono text-xs font-bold uppercase tracking-widest transition-colors shadow-xl border border-zinc-700 hover:border-white mb-8">Store Assets & Reset</button>
-                        </div>
-                    )}
-                </div>
-            </div>
+                        )}
+
+                        {stage === 'REVEAL' && currentResult && (
+                            <div className="w-full max-w-lg mx-auto p-6 flex flex-col items-center animate-in fade-in zoom-in duration-300">
+                                {currentResult.isBonus && <div className="mb-8 text-center animate-bounce"><h2 className="text-4xl font-black text-pink-500 uppercase tracking-tighter">COSMIC ITEM</h2></div>}
+                                <div className={`relative w-full bg-zinc-900 border-2 rounded-3xl p-8 text-center shadow-2xl overflow-hidden group ${getRarityBorder(currentResult.rarity)}`}>
+                                    <div className="w-64 h-64 mx-auto mb-6 bg-zinc-950 rounded-2xl p-4 border border-zinc-800 shadow-inner flex items-center justify-center relative z-10">
+                                        <ItemImage name={currentResult.name} rarity={currentResult.rarity} className="w-full h-full shadow-lg" />
+                                    </div>
+                                    <h3 className="text-2xl font-black uppercase text-white mb-2 tracking-tight leading-none">{currentResult.name}</h3>
+                                    <div className={`inline-block px-4 py-1.5 rounded text-[10px] font-bold uppercase tracking-widest mb-6 ${getRarityBadge(currentResult.rarity)}`}>{currentResult.rarity.replace('_', ' ')}</div>
+                                    <div className="relative z-10 border-t border-white/10 pt-4 text-left h-32 overflow-y-auto custom-scrollbar">
+                                        <p className="text-zinc-400 font-mono text-xs leading-relaxed italic">"{currentConfig.source.find((i: any) => i.name === currentResult.name)?.description || currentResult.description || "A mysterious artifact."}"</p>
+                                    </div>
+                                    {(currentResult.rarity === 'ZENITH' || currentResult.rarity === 'COSMIC' || currentResult.rarity === 'ULTRA') && (
+                                        <>
+                                            <div className="absolute inset-0 bg-gradient-to-t from-current to-transparent opacity-20 animate-pulse pointer-events-none" style={{ color: currentResult.rarity === 'ZENITH' ? '#DFFF00' : '#ec4899' }} />
+                                            <Sparkles className="absolute top-4 right-4 text-white animate-spin-slow" size={24} />
+                                        </>
+                                    )}
+                                </div>
+                                <motion.button initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} onClick={remainingPacks > 0 ? handleNextPack : reset} className={`mt-8 w-full py-4 rounded-full font-black uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-3 ${remainingPacks > 0 ? 'bg-[#DFFF00] text-black hover:bg-white' : 'bg-white text-black hover:bg-[#DFFF00]'}`}>
+                                    {remainingPacks > 0 ? <><span>OPEN NEXT PACK ({remainingPacks} LEFT)</span><Zap size={18} fill="currentColor" /></> : <><span>STORE ASSET & FINISH</span><Lock size={18} /></>}
+                                </motion.button>
+                            </div>
+                        )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

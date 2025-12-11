@@ -39,7 +39,6 @@ export const FLAIR_ITEMS_SOURCE = [
 export const CAR_PACK_SOURCE = CARS.map(car => {
   let rarity = 'COMMON';
   
-  // Rarity Logic Hierarchy
   if (car.id === '919-hybrid-evo') rarity = 'ZENITH'; 
   else if (car.class === 'Formula 1' || car.class === 'Hypercar' || car.class === 'Le Mans Prototype') rarity = 'ULTRA';
   else if (car.class === 'Supercar' || car.class === 'Group B') rarity = 'SUPER_RARE';
@@ -50,8 +49,8 @@ export const CAR_PACK_SOURCE = CARS.map(car => {
   return {
     name: car.name,
     rarity: rarity,
-    description: car.history.length > 80 ? car.history.substring(0, 80) + "..." : car.history,
-    type: 'CAR' // Added type to distinguish for image generation
+    description: car.history,
+    type: 'CAR' 
   };
 });
 
@@ -59,11 +58,12 @@ export const CAR_PACK_SOURCE = CARS.map(car => {
 export const getAssetUrl = (name: string, type?: string) => {
     const seed = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     
-    // Custom prompt logic for Cars to ensure high fidelity
     let prompt = '';
+    // UPDATED: High-Res Parameters & Realism Model
+    // Width/Height increased to 1280 for 4K-ish quality on cards
     if (type === 'CAR') {
         prompt = encodeURIComponent(
-            `studio photography of ${name}, cinematic lighting, 8k, highly detailed, photorealistic, dark showroom background, rim lighting, sleek, automotive beauty shot, unreal engine 5 render`
+            `professional studio photography of ${name}, 8k uhd, sharp focus, highly detailed, photorealistic, cinematic lighting, dark sleek showroom background, rim lighting, automotive photography masterpiece`
         );
     } else {
         prompt = encodeURIComponent(
@@ -71,7 +71,8 @@ export const getAssetUrl = (name: string, type?: string) => {
         );
     }
 
-    return `https://image.pollinations.ai/prompt/${prompt}?width=400&height=400&seed=${seed}&nologo=true&model=flux`;
+    // Using 'flux-realism' or just 'flux' with high dimensions
+    return `https://image.pollinations.ai/prompt/${prompt}?width=1280&height=1280&seed=${seed}&nologo=true&model=flux-realism`;
 };
 
 export const AssetPreloader = () => (
@@ -83,7 +84,6 @@ export const AssetPreloader = () => (
 );
 
 export const ItemImage = ({ name, rarity, className = "" }: { name: string, rarity: string, className?: string }) => {
-  // Determine if it's a car based on the source list (safest way without passing type everywhere)
   const isCar = CAR_PACK_SOURCE.some(c => c.name === name);
   const imageUrl = getAssetUrl(name, isCar ? 'CAR' : undefined);
   const [loaded, setLoaded] = useState(false);
@@ -121,35 +121,6 @@ export const BasePackIcon = () => (
   </svg>
 );
 
-export const animationStyles = `
-  .reel-container { --reel-offset: 128px; }
-  @media (min-width: 768px) { .reel-container { --reel-offset: 192px; } }
-  @keyframes shake {
-    0% { transform: translate(1px, 1px) rotate(0deg); }
-    50% { transform: translate(-1px, 2px) rotate(-1deg); }
-    100% { transform: translate(1px, -2px) rotate(-1deg); }
-  }
-  @keyframes scroll-reel {
-    0% { transform: translateY(0); }
-    100% { transform: translateY(calc(-100% + var(--reel-offset))); }
-  }
-  .animate-rumble { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both infinite; }
-  .animate-scroll-1 { animation: scroll-reel 4.5s cubic-bezier(0.1, 0.9, 0.2, 1) forwards; }
-  .animate-scroll-2 { animation: scroll-reel 5.0s cubic-bezier(0.1, 0.9, 0.2, 1) forwards; }
-  .animate-scroll-3 { animation: scroll-reel 5.5s cubic-bezier(0.1, 0.9, 0.2, 1) forwards; }
-  .animate-scroll-4 { animation: scroll-reel 6.0s cubic-bezier(0.1, 0.9, 0.2, 1) forwards; }
-  .foil-gradient {
-    background: linear-gradient(135deg, #18181b 0%, #000 100%);
-    position: relative; overflow: hidden;
-  }
-  .foil-gradient::after {
-    content: ""; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-    background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 30%, rgba(223, 255, 0, 0.2) 40%, rgba(255, 0, 255, 0.2) 50%, rgba(0, 255, 255, 0.2) 60%, rgba(255,255,255,0.1) 70%, rgba(255,255,255,0) 100%);
-    transform: rotate(30deg); animation: foil-shine 6s linear infinite; pointer-events: none;
-  }
-  @keyframes foil-shine { 0% { transform: translate(-50%, -50%) rotate(30deg); } 100% { transform: translate(20%, 20%) rotate(30deg); } }
-`;
-
 export function getScrollRarityStyle(rarity: string) { 
     switch (rarity) { 
         case 'COSMIC': return 'bg-pink-900/30 border-pink-500 shadow-[0_0_30px_rgba(236,72,153,0.3)]';
@@ -185,11 +156,3 @@ export function getRarityBadge(rarity: string) {
         default: return 'bg-zinc-800 text-zinc-400'; 
     } 
 }
-
-export const getTimeLeft = (endsAt: string) => {
-    const total = Date.parse(endsAt) - Date.now();
-    if (total <= 0) return { text: "ENDED", urgent: false };
-    const minutes = Math.floor((total / 1000 / 60) % 60); const hours = Math.floor((total / (1000 * 60 * 60)) % 24);
-    if (hours === 0 && minutes < 5) return { text: `${minutes}m ${Math.floor((total / 1000) % 60)}s`, urgent: true };
-    return { text: hours === 0 ? `${minutes}m` : `${hours}h ${minutes}m`, urgent: hours === 0 };
-};

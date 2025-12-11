@@ -12,10 +12,13 @@ interface ItemImageProps {
 export const ItemImage = ({ name, rarity, className = "" }: ItemImageProps) => {
     // Generate deterministic seed for the image
     const seed = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    
+    // UPDATED: High-Resolution & Realism Prompt
     const prompt = encodeURIComponent(
-        `isometric 3d icon of ${name}, encased in a futuristic glass cube container, cyberpunk aesthetics, glowing neon edges, dark grey background, unreal engine 5 render, high fidelity, 8k, center focus`
+        `isometric 3d icon of ${name}, futuristic glass cube container, cyberpunk aesthetics, glowing neon edges, dark grey background, unreal engine 5 render, high fidelity, 8k, center focus`
     );
-    const imageUrl = `https://image.pollinations.ai/prompt/${prompt}?width=400&height=400&seed=${seed}&nologo=true&model=flux`;
+    // UPDATED: URL Parameters for higher quality
+    const imageUrl = `https://image.pollinations.ai/prompt/${prompt}?width=1280&height=1280&seed=${seed}&nologo=true&model=flux-realism`;
     
     const [loaded, setLoaded] = useState(false);
 
