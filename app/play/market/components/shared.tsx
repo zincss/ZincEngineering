@@ -54,13 +54,29 @@ export const CAR_PACK_SOURCE = CARS.map(car => {
   };
 });
 
+// --- ADDED: Missing Animation Styles ---
+export const animationStyles = `
+  @keyframes shine {
+    0% { transform: translateX(-100%) skewX(-12deg); }
+    100% { transform: translateX(200%) skewX(-12deg); }
+  }
+  .animate-shine {
+    animation: shine 2s infinite linear;
+  }
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .animate-spin-slow {
+    animation: spin-slow 3s linear infinite;
+  }
+`;
+
 // --- HELPERS ---
 export const getAssetUrl = (name: string, type?: string) => {
     const seed = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     
     let prompt = '';
-    // UPDATED: High-Res Parameters & Realism Model
-    // Width/Height increased to 1280 for 4K-ish quality on cards
     if (type === 'CAR') {
         prompt = encodeURIComponent(
             `professional studio photography of ${name}, 8k uhd, sharp focus, highly detailed, photorealistic, cinematic lighting, dark sleek showroom background, rim lighting, automotive photography masterpiece`
@@ -71,7 +87,6 @@ export const getAssetUrl = (name: string, type?: string) => {
         );
     }
 
-    // Using 'flux-realism' or just 'flux' with high dimensions
     return `https://image.pollinations.ai/prompt/${prompt}?width=1280&height=1280&seed=${seed}&nologo=true&model=flux-realism`;
 };
 
@@ -173,6 +188,6 @@ export const getTimeLeft = (dateStr: string) => {
 
     return { 
         text, 
-        urgent: total < 1000 * 60 * 60 // Considered urgent if less than 1 hour remains
+        urgent: total < 1000 * 60 * 60 
     };
 };
