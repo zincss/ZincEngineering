@@ -1,138 +1,153 @@
 'use client'
 
-import React, { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Loader2, ImageOff } from 'lucide-react';
 import { CARS } from '@/app/automotive/data';
 
-// --- CONSTANTS ---
+// --- DATA SOURCES ---
 export const REEL_ITEMS_SOURCE = [
-  { name: 'Plastic Spork', rarity: 'COMMON', description: 'Barely functional. The apex of disposable cutlery.' }, 
-  { name: 'AA Battery', rarity: 'COMMON', description: 'Not included. Probably dead anyway.' },
-  { name: 'Red Brick', rarity: 'COMMON', description: "It's a brick. Good for throwing." }, 
-  { name: 'Left Sock', rarity: 'COMMON', description: 'Where is the right one? A mystery.' },
-  { name: 'Vintage Toaster', rarity: 'UNCOMMON', description: 'A fire hazard that occasionally browns bread.' }, 
-  { name: 'Lava Lamp', rarity: 'UNCOMMON', description: 'Distracting goo. Do not drink.' },
-  { name: 'Gaming Chair', rarity: 'RARE', description: 'Racing bucket seat for sitting absolutely still.' }, 
-  { name: 'Mechanical Keyboard', rarity: 'RARE', description: 'Loud. Annoying. Tactile. Your coworkers hate you.' },
-  { name: 'Espresso Machine', rarity: 'SUPER_RARE', description: 'Overcomplicated bean water extractor. PhD required.' }, 
-  { name: 'VR Headset', rarity: 'SUPER_RARE', description: 'Escape reality. Motion sickness included.' },
-  { name: 'Solid Gold Paperclip', rarity: 'ULTRA', description: 'It holds paper. But expensively.' }, 
-  { name: 'The Zinc Cube', rarity: 'ZENITH', description: 'Dense. Heavy. Zinc. Perfection.' },
-  { name: 'Rubber Band', rarity: 'COMMON', description: 'Potential energy storage device. Snap.' }, 
-  { name: 'Coffee Mug', rarity: 'UNCOMMON', description: 'Vessel for caffeine. Stain resistant (lies).' },
-  { name: 'Drone', rarity: 'RARE', description: 'Buzzing annoyance. Battery life: 2 minutes.' }, 
-  { name: 'Diamond Ring', rarity: 'ULTRA', description: 'Compressed carbon. Depreciates instantly.' },
-  { name: 'Soda Can', rarity: 'COMMON', description: 'Aluminum cylinder. Contents: Liquid sugar.' }, 
-  { name: 'Pizza Box', rarity: 'COMMON', description: 'Cardboard with grease stains. Pizza not included.' },
-  { name: 'Smart Watch', rarity: 'RARE', description: 'It tells time and steals your personal data.' }, 
-  { name: 'Succulent', rarity: 'UNCOMMON', description: 'A plant you might actually manage not to kill.' }
+  { name: 'Plastic Spork', rarity: 'COMMON', description: 'Barely functional. The apex of disposable cutlery.', searchQuery: 'Spork' }, 
+  { name: 'AA Battery', rarity: 'COMMON', description: 'Not included. Probably dead anyway.', searchQuery: 'AA battery' },
+  { name: 'Red Brick', rarity: 'COMMON', description: "It's a brick. Good for throwing.", searchQuery: 'Brick' }, 
+  { name: 'Left Sock', rarity: 'COMMON', description: 'Where is the right one? A mystery.', searchQuery: 'Sock' },
+  { name: 'Vintage Toaster', rarity: 'UNCOMMON', description: 'A fire hazard that occasionally browns bread.', searchQuery: 'Toaster' }, 
+  { name: 'Lava Lamp', rarity: 'UNCOMMON', description: 'Distracting goo. Do not drink.', searchQuery: 'Lava lamp' },
+  { name: 'Gaming Chair', rarity: 'RARE', description: 'Racing bucket seat for sitting absolutely still.', searchQuery: 'Gaming chair' }, 
+  { name: 'Mechanical Keyboard', rarity: 'RARE', description: 'Loud. Annoying. Tactile. Your coworkers hate you.', searchQuery: 'Mechanical keyboard' },
+  { name: 'Espresso Machine', rarity: 'SUPER_RARE', description: 'Overcomplicated bean water extractor. PhD required.', searchQuery: 'Espresso machine' }, 
+  { name: 'VR Headset', rarity: 'SUPER_RARE', description: 'Escape reality. Motion sickness included.', searchQuery: 'Virtual reality headset' },
+  { name: 'Solid Gold Paperclip', rarity: 'ULTRA', description: 'It holds paper. But expensively.', searchQuery: 'Paperclip' }, 
+  { name: 'The Zinc Cube', rarity: 'ZENITH', description: 'Dense. Heavy. Zinc. Perfection.', searchQuery: 'Zinc' },
+  { name: 'Rubber Band', rarity: 'COMMON', description: 'Potential energy storage device. Snap.', searchQuery: 'Rubber band' }, 
+  { name: 'Coffee Mug', rarity: 'UNCOMMON', description: 'Vessel for caffeine. Stain resistant (lies).', searchQuery: 'Mug' },
+  { name: 'Drone', rarity: 'RARE', description: 'Buzzing annoyance. Battery life: 2 minutes.', searchQuery: 'Quadcopter' }, 
+  { name: 'Diamond Ring', rarity: 'ULTRA', description: 'Compressed carbon. Depreciates instantly.', searchQuery: 'Diamond' },
+  { name: 'Soda Can', rarity: 'COMMON', description: 'Aluminum cylinder. Contents: Liquid sugar.', searchQuery: 'Beverage can' }, 
+  { name: 'Pizza Box', rarity: 'COMMON', description: 'Cardboard with grease stains. Pizza not included.', searchQuery: 'Pizza' },
+  { name: 'Smart Watch', rarity: 'RARE', description: 'It tells time and steals your personal data.', searchQuery: 'Smartwatch' }, 
+  { name: 'Succulent', rarity: 'UNCOMMON', description: 'A plant you might actually manage not to kill.', searchQuery: 'Succulent plant' }
 ];
 
 export const FLAIR_ITEMS_SOURCE = [
-    { name: 'Neon Samurai', rarity: 'COSMIC', type: 'FLAIR', description: 'Animated profile avatar. The way of the blade.' },
-    { name: 'Cyber Skull', rarity: 'COSMIC', type: 'FLAIR', description: 'Animated profile avatar. Death is only a glitch.' },
-    { name: 'Glitch Cat', rarity: 'COSMIC', type: 'FLAIR', description: 'Animated profile avatar. Purring in binary.' },
-    { name: 'Void Eye', rarity: 'COSMIC', type: 'FLAIR', description: 'Animated profile avatar. It sees everything.' },
-    { name: 'Golden Ticket', rarity: 'COSMIC', type: 'FLAIR', description: 'Animated profile avatar. Access granted.' },
+    { name: 'Neon Samurai', rarity: 'COSMIC', type: 'FLAIR', description: 'Animated profile avatar.', searchQuery: 'Samurai' },
+    { name: 'Cyber Skull', rarity: 'COSMIC', type: 'FLAIR', description: 'Animated profile avatar. Death is only a glitch.', searchQuery: 'Skull' },
+    { name: 'Glitch Cat', rarity: 'COSMIC', type: 'FLAIR', description: 'Animated profile avatar. Purring in binary.', searchQuery: 'Cyberpunk cat' },
+    { name: 'Void Eye', rarity: 'COSMIC', type: 'FLAIR', description: 'Animated profile avatar. It sees everything.', searchQuery: 'Eye' },
+    { name: 'Golden Ticket', rarity: 'COSMIC', type: 'FLAIR', description: 'Animated profile avatar. Access granted.', searchQuery: 'Golden ticket' },
 ];
 
 export const CAR_PACK_SOURCE = CARS.map(car => {
   let rarity = 'COMMON';
-  
   if (car.id === '919-hybrid-evo') rarity = 'ZENITH'; 
   else if (car.class === 'Formula 1' || car.class === 'Hypercar' || car.class === 'Le Mans Prototype') rarity = 'ULTRA';
   else if (car.class === 'Supercar' || car.class === 'Group B') rarity = 'SUPER_RARE';
   else if (car.class === 'WRC' || car.class === 'JDM Legend') rarity = 'RARE';
   else if (car.manufacturer === 'Porsche' || car.manufacturer === 'Ferrari' || car.class === 'Touring' || car.class === 'Muscle') rarity = 'UNCOMMON';
-  else rarity = 'COMMON';
-
+  
   return {
-    name: car.name,
-    rarity: rarity,
-    description: car.history,
-    type: 'CAR' 
+    ...car,
+    rarity,
+    type: 'CAR',
+    searchQuery: car.searchQuery || `${car.manufacturer} ${car.name}`
   };
 });
 
-// --- ADDED: Missing Animation Styles ---
-export const animationStyles = `
-  @keyframes shine {
-    0% { transform: translateX(-100%) skewX(-12deg); }
-    100% { transform: translateX(200%) skewX(-12deg); }
-  }
-  .animate-shine {
-    animation: shine 2s infinite linear;
-  }
-  @keyframes spin-slow {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-  .animate-spin-slow {
-    animation: spin-slow 3s linear infinite;
-  }
-`;
-
-// --- HELPERS ---
+// Helper to get fallback URL (AI generated)
 export const getAssetUrl = (name: string, type?: string) => {
     const seed = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    
+    // Determine context for better AI generation
+    const isCar = CAR_PACK_SOURCE.some(c => c.name === name);
     let prompt = '';
-    if (type === 'CAR') {
-        prompt = encodeURIComponent(
-            `professional studio photography of ${name}, 8k uhd, sharp focus, highly detailed, photorealistic, cinematic lighting, dark sleek showroom background, rim lighting, automotive photography masterpiece`
-        );
+    
+    if (isCar) {
+         prompt = encodeURIComponent(`professional automotive photography of ${name}, dark studio lighting, 8k, photorealistic`);
     } else {
-        prompt = encodeURIComponent(
-            `isometric 3d icon of ${name}, encased in a futuristic glass cube container, cyberpunk aesthetics, glowing neon edges, dark grey background, unreal engine 5 render, high fidelity, 8k, center focus`
+         prompt = encodeURIComponent(`isometric 3d icon of ${name}, futuristic container, cyberpunk style, 8k`);
+    }
+
+    return `https://image.pollinations.ai/prompt/${prompt}?width=1080&height=1080&seed=${seed}&nologo=true&model=flux-realism`;
+};
+
+// --- REAL ASSET FETCHER COMPONENT ---
+const IMAGE_CACHE = new Map<string, string>();
+
+export const RealAssetImage = ({ name, searchQuery, className = "" }: { name: string, searchQuery: string, className?: string }) => {
+    const [src, setSrc] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchImage = async () => {
+            const query = searchQuery || name;
+            
+            if (IMAGE_CACHE.has(query)) {
+                setSrc(IMAGE_CACHE.get(query)!);
+                setLoading(false);
+                return;
+            }
+
+            try {
+                // 1. Try Wikipedia
+                const response = await fetch(
+                    `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(query)}&prop=pageimages&format=json&pithumbsize=1000&origin=*`
+                );
+                const data = await response.json();
+                const pages = data.query?.pages;
+                let foundUrl = null;
+
+                if (pages) {
+                    const pageId = Object.keys(pages)[0];
+                    if (pageId !== '-1' && pages[pageId].thumbnail) {
+                        foundUrl = pages[pageId].thumbnail.source;
+                    }
+                }
+
+                if (foundUrl) {
+                    IMAGE_CACHE.set(query, foundUrl);
+                    setSrc(foundUrl);
+                } else {
+                    // 2. Fallback to AI Generator if Wiki fails
+                    console.log(`Wiki image missing for ${query}, using fallback.`);
+                    const fallbackUrl = getAssetUrl(name);
+                    IMAGE_CACHE.set(query, fallbackUrl);
+                    setSrc(fallbackUrl);
+                }
+            } catch (err) {
+                console.error("Failed to fetch image for", query, err);
+                // Error Fallback
+                setSrc(getAssetUrl(name));
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchImage();
+    }, [name, searchQuery]);
+
+    if (loading) {
+        return <div className={`flex items-center justify-center bg-zinc-900 ${className}`}><Loader2 className="animate-spin text-zinc-600" /></div>;
+    }
+
+    if (!src) {
+        // Should rarely happen now due to fallback
+        return (
+            <div className={`flex flex-col items-center justify-center bg-zinc-800 text-zinc-600 ${className}`}>
+                <ImageOff size={24} />
+            </div>
         );
     }
 
-    return `https://image.pollinations.ai/prompt/${prompt}?width=1280&height=1280&seed=${seed}&nologo=true&model=flux-realism`;
+    return <img src={src} alt={name} className={className} />;
 };
 
-export const AssetPreloader = () => (
-    <div className="hidden">
-        {[...REEL_ITEMS_SOURCE, ...CAR_PACK_SOURCE, ...FLAIR_ITEMS_SOURCE].map((item: any) => (
-            <img key={item.name} src={getAssetUrl(item.name, item.type)} alt="preload" loading="eager" />
-        ))}
-    </div>
-);
-
-export const ItemImage = ({ name, rarity, className = "" }: { name: string, rarity: string, className?: string }) => {
-  const isCar = CAR_PACK_SOURCE.some(c => c.name === name);
-  const imageUrl = getAssetUrl(name, isCar ? 'CAR' : undefined);
-  const [loaded, setLoaded] = useState(false);
-
-  return (
-    <div className={`relative overflow-hidden rounded-xl bg-zinc-900 border border-zinc-800 ${className}`}>
-        {!loaded && (
-            <div className="absolute inset-0 flex items-center justify-center bg-zinc-900 z-10">
-                <Loader2 className="animate-spin text-zinc-700" size={24} />
-            </div>
-        )}
-        <img 
-            src={imageUrl} 
-            alt={name}
-            className={`w-full h-full object-cover transform hover:scale-110 transition-transform duration-500 ${loaded ? 'opacity-100' : 'opacity-0'}`}
-            onLoad={() => setLoaded(true)}
-            loading="eager"
-        />
-        {rarity === 'ZENITH' && <div className="absolute inset-0 bg-gradient-to-t from-[#DFFF00]/30 to-transparent pointer-events-none mix-blend-overlay" />}
-        {rarity === 'COSMIC' && <div className="absolute inset-0 bg-gradient-to-t from-pink-500/30 to-transparent pointer-events-none mix-blend-overlay" />}
-        {rarity === 'ULTRA' && <div className="absolute inset-0 bg-gradient-to-t from-purple-500/30 to-transparent pointer-events-none mix-blend-overlay" />}
-        {rarity === 'SUPER_RARE' && <div className="absolute inset-0 bg-gradient-to-t from-orange-500/30 to-transparent pointer-events-none mix-blend-overlay" />}
-    </div>
-  );
-};
-
-export const BasePackIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M5 2H19V22H5V2Z" fill="#18181b" stroke="#DFFF00" strokeWidth="2"/>
-    <path d="M5 6H19" stroke="#DFFF00" strokeWidth="1"/>
-    <path d="M5 18H19" stroke="#DFFF00" strokeWidth="1"/>
-    <rect x="8" y="9" width="8" height="6" fill="#DFFF00" fillOpacity="0.2"/>
-    <path d="M8 9L16 15" stroke="#DFFF00" strokeWidth="1"/>
-    <path d="M16 9L8 15" stroke="#DFFF00" strokeWidth="1"/>
+// --- HELPER COMPONENTS & FUNCTIONS ---
+export const BasePackIcon = ({ size = 24, style = {} }: { size?: number, style?: React.CSSProperties }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={style}>
+    <path d="M5 2H19V22H5V2Z" fill="#18181b" stroke="currentColor" strokeWidth="2"/>
+    <path d="M5 6H19" stroke="currentColor" strokeWidth="1"/>
+    <path d="M5 18H19" stroke="currentColor" strokeWidth="1"/>
+    <rect x="8" y="9" width="8" height="6" fill="currentColor" fillOpacity="0.2"/>
+    <path d="M8 9L16 15" stroke="currentColor" strokeWidth="1"/>
+    <path d="M16 9L8 15" stroke="currentColor" strokeWidth="1"/>
   </svg>
 );
 
@@ -172,6 +187,27 @@ export function getRarityBadge(rarity: string) {
     } 
 }
 
+// RESTORED: AssetPreloader to prevent "undefined" error in MarketPage
+export const AssetPreloader = () => null;
+
+export const animationStyles = `
+  @keyframes shine {
+    0% { transform: translateX(-100%) skewX(-12deg); }
+    100% { transform: translateX(200%) skewX(-12deg); }
+  }
+  .animate-shine {
+    animation: shine 2s infinite linear;
+  }
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .animate-spin-slow {
+    animation: spin-slow 3s linear infinite;
+  }
+`;
+
+// RESTORED: Time Left Helper for Auction House
 export const getTimeLeft = (dateStr: string) => {
     const total = Date.parse(dateStr) - Date.now();
     if (total <= 0) return { text: 'ENDED', urgent: false };
@@ -191,3 +227,6 @@ export const getTimeLeft = (dateStr: string) => {
         urgent: total < 1000 * 60 * 60 
     };
 };
+
+// Alias ItemImage to RealAssetImage for backward compatibility
+export const ItemImage = RealAssetImage;

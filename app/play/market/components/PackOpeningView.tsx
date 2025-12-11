@@ -6,10 +6,11 @@ import { Layers, Grid3X3, Info, Lock, Zap, CarFront, Loader2, X, Sparkles, Cpu }
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   REEL_ITEMS_SOURCE, CAR_PACK_SOURCE, FLAIR_ITEMS_SOURCE, BasePackIcon, ItemImage, 
-  getScrollRarityStyle, getRarityBorder, getRarityBadge 
+  getScrollRarityStyle 
 } from './shared';
+import { TradingCard } from './TradingCard';
 
-// Foil Pack Component (Unchanged, just ensuring it's included)
+// Foil Pack Component
 const FoilPack = ({ config, isSelected }: { config: any, isSelected: boolean }) => {
     return (
         <div className={`relative w-48 h-72 transition-all duration-500 ${isSelected ? 'scale-110 z-10' : 'scale-90 opacity-60 hover:opacity-100 hover:scale-95'}`}>
@@ -106,7 +107,6 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
 
         try {
             // 1. DEDUCT CREDITS
-            // We use 'add_credits' with a negative value since a specific 'purchase_pack' RPC might not exist yet for cars
             const { error: txError } = await supabase.rpc('add_credits', { amount: -cost });
             if (txError) throw txError;
 
@@ -140,8 +140,7 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
                 generatedItems.push({ ...wonItem, rarity });
             }
 
-            // 4. DATABASE SYNC (Fix for Missing Assets)
-            // We must ensure these items exist in 'item_templates' and then insert into 'user_items'
+            // 4. DATABASE SYNC
             for (const item of generatedItems) {
                 // A. Check/Create Template
                 const { data: existingTemplate } = await supabase
@@ -153,21 +152,20 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
                 let templateId = existingTemplate?.id;
 
                 if (!templateId) {
-                    // Create template on the fly if it doesn't exist
                     const { data: newTemplate, error: createError } = await supabase
                         .from('item_templates')
                         .insert({
                             name: item.name,
                             rarity: item.rarity,
                             description: item.description,
-                            image_url: `https://image.pollinations.ai/prompt/${encodeURIComponent(item.name)}` // Fallback URL
+                            image_url: `https://image.pollinations.ai/prompt/${encodeURIComponent(item.name)}` // Fallback URL, real images handled in frontend
                         })
                         .select('id')
                         .single();
                     
                     if (createError) {
                         console.error("Template creation failed:", createError);
-                        continue; // Skip insertion if template fails
+                        continue; 
                     }
                     templateId = newTemplate.id;
                 }
@@ -176,8 +174,8 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
                 await supabase.from('user_items').insert({
                     user_id: user.id,
                     template_id: templateId,
-                    is_shiny: Math.random() < 0.05, // 5% shiny chance
-                    serial_number: Math.floor(Math.random() * 9000) + 1000, // Mock serial
+                    is_shiny: Math.random() < 0.05, 
+                    serial_number: Math.floor(Math.random() * 9000) + 1000, 
                     obtained_at: new Date().toISOString()
                 });
             }
@@ -350,7 +348,7 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
                                         {activeReel.items.map((item, i) => (
                                             <div key={i} className={`flex flex-col items-center justify-center relative p-4 ${getScrollRarityStyle(item.rarity)}`} style={{ width: ITEM_SIZE_PX, height: ITEM_SIZE_PX, flexShrink: 0 }}>
                                                 <div className={`absolute bg-zinc-900/50 ${isDesktop ? 'top-4 bottom-4 right-0 w-px' : 'bottom-0 left-4 right-4 h-px'}`} />
-                                                <div className="w-24 h-24 mb-2"><ItemImage name={item.name} rarity={item.rarity} className="w-full h-full grayscale opacity-80" /></div>
+                                                <div className="w-24 h-24 mb-2"><ItemImage name={item.name} searchQuery={item.searchQuery || item.name} className="w-full h-full grayscale opacity-80" /></div>
                                                 <span className="text-[10px] font-mono uppercase text-zinc-500 text-center truncate w-full px-2">{item.name}</span>
                                             </div>
                                         ))}
@@ -363,23 +361,13 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
                         {stage === 'REVEAL' && currentResult && (
                             <div className="w-full max-w-lg mx-auto p-6 flex flex-col items-center animate-in fade-in zoom-in duration-300">
                                 {currentResult.isBonus && <div className="mb-8 text-center animate-bounce"><h2 className="text-4xl font-black text-pink-500 uppercase tracking-tighter">COSMIC ITEM</h2></div>}
-                                <div className={`relative w-full bg-zinc-900 border-2 rounded-3xl p-8 text-center shadow-2xl overflow-hidden group ${getRarityBorder(currentResult.rarity)}`}>
-                                    <div className="w-64 h-64 mx-auto mb-6 bg-zinc-950 rounded-2xl p-4 border border-zinc-800 shadow-inner flex items-center justify-center relative z-10">
-                                        <ItemImage name={currentResult.name} rarity={currentResult.rarity} className="w-full h-full shadow-lg" />
-                                    </div>
-                                    <h3 className="text-2xl font-black uppercase text-white mb-2 tracking-tight leading-none">{currentResult.name}</h3>
-                                    <div className={`inline-block px-4 py-1.5 rounded text-[10px] font-bold uppercase tracking-widest mb-6 ${getRarityBadge(currentResult.rarity)}`}>{currentResult.rarity.replace('_', ' ')}</div>
-                                    <div className="relative z-10 border-t border-white/10 pt-4 text-left h-32 overflow-y-auto custom-scrollbar">
-                                        <p className="text-zinc-400 font-mono text-xs leading-relaxed italic">"{currentConfig.source.find((i: any) => i.name === currentResult.name)?.description || currentResult.description || "A mysterious artifact."}"</p>
-                                    </div>
-                                    {(currentResult.rarity === 'ZENITH' || currentResult.rarity === 'COSMIC' || currentResult.rarity === 'ULTRA') && (
-                                        <>
-                                            <div className="absolute inset-0 bg-gradient-to-t from-current to-transparent opacity-20 animate-pulse pointer-events-none" style={{ color: currentResult.rarity === 'ZENITH' ? '#DFFF00' : '#ec4899' }} />
-                                            <Sparkles className="absolute top-4 right-4 text-white animate-spin-slow" size={24} />
-                                        </>
-                                    )}
+                                
+                                {/* New Trading Card Reveal */}
+                                <div className="mb-8 transform hover:scale-105 transition-transform duration-300">
+                                    <TradingCard item={currentResult} />
                                 </div>
-                                <motion.button initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} onClick={remainingPacks > 0 ? handleNextPack : reset} className={`mt-8 w-full py-4 rounded-full font-black uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-3 ${remainingPacks > 0 ? 'bg-[#DFFF00] text-black hover:bg-white' : 'bg-white text-black hover:bg-[#DFFF00]'}`}>
+
+                                <motion.button initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} onClick={remainingPacks > 0 ? handleNextPack : reset} className={`mt-4 w-full py-4 rounded-full font-black uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-3 ${remainingPacks > 0 ? 'bg-[#DFFF00] text-black hover:bg-white' : 'bg-white text-black hover:bg-[#DFFF00]'}`}>
                                     {remainingPacks > 0 ? <><span>OPEN NEXT PACK ({remainingPacks} LEFT)</span><Zap size={18} fill="currentColor" /></> : <><span>STORE ASSET & FINISH</span><Lock size={18} /></>}
                                 </motion.button>
                             </div>

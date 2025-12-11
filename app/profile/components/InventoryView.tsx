@@ -4,15 +4,17 @@ import React, { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { Loader2, Search, Box } from 'lucide-react';
 import { ItemDetailModal } from './ItemDetailModal';
-import { ItemImage } from './ItemImage';
+import { ProfileTradingCard } from './ProfileTradingCard';
 
-// Define the shape of the data coming from Supabase
+// Import Source Data to map features
+import { CARS } from '@/app/automotive/data';
+import { REEL_ITEMS_SOURCE, FLAIR_ITEMS_SOURCE } from '@/app/play/market/components/shared';
+
 interface InventoryItem {
     id: string;
     serial_number: number;
     is_shiny: boolean;
     obtained_at: string;
-    // Nesting matches the join query
     item_templates: {
         id: string;
         name: string;
@@ -20,6 +22,7 @@ interface InventoryItem {
         description: string;
         image_url?: string;
     };
+    sourceData?: any; // Enriched data from local constants
 }
 
 export default function InventoryView({ user }: { user: any }) {
@@ -34,7 +37,6 @@ export default function InventoryView({ user }: { user: any }) {
       if (!user) return;
       const supabase = createClient();
       
-      // CORRECTED QUERY: Uses 'user_items' and joins 'item_templates'
       const { data, error } = await supabase
         .from('user_items')
         .select(`
@@ -56,8 +58,40 @@ export default function InventoryView({ user }: { user: any }) {
       if (error) {
           console.error('Error fetching inventory:', error);
       } else if (data) {
-          // Cast data to our interface
-          setItems(data as any[]);
+          // ENRICH DATA: Map DB items to Source Data to get search queries/types
+          const enrichedData = data.map((item: any) => {
+              const name = item.item_templates.name;
+              
+              // Try to find in CARS first
+              const carMatch = CARS.find(c => c.name === name);
+              if (carMatch) {
+                  return { 
+                      ...item, 
+                      sourceData: { 
+                          type: 'CAR', 
+                          // Use the specific search query we defined in automotive/data.ts, or fallback
+                          searchQuery: carMatch.searchQuery || `${carMatch.manufacturer} ${carMatch.name}`,
+                          description: carMatch.history
+                      } 
+                  };
+              }
+
+              // Try Reel Items
+              const reelMatch = REEL_ITEMS_SOURCE.find(r => r.name === name);
+              if (reelMatch) {
+                  return { ...item, sourceData: { type: 'ITEM', searchQuery: reelMatch.searchQuery } };
+              }
+
+              // Try Flair
+              const flairMatch = FLAIR_ITEMS_SOURCE.find(f => f.name === name);
+              if (flairMatch) {
+                  return { ...item, sourceData: { type: 'FLAIR', searchQuery: flairMatch.searchQuery } };
+              }
+
+              return item;
+          });
+
+          setItems(enrichedData);
       }
       setLoading(false);
     };
@@ -66,46 +100,30 @@ export default function InventoryView({ user }: { user: any }) {
 
   // Filtering Logic
   const filteredItems = items.filter(item => {
-    // Safety check for item_templates existence
     if (!item.item_templates) return false;
-    
     const matchesSearch = item.item_templates.name.toLowerCase().includes(search.toLowerCase());
     const matchesRarity = filterRarity === 'ALL' || item.item_templates.rarity === filterRarity;
     return matchesSearch && matchesRarity;
   });
 
-  const getRarityColor = (rarity: string) => {
-      switch (rarity) {
-          case 'ZENITH': return '#DFFF00';
-          case 'COSMIC': return '#ec4899'; // Pink
-          case 'ULTRA': return '#a855f7'; // Purple
-          case 'SUPER_RARE': return '#f97316'; // Orange
-          case 'RARE': return '#3b82f6'; // Blue
-          default: return '#52525b'; // Zinc-600
-      }
-  };
-
-  if (loading) return <div className="flex h-64 items-center justify-center text-[#DFFF00] font-mono text-xs tracking-widest"><Loader2 className="animate-spin mr-2" /> ACCESSING SECURE VAULT...</div>;
+  if (loading) return <div className="flex h-64 items-center justify-center text-[#DFFF00] font-mono text-xs tracking-widest"><Loader2 className="animate-spin mr-2" /> SYNCING SECURE VAULT...</div>;
 
   return (
     <div className="w-full">
       
       {/* HEADER CONTROLS */}
       <div className="sticky top-0 z-30 bg-zinc-950/95 backdrop-blur-md pt-2 pb-6 mb-6 flex flex-col gap-4">
-        
-        {/* Search Bar */}
         <div className="relative w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
           <input 
             type="text" 
-            placeholder="SEARCH ASSETS..." 
+            placeholder="SEARCH INVENTORY PROTOCOL..." 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-12 pr-4 py-4 text-sm font-mono text-white focus:border-[#DFFF00] focus:outline-none transition-colors placeholder:text-zinc-600"
           />
         </div>
         
-        {/* Rarity Filter Tabs */}
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
             {['ALL', 'ZENITH', 'ULTRA', 'SUPER_RARE', 'RARE', 'COMMON'].map(rarity => (
                 <button
@@ -123,45 +141,20 @@ export default function InventoryView({ user }: { user: any }) {
         </div>
       </div>
 
-      {/* ASSET GRID */}
+      {/* ASSET GRID - USING NEW CARD DESIGN */}
       {filteredItems.length === 0 ? (
         <div className="text-center py-20 text-zinc-600 font-mono flex flex-col items-center border-2 border-dashed border-zinc-900 rounded-3xl">
             <Box size={48} className="mb-4 opacity-30" />
             <p className="text-xs uppercase tracking-widest">No Assets Found</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6 pb-20">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pb-20">
           {filteredItems.map((item) => (
-            <div 
-              key={item.id} 
-              onClick={() => setSelectedItem(item)}
-              className="group relative aspect-[3/4] bg-zinc-900 rounded-2xl overflow-hidden cursor-pointer border border-zinc-800 hover:border-zinc-500 transition-all duration-300 hover:-translate-y-1 shadow-lg"
-            >
-              {/* IMAGE LAYER */}
-              <div className="absolute inset-0 p-4">
-                  <ItemImage name={item.item_templates.name} rarity={item.item_templates.rarity} className="w-full h-full object-contain drop-shadow-2xl opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500" />
-              </div>
-              
-              {/* GRADIENT OVERLAY FOR TEXT READABILITY */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80" />
-
-              {/* RARITY DOT INDICATOR */}
-              <div 
-                className="absolute top-3 right-3 w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]" 
-                style={{ backgroundColor: getRarityColor(item.item_templates.rarity), color: getRarityColor(item.item_templates.rarity) }} 
-              />
-
-              {/* SERIAL NUMBER */}
-              <div className="absolute top-3 left-3 text-[9px] font-mono text-zinc-500 font-bold">
-                  #{String(item.serial_number).padStart(3, '0')}
-              </div>
-
-              {/* CARD FOOTER */}
-              <div className="absolute bottom-0 left-0 w-full p-4">
-                <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mb-1">{item.item_templates.rarity.replace('_', ' ')}</p>
-                <h3 className="text-white font-black text-sm leading-none uppercase line-clamp-2">{item.item_templates.name}</h3>
-              </div>
-            </div>
+            <ProfileTradingCard 
+                key={item.id} 
+                item={item} 
+                onClick={() => setSelectedItem(item)} 
+            />
           ))}
         </div>
       )}
@@ -169,8 +162,7 @@ export default function InventoryView({ user }: { user: any }) {
       {/* DETAIL MODAL */}
       {selectedItem && (
         <ItemDetailModal 
-            // We cast here because the Modal expects 'InventoryItem' from types.ts which matches our local interface structurally
-            item={selectedItem as any} 
+            item={selectedItem} 
             onClose={() => setSelectedItem(null)} 
             onQuickSell={() => {}} 
             onBreakdown={() => {}} 
