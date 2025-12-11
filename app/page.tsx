@@ -1,12 +1,34 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import GlobalTicker from './components/GlobalTicker';
 import PersonalLogs from './components/PersonalLogs';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowRight, Trophy, Database, Gamepad2, Package, 
-  Activity, Zap, CloudHail, Crown, Terminal 
+  Activity, Zap, CloudHail, Crown, Terminal, Utensils 
 } from 'lucide-react';
 
 export default function Home() {
+  const [wordIndex, setWordIndex] = useState(0);
+  const words = ["Engineering", "Ecosystem", "Economy", "Everyone", "Everything"];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setWordIndex((prev) => (prev + 1) % words.length);
+    }, 3000); // Change every 3 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const scrollToModules = () => {
+    const modulesSection = document.getElementById('modules-grid');
+    if (modulesSection) {
+      modulesSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <main className="min-h-screen bg-zinc-950 text-white selection:bg-[#DFFF00] selection:text-black pb-20 relative overflow-x-hidden">
       
@@ -45,46 +67,102 @@ export default function Home() {
           </div>
 
           {/* MASSIVE BRANDING (HEADER LOGO SCALED UP) */}
-          <div className="flex flex-col md:flex-row items-center gap-6 md:gap-12 animate-in fade-in zoom-in-95 duration-1000 delay-100 select-none">
+          <div className="flex flex-col md:flex-row items-center gap-6 md:gap-12 animate-in fade-in zoom-in-95 duration-1000 delay-100 select-none max-w-full">
              
              {/* THE "Z" BOX */}
-             <div className="bg-[#DFFF00] w-32 h-32 md:w-48 md:h-48 flex items-center justify-center font-black text-[80px] md:text-[120px] text-black shadow-[0_0_60px_rgba(223,255,0,0.2)] rounded-lg md:rounded-xl">
+             <div className="bg-[#DFFF00] w-24 h-24 md:w-48 md:h-48 flex items-center justify-center font-black text-[60px] md:text-[120px] text-black shadow-[0_0_60px_rgba(223,255,0,0.2)] rounded-lg md:rounded-xl shrink-0">
                 Z
              </div>
 
              {/* THE TEXT STACK */}
-             <div className="flex flex-col items-center md:items-start justify-center">
-                <span className="font-black text-6xl md:text-9xl leading-none text-white tracking-tighter">
+             <div className="flex flex-col items-center md:items-start justify-center h-[100px] md:h-auto w-full md:w-auto">
+                <span className="font-black text-5xl md:text-9xl leading-none text-white tracking-tighter">
                    ZINC
                 </span>
-                <span className="font-mono text-lg md:text-2xl text-zinc-500 tracking-[0.35em] uppercase mt-2 md:mt-4">
-                   Engineering
-                </span>
+                
+                {/* ANIMATED TEXT CONTAINER */}
+                <div className="relative h-6 md:h-10 w-full overflow-hidden mt-2 md:mt-4 flex justify-center md:justify-start">
+                  <AnimatePresence mode="wait">
+                    <motion.span 
+                      key={words[wordIndex]}
+                      initial={{ y: 20, opacity: 0, filter: 'blur(5px)' }}
+                      animate={{ y: 0, opacity: 1, filter: 'blur(0px)' }}
+                      exit={{ y: -20, opacity: 0, filter: 'blur(5px)' }}
+                      transition={{ duration: 0.5, ease: "easeOut" }}
+                      className="font-mono text-xs sm:text-sm md:text-2xl text-zinc-500 tracking-[0.2em] md:tracking-[0.35em] uppercase absolute whitespace-nowrap"
+                    >
+                      {words[wordIndex]}
+                    </motion.span>
+                  </AnimatePresence>
+                </div>
              </div>
 
           </div>
           
           {/* SUBTITLE */}
-          <div className="mt-16 max-w-2xl text-center animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
-             <p className="text-zinc-400 font-mono text-sm md:text-base leading-relaxed">
+          <div className="mt-12 md:mt-16 max-w-2xl text-center animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
+             <p className="text-zinc-400 font-mono text-xs md:text-base leading-relaxed px-4">
                <span className="text-[#DFFF00] font-black mr-2">///</span>
                Advanced telemetry, digital archives, and high-performance tactical modules.
              </p>
           </div>
 
+          {/* QUICK ACCESS BUTTONS (Weather, Recipes) */}
+          <div className="mt-8 flex flex-wrap justify-center gap-3 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500 z-30 px-2">
+            
+            <Link 
+              href="/collections/weather" 
+              className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-zinc-900/40 border border-zinc-800 hover:border-[#DFFF00]/50 hover:bg-zinc-900/80 backdrop-blur-md transition-all duration-300 group"
+            >
+              <CloudHail size={16} className="text-zinc-500 group-hover:text-[#DFFF00] transition-colors" />
+              <span className="text-[11px] md:text-xs font-mono font-bold text-zinc-400 group-hover:text-white uppercase tracking-widest">
+                Weather
+              </span>
+            </Link>
+
+            <Link 
+              href="/collections/recipes" 
+              className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-zinc-900/40 border border-zinc-800 hover:border-[#DFFF00]/50 hover:bg-zinc-900/80 backdrop-blur-md transition-all duration-300 group"
+            >
+              <Utensils size={16} className="text-zinc-500 group-hover:text-[#DFFF00] transition-colors" />
+              <span className="text-[11px] md:text-xs font-mono font-bold text-zinc-400 group-hover:text-white uppercase tracking-widest">
+                Recipes
+              </span>
+            </Link>
+
+          </div>
+
         </div>
 
-        {/* SCROLL INDICATOR (Fixed Centering with Acid Green) */}
-        <div className="absolute bottom-6 md:bottom-12 left-0 w-full flex flex-col items-center justify-center gap-2 animate-bounce opacity-80 z-30 pointer-events-none">
-           <span className="text-[10px] font-mono uppercase tracking-widest text-[#DFFF00]">Access Modules</span>
-           <ArrowRight className="rotate-90 text-[#DFFF00]" size={16} />
-        </div>
+        {/* SCROLL INDICATOR (Interactive & Smooth Animation) */}
+        <motion.button 
+          onClick={scrollToModules}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5, duration: 1 }}
+          className="absolute bottom-6 md:bottom-12 left-0 w-full flex flex-col items-center justify-center gap-3 z-30 cursor-pointer group"
+        >
+           <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 group-hover:text-[#DFFF00] transition-colors duration-300">
+             Access Modules
+           </span>
+           <motion.div
+             animate={{ y: [0, 8, 0] }}
+             transition={{ 
+               duration: 2, 
+               repeat: Infinity, 
+               ease: "easeInOut" 
+             }}
+             className="p-2 rounded-full border border-zinc-800 bg-zinc-900/50 group-hover:border-[#DFFF00]/50 group-hover:bg-[#DFFF00]/10 transition-colors duration-300"
+           >
+              <ArrowRight className="rotate-90 text-zinc-400 group-hover:text-[#DFFF00]" size={16} />
+           </motion.div>
+        </motion.button>
       </section>
 
       <GlobalTicker />
 
       {/* --- CONTROL CENTER (SQUARE ROUNDED MODULES) --- */}
-      <section className="relative z-10 max-w-[1600px] mx-auto px-4 md:px-6 py-20">
+      <section id="modules-grid" className="relative z-10 max-w-[1600px] mx-auto px-4 md:px-6 py-20">
         
         {/* SECTION HEADER: MODULES */}
         <div className="flex items-center gap-4 mb-10 px-2">

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react';
-import { createClient } from '@/utils/supabase/client'; // CHANGED: Import correctly
+import { createClient } from '@/utils/supabase/client';
 import { Layers, Grid3X3, Info, ChevronUp, ChevronDown, Lock, Zap, CarFront, Loader2 } from 'lucide-react';
 import { 
   REEL_ITEMS_SOURCE, CAR_PACK_SOURCE, FLAIR_ITEMS_SOURCE, BasePackIcon, ItemImage, 
@@ -9,7 +9,7 @@ import {
 } from './shared';
 
 export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: any) => {
-    const supabase = createClient(); // CHANGED: Instantiate authenticated client
+    const supabase = createClient();
     const [stage, setStage] = useState<'IDLE' | 'RUMBLE' | 'SCROLLING' | 'REVEAL'>('IDLE');
     const [results, setResults] = useState<any[]>([]); 
     const [error, setError] = useState('');
@@ -52,25 +52,30 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
                 tempResults.push(res.data);
             }
 
-            // 2. SECRET BONUS LOGIC (5% Chance for Rare Flair)
+            // 2. RECORD TRANSACTION (Client-side logging)
+            // We insert a record with NO receiver_id to indicate a System/Market purchase
+            await supabase.from('transactions').insert({
+                sender_id: user.id,
+                receiver_id: null, // Null indicates System/Market
+                amount: cost,
+                created_at: new Date().toISOString()
+            });
+
+            // 3. SECRET BONUS LOGIC (5% Chance for Rare Flair)
             const ROLL_CHANCE = 0.05 * packQuantity; 
             if (Math.random() < ROLL_CHANCE) {
                 const bonusItem = FLAIR_ITEMS_SOURCE[Math.floor(Math.random() * FLAIR_ITEMS_SOURCE.length)];
-                // Note: Real persistence requires backend RPC support for 'COSMIC' items
-                // For now, we simulate the drop visually
                 tempResults.push({ ...bonusItem, isBonus: true });
             }
 
-            // 3. Generate Reels
+            // 4. Generate Reels
             const reels = tempResults.map((result) => {
                 const source = currentConfig.source;
                 
-                // Special handling for Bonus items (All items in reel are the bonus to highlight it)
                 if (result.isBonus) {
                      return { items: Array.from({ length: 30 }, () => ({ ...result })) };
                 }
 
-                // Standard random fillers + actual result at the end
                 const randomFillers = Array.from({ length: 30 }, () => source[Math.floor(Math.random() * source.length)]);
                 return { items: [...randomFillers, { name: result.name, rarity: result.rarity }] };
             });
@@ -85,7 +90,8 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
             }, 1500);
 
         } catch (err: any) {
-            setError(err.message);
+            console.error(err);
+            setError(err.message || "Transaction Failed");
             setStage('IDLE');
         }
     };
@@ -147,6 +153,7 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
                 </div>
             </div>
 
+            {/* ... REVEAL ANIMATION SECTION (Unchanged) ... */}
             <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-center p-4 transition-all duration-500 ease-out ${stage !== 'IDLE' ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}>
                 <div className="absolute inset-0 bg-black/95 backdrop-blur-md" />
                 <div className="w-full max-w-7xl h-auto min-h-[60vh] max-h-[90vh] rounded-3xl overflow-hidden border-2 border-[#DFFF00]/50 bg-zinc-950 shadow-[0_0_100px_rgba(0,0,0,1)] flex flex-col items-center justify-center relative overflow-y-auto custom-scrollbar">
@@ -185,7 +192,6 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
                             <div className="flex flex-wrap justify-center gap-6 mb-8 w-full">
                                 {results.map((result, idx) => {
                                     const sourceItem = [...currentConfig.source, ...FLAIR_ITEMS_SOURCE].find(i => i.name === result.name);
-                                    // UPDATED: Now falls back to the DB description if local source is missing
                                     const desc = sourceItem?.description || result.description || "A mysterious artifact.";
                                     return (
                                         <div key={idx} className={`relative w-64 h-auto bg-zinc-900 border-4 rounded-2xl p-4 text-center shadow-2xl overflow-hidden transform hover:scale-105 transition-transform duration-300 ${getRarityBorder(result.rarity)}`}>

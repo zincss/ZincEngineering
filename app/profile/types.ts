@@ -22,19 +22,14 @@ export interface Material {
     updated_at: string;
 }
 
-export interface Pet {
+export interface Transaction {
     id: string;
-    name: string;
-    type: 'CYBER_NEKO' | 'ROBO_PUP' | 'DATA_GHOST';
-    stats: {
-        hunger: number;
-        happiness: number;
-        energy: number;
-        hygiene: number;
-    };
-    cosmetics: any[];
-    last_interacted: string;
+    sender_id: string;
+    receiver_id: string;
+    amount: number;
     created_at: string;
+    sender?: { username: string };
+    receiver?: { username: string };
 }
 
 export type SortOption = 'NEWEST' | 'OLDEST' | 'RARITY_DESC' | 'RARITY_ASC';

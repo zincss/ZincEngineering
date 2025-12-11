@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from '@/app/context/AuthContext';
-import { Box, Wrench, Tent, Loader2, Briefcase } from 'lucide-react';
+import { Box, Wrench, Tent, Loader2, Briefcase, Wallet } from 'lucide-react';
 import BackButton from '@/app/components/BackButton';
 import { InventoryItem, Material, SortOption } from './types';
 
@@ -14,6 +15,7 @@ import { MaterialsView } from './components/MaterialsView';
 import { BaseCampView } from './components/BaseCampView';
 import { ItemDetailModal } from './components/ItemDetailModal';
 import { PortfolioView } from './components/PortfolioView';
+import { WalletView } from './components/WalletView';
 
 // --- CONFIGURATION ---
 
@@ -30,9 +32,10 @@ const BREAKDOWN_YIELDS: Record<string, { type: string, label: string, amount: nu
     'COSMIC': { type: 'COSMIC_DUST', label: 'Cosmic Dust', amount: 5 }
 };
 
-export default function ProfilePage() {
+function ProfileContent() {
   const supabase = createClient();
   const { user, profile, loading: authLoading, refreshProfile } = useAuth();
+  const searchParams = useSearchParams();
   
   // Data State
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -40,7 +43,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   
   // UI State
-  const [viewMode, setViewMode] = useState<'ITEMS' | 'MATERIALS' | 'BASE_CAMP' | 'PORTFOLIO'>('BASE_CAMP'); 
+  const [viewMode, setViewMode] = useState<'ITEMS' | 'MATERIALS' | 'BASE_CAMP' | 'PORTFOLIO' | 'WALLET'>('BASE_CAMP'); 
   const [filter, setFilter] = useState('ALL');
   const [sortBy, setSortBy] = useState<SortOption>('NEWEST');
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
@@ -50,6 +53,15 @@ export default function ProfilePage() {
   const [loadingSupply, setLoadingSupply] = useState(false);
 
   // --- 1. DATA FETCHING ---
+  useEffect(() => {
+    // Check URL params for view mode
+    const viewParam = searchParams.get('view');
+    if (viewParam === 'WALLET') setViewMode('WALLET');
+    else if (viewParam === 'ITEMS') setViewMode('ITEMS');
+    else if (viewParam === 'MATERIALS') setViewMode('MATERIALS');
+    else if (viewParam === 'PORTFOLIO') setViewMode('PORTFOLIO');
+  }, [searchParams]);
+
   useEffect(() => {
     if (user) Promise.all([fetchInventory(), fetchMaterials()]).finally(() => setLoading(false));
     else if (!authLoading) setLoading(false);
@@ -118,7 +130,6 @@ export default function ProfilePage() {
   const handleTrade = async (costMaterial: string, costAmount: number, rewardPackName: string) => {
       if (!user) return;
       
-      // 1. Verify User has materials
       const userMat = materials.find(m => m.material_type === costMaterial);
       if (!userMat || userMat.quantity < costAmount) {
           alert(`Insufficient materials! Need ${costAmount}x ${costMaterial.replace('_', ' ')}`);
@@ -128,7 +139,6 @@ export default function ProfilePage() {
       if (!window.confirm(`Exchange ${costAmount}x ${costMaterial.replace('_', ' ')} for 1x ${rewardPackName}?`)) return;
 
       try {
-          // 2. Find the Pack Template ID
           const { data: templates, error: templateError } = await supabase
               .from('item_templates')
               .select('id')
@@ -137,21 +147,18 @@ export default function ProfilePage() {
           
           if (templateError || !templates) throw new Error(`Pack template '${rewardPackName}' not found in database.`);
 
-          // 3. Deduct Materials
-          // (Assuming add_material handles negatives, otherwise we update manually)
           const { error: matError } = await supabase.rpc('add_material', { 
               p_material_type: costMaterial, 
               p_amount: -costAmount 
           });
           if (matError) throw matError;
 
-          // 4. Add Pack to Inventory
           const { data: newItem, error: itemError } = await supabase
               .from('user_items')
               .insert({
                   user_id: user.id,
                   template_id: templates.id,
-                  is_shiny: Math.random() < 0.05, // 5% chance for a Shiny Pack
+                  is_shiny: Math.random() < 0.05,
                   obtained_at: new Date().toISOString()
               })
               .select()
@@ -159,7 +166,6 @@ export default function ProfilePage() {
           
           if (itemError) throw itemError;
 
-          // 5. Refresh Data
           await Promise.all([fetchMaterials(), fetchInventory()]);
           alert("Trade Successful! Pack delivered to Assets.");
 
@@ -221,11 +227,13 @@ export default function ProfilePage() {
       
       <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-8 md:py-12">
         <div className="flex flex-col md:flex-row gap-4 mb-8">
-            <div className="flex bg-zinc-900 rounded-lg p-1 border border-zinc-800 overflow-x-auto">
+            <div className="flex bg-zinc-900 rounded-lg p-1 border border-zinc-800 overflow-x-auto no-scrollbar">
                 <button onClick={() => setViewMode('BASE_CAMP')} className={`flex items-center gap-2 px-6 py-3 font-bold uppercase rounded transition-all whitespace-nowrap ${viewMode === 'BASE_CAMP' ? 'bg-orange-600 text-white shadow-lg' : 'text-zinc-500 hover:text-white'}`}><Tent size={16} /> <span>Base Camp</span></button>
                 <button onClick={() => setViewMode('ITEMS')} className={`flex items-center gap-2 px-6 py-3 font-bold uppercase rounded transition-all whitespace-nowrap ${viewMode === 'ITEMS' ? 'bg-[#DFFF00] text-black shadow-lg' : 'text-zinc-500 hover:text-white'}`}><Box size={16} /> <span>Assets</span></button>
                 <button onClick={() => setViewMode('MATERIALS')} className={`flex items-center gap-2 px-6 py-3 font-bold uppercase rounded transition-all whitespace-nowrap ${viewMode === 'MATERIALS' ? 'bg-blue-500 text-white shadow-lg' : 'text-zinc-500 hover:text-white'}`}><Wrench size={16} /> <span>Parts</span></button>
                 <button onClick={() => setViewMode('PORTFOLIO')} className={`flex items-center gap-2 px-6 py-3 font-bold uppercase rounded transition-all whitespace-nowrap ${viewMode === 'PORTFOLIO' ? 'bg-purple-600 text-white shadow-lg' : 'text-zinc-500 hover:text-white'}`}><Briefcase size={16} /> <span>Portfolio</span></button>
+                {/* --- NEW WALLET TAB --- */}
+                <button onClick={() => setViewMode('WALLET')} className={`flex items-center gap-2 px-6 py-3 font-bold uppercase rounded transition-all whitespace-nowrap ${viewMode === 'WALLET' ? 'bg-emerald-500 text-white shadow-lg' : 'text-zinc-500 hover:text-white'}`}><Wallet size={16} /> <span>Wallet</span></button>
             </div>
         </div>
 
@@ -256,6 +264,11 @@ export default function ProfilePage() {
         {viewMode === 'PORTFOLIO' && user && (
             <PortfolioView userId={user.id} />
         )}
+
+        {/* --- NEW WALLET RENDER --- */}
+        {viewMode === 'WALLET' && user && (
+            <WalletView profile={profile} onRefresh={refreshProfile} />
+        )}
       </div>
 
       {selectedItem && (
@@ -272,4 +285,12 @@ export default function ProfilePage() {
       )}
     </div>
   );
+}
+
+export default function ProfilePage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-zinc-950" />}>
+            <ProfileContent />
+        </Suspense>
+    );
 }
