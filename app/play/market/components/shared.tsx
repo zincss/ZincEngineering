@@ -156,3 +156,23 @@ export function getRarityBadge(rarity: string) {
         default: return 'bg-zinc-800 text-zinc-400'; 
     } 
 }
+
+export const getTimeLeft = (dateStr: string) => {
+    const total = Date.parse(dateStr) - Date.now();
+    if (total <= 0) return { text: 'ENDED', urgent: false };
+    
+    const days = Math.floor(total / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((total / (1000 * 60 * 60)) % 24);
+    const minutes = Math.floor((total / 1000 / 60) % 60);
+    const seconds = Math.floor((total / 1000) % 60);
+
+    let text = '';
+    if (days > 0) text = `${days}d ${hours}h`;
+    else if (hours > 0) text = `${hours}h ${minutes}m`;
+    else text = `${minutes}m ${seconds}s`;
+
+    return { 
+        text, 
+        urgent: total < 1000 * 60 * 60 // Considered urgent if less than 1 hour remains
+    };
+};
