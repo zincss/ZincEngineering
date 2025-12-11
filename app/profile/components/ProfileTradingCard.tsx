@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { ItemImage } from './ItemImage';
-import { Trophy, Wind, Activity, ScanLine, Hash, Gauge, Zap } from 'lucide-react';
+import { Activity } from 'lucide-react';
 
 interface ProfileTradingCardProps {
   item: any; 
@@ -66,12 +66,8 @@ const getRarityConfig = (rarity: string) => {
 export const ProfileTradingCard = ({ item, onClick }: ProfileTradingCardProps) => {
   const rarity = item.item_templates?.rarity || 'COMMON';
   const name = item.item_templates?.name || 'Unknown Item';
-  const description = item.sourceData?.description || item.item_templates?.description || "No data.";
-  const isCar = item.sourceData?.type === 'CAR';
   const searchQuery = item.sourceData?.searchQuery || name;
   const config = getRarityConfig(rarity);
-  
-  const hp = isCar ? (description.length % 100) + 50 : 100;
 
   return (
     <div 
@@ -79,82 +75,58 @@ export const ProfileTradingCard = ({ item, onClick }: ProfileTradingCardProps) =
       className={`
         relative group w-full aspect-[2/3] rounded-2xl 
         bg-zinc-950 border ${config.border} ${config.glow}
-        flex flex-col overflow-hidden transition-all duration-300 
+        overflow-hidden transition-all duration-300 
         hover:scale-[1.02] hover:-translate-y-1 cursor-pointer
+        shadow-xl
       `}
     >
       
-      {/* HEADER */}
-      <div className="relative z-10 p-3 flex justify-between items-start">
-        <div className="flex flex-col">
-           <div className="flex items-center gap-1.5 mb-1">
-             <div className={`w-1.5 h-1.5 rounded-full ${config.bg.replace('/10', '')}`} />
-             <span className="text-[8px] font-mono font-bold text-zinc-500 tracking-widest uppercase">
-               #{String(item.serial_number).padStart(4, '0')}
-             </span>
-           </div>
-           <div className={`
-             inline-flex items-center gap-1 px-2 py-0.5 rounded-full 
-             ${config.bg} border ${config.border} border-opacity-30
+      {/* MAIN IMAGE LAYER */}
+      <div className="absolute inset-0">
+          <ItemImage 
+            name={name} 
+            searchQuery={searchQuery} 
+            className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-500" 
+          />
+          {/* Subtle Scanline Overlay */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(18,18,18,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 pointer-events-none bg-[size:100%_4px,3px_100%] opacity-20" />
+          
+          {/* Gradient Fade for Text Readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent" />
+      </div>
+
+      {/* TOP HEADER: RARITY & SERIAL */}
+      <div className="relative z-20 p-3 flex justify-between items-start">
+         <div className={`
+             inline-flex items-center gap-1.5 px-2 py-1 rounded-md 
+             ${config.bg} border ${config.border} border-opacity-40 backdrop-blur-md
            `}>
              <Activity size={10} className={config.text} />
              <span className={`text-[8px] font-black uppercase tracking-wider ${config.text}`}>
                {rarity.replace('_', ' ')}
              </span>
-           </div>
-        </div>
+         </div>
+         
+         <div className="flex items-center gap-1 bg-black/60 backdrop-blur-md px-2 py-1 rounded border border-white/10">
+             <span className="text-[8px] font-mono font-bold text-zinc-400 tracking-widest">
+               #{String(item.serial_number).padStart(4, '0')}
+             </span>
+         </div>
       </div>
 
-      {/* IMAGE */}
-      <div className="relative z-10 px-3 py-1 flex-1 min-h-0">
-        <div className="relative w-full h-full rounded-xl overflow-hidden border border-zinc-800 bg-zinc-900 group-hover:border-zinc-600 transition-colors">
-            <div className="absolute inset-0 p-0.5">
-               <div className="w-full h-full rounded-lg overflow-hidden relative">
-                  <ItemImage 
-                    name={name} 
-                    searchQuery={searchQuery} 
-                    className="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-110 opacity-90 group-hover:opacity-100" 
-                  />
-                  
-                  <div className="absolute inset-0 bg-[linear-gradient(rgba(18,18,18,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-20 pointer-events-none bg-[size:100%_2px,3px_100%] opacity-30" />
-               </div>
-            </div>
-        </div>
-      </div>
-
-      {/* INFO */}
-      <div className="relative z-10 px-3 pb-3 pt-2">
-         <h3 className="text-sm md:text-base font-black uppercase italic tracking-tighter text-white leading-none mb-2 truncate">
+      {/* BOTTOM INFO: NAME */}
+      <div className="absolute bottom-0 left-0 w-full p-4 z-20">
+         <div className="h-px w-8 bg-[#DFFF00] mb-2 opacity-50 group-hover:w-full transition-all duration-500" />
+         <h3 className="text-lg font-black uppercase italic tracking-tighter text-white leading-none truncate drop-shadow-md">
             {name}
          </h3>
-
-         {isCar && (
-            <div className="grid grid-cols-3 gap-1">
-               {/* Updated Layout: Removed vertical flex centering and added minimal styling for clearer text */}
-               <div className="bg-zinc-900 rounded p-1.5 border border-zinc-800 text-center">
-                  <div className="text-[7px] font-mono text-zinc-500 uppercase mb-0.5">Speed</div>
-                  <div className="flex items-center justify-center gap-1">
-                      <Gauge size={8} className="text-zinc-400" />
-                      <span className="text-[9px] font-bold text-white">200+</span>
-                  </div>
-               </div>
-               <div className="bg-zinc-900 rounded p-1.5 border border-zinc-800 text-center">
-                  <div className="text-[7px] font-mono text-zinc-500 uppercase mb-0.5">Accel</div>
-                  <div className="flex items-center justify-center gap-1">
-                      <Zap size={8} className="text-zinc-400" />
-                      <span className="text-[9px] font-bold text-white">2.5s</span>
-                  </div>
-               </div>
-               <div className="bg-zinc-900 rounded p-1.5 border border-zinc-800 text-center">
-                  <div className="text-[7px] font-mono text-zinc-500 uppercase mb-0.5">Rate</div>
-                  <div className="flex items-center justify-center gap-1">
-                      <Hash size={8} className="text-zinc-400" />
-                      <span className="text-[9px] font-bold text-white">{hp}</span>
-                  </div>
-               </div>
-            </div>
-         )}
       </div>
+
+      {/* HOVER GLOW FOR HIGH TIERS */}
+      {(rarity === 'ZENITH' || rarity === 'COSMIC' || rarity === 'ULTRA') && (
+         <div className={`absolute inset-0 border-2 ${config.border} opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-2xl shadow-[inset_0_0_20px_rgba(255,255,255,0.1)]`} />
+      )}
+      
     </div>
   );
 };

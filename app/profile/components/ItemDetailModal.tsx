@@ -1,9 +1,18 @@
 'use client';
 
-import React from 'react';
-import { X, Hash, Globe, BarChart3, Calendar, RefreshCw, Hammer, Gem, Loader2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { createClient } from '@/utils/supabase/client';
+import { X, Hash, Globe, BarChart3, Calendar, RefreshCw, Hammer, Gem, Loader2, ScanLine, Activity, Sparkles } from 'lucide-react';
 import { InventoryItem } from '../types';
-import { ItemImage } from './ItemImage';
+import { TradingCard } from '@/app/play/market/components/TradingCard';
+
+interface EnrichedItem extends InventoryItem {
+    sourceData?: {
+        type?: string;
+        searchQuery?: string;
+        description?: string;
+    };
+}
 
 interface ItemDetailModalProps {
     item: InventoryItem;
@@ -12,11 +21,9 @@ interface ItemDetailModalProps {
     onBreakdown: () => void;
     onEquip?: () => void;
     getRarityColor: (rarity: string) => string;
-    loadingSupply: boolean;
-    totalSupply: number | null;
 }
 
-// Config constants needed for display
+// Config constants
 const QUICK_SELL_VALUES: Record<string, number> = {
     'COMMON': 2, 'UNCOMMON': 5, 'RARE': 20, 'SUPER_RARE': 100, 
     'ULTRA': 500, 'ZENITH': 2000, 'COSMIC': 5000
@@ -34,93 +41,156 @@ const BREAKDOWN_YIELDS: Record<string, { type: string, label: string, amount: nu
 
 const getRarityStats = (rarity: string) => {
     switch (rarity) {
-        case 'COSMIC': return { percent: '???', label: 'ANOMALY' };
-        case 'ZENITH': return { percent: '0.1%', label: 'MYTHIC' };
-        case 'ULTRA': return { percent: '0.9%', label: 'LEGENDARY' };
-        case 'SUPER_RARE': return { percent: '4.0%', label: 'EPIC' };
-        case 'RARE': return { percent: '15.0%', label: 'RARE' };
-        case 'UNCOMMON': return { percent: '30.0%', label: 'UNCOMMON' };
-        default: return { percent: '50.0%', label: 'COMMON' };
+        case 'COSMIC': return { percent: '???', label: 'ANOMALY', color: 'text-pink-500' };
+        case 'ZENITH': return { percent: '0.1%', label: 'MYTHIC', color: 'text-[#DFFF00]' };
+        case 'ULTRA': return { percent: '0.9%', label: 'LEGENDARY', color: 'text-purple-500' };
+        case 'SUPER_RARE': return { percent: '4.0%', label: 'EPIC', color: 'text-orange-500' };
+        case 'RARE': return { percent: '15.0%', label: 'RARE', color: 'text-blue-500' };
+        case 'UNCOMMON': return { percent: '30.0%', label: 'UNCOMMON', color: 'text-emerald-500' };
+        default: return { percent: '50.0%', label: 'COMMON', color: 'text-zinc-500' };
     }
 };
 
 export const ItemDetailModal = ({ 
-    item, onClose, onQuickSell, onBreakdown, onEquip, 
-    getRarityColor, loadingSupply, totalSupply 
+    item, onClose, onQuickSell, onBreakdown, onEquip
 }: ItemDetailModalProps) => {
     
+    const [globalSupply, setGlobalSupply] = useState<number | null>(null);
+    const [loadingSupply, setLoadingSupply] = useState(true);
+    const supabase = createClient();
+
+    const enrichedItem = item as EnrichedItem;
     const yieldData = BREAKDOWN_YIELDS[item.item_templates.rarity];
+    const rarityStats = getRarityStats(item.item_templates.rarity);
+
+    // FETCH GLOBAL COUNT ON MOUNT
+    useEffect(() => {
+        const fetchSupply = async () => {
+            setLoadingSupply(true);
+            const { count, error } = await supabase
+                .from('user_items')
+                .select('*', { count: 'exact', head: true })
+                .eq('template_id', item.item_templates.id);
+            
+            if (!error) setGlobalSupply(count);
+            setLoadingSupply(false);
+        };
+        fetchSupply();
+    }, [item.item_templates.id]);
+
+    // Map to TradingCard format
+    const cardItem = {
+        name: item.item_templates.name,
+        rarity: item.item_templates.rarity,
+        type: enrichedItem.sourceData?.type || 'ITEM',
+        searchQuery: enrichedItem.sourceData?.searchQuery,
+        description: enrichedItem.sourceData?.description || item.item_templates.description,
+        serial_number: item.serial_number,
+        isShiny: item.is_shiny // Pass shiny status to card
+    };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/90 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
-            <div className={`relative w-full md:max-w-lg bg-zinc-950 border-t-2 md:border-4 rounded-t-3xl md:rounded-3xl p-6 md:p-8 shadow-2xl overflow-y-auto max-h-[85vh] md:max-h-none ${getRarityColor(item.item_templates.rarity)}`} onClick={e => e.stopPropagation()}>
-                <button onClick={onClose} className="absolute top-4 right-4 p-2 text-zinc-500 hover:text-white transition-colors z-10"><X size={24} /></button>
-                {item.is_shiny && <div className="absolute inset-0 bg-gradient-to-tr from-yellow-500/10 via-transparent to-blue-500/10 pointer-events-none animate-pulse" />}
-                
-                <div className="relative z-10 text-center">
-                    <div className="flex items-center justify-center gap-2 mb-6">
-                        <span className={`px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest ${item.item_templates.rarity === 'ZENITH' ? 'bg-[#DFFF00] text-black' : 'bg-black/30'}`}>{item.item_templates.rarity}</span>
-                        {item.is_shiny && <span className="px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest bg-yellow-500/20 text-yellow-400 border border-yellow-500/50">PRISMATIC</span>}
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-300" onClick={onClose}>
+            
+            <div 
+                className="relative w-full max-w-5xl bg-zinc-950 border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[90vh]" 
+                onClick={e => e.stopPropagation()}
+            >
+                <button onClick={onClose} className="absolute top-4 right-4 z-50 p-2 bg-black/50 hover:bg-white hover:text-black text-zinc-400 rounded-full transition-all border border-zinc-700">
+                    <X size={20} />
+                </button>
+
+                {/* LEFT: CARD VISUAL */}
+                <div className="w-full md:w-1/2 lg:w-5/12 bg-zinc-900/50 p-8 flex items-center justify-center relative overflow-hidden">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-800/20 via-transparent to-transparent" />
+                    
+                    <div className="w-full max-w-[320px] aspect-[2/3] relative z-10 animate-in zoom-in-95 duration-500 shadow-2xl">
+                        <TradingCard item={cardItem} showDetails={false} />
                     </div>
+
+                    {/* Prismatic Background Effect */}
+                    {item.is_shiny && (
+                         <div className="absolute inset-0 bg-gradient-to-tr from-[#DFFF00]/10 via-purple-500/10 to-blue-500/10 animate-pulse pointer-events-none mix-blend-overlay" />
+                    )}
+                </div>
+
+                {/* RIGHT: INTEL & ACTIONS */}
+                <div className="w-full md:w-1/2 lg:w-7/12 p-6 md:p-10 overflow-y-auto custom-scrollbar flex flex-col">
                     
-                    <div className="w-40 h-40 md:w-48 md:h-48 mx-auto mb-6">
-                        <ItemImage name={item.item_templates.name} rarity={item.item_templates.rarity} className="w-full h-full" />
+                    <div className="mb-8">
+                        <div className="flex items-center gap-2 mb-2">
+                             <div className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest border border-zinc-800 bg-zinc-900 ${rarityStats.color}`}>
+                                {item.item_templates.rarity.replace('_', ' ')}
+                             </div>
+                             {item.is_shiny && (
+                                 <div className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest border border-yellow-500/50 bg-yellow-500/10 text-yellow-500 flex items-center gap-1 shadow-[0_0_10px_rgba(234,179,8,0.2)]">
+                                     <Sparkles size={10} /> Prismatic Foil
+                                 </div>
+                             )}
+                        </div>
+                        <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-white leading-[0.9]">
+                            {item.item_templates.name}
+                        </h2>
                     </div>
-                    
-                    <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter mb-4 text-white">{item.item_templates.name}</h2>
-                    <p className="text-zinc-400 font-mono text-xs md:text-sm leading-relaxed mb-6 border-b border-white/10 pb-6">"{item.item_templates.description}"</p>
-                    
-                    {/* STATS GRID */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-left mb-6">
-                        <div className="bg-black/20 p-4 rounded-xl border border-white/5 flex justify-between items-center md:block">
-                            <div className="flex items-center gap-2 text-zinc-500 mb-1"><Hash size={12} /><span className="text-[10px] font-mono uppercase tracking-widest">Serial</span></div>
-                            <div className="text-lg md:text-xl font-black text-white">#{item.serial_number}</div>
+
+                    <div className="grid grid-cols-2 gap-3 mb-8">
+                        <div className="bg-zinc-900 border border-zinc-800 p-3 rounded-xl">
+                            <div className="flex items-center gap-2 text-zinc-500 text-[10px] font-mono uppercase tracking-widest mb-1">
+                                <Hash size={12} /> Serial
+                            </div>
+                            <div className="text-xl font-black text-white">
+                                #{String(item.serial_number).padStart(4, '0')}
+                            </div>
                         </div>
-                        <div className="bg-black/20 p-4 rounded-xl border border-white/5 flex justify-between items-center md:block">
-                            <div className="flex items-center gap-2 text-zinc-500 mb-1"><Globe size={12} /><span className="text-[10px] font-mono uppercase tracking-widest">Circulating</span></div>
-                            <div className="text-lg md:text-xl font-black text-white">{loadingSupply ? <Loader2 size={16} className="animate-spin" /> : totalSupply?.toLocaleString()}</div>
-                        </div>
-                        <div className="bg-black/20 p-4 rounded-xl border border-white/5 flex justify-between items-center md:block">
-                            <div className="flex items-center gap-2 text-zinc-500 mb-1"><BarChart3 size={12} /><span className="text-[10px] font-mono uppercase tracking-widest">Drop Rate</span></div>
-                            <div className="text-lg md:text-xl font-black text-white">{getRarityStats(item.item_templates.rarity).percent}</div>
-                        </div>
-                        <div className="bg-black/20 p-4 rounded-xl border border-white/5 flex justify-between items-center md:block">
-                            <div className="flex items-center gap-2 text-zinc-500 mb-1"><Calendar size={12} /><span className="text-[10px] font-mono uppercase tracking-widest">Acquired</span></div>
-                            <div className="text-sm font-bold text-white mt-1">{new Date(item.obtained_at).toLocaleDateString()}</div>
+                        <div className="bg-zinc-900 border border-zinc-800 p-3 rounded-xl">
+                            <div className="flex items-center gap-2 text-zinc-500 text-[10px] font-mono uppercase tracking-widest mb-1">
+                                <Globe size={12} /> Global Count
+                            </div>
+                            <div className="text-xl font-black text-white">
+                                {loadingSupply ? <Loader2 size={16} className="animate-spin" /> : globalSupply?.toLocaleString() ?? '-'}
+                            </div>
                         </div>
                     </div>
 
-                    {/* ACTION BUTTONS */}
-                    <div className="space-y-3">
+                    <div className="flex-1 bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 mb-8">
+                        <div className="flex items-center gap-2 text-zinc-600 text-[10px] font-bold uppercase tracking-widest mb-2">
+                             <ScanLine size={12} /> Asset Log
+                        </div>
+                        <p className="text-zinc-400 text-xs font-mono leading-relaxed">
+                            {enrichedItem.sourceData?.description || item.item_templates.description || "No archival data found for this asset."}
+                        </p>
+                    </div>
+
+                    <div className="mt-auto space-y-3">
                         {item.item_templates.rarity === 'COSMIC' && onEquip && (
                             <button onClick={onEquip} className="w-full py-4 bg-[#DFFF00] hover:bg-white text-black rounded-xl flex items-center justify-center gap-2 font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(223,255,0,0.3)] animate-pulse">
                                 <Gem size={16} />
-                                <span>Equip Profile Flair</span>
+                                <span>Equip Flair</span>
                             </button>
                         )}
 
                         <div className="grid grid-cols-2 gap-3">
-                            <button onClick={onQuickSell} className="py-4 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-600 text-zinc-400 hover:text-white rounded-xl flex flex-col items-center justify-center gap-1 font-black uppercase tracking-widest transition-all group">
-                                <div className="flex items-center gap-2">
-                                    <RefreshCw size={14} className="group-hover:rotate-180 transition-transform" />
+                            <button onClick={onQuickSell} className="py-4 bg-black border border-zinc-800 hover:border-zinc-600 hover:bg-zinc-900 text-white rounded-xl flex flex-col items-center justify-center gap-1 transition-all group">
+                                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest">
+                                    <RefreshCw size={14} className="group-hover:rotate-180 transition-transform text-zinc-500 group-hover:text-white" />
                                     <span>Quick Sell</span>
                                 </div>
-                                <span className="text-xs font-mono text-zinc-500">+{QUICK_SELL_VALUES[item.item_templates.rarity] || 2} CR</span>
+                                <span className="text-[10px] font-mono text-[#DFFF00]">+{QUICK_SELL_VALUES[item.item_templates.rarity] || 2} CR</span>
                             </button>
 
-                            <button onClick={onBreakdown} className="py-4 bg-orange-900/20 hover:bg-orange-500 text-orange-400 hover:text-white border border-orange-500/50 rounded-xl flex flex-col items-center justify-center gap-1 font-black uppercase tracking-widest transition-all group">
-                                <div className="flex items-center gap-2">
+                            <button onClick={onBreakdown} className="py-4 bg-orange-950/10 border border-orange-900/30 hover:border-orange-500 hover:bg-orange-900/20 text-orange-500 rounded-xl flex flex-col items-center justify-center gap-1 transition-all group">
+                                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest">
                                     <Hammer size={14} className="group-hover:-rotate-45 transition-transform" />
-                                    <span>Scrap Item</span>
+                                    <span>Scrap</span>
                                 </div>
-                                <span className="text-xs font-mono opacity-80">
+                                <span className="text-[10px] font-mono opacity-80">
                                     +{yieldData?.amount || 0} {yieldData?.label?.split(' ')[0] || 'Parts'}
                                 </span>
                             </button>
                         </div>
                     </div>
-
                 </div>
+
             </div>
         </div>
     );

@@ -5,35 +5,62 @@ import { Loader2, ImageOff } from 'lucide-react';
 import { CARS } from '@/app/automotive/data';
 
 // --- DATA SOURCES ---
-export const REEL_ITEMS_SOURCE = [
-  { name: 'Plastic Spork', rarity: 'COMMON', description: 'Barely functional. The apex of disposable cutlery.', searchQuery: 'Spork' }, 
-  { name: 'AA Battery', rarity: 'COMMON', description: 'Not included. Probably dead anyway.', searchQuery: 'AA battery' },
-  { name: 'Red Brick', rarity: 'COMMON', description: "It's a brick. Good for throwing.", searchQuery: 'Brick' }, 
-  { name: 'Left Sock', rarity: 'COMMON', description: 'Where is the right one? A mystery.', searchQuery: 'Sock' },
-  { name: 'Vintage Toaster', rarity: 'UNCOMMON', description: 'A fire hazard that occasionally browns bread.', searchQuery: 'Toaster' }, 
-  { name: 'Lava Lamp', rarity: 'UNCOMMON', description: 'Distracting goo. Do not drink.', searchQuery: 'Lava lamp' },
-  { name: 'Gaming Chair', rarity: 'RARE', description: 'Racing bucket seat for sitting absolutely still.', searchQuery: 'Gaming chair' }, 
-  { name: 'Mechanical Keyboard', rarity: 'RARE', description: 'Loud. Annoying. Tactile. Your coworkers hate you.', searchQuery: 'Mechanical keyboard' },
-  { name: 'Espresso Machine', rarity: 'SUPER_RARE', description: 'Overcomplicated bean water extractor. PhD required.', searchQuery: 'Espresso machine' }, 
-  { name: 'VR Headset', rarity: 'SUPER_RARE', description: 'Escape reality. Motion sickness included.', searchQuery: 'Virtual reality headset' },
-  { name: 'Solid Gold Paperclip', rarity: 'ULTRA', description: 'It holds paper. But expensively.', searchQuery: 'Paperclip' }, 
-  { name: 'The Zinc Cube', rarity: 'ZENITH', description: 'Dense. Heavy. Zinc. Perfection.', searchQuery: 'Zinc' },
-  { name: 'Rubber Band', rarity: 'COMMON', description: 'Potential energy storage device. Snap.', searchQuery: 'Rubber band' }, 
-  { name: 'Coffee Mug', rarity: 'UNCOMMON', description: 'Vessel for caffeine. Stain resistant (lies).', searchQuery: 'Mug' },
-  { name: 'Drone', rarity: 'RARE', description: 'Buzzing annoyance. Battery life: 2 minutes.', searchQuery: 'Quadcopter' }, 
-  { name: 'Diamond Ring', rarity: 'ULTRA', description: 'Compressed carbon. Depreciates instantly.', searchQuery: 'Diamond' },
-  { name: 'Soda Can', rarity: 'COMMON', description: 'Aluminum cylinder. Contents: Liquid sugar.', searchQuery: 'Beverage can' }, 
-  { name: 'Pizza Box', rarity: 'COMMON', description: 'Cardboard with grease stains. Pizza not included.', searchQuery: 'Pizza' },
-  { name: 'Smart Watch', rarity: 'RARE', description: 'It tells time and steals your personal data.', searchQuery: 'Smartwatch' }, 
-  { name: 'Succulent', rarity: 'UNCOMMON', description: 'A plant you might actually manage not to kill.', searchQuery: 'Succulent plant' }
+
+// 125 Unique Base Items
+const BASE_ITEMS_LIST = [
+    // COMMON (75 items)
+    'Paperclip', 'Stapler', 'Rubber Band', 'Post-it Note', 'Ballpoint Pen', 'Pencil', 'Eraser', 'Sharpie', 'Highlighter', 'Notebook',
+    'Coffee Mug', 'Teaspoon', 'Fork', 'Knife', 'Spoon', 'Plate', 'Bowl', 'Napkin', 'Straw', 'Coaster',
+    'Water Bottle', 'Soda Can', 'Juice Box', 'Milk Carton', 'Cereal Box', 'Pizza Box', 'Burger Wrapper', 'Fries Container', 'Ketchup Packet', 'Mustard Packet',
+    'Toothbrush', 'Toothpaste', 'Floss', 'Soap Bar', 'Shampoo Bottle', 'Towel', 'Toilet Paper', 'Tissue Box', 'Hand Sanitizer', 'Band-Aid',
+    'AA Battery', 'AAA Battery', '9V Battery', 'Light Bulb', 'Extension Cord', 'Power Strip', 'USB Cable', 'HDMI Cable', 'Ethernet Cable', 'Phone Charger',
+    'Mouse', 'Mousepad', 'Keyboard', 'Webcam', 'Microphone', 'Headphones', 'Earbuds', 'Flash Drive', 'SD Card', 'CD-ROM',
+    'Floppy Disk', 'Cassette Tape', 'VHS Tape', 'Remote Control', 'Calculator', 'Ruler', 'Scissors', 'Tape', 'Glue Stick', 'Staples',
+    'Thumbtacks', 'Safety Pin', 'Matchbox', 'Lighter', 'Candle', 'String', 'Wire', 'Nail', 'Screw', 'Bolt',
+    'Nut', 'Washer', 'Allen Key', 'Screwdriver', 'Hammer',
+
+    // UNCOMMON (30 items)
+    'Plant Pot', 'Cactus', 'Succulent', 'Fern', 'Bonsai Tree', 'Vase', 'Picture Frame', 'Painting', 'Poster', 'Wall Clock',
+    'Alarm Clock', 'Desk Lamp', 'Floor Lamp', 'Lava Lamp', 'Plasma Ball', 'Newton Cradle', 'Hourglass', 'Globe', 'Map', 'Compass',
+    'Binoculars', 'Telescope', 'Microscope', 'Magnifying Glass', 'Camera Lens', 'Film Roll', 'Tripod', 'Drone', 'Controller', 'Console',
+
+    // RARE (15 items)
+    'Gold Watch', 'Silver Ring', 'Diamond Earring', 'Pearl Necklace', 'Ruby Brooch', 'Sapphire Pendant', 'Emerald Bracelet', 'Platinum Chain', 'Titanium Ring', 'Obsidian Amulet',
+    'Crystal Skull', 'Golden Idol', 'Ancient Coin', 'Fossil', 'Meteorite',
+
+    // SUPER RARE (4 items)
+    'Quantum Chip', 'Flux Capacitor', 'Anti-Gravity Module', 'Dark Matter Vial',
+
+    // ULTRA (1 item)
+    'The Zinc Cube' 
 ];
 
+export const REEL_ITEMS_SOURCE = BASE_ITEMS_LIST.map((name, i) => {
+    let rarity = 'COMMON';
+    if (i >= 124) rarity = 'ZENITH'; // The Zinc Cube
+    else if (i >= 120) rarity = 'ULTRA';
+    else if (i >= 105) rarity = 'SUPER_RARE';
+    else if (i >= 75) rarity = 'RARE';
+    else if (i >= 50) rarity = 'UNCOMMON'; 
+
+    if (name === 'The Zinc Cube') rarity = 'ZENITH';
+    else if (['Quantum Chip', 'Flux Capacitor', 'Anti-Gravity Module', 'Dark Matter Vial'].includes(name)) rarity = 'ULTRA';
+    
+    return {
+        name,
+        rarity,
+        type: 'ITEM',
+        description: `Standard issue item #${1000 + i}. Collected from the Zinc Archives.`,
+        searchQuery: name
+    };
+});
+
 export const FLAIR_ITEMS_SOURCE = [
-    { name: 'Neon Samurai', rarity: 'COSMIC', type: 'FLAIR', description: 'Animated profile avatar.', searchQuery: 'Samurai' },
-    { name: 'Cyber Skull', rarity: 'COSMIC', type: 'FLAIR', description: 'Animated profile avatar. Death is only a glitch.', searchQuery: 'Skull' },
-    { name: 'Glitch Cat', rarity: 'COSMIC', type: 'FLAIR', description: 'Animated profile avatar. Purring in binary.', searchQuery: 'Cyberpunk cat' },
-    { name: 'Void Eye', rarity: 'COSMIC', type: 'FLAIR', description: 'Animated profile avatar. It sees everything.', searchQuery: 'Eye' },
-    { name: 'Golden Ticket', rarity: 'COSMIC', type: 'FLAIR', description: 'Animated profile avatar. Access granted.', searchQuery: 'Golden ticket' },
+    { name: 'Neon Samurai', rarity: 'COSMIC', type: 'FLAIR', description: 'Animated profile avatar.', searchQuery: 'Samurai cyberpunk' },
+    { name: 'Cyber Skull', rarity: 'COSMIC', type: 'FLAIR', description: 'Animated profile avatar. Death is only a glitch.', searchQuery: 'Skull robot' },
+    { name: 'Glitch Cat', rarity: 'COSMIC', type: 'FLAIR', description: 'Animated profile avatar. Purring in binary.', searchQuery: 'Cat cyberpunk' },
+    { name: 'Void Eye', rarity: 'COSMIC', type: 'FLAIR', description: 'Animated profile avatar. It sees everything.', searchQuery: 'Eye space' },
+    { name: 'Golden Ticket', rarity: 'COSMIC', type: 'FLAIR', description: 'Animated profile avatar. Access granted.', searchQuery: 'Golden Ticket' },
 ];
 
 export const CAR_PACK_SOURCE = CARS.map(car => {
@@ -41,30 +68,21 @@ export const CAR_PACK_SOURCE = CARS.map(car => {
   if (car.id === '919-hybrid-evo') rarity = 'ZENITH'; 
   else if (car.class === 'Formula 1' || car.class === 'Hypercar' || car.class === 'Le Mans Prototype') rarity = 'ULTRA';
   else if (car.class === 'Supercar' || car.class === 'Group B') rarity = 'SUPER_RARE';
-  else if (car.class === 'WRC' || car.class === 'JDM Legend') rarity = 'RARE';
-  else if (car.manufacturer === 'Porsche' || car.manufacturer === 'Ferrari' || car.class === 'Touring' || car.class === 'Muscle') rarity = 'UNCOMMON';
+  else if (car.class === 'WRC' || car.class === 'JDM Legend' || car.class === 'Track Special') rarity = 'RARE';
+  else if (car.class === 'Touring' || car.class === 'Muscle' || car.class === 'JDM') rarity = 'UNCOMMON';
   
   return {
     ...car,
     rarity,
     type: 'CAR',
-    searchQuery: car.searchQuery || `${car.manufacturer} ${car.name}`
+    searchQuery: `${car.manufacturer} ${car.name}` // Removed 'car' string to let search be broader
   };
 });
 
-// Helper to get fallback URL (AI generated)
+// --- FALLBACK AI (Only used if search fails completely) ---
 export const getAssetUrl = (name: string, type?: string) => {
     const seed = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    // Determine context for better AI generation
-    const isCar = CAR_PACK_SOURCE.some(c => c.name === name);
-    let prompt = '';
-    
-    if (isCar) {
-         prompt = encodeURIComponent(`professional automotive photography of ${name}, dark studio lighting, 8k, photorealistic`);
-    } else {
-         prompt = encodeURIComponent(`isometric 3d icon of ${name}, futuristic container, cyberpunk style, 8k`);
-    }
-
+    const prompt = encodeURIComponent(`high quality photo of ${name}, isolated on black background, 8k`);
     return `https://image.pollinations.ai/prompt/${prompt}?width=1080&height=1080&seed=${seed}&nologo=true&model=flux-realism`;
 };
 
@@ -77,6 +95,7 @@ export const RealAssetImage = ({ name, searchQuery, className = "" }: { name: st
 
     useEffect(() => {
         const fetchImage = async () => {
+            // Priority: Search Query > Name
             const query = searchQuery || name;
             
             if (IMAGE_CACHE.has(query)) {
@@ -86,18 +105,32 @@ export const RealAssetImage = ({ name, searchQuery, className = "" }: { name: st
             }
 
             try {
-                // 1. Try Wikipedia
+                // --- NEW STRATEGY: COMMONS SEARCH (Like Google Images) ---
+                // We search for file *content* rather than articles.
+                // We append context keywords to improve accuracy.
+                
+                let searchContext = query;
+                const isCar = CAR_PACK_SOURCE.some(c => c.name === name);
+                
+                if (isCar && !query.toLowerCase().includes('car')) {
+                    // Refine query for cars to avoid random stuff
+                    searchContext = `${query} car`; 
+                }
+
+                // 1. Search Wikimedia Commons Media
                 const response = await fetch(
-                    `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(query)}&prop=pageimages&format=json&pithumbsize=1000&origin=*`
+                    `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(searchContext)}&gsrlimit=1&prop=imageinfo&iiprop=url&format=json&origin=*`
                 );
+                
                 const data = await response.json();
-                const pages = data.query?.pages;
                 let foundUrl = null;
 
-                if (pages) {
-                    const pageId = Object.keys(pages)[0];
-                    if (pageId !== '-1' && pages[pageId].thumbnail) {
-                        foundUrl = pages[pageId].thumbnail.source;
+                if (data.query?.pages) {
+                    const pages = Object.values(data.query.pages);
+                    // @ts-ignore
+                    if (pages.length > 0 && pages[0].imageinfo && pages[0].imageinfo.length > 0) {
+                        // @ts-ignore
+                        foundUrl = pages[0].imageinfo[0].url;
                     }
                 }
 
@@ -105,15 +138,13 @@ export const RealAssetImage = ({ name, searchQuery, className = "" }: { name: st
                     IMAGE_CACHE.set(query, foundUrl);
                     setSrc(foundUrl);
                 } else {
-                    // 2. Fallback to AI Generator if Wiki fails
-                    console.log(`Wiki image missing for ${query}, using fallback.`);
+                    // 2. Fallback to AI if absolutely nothing found (Rare)
                     const fallbackUrl = getAssetUrl(name);
                     IMAGE_CACHE.set(query, fallbackUrl);
                     setSrc(fallbackUrl);
                 }
             } catch (err) {
                 console.error("Failed to fetch image for", query, err);
-                // Error Fallback
                 setSrc(getAssetUrl(name));
             } finally {
                 setLoading(false);
@@ -128,7 +159,6 @@ export const RealAssetImage = ({ name, searchQuery, className = "" }: { name: st
     }
 
     if (!src) {
-        // Should rarely happen now due to fallback
         return (
             <div className={`flex flex-col items-center justify-center bg-zinc-800 text-zinc-600 ${className}`}>
                 <ImageOff size={24} />
@@ -149,6 +179,10 @@ export const BasePackIcon = ({ size = 24, style = {} }: { size?: number, style?:
     <path d="M8 9L16 15" stroke="currentColor" strokeWidth="1"/>
     <path d="M16 9L8 15" stroke="currentColor" strokeWidth="1"/>
   </svg>
+);
+
+export const CarFront = ({ size = 24, style = {} }: { size?: number, style?: React.CSSProperties }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
 );
 
 export function getScrollRarityStyle(rarity: string) { 
@@ -175,39 +209,6 @@ export function getRarityBorder(rarity: string) {
     } 
 }
 
-export function getRarityBadge(rarity: string) { 
-    switch (rarity) { 
-        case 'COSMIC': return 'bg-pink-600 text-white shadow-[0_0_15px_rgba(236,72,153,0.5)] animate-pulse';
-        case 'ZENITH': return 'bg-[#DFFF00] text-black shadow-[0_0_15px_rgba(223,255,0,0.5)]'; 
-        case 'ULTRA': return 'bg-purple-600 text-white shadow-[0_0_15px_rgba(147,51,234,0.5)]'; 
-        case 'SUPER_RARE': return 'bg-orange-500 text-black'; 
-        case 'RARE': return 'bg-blue-600 text-white'; 
-        case 'UNCOMMON': return 'bg-green-700 text-white'; 
-        default: return 'bg-zinc-800 text-zinc-400'; 
-    } 
-}
-
-// RESTORED: AssetPreloader to prevent "undefined" error in MarketPage
-export const AssetPreloader = () => null;
-
-export const animationStyles = `
-  @keyframes shine {
-    0% { transform: translateX(-100%) skewX(-12deg); }
-    100% { transform: translateX(200%) skewX(-12deg); }
-  }
-  .animate-shine {
-    animation: shine 2s infinite linear;
-  }
-  @keyframes spin-slow {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-  .animate-spin-slow {
-    animation: spin-slow 3s linear infinite;
-  }
-`;
-
-// RESTORED: Time Left Helper for Auction House
 export const getTimeLeft = (dateStr: string) => {
     const total = Date.parse(dateStr) - Date.now();
     if (total <= 0) return { text: 'ENDED', urgent: false };
@@ -228,5 +229,16 @@ export const getTimeLeft = (dateStr: string) => {
     };
 };
 
-// Alias ItemImage to RealAssetImage for backward compatibility
+export const AssetPreloader = () => null;
+
+export const animationStyles = `
+  @keyframes shine {
+    0% { transform: translateX(-100%) skewX(-12deg); }
+    100% { transform: translateX(200%) skewX(-12deg); }
+  }
+  .animate-shine {
+    animation: shine 2s infinite linear;
+  }
+`;
+
 export const ItemImage = RealAssetImage;
