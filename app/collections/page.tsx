@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { CarFront, Gamepad2, ChevronRight, Flag, CloudHail, Database, ArrowRight, BookOpen } from 'lucide-react';
+import { CarFront, Gamepad2, ChevronRight, Flag, CloudHail, Database, ArrowRight, BookOpen, ChefHat } from 'lucide-react'; // Added ChefHat
 import BackButton from '../components/BackButton';
 import GlobalTicker from '../components/GlobalTicker';
 
@@ -16,17 +16,15 @@ export default function CollectionsHub() {
 
       {/* --- HERO SECTION --- */}
       <section className="relative h-[65vh] flex flex-col items-center justify-center border-b border-zinc-800/50 overflow-hidden">
-        
+        {/* ... (Keep existing Hero content identical) ... */}
         {/* HERO BACKGROUND */}
         <div className="absolute inset-0 z-0">
            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-zinc-950/30 z-10" />
-           {/* Abstract Geometric Background */}
            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 grayscale mix-blend-overlay" />
         </div>
         
         <div className="relative z-20 w-full max-w-[1800px] mx-auto px-6 flex flex-col items-center text-center">
-          
-          {/* STATUS PILL */}
+          {/* ... (Keep existing Title/Status Pill identical) ... */}
           <div className="mb-8 animate-in fade-in slide-in-from-top-8 duration-1000">
              <div className="inline-flex items-center gap-3 px-4 py-2 bg-zinc-900/40 border border-zinc-800/50 backdrop-blur-xl rounded-full shadow-2xl">
                 <span className="relative flex h-2.5 w-2.5">
@@ -39,7 +37,6 @@ export default function CollectionsHub() {
              </div>
           </div>
 
-          {/* MASSIVE TYPOGRAPHY */}
           <h1 className="text-[12vw] md:text-[10vw] font-black tracking-tighter text-white uppercase leading-[0.8] animate-in fade-in zoom-in-95 duration-1000 delay-100 select-none">
             Digital <span className="text-transparent bg-clip-text bg-gradient-to-b from-zinc-500 to-zinc-800">Archive</span>
           </h1>
@@ -70,7 +67,7 @@ export default function CollectionsHub() {
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-fr">
             
-            {/* 1. GAMING DATABASE (Featured Wide) */}
+            {/* 1. GAMING DATABASE */}
             <Link href="/gaming" className="group md:col-span-8 relative min-h-[320px] rounded-[2.5rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500 hover:shadow-[0_0_50px_rgba(0,0,0,0.5)]">
                 <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-40 group-hover:opacity-20 grayscale transition-all duration-700 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/60 to-transparent" />
@@ -87,7 +84,7 @@ export default function CollectionsHub() {
                 </div>
             </Link>
 
-            {/* 2. AUTOMOTIVE (Tall) */}
+            {/* 2. AUTOMOTIVE */}
             <Link href="/automotive" className="group md:col-span-4 md:row-span-2 relative min-h-[320px] rounded-[2.5rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500">
                 <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1552519507-da3b142c6e3d?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/50 to-transparent" />
@@ -106,7 +103,7 @@ export default function CollectionsHub() {
                 </div>
             </Link>
 
-            {/* 3. WEATHER (Medium) */}
+            {/* 3. WEATHER */}
             <Link href="/collections/weather" className="group md:col-span-4 relative h-80 rounded-[2.5rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500">
                 <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1514632542354-958d91dde23e?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-zinc-950/30" />
@@ -126,7 +123,7 @@ export default function CollectionsHub() {
                 </div>
             </Link>
 
-            {/* 4. SCORECARD (Medium) */}
+            {/* 4. SCORECARD */}
             <Link href="/collections/golf" className="group md:col-span-4 relative h-80 rounded-[2.5rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500">
                 <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1535131749006-b7f58c99034b?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-zinc-950/30" />
@@ -142,6 +139,27 @@ export default function CollectionsHub() {
                     <h2 className="text-3xl font-black uppercase text-white mb-2 leading-none">Tactical<br/>Scorecard</h2>
                     <p className="text-zinc-500 font-mono text-xs mt-2 group-hover:text-white transition-colors">
                         4-Operative capacity. Real-time stats.
+                    </p>
+                </div>
+            </Link>
+
+            {/* 5. NEW RANDOM RECIPES MODULE */}
+            <Link href="/collections/recipes" className="group md:col-span-12 relative h-80 rounded-[2.5rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500 mt-6">
+                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
+                <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/60 to-transparent" />
+                
+                <div className="absolute top-8 right-8 bg-black/40 backdrop-blur-xl p-4 rounded-2xl border border-white/10 group-hover:border-[#DFFF00] transition-colors">
+                    <ChefHat className="text-[#DFFF00]" size={24} />
+                </div>
+
+                <div className="absolute bottom-0 left-0 p-8 md:p-12 w-full max-w-3xl">
+                    <div className="flex items-center gap-3 mb-4">
+                        <span className="px-3 py-1 bg-[#DFFF00] text-black font-bold text-xs uppercase tracking-widest rounded-full">New</span>
+                        <span className="text-zinc-500 font-mono text-xs uppercase tracking-widest">Global Database</span>
+                    </div>
+                    <h2 className="text-4xl md:text-5xl font-black uppercase text-white mb-4">Random Recipes</h2>
+                    <p className="text-zinc-400 font-mono text-sm md:text-base leading-relaxed max-w-xl group-hover:text-zinc-200 transition-colors">
+                        Access thousands of culinary schematics. Categories include: Breakfast, Lunch, Dinner, Treats & Bakes.
                     </p>
                 </div>
             </Link>
