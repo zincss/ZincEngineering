@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   ChefHat, Utensils, Coffee, Cake, Cookie, 
   Croissant, RefreshCw, Clock, Flame, Globe, 
   PlayCircle, ExternalLink, ListChecks, Scale, 
   Search, ScanLine, ArrowLeft, ArrowRight, CheckCircle2,
-  Leaf, Nut, Milk, Wheat, Info, Beef, X, Zap
+  Leaf, Nut, Milk, Wheat, Info, Beef, X, Zap, ChevronDown, ChevronUp
 } from 'lucide-react';
 import BackButton from '../../components/BackButton';
 import { getRandomRecipe, searchRecipesByIngredients, getRecipeById, Recipe, RecipeSummary } from './actions';
@@ -165,8 +165,12 @@ export default function RecipesPage() {
   const [searchResults, setSearchResults] = useState<RecipeSummary[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // --- TUTORIAL STATE ---
+  // UI STATE
   const [showTutorial, setShowTutorial] = useState(false);
+  const [isDescExpanded, setIsDescExpanded] = useState(false); // NEW: Track description expansion
+
+  // REFS
+  const recipeCardRef = useRef<HTMLDivElement>(null); // NEW: Ref for scrolling
 
   useEffect(() => {
     // Check Local Storage on Mount
@@ -175,6 +179,16 @@ export default function RecipesPage() {
       setShowTutorial(true);
     }
   }, []);
+
+  // NEW: Scroll to recipe when loaded
+  useEffect(() => {
+    if (recipe && recipeCardRef.current) {
+        // Small timeout to ensure DOM render
+        setTimeout(() => {
+            recipeCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+    }
+  }, [recipe]);
 
   const handleCloseTutorial = () => {
     localStorage.setItem('zinc_recipe_tutorial_seen', 'true');
@@ -196,6 +210,7 @@ export default function RecipesPage() {
     setRecipe(null);
     setUseMetric(false);
     setSearchResults([]); 
+    setIsDescExpanded(false); // Reset expansion
     
     try {
       const data = await getRandomRecipe(category);
@@ -215,6 +230,7 @@ export default function RecipesPage() {
     setRecipe(null);
     setSearchResults([]);
     setUseMetric(false);
+    setIsDescExpanded(false);
 
     try {
       const results = await searchRecipesByIngredients(ingredientQuery);
@@ -241,6 +257,7 @@ export default function RecipesPage() {
 
     setCurrentIndex(newIndex);
     setLoading(true);
+    setIsDescExpanded(false);
     try {
       const nextRecipe = await getRecipeById(searchResults[newIndex].id);
       setRecipe(nextRecipe);
@@ -351,7 +368,7 @@ export default function RecipesPage() {
 
         {/* RECIPE DISPLAY */}
         {recipe ? (
-          <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 pb-20">
+          <div ref={recipeCardRef} className="animate-in fade-in slide-in-from-bottom-8 duration-700 pb-20 scroll-mt-24">
             
             {searchMode && searchResults.length > 0 && (
               <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-zinc-900/80 border border-zinc-800 rounded-t-2xl p-4 border-b-0">
@@ -423,9 +440,25 @@ export default function RecipesPage() {
 
                     {/* DESCRIPTION & DIETARY ICONS */}
                     <div className="flex flex-col gap-4">
-                        <p className="text-zinc-300 text-sm md:text-lg font-medium leading-relaxed max-w-2xl line-clamp-2 md:line-clamp-none">
-                           {description}
-                        </p>
+                        
+                        {/* EXPANDABLE DESCRIPTION */}
+                        <div 
+                           className="relative group cursor-pointer" 
+                           onClick={() => setIsDescExpanded(!isDescExpanded)}
+                        >
+                            <p className={`text-zinc-300 text-sm md:text-lg font-medium leading-relaxed max-w-2xl ${isDescExpanded ? '' : 'line-clamp-2 md:line-clamp-none'}`}>
+                              {description}
+                            </p>
+                            
+                            {/* Expand Arrow for Mobile */}
+                            <div className="flex items-center gap-1 mt-1 text-[#DFFF00] text-[10px] font-bold uppercase tracking-widest md:hidden">
+                                {isDescExpanded ? (
+                                    <>Collapse <ChevronUp size={12} /></>
+                                ) : (
+                                    <>Read More <ChevronDown size={12} /></>
+                                )}
+                            </div>
+                        </div>
 
                         <div className="flex flex-wrap gap-2">
                             {detectedAttrs.map((attr, i) => (

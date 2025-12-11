@@ -7,7 +7,7 @@ export interface Recipe {
   area: string;
   instructions: string[];
   thumbnail: string;
-  tags: string[]; // ADDED: To store tags like "Tart,Baking,Fruity"
+  tags: string[];
   ingredients: { item: string; measure: string }[];
   youtube?: string;
   source?: string;
@@ -41,13 +41,37 @@ function transformMealToRecipe(meal: any): Recipe {
     }
   }
 
+  // 1. Split raw text by any newline format
   const rawInstructions = meal.strInstructions || '';
-  const instructions = rawInstructions
+  const lines = rawInstructions
     .split(/\r\n|\r|\n/)
-    .map((step: string) => step.trim())
-    .filter((step: string) => step.length > 3);
+    .map((s: string) => s.trim())
+    .filter((s: string) => s.length > 0);
 
-  // Parse Tags (e.g., "Meat,Casserole" -> ['Meat', 'Casserole'])
+  // 2. Smart Merge & Clean
+  const cleanInstructions: string[] = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Check if the line is just a label like "Step 1", "1.", "Step 1:", "Method"
+    const isStepLabel = /^(step\s*)?\d+[:.]?$|^method[:.]?$/i.test(line);
+
+    // If it's a label and there is a next line, skip this line (the next line has the text)
+    if (isStepLabel && i + 1 < lines.length) {
+      continue;
+    }
+
+    // Clean the current line: Remove leading "1.", "Step 1 -", etc. to avoid double numbering in UI
+    const text = line.replace(/^(step\s*)?\d+[:.\-]\s*/i, '');
+
+    // Only add if there is substantial text remaining
+    if (text.length > 2) {
+       cleanInstructions.push(text);
+    }
+  }
+
+  // Parse Tags
   const tags = meal.strTags ? meal.strTags.split(',').map((t: string) => t.trim()) : [];
 
   return {
@@ -55,9 +79,9 @@ function transformMealToRecipe(meal: any): Recipe {
     name: meal.strMeal,
     category: meal.strCategory,
     area: meal.strArea,
-    instructions,
+    instructions: cleanInstructions, // Use the cleaned array
     thumbnail: meal.strMealThumb,
-    tags, // Return the tags
+    tags,
     ingredients,
     youtube: meal.strYoutube,
     source: meal.strSource
@@ -84,7 +108,7 @@ export async function getRandomRecipe(userCategory: string): Promise<Recipe | nu
   }
 }
 
-// 2. SEARCH BY INGREDIENTS (Best Match Algorithm)
+// 2. SEARCH BY INGREDIENTS
 export async function searchRecipesByIngredients(ingredientsInput: string): Promise<RecipeSummary[]> {
   try {
     const searchTerms = ingredientsInput
@@ -140,7 +164,7 @@ export async function searchRecipesByIngredients(ingredientsInput: string): Prom
   }
 }
 
-// 3. GET SPECIFIC RECIPE (Full Details)
+// 3. GET SPECIFIC RECIPE
 export async function getRecipeById(id: string): Promise<Recipe | null> {
   try {
     const response = await fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${id}`, { cache: 'force-cache' });
