@@ -28,7 +28,6 @@ export const REEL_ITEMS_SOURCE = [
   { name: 'Succulent', rarity: 'UNCOMMON', description: 'A plant you might actually manage not to kill.' }
 ];
 
-// [NEW] Rare Flair Items
 export const FLAIR_ITEMS_SOURCE = [
     { name: 'Neon Samurai', rarity: 'COSMIC', type: 'FLAIR', description: 'Animated profile avatar. The way of the blade.' },
     { name: 'Cyber Skull', rarity: 'COSMIC', type: 'FLAIR', description: 'Animated profile avatar. Death is only a glitch.' },
@@ -39,38 +38,54 @@ export const FLAIR_ITEMS_SOURCE = [
 
 export const CAR_PACK_SOURCE = CARS.map(car => {
   let rarity = 'COMMON';
+  
+  // Rarity Logic Hierarchy
   if (car.id === '919-hybrid-evo') rarity = 'ZENITH'; 
-  else if (car.class === 'Formula 1' || car.class === 'Hypercar') rarity = 'ULTRA';
+  else if (car.class === 'Formula 1' || car.class === 'Hypercar' || car.class === 'Le Mans Prototype') rarity = 'ULTRA';
   else if (car.class === 'Supercar' || car.class === 'Group B') rarity = 'SUPER_RARE';
-  else if (car.class === 'WRC') rarity = 'RARE';
-  else if (car.manufacturer === 'Porsche' || car.manufacturer === 'Ferrari') rarity = 'UNCOMMON';
+  else if (car.class === 'WRC' || car.class === 'JDM Legend') rarity = 'RARE';
+  else if (car.manufacturer === 'Porsche' || car.manufacturer === 'Ferrari' || car.class === 'Touring' || car.class === 'Muscle') rarity = 'UNCOMMON';
+  else rarity = 'COMMON';
 
   return {
     name: car.name,
     rarity: rarity,
-    description: car.history.length > 80 ? car.history.substring(0, 80) + "..." : car.history
+    description: car.history.length > 80 ? car.history.substring(0, 80) + "..." : car.history,
+    type: 'CAR' // Added type to distinguish for image generation
   };
 });
 
 // --- HELPERS ---
-export const getAssetUrl = (name: string) => {
+export const getAssetUrl = (name: string, type?: string) => {
     const seed = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const prompt = encodeURIComponent(
-        `isometric 3d icon of ${name}, encased in a futuristic glass cube container, cyberpunk aesthetics, glowing neon edges, dark grey background, unreal engine 5 render, high fidelity, 8k, center focus`
-    );
+    
+    // Custom prompt logic for Cars to ensure high fidelity
+    let prompt = '';
+    if (type === 'CAR') {
+        prompt = encodeURIComponent(
+            `studio photography of ${name}, cinematic lighting, 8k, highly detailed, photorealistic, dark showroom background, rim lighting, sleek, automotive beauty shot, unreal engine 5 render`
+        );
+    } else {
+        prompt = encodeURIComponent(
+            `isometric 3d icon of ${name}, encased in a futuristic glass cube container, cyberpunk aesthetics, glowing neon edges, dark grey background, unreal engine 5 render, high fidelity, 8k, center focus`
+        );
+    }
+
     return `https://image.pollinations.ai/prompt/${prompt}?width=400&height=400&seed=${seed}&nologo=true&model=flux`;
 };
 
 export const AssetPreloader = () => (
     <div className="hidden">
-        {[...REEL_ITEMS_SOURCE, ...CAR_PACK_SOURCE, ...FLAIR_ITEMS_SOURCE].map((item) => (
-            <img key={item.name} src={getAssetUrl(item.name)} alt="preload" loading="eager" />
+        {[...REEL_ITEMS_SOURCE, ...CAR_PACK_SOURCE, ...FLAIR_ITEMS_SOURCE].map((item: any) => (
+            <img key={item.name} src={getAssetUrl(item.name, item.type)} alt="preload" loading="eager" />
         ))}
     </div>
 );
 
 export const ItemImage = ({ name, rarity, className = "" }: { name: string, rarity: string, className?: string }) => {
-  const imageUrl = getAssetUrl(name);
+  // Determine if it's a car based on the source list (safest way without passing type everywhere)
+  const isCar = CAR_PACK_SOURCE.some(c => c.name === name);
+  const imageUrl = getAssetUrl(name, isCar ? 'CAR' : undefined);
   const [loaded, setLoaded] = useState(false);
 
   return (
