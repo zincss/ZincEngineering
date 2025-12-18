@@ -1,12 +1,22 @@
 import './globals.css'
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import Header from './components/Header'
 import { Providers } from './providers'
 
 export const metadata: Metadata = {
   title: 'ZINC ENGINEERING // HUB',
   description: 'Advanced Tactical & Athletic Telemetry',
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "ZincHub",
+  },
 }
+
+export const viewport: Viewport = {
+  themeColor: "#fafafa",
+};
 
 export default function RootLayout({
   children,
