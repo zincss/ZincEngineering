@@ -10,7 +10,6 @@ import {
   Activity, CloudHail, Zap, Terminal, ChevronRight,
   PlayCircle, Layers, TrendingUp, ShieldCheck, Cpu
 } from 'lucide-react';
-import EditableContent from '@/app/components/EditableContent'; // IMPORT ADDED
 
 // --- ANIMATION VARIANTS ---
 const containerVar: Variants = {
@@ -97,7 +96,7 @@ export default function Home() {
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-[#DFFF00]"></span>
                 </span>
                 <span className="text-[10px] font-mono font-bold text-zinc-300 tracking-[0.2em] uppercase">
-                  <EditableContent id="home-status-pill" defaultContent="System Online v2.6" tag="span" />
+                  System Online v2.6
                 </span>
              </div>
           </motion.div>
@@ -121,18 +120,14 @@ export default function Home() {
 
              {/* TEXT STACK */}
              <div className="flex flex-col items-center lg:items-start justify-center">
-                <motion.div 
+                <motion.h1 
                   initial={{ x: -20, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
                   transition={{ duration: 1, delay: 0.2 }}
+                  className="font-black text-7xl md:text-9xl lg:text-[11rem] leading-[0.8] text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-400 tracking-tighter drop-shadow-2xl"
                 >
-                   <EditableContent 
-                      id="home-hero-title" 
-                      defaultContent="ZINC" 
-                      tag="h1" 
-                      className="font-black text-7xl md:text-9xl lg:text-[11rem] leading-[0.8] text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-400 tracking-tighter drop-shadow-2xl"
-                   />
-                </motion.div>
+                   ZINC
+                </motion.h1>
                 
                 <div className="h-8 md:h-12 overflow-hidden relative w-full flex justify-center lg:justify-start mt-6">
                   <AnimatePresence mode="wait">
@@ -167,8 +162,7 @@ export default function Home() {
               className="group relative px-10 py-4 bg-[#DFFF00] text-black font-black text-xs tracking-[0.2em] uppercase rounded-full overflow-hidden transition-transform hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(223,255,0,0.3)] hover:shadow-[0_0_50px_rgba(223,255,0,0.5)]"
             >
               <span className="relative z-10 flex items-center gap-3">
-                <EditableContent id="home-btn-init" defaultContent="Initialize System" tag="span" />
-                <ArrowRight size={14} />
+                Initialize System <ArrowRight size={14} />
               </span>
               <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-50 transition-opacity duration-300" />
             </button>
@@ -180,9 +174,7 @@ export default function Home() {
                   className="flex items-center gap-2 px-5 py-3 rounded-full bg-zinc-900/40 border border-white/10 hover:border-[#DFFF00]/50 hover:bg-zinc-900 transition-all group backdrop-blur-md"
                 >
                   <span className="text-zinc-500 group-hover:text-[#DFFF00] transition-colors"><Terminal size={14} /></span>
-                  <span className="text-xs font-mono font-bold text-zinc-400 group-hover:text-white uppercase tracking-widest">
-                    <EditableContent id="home-btn-logs" defaultContent="System Logs" tag="span" />
-                  </span>
+                  <span className="text-xs font-mono font-bold text-zinc-400 group-hover:text-white uppercase tracking-widest">System Logs</span>
                 </button>
             </div>
 
@@ -203,7 +195,7 @@ export default function Home() {
       {/* --- MODULES GRID --- */}
       <section id="modules-grid" className="relative z-10 max-w-[1600px] mx-auto px-4 md:px-6 py-24">
         
-        <SectionHeader title="Mainframe" icon={<Activity size={16} />} id="home-header-mainframe" />
+        <SectionHeader title="Mainframe" icon={<Activity size={16} />} />
 
         {/* BENTO GRID */}
         <motion.div 
@@ -238,14 +230,7 @@ export default function Home() {
                      <Activity size={20} className="text-blue-500 animate-pulse" />
                   </div>
 
-                  <div className="mb-6">
-                    <EditableContent 
-                        id="home-card-sports-title" 
-                        defaultContent="Sports Telemetry" 
-                        tag="h2" 
-                        className="text-4xl font-black uppercase text-white tracking-tighter leading-tight"
-                    />
-                  </div>
+                  <h2 className="text-4xl font-black uppercase text-white mb-6 tracking-tighter">Sports<br/>Telemetry</h2>
                   
                   {/* Buttons Container */}
                   <div className="space-y-3 pointer-events-auto">
@@ -271,6 +256,7 @@ export default function Home() {
           {/* 2. ARCHIVES / COLLECTIONS */}
           <motion.div variants={itemVar} className="md:col-span-8">
             <Link href="/collections" className="group relative flex flex-col h-full min-h-[260px] rounded-[2.5rem] bg-zinc-900/40 border border-white/5 hover:border-purple-500/50 transition-all duration-500 overflow-hidden hover:shadow-[0_0_40px_rgba(168,85,247,0.15)]">
+               {/* CHANGED: Video Background */}
                <video 
                  autoPlay loop muted playsInline 
                  className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:opacity-10 transition-all duration-700 group-hover:scale-110 grayscale"
@@ -288,18 +274,8 @@ export default function Home() {
                   </div>
                   
                   <div>
-                    <EditableContent 
-                        id="home-card-archives-title" 
-                        defaultContent="Archives" 
-                        tag="h2" 
-                        className="text-3xl font-black uppercase text-white mb-2 tracking-tighter"
-                    />
-                    <EditableContent 
-                        id="home-card-archives-desc" 
-                        defaultContent="Weather // Recipes // Tools" 
-                        tag="p" 
-                        className="text-purple-400/80 font-mono text-xs uppercase tracking-widest"
-                    />
+                    <h2 className="text-3xl font-black uppercase text-white mb-2 tracking-tighter">Archives</h2>
+                    <p className="text-purple-400/80 font-mono text-xs uppercase tracking-widest">Weather // Recipes // Tools</p>
                   </div>
                </div>
             </Link>
@@ -308,6 +284,7 @@ export default function Home() {
           {/* 3. ARCADE */}
           <motion.div variants={itemVar} className="md:col-span-8">
             <Link href="/play" className="group relative block h-full min-h-[260px] rounded-[2.5rem] bg-zinc-900/40 border border-white/5 hover:border-[#DFFF00]/50 transition-all duration-500 overflow-hidden hover:shadow-[0_0_40px_rgba(223,255,0,0.1)]">
+               {/* CHANGED: Video Background */}
                <video 
                  autoPlay loop muted playsInline 
                  className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-20 transition-all duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0"
@@ -325,21 +302,10 @@ export default function Home() {
                      <PlayCircle size={40} className="text-white/20 group-hover:text-[#DFFF00] transition-colors duration-500" />
                   </div>
                   <div>
-                     <EditableContent 
-                        id="home-card-arcade-title" 
-                        defaultContent="Arcade" 
-                        tag="h2" 
-                        className="text-4xl md:text-5xl font-black uppercase text-white mb-2 tracking-tighter drop-shadow-lg"
-                     />
+                     <h2 className="text-4xl md:text-5xl font-black uppercase text-white mb-2 tracking-tighter drop-shadow-lg">Arcade</h2>
                      <div className="inline-flex gap-2 items-center px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
                         <span className="w-2 h-2 rounded-full bg-[#DFFF00] animate-pulse" />
-                        <span className="text-[10px] font-mono font-bold text-zinc-300 uppercase tracking-widest">
-                            <EditableContent 
-                                id="home-card-arcade-desc" 
-                                defaultContent="Play games & earn/gamble currency" 
-                                tag="span" 
-                            />
-                        </span>
+                        <span className="text-[10px] font-mono font-bold text-zinc-300 uppercase tracking-widest">Play games & earn/gamble currency</span>
                      </div>
                   </div>
                </div>
@@ -348,8 +314,8 @@ export default function Home() {
 
         </motion.div>
 
-        {/* --- MARKET SECTION --- */}
-        <SectionHeader title="Underground Exchange" icon={<TrendingUp size={16} />} id="home-header-exchange" />
+{/* --- MARKET SECTION --- */}
+        <SectionHeader title="Underground Exchange" icon={<TrendingUp size={16} />} />
 
         <motion.div
            initial={{ opacity: 0, y: 30 }}
@@ -360,6 +326,7 @@ export default function Home() {
         >
             <Link href="/market" className="group relative block w-full min-h-[360px] rounded-[2.5rem] bg-zinc-900/40 border border-white/5 hover:border-[#DFFF00]/50 transition-all duration-500 overflow-hidden hover:shadow-[0_0_50px_rgba(223,255,0,0.1)]">
                
+               {/* CHANGED: Video Background */}
                <video 
                  autoPlay loop muted playsInline 
                  className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-10 transition-all duration-700 group-hover:scale-105 grayscale"
@@ -372,25 +339,16 @@ export default function Home() {
                <div className="relative p-12 h-full flex flex-col justify-center items-end text-right z-10">
                   <div className="mb-6 px-4 py-2 bg-[#DFFF00]/10 border border-[#DFFF00]/30 rounded-full backdrop-blur-md">
                      <span className="flex items-center gap-2 text-xs font-black text-[#DFFF00] uppercase tracking-widest">
-                        <Zap size={14} className="fill-[#DFFF00]" /> 
-                        <EditableContent id="home-card-market-pill" defaultContent="Live Economy" tag="span" />
+                        <Zap size={14} className="fill-[#DFFF00]" /> Live Economy
                      </span>
                   </div>
 
-                  <EditableContent 
-                     id="home-card-market-title" 
-                     defaultContent="Black Market" 
-                     tag="h2" 
-                     className="text-5xl md:text-7xl font-black uppercase text-white tracking-tighter mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-[#DFFF00] transition-all"
-                  />
-                  
-                  <div className="text-zinc-400 font-mono text-sm uppercase tracking-widest max-w-xl leading-relaxed">
-                     <EditableContent 
-                        id="home-card-market-desc" 
-                        defaultContent="Trade serialized assets, open packs, and manage your inventory in the secure exchange protocol." 
-                        tag="p" 
-                     />
-                  </div>
+                  <h2 className="text-5xl md:text-7xl font-black uppercase text-white tracking-tighter mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-[#DFFF00] transition-all">
+                     Black Market
+                  </h2>
+                  <p className="text-zinc-400 font-mono text-sm uppercase tracking-widest max-w-xl leading-relaxed">
+                     Trade serialized assets, open packs, and manage your inventory in the secure exchange protocol.
+                  </p>
                   
                   <div className="mt-8 flex items-center gap-4">
                      <div className="h-px w-24 bg-zinc-800 group-hover:bg-[#DFFF00] transition-colors" />
@@ -402,7 +360,7 @@ export default function Home() {
 
         {/* LOGS SECTION */}
         <section id="system-logs" className="scroll-mt-24">
-            <SectionHeader title="System Logs" icon={<Terminal size={16} />} id="home-header-logs" />
+            <SectionHeader title="System Logs" icon={<Terminal size={16} />} />
             
             <div className="relative rounded-[3rem] bg-zinc-900/20 border border-white/5 p-2 md:p-8 backdrop-blur-md overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
@@ -416,6 +374,7 @@ export default function Home() {
       <footer className="relative z-10 pt-20 pb-12 px-6 text-center border-t border-white/5 bg-zinc-950">
         <div className="max-w-[1600px] mx-auto flex flex-col items-center gap-8">
             
+            {/* Logo Mark */}
             <div className="w-12 h-12 bg-[#DFFF00] rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(223,255,0,0.2)]">
                 <span className="font-black text-xl text-black">Z</span>
             </div>
@@ -436,8 +395,10 @@ export default function Home() {
                 </div>
             </div>
 
+            {/* Divider */}
             <div className="w-full max-w-xs h-px bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
 
+            {/* Copyright */}
             <p className="text-zinc-600 font-bold text-xs uppercase tracking-wider hover:text-white transition-colors cursor-default">
               Zinc Engineering © 2025 // All Rights Reserved
             </p>
@@ -459,15 +420,13 @@ const QuickLink = ({ href, icon, label }: { href: string, icon: React.ReactNode,
   </Link>
 );
 
-const SectionHeader = ({ title, icon, id }: { title: string, icon: React.ReactNode, id: string }) => (
+const SectionHeader = ({ title, icon }: { title: string, icon: React.ReactNode }) => (
   <div className="flex items-center gap-4 mb-12 px-4">
       <div className="w-2 h-2 bg-[#DFFF00] rounded-full shadow-[0_0_10px_#DFFF00]" />
       <div className="h-px flex-1 bg-gradient-to-r from-zinc-800 to-transparent" />
       <div className="flex items-center gap-2 text-zinc-500 bg-zinc-900/50 px-4 py-2 rounded-full border border-white/5 backdrop-blur-md">
            {icon}
-           <span className="text-xs font-mono font-bold uppercase tracking-widest">
-             <EditableContent id={id} defaultContent={title} tag="span" />
-           </span>
+           <span className="text-xs font-mono font-bold uppercase tracking-widest">{title}</span>
       </div>
   </div>
 );

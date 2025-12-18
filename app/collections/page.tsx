@@ -16,7 +16,6 @@ import {
 } from 'lucide-react'; 
 import BackButton from '../components/BackButton';
 import GlobalTicker from '../components/GlobalTicker';
-import EditableContent from '@/app/components/EditableContent'; // IMPORT ADDED
 
 export default function CollectionsHub() {
   return (
@@ -50,27 +49,20 @@ export default function CollectionsHub() {
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#DFFF00]"></span>
                 </span>
                 <span className="text-[10px] md:text-[11px] font-mono font-bold text-zinc-300 tracking-[0.2em] uppercase">
-                  <EditableContent id="coll-status-pill" defaultContent="Collections Codex" tag="span" />
+                  Collections Codex
                 </span>
              </div>
           </div>
 
           <h1 className="text-6xl md:text-[10vw] font-black tracking-tighter text-white uppercase leading-[0.9] md:leading-[0.8] animate-in fade-in zoom-in-95 duration-1000 delay-100 select-none">
-            <EditableContent id="coll-hero-text-1" defaultContent="Digital" tag="span" />{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-b from-zinc-500 to-zinc-800">
-                <EditableContent id="coll-hero-text-2" defaultContent="Archive" tag="span" />
-            </span>
+            Digital <span className="text-transparent bg-clip-text bg-gradient-to-b from-zinc-500 to-zinc-800">Archive</span>
           </h1>
           
           <div className="mt-8 md:mt-12 max-w-lg md:max-w-2xl text-center animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
-             <div className="text-zinc-400 font-mono text-xs md:text-base leading-relaxed px-4">
+             <p className="text-zinc-400 font-mono text-xs md:text-base leading-relaxed px-4">
                <span className="text-[#DFFF00] font-black mr-2">///</span>
-               <EditableContent 
-                    id="coll-hero-desc" 
-                    defaultContent="Central repository for specialized item databases, mechanical schematics, and interactive encyclopedias." 
-                    tag="span" 
-               />
-             </div>
+               Central repository for specialized item databases, mechanical schematics, and interactive encyclopedias.
+             </p>
           </div>
         </div>
       </section>
@@ -85,9 +77,7 @@ export default function CollectionsHub() {
             <div className="h-px flex-1 bg-zinc-800" />
             <div className="flex items-center gap-2 bg-zinc-900/80 px-4 py-2 rounded-full border border-zinc-800 backdrop-blur-md">
                  <BookOpen size={14} className="text-[#DFFF00]" />
-                 <span className="text-[10px] md:text-xs font-mono font-bold text-zinc-300 uppercase tracking-widest">
-                    <EditableContent id="coll-section-header" defaultContent="Database Modules" tag="span" />
-                 </span>
+                 <span className="text-[10px] md:text-xs font-mono font-bold text-zinc-300 uppercase tracking-widest">Database Modules</span>
             </div>
             <div className="h-px flex-1 bg-zinc-800" />
         </div>
@@ -117,19 +107,10 @@ export default function CollectionsHub() {
                 </div>
 
                 <div className="absolute bottom-0 left-0 p-6 md:p-12 w-full max-w-3xl">
-                    <EditableContent 
-                        id="coll-card-gaming-title" 
-                        defaultContent="Gaming Database" 
-                        tag="h2" 
-                        className="text-3xl md:text-6xl font-black uppercase text-white mb-2 md:mb-4 italic tracking-tight"
-                    />
-                    <div className="text-zinc-400 font-mono text-xs md:text-sm leading-relaxed max-w-xl group-hover:text-zinc-200 transition-colors">
-                        <EditableContent 
-                            id="coll-card-gaming-desc" 
-                            defaultContent="Warframe market data, module configurations, and item archives." 
-                            tag="p" 
-                        />
-                    </div>
+                    <h2 className="text-3xl md:text-6xl font-black uppercase text-white mb-2 md:mb-4 italic tracking-tight">Gaming Database</h2>
+                    <p className="text-zinc-400 font-mono text-xs md:text-sm leading-relaxed max-w-xl group-hover:text-zinc-200 transition-colors">
+                        Warframe market data, module configurations, and item archives.
+                    </p>
                 </div>
             </Link>
 
@@ -155,12 +136,7 @@ export default function CollectionsHub() {
 
                 <div className="absolute bottom-0 left-0 p-8 md:p-10 w-full">
                     <CarFront size={40} className="text-zinc-700 group-hover:text-[#DFFF00] mb-4 md:mb-6 transition-colors duration-500" />
-                    <EditableContent 
-                        id="coll-card-auto-title" 
-                        defaultContent="Auto Index" 
-                        tag="h2" 
-                        className="text-3xl md:text-4xl font-black uppercase text-white mb-2"
-                    />
+                    <h2 className="text-3xl md:text-4xl font-black uppercase text-white mb-2">Auto Index</h2>
                     <p className="text-zinc-500 font-mono text-[10px] md:text-xs uppercase tracking-widest mb-6 group-hover:text-zinc-300 transition-colors">
                         Garage<br/>Protocol
                     </p>
@@ -192,12 +168,7 @@ export default function CollectionsHub() {
                 </div>
                 
                 <div className="absolute bottom-0 left-0 p-6 md:p-8 w-full">
-                    <EditableContent 
-                        id="coll-card-weather-title" 
-                        defaultContent="Atmosphere Scanner" 
-                        tag="h2" 
-                        className="text-2xl md:text-3xl font-black uppercase text-white mb-1 leading-none"
-                    />
+                    <h2 className="text-2xl md:text-3xl font-black uppercase text-white mb-1 leading-none">Atmosphere<br/>Scanner</h2>
                     <p className="text-zinc-500 font-mono text-[10px] md:text-xs mt-2 group-hover:text-white transition-colors truncate">
                         Warning: AI personality is hostile.
                     </p>
@@ -228,12 +199,7 @@ export default function CollectionsHub() {
                 </div>
                 
                 <div className="absolute bottom-0 left-0 p-6 md:p-8 w-full">
-                    <EditableContent 
-                        id="coll-card-golf-title" 
-                        defaultContent="Tactical Scorecard" 
-                        tag="h2" 
-                        className="text-2xl md:text-3xl font-black uppercase text-white mb-1 leading-none"
-                    />
+                    <h2 className="text-2xl md:text-3xl font-black uppercase text-white mb-1 leading-none">Tactical<br/>Scorecard</h2>
                     <p className="text-zinc-500 font-mono text-[10px] md:text-xs mt-2 group-hover:text-white transition-colors">
                         4-Operative capacity.
                     </p>
@@ -265,12 +231,7 @@ export default function CollectionsHub() {
                         <span className="px-2 py-0.5 bg-[#DFFF00] text-black font-bold text-[10px] uppercase tracking-widest rounded-full">New</span>
                         <span className="text-zinc-500 font-mono text-[10px] uppercase tracking-widest">Global Database</span>
                     </div>
-                    <EditableContent 
-                        id="coll-card-recipes-title" 
-                        defaultContent="Random Recipes" 
-                        tag="h2" 
-                        className="text-2xl md:text-4xl font-black uppercase text-white mb-2"
-                    />
+                    <h2 className="text-2xl md:text-4xl font-black uppercase text-white mb-2">Random Recipes</h2>
                     <p className="text-zinc-400 font-mono text-xs md:text-sm leading-relaxed max-w-xs group-hover:text-zinc-200 transition-colors">
                         Access culinary schematics. Breakfast, Lunch, Dinner.
                     </p>
@@ -296,8 +257,7 @@ export default function CollectionsHub() {
                 {/* Center "Google-like" Search Bar Visualization */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-8 z-10">
                    <h2 className="text-4xl md:text-5xl font-black text-white mb-6 tracking-tighter group-hover:scale-110 transition-transform duration-500">
-                      <span className="text-[#DFFF00]">Z</span>
-                      <EditableContent id="coll-card-search-text" defaultContent="INC" tag="span" />
+                      <span className="text-[#DFFF00]">Z</span>INC
                    </h2>
                    
                    <div className="w-full max-w-xs md:max-w-sm h-10 md:h-12 rounded-full border border-zinc-600 bg-black/40 backdrop-blur-md flex items-center px-4 gap-3 group-hover:border-[#DFFF00] group-hover:shadow-[0_0_30px_rgba(223,255,0,0.2)] transition-all duration-500">
@@ -334,19 +294,10 @@ export default function CollectionsHub() {
                     <div className="flex items-center gap-3 mb-4">
                         <span className="px-3 py-1 bg-zinc-100 text-black font-bold text-xs uppercase tracking-widest rounded-full group-hover:bg-[#DFFF00] transition-colors">Utility</span>
                     </div>
-                    <EditableContent 
-                        id="coll-card-tier-title" 
-                        defaultContent="Hierarchy Builder" 
-                        tag="h2" 
-                        className="text-3xl md:text-5xl font-black uppercase text-white mb-4"
-                    />
-                    <div className="text-zinc-400 font-mono text-sm leading-relaxed max-w-lg group-hover:text-zinc-200 transition-colors">
-                        <EditableContent 
-                            id="coll-card-tier-desc" 
-                            defaultContent="Tactical asset classification. Drag-and-drop ranking system with local persistence and database import." 
-                            tag="p" 
-                        />
-                    </div>
+                    <h2 className="text-3xl md:text-5xl font-black uppercase text-white mb-4">Hierarchy Builder</h2>
+                    <p className="text-zinc-400 font-mono text-sm leading-relaxed max-w-lg group-hover:text-zinc-200 transition-colors">
+                        Tactical asset classification. Drag-and-drop ranking system with local persistence and database import.
+                    </p>
                 </div>
             </Link>
 

@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import BackButton from '../components/BackButton';
 import { useAuth } from '../context/AuthContext';
-import EditableContent from '@/app/components/EditableContent'; // IMPORT ADDED
 
 const containerVar: Variants = {
   hidden: { opacity: 0 },
@@ -121,7 +120,7 @@ export default function PlayHub() {
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-[#DFFF00]"></span>
                 </span>
                 <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-widest">
-                  <EditableContent id="play-status-pill" defaultContent="Arcade Protocols Online" tag="span" />
+                  Arcade Protocols Online
                 </span>
              </div>
           </div>
@@ -129,18 +128,11 @@ export default function PlayHub() {
           <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-8">
             <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: 0.8 }}>
                 <h1 className="text-6xl md:text-[8rem] font-black uppercase tracking-tighter mb-4 text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-600 leading-[0.8]">
-                    <EditableContent id="play-hero-text-1" defaultContent="SYSTEM" tag="span" />{' '}
-                    <span className="text-stroke-3 text-transparent bg-clip-text bg-gradient-to-b from-zinc-700 to-zinc-900">
-                        <EditableContent id="play-hero-text-2" defaultContent="ARCADE" tag="span" />
-                    </span>
+                    SYSTEM <span className="text-stroke-3 text-transparent bg-clip-text bg-gradient-to-b from-zinc-700 to-zinc-900">ARCADE</span>
                 </h1>
                 <p className="text-zinc-400 font-mono text-sm md:text-base max-w-2xl leading-relaxed tracking-widest mt-8">
                    <span className="text-[#DFFF00] font-black mr-2">///</span>
-                   <EditableContent 
-                        id="play-hero-desc" 
-                        defaultContent="Interactive entertainment modules and cognitive assessment tools." 
-                        tag="span" 
-                   />
+                   Interactive entertainment modules and cognitive assessment tools.
                 </p>
             </motion.div>
 
@@ -164,9 +156,7 @@ export default function PlayHub() {
             <div className="h-px flex-1 bg-gradient-to-r from-zinc-800 to-transparent" />
             <div className="flex items-center gap-2 bg-zinc-900/50 px-4 py-2 rounded-full border border-white/5 backdrop-blur-md">
                  <Activity size={16} className="text-[#DFFF00]" />
-                 <span className="text-xs font-mono font-bold text-zinc-400 uppercase tracking-widest">
-                    <EditableContent id="play-section-header" defaultContent="Active Simulations" tag="span" />
-                 </span>
+                 <span className="text-xs font-mono font-bold text-zinc-400 uppercase tracking-widest">Active Simulations</span>
             </div>
         </div>
 
@@ -204,19 +194,10 @@ export default function PlayHub() {
                               Elite Stakes
                            </span>
                         </div>
-                        <EditableContent 
-                            id="play-card-poker-title" 
-                            defaultContent="Texas Hold'em" 
-                            tag="h2" 
-                            className="text-4xl md:text-5xl font-black uppercase text-white mb-4 italic tracking-tight"
-                        />
-                        <div className="text-zinc-400 font-mono text-sm leading-relaxed group-hover:text-zinc-200 transition-colors">
-                            <EditableContent 
-                                id="play-card-poker-desc" 
-                                defaultContent="No-Limit Protocol. Compete against neural network agents in a high-stakes environment." 
-                                tag="p" 
-                            />
-                        </div>
+                        <h2 className="text-4xl md:text-5xl font-black uppercase text-white mb-4 italic tracking-tight">Texas Hold&apos;em</h2>
+                        <p className="text-zinc-400 font-mono text-sm leading-relaxed group-hover:text-zinc-200 transition-colors">
+                            No-Limit Protocol. Compete against neural network agents in a high-stakes environment.
+                        </p>
                     </div>
                 </Link>
             </motion.div>
@@ -235,12 +216,7 @@ export default function PlayHub() {
                     </div>
 
                     <div className="absolute bottom-0 left-0 p-10 w-full">
-                       <EditableContent 
-                            id="play-card-blackjack-title" 
-                            defaultContent="Tactical Blackjack" 
-                            tag="h2" 
-                            className="text-3xl font-black uppercase text-white mb-2 leading-none"
-                        />
+                       <h2 className="text-3xl font-black uppercase text-white mb-2 leading-none">Tactical<br/>Blackjack</h2>
                        <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest mb-6 group-hover:text-zinc-300 transition-colors">
                          Probability Sim
                        </p>
@@ -267,12 +243,7 @@ export default function PlayHub() {
                     </div>
 
                     <div className="absolute bottom-0 right-0 p-10 text-right w-full">
-                       <EditableContent 
-                            id="play-card-roulette-title" 
-                            defaultContent="Roulette Royale" 
-                            tag="h2" 
-                            className="text-3xl md:text-5xl font-black uppercase text-white mb-2 italic"
-                        />
+                       <h2 className="text-3xl md:text-5xl font-black uppercase text-white mb-2 italic">Roulette <br/> Royale</h2>
                        <p className="text-zinc-400 font-mono text-xs uppercase tracking-widest">
                           European Wheel // 36x Payouts
                        </p>
@@ -296,12 +267,7 @@ export default function PlayHub() {
                     </div>
 
                     <div className="absolute bottom-0 left-0 p-8 w-full">
-                       <EditableContent 
-                            id="play-card-hotseat-title" 
-                            defaultContent="Protocol: Hotseat" 
-                            tag="h2" 
-                            className="text-2xl font-black uppercase text-white mb-2 italic"
-                        />
+                       <h2 className="text-2xl font-black uppercase text-white mb-2 italic">Protocol: Hotseat</h2>
                        <p className="text-zinc-500 font-mono text-xs mt-2 group-hover:text-zinc-300 transition-colors">
                           High voltage trivia.
                        </p>
@@ -323,12 +289,7 @@ export default function PlayHub() {
                     </div>
 
                     <div className="absolute bottom-0 left-0 p-8 w-full">
-                       <EditableContent 
-                            id="play-card-trivia-title" 
-                            defaultContent="Trivia Matrix" 
-                            tag="h2" 
-                            className="text-2xl font-black uppercase text-white mb-2"
-                        />
+                       <h2 className="text-2xl font-black uppercase text-white mb-2">Trivia Matrix</h2>
                        <p className="text-zinc-500 font-mono text-xs mt-2 group-hover:text-zinc-300 transition-colors">
                           Standard assessment generator.
                        </p>
@@ -343,12 +304,9 @@ export default function PlayHub() {
                         <Construction size={10} />
                         In Development
                     </div>
-                    <EditableContent 
-                        id="play-card-wip-title" 
-                        defaultContent="Memory Core" 
-                        tag="h3" 
-                        className="text-xl font-black uppercase tracking-tight text-zinc-700 group-hover:text-zinc-400"
-                    />
+                    <h3 className="text-xl font-black uppercase tracking-tight text-zinc-700 group-hover:text-zinc-400">
+                        Memory Core
+                    </h3>
                 </div>
             </motion.div>
         </motion.div>

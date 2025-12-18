@@ -5,7 +5,6 @@ import { useAuth } from '@/app/context/AuthContext';
 import { Package, Gavel, ArrowLeftRight, Wallet, Activity, TrendingUp } from 'lucide-react';
 import BackButton from '@/app/components/BackButton';
 import { AssetPreloader, animationStyles } from './components/shared';
-import EditableContent from '@/app/components/EditableContent'; // IMPORT ADDED
 
 // IMPORTS: Ensure these files are located in app/market/components/
 import { PackOpeningView } from './components/PackOpeningView';
@@ -34,37 +33,15 @@ export default function MarketHubPage() {
                     <span>ZINC_ECONOMY_PROTOCOL // {activeTab}</span>
                 </div>
                 <h1 className="text-4xl md:text-7xl font-black uppercase tracking-tighter">
-                    {activeTab === 'EXCHANGE' && <>
-                        <EditableContent id="market-title-exchange-1" defaultContent="Zinc" tag="span" />{' '}
-                        <span className="text-zinc-700">
-                             <EditableContent id="market-title-exchange-2" defaultContent="Exchange" tag="span" />
-                        </span>
-                    </>}
-                    {activeTab === 'PACKS' && <>
-                        <EditableContent id="market-title-packs-1" defaultContent="Black" tag="span" />{' '}
-                        <span className="text-zinc-700">
-                            <EditableContent id="market-title-packs-2" defaultContent="Market" tag="span" />
-                        </span>
-                    </>}
-                    {activeTab === 'AUCTION' && <>
-                        <EditableContent id="market-title-auction-1" defaultContent="Auction" tag="span" />{' '}
-                        <span className="text-zinc-700">
-                            <EditableContent id="market-title-auction-2" defaultContent="House" tag="span" />
-                        </span>
-                    </>}
-                    {activeTab === 'TRADING' && <>
-                        <EditableContent id="market-title-trading-1" defaultContent="P2P" tag="span" />{' '}
-                        <span className="text-zinc-700">
-                            <EditableContent id="market-title-trading-2" defaultContent="Network" tag="span" />
-                        </span>
-                    </>}
+                    {activeTab === 'EXCHANGE' && <>Zinc <span className="text-zinc-700">Exchange</span></>}
+                    {activeTab === 'PACKS' && <>Black <span className="text-zinc-700">Market</span></>}
+                    {activeTab === 'AUCTION' && <>Auction <span className="text-zinc-700">House</span></>}
+                    {activeTab === 'TRADING' && <>P2P <span className="text-zinc-700">Network</span></>}
                 </h1>
             </div>
 
             <div className="text-right w-full md:w-auto border-t md:border-t-0 border-zinc-800 pt-4 md:pt-0">
-                <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">
-                    <EditableContent id="market-liquidity-label" defaultContent="Available Liquidity" tag="span" />
-                </div>
+                <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Available Liquidity</div>
                 <div className="text-3xl font-mono font-black text-[#DFFF00] flex items-center gap-2 justify-end">
                     <Wallet size={24} />
                     {profile?.credits?.toLocaleString() || 0}
