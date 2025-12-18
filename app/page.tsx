@@ -4,11 +4,36 @@ import React, { useState, useEffect } from 'react';
 import GlobalTicker from './components/GlobalTicker';
 import PersonalLogs from './components/PersonalLogs';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { 
-  ArrowRight, Trophy, Database, Gamepad2, Package, 
-  Activity, Zap, CloudHail, Crown, Terminal, Utensils 
+  ArrowRight, Trophy, Gamepad2, Package, 
+  Activity, CloudHail, Zap, Terminal, ChevronRight,
+  PlayCircle, Layers, TrendingUp, ShieldCheck, Cpu
 } from 'lucide-react';
+
+// --- ANIMATION VARIANTS ---
+const containerVar: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.3
+    }
+  }
+};
+
+const itemVar: Variants = {
+  hidden: { y: 20, opacity: 0 },
+  show: { 
+    y: 0, 
+    opacity: 1, 
+    transition: { 
+      type: "spring", 
+      stiffness: 50 
+    } 
+  }
+};
 
 export default function Home() {
   const [wordIndex, setWordIndex] = useState(0);
@@ -17,7 +42,7 @@ export default function Home() {
   useEffect(() => {
     const interval = setInterval(() => {
       setWordIndex((prev) => (prev + 1) % words.length);
-    }, 3000); // Change every 3 seconds
+    }, 3000); 
 
     return () => clearInterval(interval);
   }, []);
@@ -29,291 +54,352 @@ export default function Home() {
     }
   };
 
+  const scrollToLogs = () => {
+    const logsSection = document.getElementById('system-logs');
+    if (logsSection) {
+      logsSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <main className="min-h-screen bg-zinc-950 text-white selection:bg-[#DFFF00] selection:text-black pb-20 relative overflow-x-hidden">
       
-      {/* BACKGROUND: Deep Space (Starfield) */}
-      <div className="bg-starfield" />
-
-      {/* --- HERO SECTION: SCALED BRANDING --- */}
-      <section className="relative min-h-[85vh] flex flex-col items-center justify-center border-b border-zinc-800/50 overflow-hidden py-20">
-        
-        {/* CINEMATIC BACKGROUND */}
-        <div className="absolute inset-0 z-0">
-           <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-zinc-950/30 z-10" />
-           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-zinc-900/20 via-zinc-950/80 to-zinc-950 z-10" />
-           <video 
-             autoPlay loop muted playsInline
-             poster="https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=2670&auto=format&fit=crop"
-             className="absolute inset-0 w-full h-full object-cover opacity-50 grayscale mix-blend-overlay"
-           >
-             <source src="/rocket.mp4" type="video/mp4" />
-           </video>
-        </div>
-        
-        <div className="relative z-20 w-full max-w-[1800px] mx-auto px-6 flex flex-col items-center text-center">
+      {/* --- CINEMATIC BACKGROUND --- */}
+      <div className="fixed inset-0 z-0">
+          <div className="absolute inset-0 bg-zinc-950/80 z-10" />
+          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 z-10 mix-blend-overlay pointer-events-none" />
           
-          {/* STATUS PILL */}
-          <div className="mb-12 animate-in fade-in slide-in-from-top-8 duration-1000">
-             <div className="inline-flex items-center gap-3 px-4 py-2 bg-zinc-900/40 border border-zinc-800/50 backdrop-blur-xl rounded-full shadow-2xl">
-                <span className="relative flex h-2.5 w-2.5">
+          <video 
+            autoPlay loop muted playsInline
+            poster="https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=2670&auto=format&fit=crop"
+            className="absolute inset-0 w-full h-full object-cover opacity-50 grayscale mix-blend-overlay"
+          >
+            <source src="/rocket.mp4" type="video/mp4" />
+          </video>
+      </div>
+
+      {/* --- HERO SECTION --- */}
+      <section className="relative min-h-[92vh] flex flex-col items-center justify-center overflow-hidden py-20">
+        
+        <div className="relative z-20 w-full max-w-[1600px] mx-auto px-6 flex flex-col items-center lg:items-start text-center lg:text-left">
+          
+          {/* FLOATING STATUS PILL */}
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1 }}
+            className="mb-10"
+          >
+             <div className="inline-flex items-center gap-3 px-4 py-1.5 bg-zinc-900/60 border border-white/10 backdrop-blur-xl rounded-full shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+                <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#DFFF00] opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#DFFF00]"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[#DFFF00]"></span>
                 </span>
-                <span className="text-[11px] font-mono font-bold text-zinc-300 tracking-[0.2em] uppercase">
+                <span className="text-[10px] font-mono font-bold text-zinc-300 tracking-[0.2em] uppercase">
                   System Online v2.6
                 </span>
              </div>
-          </div>
+          </motion.div>
 
-          {/* MASSIVE BRANDING (HEADER LOGO SCALED UP) */}
-          <div className="flex flex-col md:flex-row items-center gap-6 md:gap-12 animate-in fade-in zoom-in-95 duration-1000 delay-100 select-none max-w-full">
+          {/* MASSIVE BRANDING */}
+          <div className="flex flex-col lg:flex-row items-center gap-8 md:gap-12 select-none max-w-full">
              
-             {/* THE "Z" BOX */}
-             <div className="bg-[#DFFF00] w-24 h-24 md:w-48 md:h-48 flex items-center justify-center font-black text-[60px] md:text-[120px] text-black shadow-[0_0_60px_rgba(223,255,0,0.2)] rounded-lg md:rounded-xl shrink-0">
-                Z
-             </div>
+             {/* LOGO */}
+             <motion.div 
+               initial={{ scale: 0.8, opacity: 0 }}
+               animate={{ scale: 1, opacity: 1 }}
+               transition={{ duration: 1.2, ease: "circOut" }}
+               className="relative group"
+             >
+                <div className="absolute -inset-10 bg-[#DFFF00] rounded-full blur-[60px] opacity-10 group-hover:opacity-30 transition-opacity duration-700" />
+                <div className="relative bg-[#DFFF00] w-32 h-32 md:w-52 md:h-52 flex items-center justify-center rounded-[2.5rem] shadow-[0_0_40px_rgba(223,255,0,0.15)] shrink-0 overflow-hidden transform transition-transform duration-500 group-hover:scale-105">
+                    <span className="font-black text-[90px] md:text-[160px] text-black leading-none z-10">Z</span>
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-black/5 opacity-50 pointer-events-none" />
+                </div>
+             </motion.div>
 
-             {/* THE TEXT STACK */}
-             <div className="flex flex-col items-center md:items-start justify-center h-[100px] md:h-auto w-full md:w-auto">
-                <span className="font-black text-5xl md:text-9xl leading-none text-white tracking-tighter">
+             {/* TEXT STACK */}
+             <div className="flex flex-col items-center lg:items-start justify-center">
+                <motion.h1 
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ duration: 1, delay: 0.2 }}
+                  className="font-black text-7xl md:text-9xl lg:text-[11rem] leading-[0.8] text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-400 tracking-tighter drop-shadow-2xl"
+                >
                    ZINC
-                </span>
+                </motion.h1>
                 
-                {/* ANIMATED TEXT CONTAINER */}
-                <div className="relative h-6 md:h-10 w-full overflow-hidden mt-2 md:mt-4 flex justify-center md:justify-start">
+                <div className="h-8 md:h-12 overflow-hidden relative w-full flex justify-center lg:justify-start mt-6">
                   <AnimatePresence mode="wait">
-                    <motion.span 
+                    <motion.div 
                       key={words[wordIndex]}
-                      initial={{ y: 20, opacity: 0, filter: 'blur(5px)' }}
+                      initial={{ y: 30, opacity: 0, filter: 'blur(5px)' }}
                       animate={{ y: 0, opacity: 1, filter: 'blur(0px)' }}
-                      exit={{ y: -20, opacity: 0, filter: 'blur(5px)' }}
-                      transition={{ duration: 0.5, ease: "easeOut" }}
-                      className="font-mono text-xs sm:text-sm md:text-2xl text-zinc-500 tracking-[0.2em] md:tracking-[0.35em] uppercase absolute whitespace-nowrap"
+                      exit={{ y: -30, opacity: 0, filter: 'blur(5px)' }}
+                      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                      className="flex items-center gap-3"
                     >
-                      {words[wordIndex]}
-                    </motion.span>
+                      <div className="w-8 h-[2px] bg-[#DFFF00]" />
+                      <span className="font-mono text-lg md:text-2xl text-zinc-400 tracking-[0.3em] uppercase">
+                        {words[wordIndex]}
+                      </span>
+                    </motion.div>
                   </AnimatePresence>
                 </div>
              </div>
-
-          </div>
-          
-          {/* SUBTITLE */}
-          <div className="mt-12 md:mt-16 max-w-2xl text-center animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
-             <p className="text-zinc-400 font-mono text-xs md:text-base leading-relaxed px-4">
-               <span className="text-[#DFFF00] font-black mr-2">///</span>
-               Advanced telemetry, digital archives, and high-performance tactical modules.
-             </p>
           </div>
 
-          {/* QUICK ACCESS BUTTONS (Weather, Recipes) */}
-          <div className="mt-8 flex flex-wrap justify-center gap-3 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500 z-30 px-2">
-            
-            <Link 
-              href="/collections/weather" 
-              className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-zinc-900/40 border border-zinc-800 hover:border-[#DFFF00]/50 hover:bg-zinc-900/80 backdrop-blur-md transition-all duration-300 group"
-            >
-              <CloudHail size={16} className="text-zinc-500 group-hover:text-[#DFFF00] transition-colors" />
-              <span className="text-[11px] md:text-xs font-mono font-bold text-zinc-400 group-hover:text-white uppercase tracking-widest">
-                Weather
-              </span>
-            </Link>
-
-            <Link 
-              href="/collections/recipes" 
-              className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-zinc-900/40 border border-zinc-800 hover:border-[#DFFF00]/50 hover:bg-zinc-900/80 backdrop-blur-md transition-all duration-300 group"
-            >
-              <Utensils size={16} className="text-zinc-500 group-hover:text-[#DFFF00] transition-colors" />
-              <span className="text-[11px] md:text-xs font-mono font-bold text-zinc-400 group-hover:text-white uppercase tracking-widest">
-                Recipes
-              </span>
-            </Link>
-
-          </div>
-
-        </div>
-
-        {/* SCROLL INDICATOR (Interactive & Smooth Animation) */}
-        <motion.button 
-          onClick={scrollToModules}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.5, duration: 1 }}
-          className="absolute bottom-6 md:bottom-12 left-0 w-full flex flex-col items-center justify-center gap-3 z-30 cursor-pointer group"
-        >
-           <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 group-hover:text-[#DFFF00] transition-colors duration-300">
-             Access Modules
-           </span>
-           <motion.div
-             animate={{ y: [0, 8, 0] }}
-             transition={{ 
-               duration: 2, 
-               repeat: Infinity, 
-               ease: "easeInOut" 
-             }}
-             className="p-2 rounded-full border border-zinc-800 bg-zinc-900/50 group-hover:border-[#DFFF00]/50 group-hover:bg-[#DFFF00]/10 transition-colors duration-300"
-           >
-              <ArrowRight className="rotate-90 text-zinc-400 group-hover:text-[#DFFF00]" size={16} />
-           </motion.div>
-        </motion.button>
-      </section>
-
-      <GlobalTicker />
-
-      {/* --- CONTROL CENTER (SQUARE ROUNDED MODULES) --- */}
-      <section id="modules-grid" className="relative z-10 max-w-[1600px] mx-auto px-4 md:px-6 py-20">
-        
-        {/* SECTION HEADER: MODULES */}
-        <div className="flex items-center gap-4 mb-10 px-2">
-            <div className="h-px flex-1 bg-zinc-800" />
-            <div className="flex items-center gap-2 bg-zinc-900/50 px-4 py-2 rounded-full border border-zinc-800 backdrop-blur-md">
-                 <Activity size={16} className="text-[#DFFF00]" />
-                 <span className="text-xs font-mono font-bold text-zinc-300 uppercase tracking-widest">Command Center</span>
-            </div>
-            <div className="h-px flex-1 bg-zinc-800" />
-        </div>
-
-        {/* THE GRID (3 Columns Equal Width) */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-fr mb-12">
-          
-          {/* 1. ARCADE (RESTORED ORIGINAL IMAGE) */}
-          <Link href="/play" className="group md:col-span-4 relative min-h-[320px] rounded-[2.5rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500">
-            {/* ORIGINAL NEON/GUITAR ARCADE IMAGE */}
-            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
-            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/50 to-transparent" />
-            
-            <div className="absolute top-8 right-8">
-               <ArrowRight size={24} className="text-zinc-600 -rotate-45 group-hover:text-[#DFFF00] group-hover:rotate-0 transition-all duration-500" />
-            </div>
-
-            <div className="absolute bottom-0 left-0 p-10 w-full">
-               <Gamepad2 size={48} className="text-zinc-700 group-hover:text-[#DFFF00] mb-6 transition-colors duration-500" />
-               <h2 className="text-4xl font-black uppercase text-white mb-2">Arcade</h2>
-               <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest mb-6 group-hover:text-zinc-300 transition-colors">
-                 Simulations &<br/>Games
-               </p>
-               
-               <div className="space-y-2">
-                  {['Blackjack', 'Trivia', 'Stock Market'].map((item, i) => (
-                    <div key={i} className="flex items-center gap-3 text-sm font-mono text-zinc-400 border-l-2 border-zinc-800 pl-3 group-hover:border-[#DFFF00] transition-colors" style={{ transitionDelay: `${i * 100}ms`}}>
-                       {item}
-                    </div>
-                  ))}
-               </div>
-            </div>
-          </Link>
-
-          {/* 2. SPORTS */}
-          <Link href="/sports" className="group md:col-span-4 relative min-h-[320px] rounded-[2.5rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500">
-            {/* STADIUM IMAGE */}
-            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
-            <div className="absolute inset-0 bg-zinc-950/30" />
-            
-            <div className="absolute top-0 left-0 w-full p-8 flex justify-between items-start">
-               <Trophy size={32} className="text-zinc-600 group-hover:text-[#DFFF00] transition-colors" />
-               <div className="bg-zinc-900/80 backdrop-blur-md px-3 py-1 rounded-full border border-zinc-800">
-                  <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase">Live Data</span>
-               </div>
-            </div>
-            
-            <div className="absolute bottom-0 left-0 p-8 w-full">
-               <h2 className="text-3xl font-black uppercase text-white mb-2 leading-none">Sports<br/>Archive</h2>
-               <p className="text-zinc-500 font-mono text-xs mt-2 group-hover:text-white transition-colors">
-                  F1 Telemetry, NBA Stats & Golf Tracking.
-               </p>
-            </div>
-          </Link>
-
-          {/* 3. WEATHER & COLLECTIONS */}
-          <Link href="/collections" className="group md:col-span-4 relative min-h-[320px] rounded-[2.5rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500">
-            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
-            <div className="absolute inset-0 bg-gradient-to-br from-zinc-950/80 to-transparent" />
-            
-            <div className="absolute top-0 left-0 w-full p-8 flex justify-between items-start">
-               <Database size={32} className="text-zinc-600 group-hover:text-[#DFFF00] transition-colors" />
-               <div className="bg-zinc-900/80 backdrop-blur-md px-3 py-1 rounded-full border border-zinc-800">
-                  <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase">V2.0</span>
-               </div>
-            </div>
-
-            <div className="absolute bottom-0 left-0 p-8 w-full">
-               <h2 className="text-3xl font-black uppercase text-white mb-2 leading-none">Global<br/>Collections</h2>
-               <div className="flex items-center gap-4 mt-4">
-                  <span className="flex items-center gap-1 text-[10px] font-mono font-bold text-zinc-500 uppercase group-hover:text-[#DFFF00] transition-colors">
-                     <CloudHail size={12} /> Weather
-                  </span>
-                  <span className="flex items-center gap-1 text-[10px] font-mono font-bold text-zinc-500 uppercase group-hover:text-[#DFFF00] transition-colors">
-                     <Crown size={12} /> Warframe
-                  </span>
-               </div>
-            </div>
-          </Link>
-
-        </div>
-
-        {/* SECTION HEADER: BLACK MARKET */}
-        <div className="flex items-center gap-4 mb-10 px-2">
-            <div className="h-px flex-1 bg-zinc-800" />
-            <div className="flex items-center gap-2 bg-zinc-900/50 px-4 py-2 rounded-full border border-zinc-800 backdrop-blur-md">
-                 <Package size={16} className="text-[#DFFF00]" />
-                 <span className="text-xs font-mono font-bold text-zinc-300 uppercase tracking-widest">Underground Exchange</span>
-            </div>
-            <div className="h-px flex-1 bg-zinc-800" />
-        </div>
-
-        {/* BLACK MARKET (Updated Image) */}
-        <div className="mb-24">
-           <Link href="/play/market" className="group relative block w-full min-h-[320px] rounded-[2.5rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500 hover:shadow-[0_0_50px_rgba(0,0,0,0.5)]">
-             {/* CYBERPUNK/MARKET IMAGE */}
-             <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1555680202-c86f0e12f086?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-40 group-hover:opacity-20 grayscale transition-all duration-700 group-hover:scale-105" />
-             <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/60 to-transparent" />
+          {/* ACTION BUTTONS */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, duration: 0.8 }}
+            className="mt-16 flex flex-col sm:flex-row items-center gap-6 w-full lg:w-auto"
+          >
              
-             {/* Floating Icon */}
-             <div className="absolute top-8 right-8 bg-black/40 backdrop-blur-xl p-4 rounded-2xl border border-white/10 group-hover:border-[#DFFF00] transition-colors">
-                <Package className="text-[#DFFF00]" size={24} />
-             </div>
+            <button 
+              onClick={scrollToModules}
+              className="group relative px-10 py-4 bg-[#DFFF00] text-black font-black text-xs tracking-[0.2em] uppercase rounded-full overflow-hidden transition-transform hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(223,255,0,0.3)] hover:shadow-[0_0_50px_rgba(223,255,0,0.5)]"
+            >
+              <span className="relative z-10 flex items-center gap-3">
+                Initialize System <ArrowRight size={14} />
+              </span>
+              <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-50 transition-opacity duration-300" />
+            </button>
 
-             <div className="absolute bottom-0 left-0 p-8 md:p-12 w-full max-w-3xl">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="px-3 py-1 rounded-full bg-[#DFFF00] text-black text-[10px] font-black uppercase tracking-widest">
-                     New Arrival
-                  </span>
-                  <span className="text-zinc-500 font-mono text-xs font-bold uppercase tracking-widest">Economy Update</span>
-                </div>
-                <h2 className="text-4xl md:text-6xl font-black uppercase text-white mb-4 italic tracking-tight">Black Market</h2>
-                <p className="text-zinc-400 font-mono text-sm md:text-base leading-relaxed max-w-xl group-hover:text-zinc-200 transition-colors">
-                   Acquire serialized assets, trade commodities, and manage your inventory in the new secure exchange protocol.
-                </p>
-             </div>
-           </Link>
-        </div>
-
-        {/* SECTION HEADER: PERSONAL LOGS */}
-        <div className="flex items-center gap-4 mb-10 px-2">
-            <div className="h-px flex-1 bg-zinc-800" />
-            <div className="flex items-center gap-2 bg-zinc-900/50 px-4 py-2 rounded-full border border-zinc-800 backdrop-blur-md">
-                 <Terminal size={16} className="text-[#DFFF00]" />
-                 <span className="text-xs font-mono font-bold text-zinc-300 uppercase tracking-widest">System Logs</span>
+            <div className="flex items-center gap-3">
+                <QuickLink href="/collections/weather" icon={<CloudHail size={14} />} label="Weather" />
+                <button 
+                  onClick={scrollToLogs}
+                  className="flex items-center gap-2 px-5 py-3 rounded-full bg-zinc-900/40 border border-white/10 hover:border-[#DFFF00]/50 hover:bg-zinc-900 transition-all group backdrop-blur-md"
+                >
+                  <span className="text-zinc-500 group-hover:text-[#DFFF00] transition-colors"><Terminal size={14} /></span>
+                  <span className="text-xs font-mono font-bold text-zinc-400 group-hover:text-white uppercase tracking-widest">System Logs</span>
+                </button>
             </div>
-            <div className="h-px flex-1 bg-zinc-800" />
-        </div>
 
-        {/* PERSONAL LOGS COMPONENT */}
-        <div className="mb-12">
-           <PersonalLogs />
+          </motion.div>
         </div>
+      </section>
+
+      {/* TICKER */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.5, duration: 1 }}
+        className="sticky top-0 z-40 bg-zinc-950/70 backdrop-blur-xl border-y border-white/5 shadow-2xl"
+      >
+        <GlobalTicker />
+      </motion.div>
+
+      {/* --- MODULES GRID --- */}
+      <section id="modules-grid" className="relative z-10 max-w-[1600px] mx-auto px-4 md:px-6 py-24">
+        
+        <SectionHeader title="Mainframe" icon={<Activity size={16} />} />
+
+        {/* BENTO GRID */}
+        <motion.div 
+          variants={containerVar}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-100px" }}
+          className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-24"
+        >
+          
+          {/* 1. SPORTS (Fixed: Clicking buttons now works properly) */}
+          <motion.div variants={itemVar} className="md:col-span-4 md:row-span-2">
+            <div className="group relative flex flex-col h-full min-h-[500px] rounded-[2.5rem] bg-zinc-900/40 border border-white/5 hover:border-blue-500/50 transition-all duration-500 overflow-hidden hover:shadow-[0_0_40px_rgba(59,130,246,0.15)]">
+               
+               {/* Background links to Main Sports Page */}
+               <Link href="/sports" className="absolute inset-0 z-0">
+                   <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-10 transition-all duration-700 group-hover:scale-110 grayscale" />
+                   <div className="absolute inset-0 bg-zinc-950/60" />
+               </Link>
+
+               <div className="relative p-10 flex-1 flex flex-col z-10 pointer-events-none">
+                  <div className="flex justify-between items-start mb-auto">
+                     <div className="p-3 bg-zinc-950/50 backdrop-blur-md rounded-2xl border border-white/10 text-blue-400 group-hover:scale-110 transition-transform">
+                        <Trophy size={28} />
+                     </div>
+                     <Activity size={20} className="text-blue-500 animate-pulse" />
+                  </div>
+
+                  <h2 className="text-4xl font-black uppercase text-white mb-6 tracking-tighter">Sports<br/>Telemetry</h2>
+                  
+                  {/* Buttons Container - Re-enabled pointer events */}
+                  <div className="space-y-3 pointer-events-auto">
+                     {[
+                        { label: 'Formula 1', path: '/sports/f1' },
+                        { label: 'NBA Stats', path: '/sports/nba' },
+                        { label: 'NFL Data', path: '/sports/nfl' }
+                     ].map((item, i) => (
+                        <Link 
+                           key={i} 
+                           href={item.path}
+                           className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-blue-500/20 hover:border-blue-500/30 transition-all cursor-pointer group/item backdrop-blur-sm"
+                        >
+                           <span className="text-xs font-mono font-bold text-zinc-400 group-hover/item:text-white uppercase">{item.label}</span>
+                           <ChevronRight size={14} className="text-zinc-600 group-hover/item:text-blue-400" />
+                        </Link>
+                     ))}
+                  </div>
+               </div>
+            </div>
+          </motion.div>
+
+          {/* 2. ARCHIVES / COLLECTIONS */}
+          <motion.div variants={itemVar} className="md:col-span-8">
+            <Link href="/collections" className="group relative flex flex-col h-full min-h-[260px] rounded-[2.5rem] bg-zinc-900/40 border border-white/5 hover:border-purple-500/50 transition-all duration-500 overflow-hidden hover:shadow-[0_0_40px_rgba(168,85,247,0.15)]">
+               <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-10 transition-all duration-700 group-hover:scale-110 grayscale" />
+               <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent" />
+
+               <div className="relative p-10 h-full flex flex-col justify-between z-10">
+                  <div className="flex justify-between items-start">
+                    <div className="p-3 bg-zinc-950/50 backdrop-blur-md rounded-2xl border border-white/10 text-purple-400 group-hover:scale-110 transition-transform">
+                        <Layers size={24} />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h2 className="text-3xl font-black uppercase text-white mb-2 tracking-tighter">Archives</h2>
+                    <p className="text-purple-400/80 font-mono text-xs uppercase tracking-widest">Weather // Recipes // Tools</p>
+                  </div>
+               </div>
+            </Link>
+          </motion.div>
+
+          {/* 3. ARCADE (Updated Text) */}
+          <motion.div variants={itemVar} className="md:col-span-8">
+            <Link href="/play" className="group relative block h-full min-h-[260px] rounded-[2.5rem] bg-zinc-900/40 border border-white/5 hover:border-[#DFFF00]/50 transition-all duration-500 overflow-hidden hover:shadow-[0_0_40px_rgba(223,255,0,0.1)]">
+               <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:opacity-20 transition-all duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0" />
+               <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/80 to-transparent" />
+
+               <div className="relative p-10 h-full flex flex-col justify-between z-10">
+                  <div className="flex justify-between items-start">
+                     <div className="p-4 bg-zinc-950/50 backdrop-blur-md rounded-2xl border border-white/10 text-[#DFFF00] shadow-xl group-hover:scale-110 transition-transform duration-500">
+                        <Gamepad2 size={24} />
+                     </div>
+                     <PlayCircle size={40} className="text-white/20 group-hover:text-[#DFFF00] transition-colors duration-500" />
+                  </div>
+                  <div>
+                     <h2 className="text-4xl md:text-5xl font-black uppercase text-white mb-2 tracking-tighter drop-shadow-lg">Arcade</h2>
+                     <div className="inline-flex gap-2 items-center px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
+                        <span className="w-2 h-2 rounded-full bg-[#DFFF00] animate-pulse" />
+                        <span className="text-[10px] font-mono font-bold text-zinc-300 uppercase tracking-widest">Play games & earn/gamble currency</span>
+                     </div>
+                  </div>
+               </div>
+            </Link>
+          </motion.div>
+
+        </motion.div>
+
+        {/* --- MARKET SECTION --- */}
+        <SectionHeader title="Underground Exchange" icon={<TrendingUp size={16} />} />
+
+        <motion.div
+           initial={{ opacity: 0, y: 30 }}
+           whileInView={{ opacity: 1, y: 0 }}
+           viewport={{ once: true }}
+           transition={{ duration: 0.8 }}
+           className="mb-24"
+        >
+            <Link href="/play/market" className="group relative block w-full min-h-[360px] rounded-[2.5rem] bg-zinc-900/40 border border-white/5 hover:border-[#DFFF00]/50 transition-all duration-500 overflow-hidden hover:shadow-[0_0_50px_rgba(223,255,0,0.1)]">
+               
+               <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1555680202-c86f0e12f086?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:opacity-10 transition-all duration-700 group-hover:scale-105 grayscale" />
+               <div className="absolute inset-0 bg-gradient-to-l from-zinc-950 via-zinc-950/60 to-transparent" />
+
+               <div className="relative p-12 h-full flex flex-col justify-center items-end text-right z-10">
+                  <div className="mb-6 px-4 py-2 bg-[#DFFF00]/10 border border-[#DFFF00]/30 rounded-full backdrop-blur-md">
+                     <span className="flex items-center gap-2 text-xs font-black text-[#DFFF00] uppercase tracking-widest">
+                        <Zap size={14} className="fill-[#DFFF00]" /> Live Economy
+                     </span>
+                  </div>
+
+                  <h2 className="text-5xl md:text-7xl font-black uppercase text-white tracking-tighter mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-[#DFFF00] transition-all">
+                     Black Market
+                  </h2>
+                  <p className="text-zinc-400 font-mono text-sm uppercase tracking-widest max-w-xl leading-relaxed">
+                     Trade serialized assets, open packs, and manage your inventory in the secure exchange protocol.
+                  </p>
+                  
+                  <div className="mt-8 flex items-center gap-4">
+                     <div className="h-px w-24 bg-zinc-800 group-hover:bg-[#DFFF00] transition-colors" />
+                     <Package size={24} className="text-zinc-600 group-hover:text-[#DFFF00] transition-colors" />
+                  </div>
+               </div>
+            </Link>
+        </motion.div>
+
+        {/* LOGS SECTION */}
+        <section id="system-logs" className="scroll-mt-24">
+            <SectionHeader title="System Logs" icon={<Terminal size={16} />} />
+            
+            <div className="relative rounded-[3rem] bg-zinc-900/20 border border-white/5 p-2 md:p-8 backdrop-blur-md overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
+            <PersonalLogs />
+            </div>
+        </section>
 
       </section>
 
-      {/* FOOTER AREA */}
-      <footer className="relative z-10 py-12 px-6 text-center border-t border-zinc-800/50">
-        <div className="inline-flex items-center gap-2 text-zinc-700 font-mono text-[10px] uppercase tracking-widest mb-4">
-           <Zap size={12} className="fill-zinc-800" />
-           <span>Secure Connection Est. 2024</span>
+      {/* --- FOOTER (Improved) --- */}
+      <footer className="relative z-10 pt-20 pb-12 px-6 text-center border-t border-white/5 bg-zinc-950">
+        <div className="max-w-[1600px] mx-auto flex flex-col items-center gap-8">
+            
+            {/* Logo Mark */}
+            <div className="w-12 h-12 bg-[#DFFF00] rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(223,255,0,0.2)]">
+                <span className="font-black text-xl text-black">Z</span>
+            </div>
+
+            {/* Status Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-12 text-[10px] font-mono uppercase tracking-widest text-zinc-500">
+                <div className="flex items-center gap-2">
+                    <ShieldCheck size={14} className="text-emerald-500" />
+                    <span>Secure Connection: Est. 2024</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Cpu size={14} className="text-blue-500" />
+                    <span>System Status: Optimal</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Activity size={14} className="text-[#DFFF00]" />
+                    <span>Version: 2.6.1</span>
+                </div>
+            </div>
+
+            {/* Divider */}
+            <div className="w-full max-w-xs h-px bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
+
+            {/* Copyright */}
+            <p className="text-zinc-600 font-bold text-xs uppercase tracking-wider hover:text-white transition-colors cursor-default">
+              Zinc Engineering © 2025 // All Rights Reserved
+            </p>
         </div>
-        <p className="text-zinc-800 font-black text-sm uppercase">Zinc Engineering © 2025</p>
       </footer>
     </main>
   );
 }
+
+// --- SUB-COMPONENTS ---
+
+const QuickLink = ({ href, icon, label }: { href: string, icon: React.ReactNode, label: string }) => (
+  <Link 
+    href={href} 
+    className="flex items-center gap-2 px-5 py-3 rounded-full bg-zinc-900/40 border border-white/10 hover:border-[#DFFF00]/50 hover:bg-zinc-900 transition-all group backdrop-blur-md"
+  >
+    <span className="text-zinc-500 group-hover:text-[#DFFF00] transition-colors">{icon}</span>
+    <span className="text-xs font-mono font-bold text-zinc-400 group-hover:text-white uppercase tracking-widest">{label}</span>
+  </Link>
+);
+
+const SectionHeader = ({ title, icon }: { title: string, icon: React.ReactNode }) => (
+  <div className="flex items-center gap-4 mb-12 px-4">
+      <div className="w-2 h-2 bg-[#DFFF00] rounded-full shadow-[0_0_10px_#DFFF00]" />
+      <div className="h-px flex-1 bg-gradient-to-r from-zinc-800 to-transparent" />
+      <div className="flex items-center gap-2 text-zinc-500 bg-zinc-900/50 px-4 py-2 rounded-full border border-white/5 backdrop-blur-md">
+           {icon}
+           <span className="text-xs font-mono font-bold uppercase tracking-widest">{title}</span>
+      </div>
+  </div>
+);
