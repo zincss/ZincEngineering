@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Terminal, PenTool, Save, X, Calendar, Hash, ChevronRight, Lock, Unlock, Key, Edit, Trash2, Loader2, Maximize2, LogOut } from 'lucide-react';
-import { supabase } from '../../lib/supabaseClient';
+import { createClient } from '@/utils/supabase/client'; // CHANGED: Imported the correct client
 
 interface LogEntry {
   id: string;
@@ -14,6 +14,9 @@ interface LogEntry {
 }
 
 export default function PersonalLogs() {
+  // CHANGED: Initialize the client instance here
+  const supabase = createClient();
+
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [isWriting, setIsWriting] = useState(false);
@@ -43,7 +46,17 @@ export default function PersonalLogs() {
   };
 
   useEffect(() => {
+    // CHANGED: Check if the user is already logged in via the main app
+    const checkSession = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setIsAuthenticated(true);
+      }
+    };
+    checkSession();
+
     fetchLogs();
+
     const channel = supabase
       .channel('personal_logs_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'personal_logs' }, () => {
@@ -70,6 +83,7 @@ export default function PersonalLogs() {
   };
 
   const verifyCode = () => {
+    // Keeps your manual override code active as well
     if (accessCode === '1698') {
       setIsAuthenticated(true);
       setShowAuthInput(false);
@@ -81,7 +95,9 @@ export default function PersonalLogs() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Optional: Only log out locally from this component view, or sign out entirely
+    // If you want to sign out the whole app: await supabase.auth.signOut();
     setIsAuthenticated(false);
     setIsWriting(false);
     setEditingId(null);
@@ -111,7 +127,7 @@ export default function PersonalLogs() {
     });
     setEditingId(log.id);
     setIsWriting(true);
-    // Scroll to form
+    
     const formElement = document.getElementById('log-editor');
     if (formElement) formElement.scrollIntoView({ behavior: 'smooth' });
   };
