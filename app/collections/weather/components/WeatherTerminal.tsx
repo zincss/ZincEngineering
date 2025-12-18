@@ -5,7 +5,7 @@ import {
   CloudRain, Wind, Search, Skull, 
   MapPin, Loader2, Smile, Frown, Zap, Baby, Briefcase, RefreshCcw, 
   Cpu, Droplets, Gauge, Navigation, Calendar, Radio, CloudSnow, CloudLightning, Sun, Crosshair, History, X,
-  CloudHail // Added CloudHail for the Header
+  CloudHail, ArrowRight
 } from 'lucide-react';
 
 // Import the massive commentary database
@@ -133,6 +133,14 @@ const WeatherBackground = ({ condition, isDay }: { condition: string, isDay: num
 };
 
 // --- TYPES ---
+interface DailyForecast {
+  date: string;
+  maxTemp: number;
+  minTemp: number;
+  code: number;
+  condition: string;
+}
+
 interface WeatherData {
   temp: number;
   feelsLike: number;
@@ -145,6 +153,7 @@ interface WeatherData {
   location: string;
   code: number;
   isDay: number;
+  forecast: DailyForecast[]; // Added forecast array
 }
 
 interface GeocodingResult {
@@ -316,14 +325,25 @@ export default function WeatherTerminal() {
     return getRandomLine(mode, category);
   };
 
+  const getConditionText = (code: number) => {
+    let text = "CLEAR";
+    if (code > 2) text = "CLOUDY";
+    if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) text = "RAINING";
+    if (code >= 95) text = "STORM";
+    if ([71, 73, 75, 85, 86].includes(code)) text = "SNOW";
+    return text;
+  };
+
   const executeFetch = async (loc: GeocodingResult, mode: PersonalityMode) => {
     setLoading(true);
     setSelectedMode(mode);
     setStep('RESULT');
 
     try {
+        // Changed forecast_days to 6 to get Today + 5 Days
+        // Added weather_code to daily params
         const weatherRes = await fetch(
-            `https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,is_day&hourly=uv_index&daily=temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=1`
+            `https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,is_day&hourly=uv_index&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=auto&forecast_days=6`
         );
         const wData = await weatherRes.json();
         const current = wData.current;
@@ -334,11 +354,16 @@ export default function WeatherTerminal() {
         const currentHourIndex = parseInt(hourString, 10);
         const uvIndex = wData.hourly?.uv_index?.[currentHourIndex] ?? 0;
 
-        let conditionText = "CLEAR";
-        if (current.weather_code > 2) conditionText = "CLOUDY";
-        if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(current.weather_code)) conditionText = "RAINING";
-        if (current.weather_code >= 95) conditionText = "STORM";
-        if ([71, 73, 75, 85, 86].includes(current.weather_code)) conditionText = "SNOW";
+        const conditionText = getConditionText(current.weather_code);
+
+        // Map forecast data
+        const forecastData: DailyForecast[] = daily.time.map((t: string, i: number) => ({
+            date: t,
+            maxTemp: daily.temperature_2m_max[i],
+            minTemp: daily.temperature_2m_min[i],
+            code: daily.weather_code[i],
+            condition: getConditionText(daily.weather_code[i])
+        })).slice(1); // Remove current day (index 0)
 
         const newWeather: WeatherData = {
             temp: current.temperature_2m,
@@ -351,7 +376,8 @@ export default function WeatherTerminal() {
             uvIndex: uvIndex,
             location: `${loc.name}, ${loc.country || ''}`,
             code: current.weather_code,
-            isDay: current.is_day
+            isDay: current.is_day,
+            forecast: forecastData
         };
 
         setWeather(newWeather);
@@ -389,6 +415,16 @@ export default function WeatherTerminal() {
       if (uv <= 7) return 'HIGH';
       if (uv <= 10) return 'VERY HIGH';
       return 'EXTREME';
+  };
+
+  const getForecastIcon = (condition: string, size: number = 20) => {
+      switch (condition) {
+          case 'RAINING': return <CloudRain size={size} className="text-blue-400" />;
+          case 'STORM': return <CloudLightning size={size} className="text-purple-400" />;
+          case 'SNOW': return <CloudSnow size={size} className="text-white" />;
+          case 'CLOUDY': return <CloudHail size={size} className="text-zinc-400" />; // Fallback cloud icon
+          default: return <Sun size={size} className="text-orange-400" />;
+      }
   };
 
   return (
@@ -588,7 +624,7 @@ export default function WeatherTerminal() {
                                     {!['RAINING', 'STORM', 'SNOW'].includes(weather.condition) && <Sun size={24} className={weather.isDay ? "text-orange-400" : "text-blue-300"} />}
                                 </div>
 
-                                {/* NEW: Feels Like / High / Low Grid */}
+                                {/* Feels Like / High / Low Grid */}
                                 <div className="flex items-center gap-4 md:gap-8 bg-black/20 rounded-2xl p-3 md:p-4 border border-white/5 backdrop-blur-sm self-start">
                                     <div className="flex flex-col gap-0.5">
                                         <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Feels Like</span>
@@ -693,6 +729,35 @@ export default function WeatherTerminal() {
                         <RefreshCcw size={28} className="text-black group-hover:rotate-180 transition-transform duration-500 md:w-8 md:h-8" />
                         <span className="text-black font-black text-[10px] md:text-xs uppercase tracking-widest">RESET</span>
                     </button>
+
+                    {/* 5. FORECAST ROW */}
+                    <div className="col-span-2 md:col-span-3 lg:col-span-4 mt-2">
+                        <div className="bg-zinc-900/50 border border-zinc-800 rounded-[2rem] p-4 md:p-6">
+                            <div className="flex items-center gap-2 mb-4 px-2">
+                                <Calendar size={14} className="text-zinc-500" />
+                                <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">5-Day Outlook</span>
+                            </div>
+                            
+                            <div className="grid grid-cols-5 gap-2 md:gap-4">
+                                {weather.forecast.map((day, idx) => (
+                                    <div key={idx} className="bg-zinc-900/80 rounded-2xl p-2 md:p-4 flex flex-col items-center justify-between text-center gap-2 border border-zinc-800/50 hover:bg-zinc-800 hover:border-zinc-700 transition-colors">
+                                        <span className="text-[10px] md:text-xs font-bold text-zinc-500 uppercase">
+                                            {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}
+                                        </span>
+                                        
+                                        <div className="my-1">
+                                            {getForecastIcon(day.condition, 24)}
+                                        </div>
+                                        
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="text-sm md:text-lg font-bold text-white">{Math.round(day.maxTemp)}°</span>
+                                            <span className="text-[10px] md:text-xs font-bold text-zinc-600">{Math.round(day.minTemp)}°</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
 
                  </div>
              ) : null}
