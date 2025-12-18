@@ -29,8 +29,12 @@ export default function Header() {
   const isCollections = (pathname?.startsWith('/collections') && !isWeather) || pathname?.startsWith('/gaming') || pathname?.startsWith('/automotive');
   
   // Play Routes
-  const isPlay = pathname?.startsWith('/play') && !pathname?.startsWith('/play/market') && !pathname?.startsWith('/play/poker');
-  const isMarket = pathname?.startsWith('/play/market');
+  // Updated: Removed the old '/play/market' exclusion since market is now at root
+  const isPlay = pathname?.startsWith('/play') && !pathname?.startsWith('/play/poker');
+  
+  // Updated: Now detects the new /market route
+  const isMarket = pathname?.startsWith('/market');
+  
   const isSports = pathname?.startsWith('/sports');
 
   // SPECIAL CASE: HIDE HEADER ON POKER GAME (Immersive Mode)
@@ -73,7 +77,8 @@ export default function Header() {
               <nav className="hidden xl:flex items-center gap-1 bg-zinc-900/50 p-1 rounded-full border border-white/5">
                   <NavLink href="/collections/weather" active={isWeather} icon={<CloudHail size={14} />}>WEATHER</NavLink>
                   <NavLink href="/play" active={isPlay} icon={<Gamepad2 size={14} />}>PLAY</NavLink>
-                  <NavLink href="/play/market" active={isMarket} icon={<Package size={14} />}>MARKET</NavLink>
+                  {/* Updated Link */}
+                  <NavLink href="/market" active={isMarket} icon={<Package size={14} />}>MARKET</NavLink>
                   <NavLink href="/collections" active={isCollections} icon={<FolderOpen size={14} />}>ARCHIVE</NavLink>
                   <NavLink href="/sports" active={isSports} icon={<Trophy size={14} />}>SPORTS</NavLink>
               </nav>
@@ -168,7 +173,8 @@ export default function Header() {
           <div className="fixed inset-0 top-0 pt-20 z-40 bg-zinc-950/95 backdrop-blur-xl p-4 flex flex-col gap-3 animate-in fade-in slide-in-from-top-4 border-t border-zinc-800 overflow-y-auto">
               <MobileLink onClick={closeMenu} href="/collections/weather" active={isWeather} icon={<CloudHail size={16}/>} label="WEATHER" />
               <MobileLink onClick={closeMenu} href="/play" active={isPlay} icon={<Gamepad2 size={16}/>} label="PLAY" />
-              <MobileLink onClick={closeMenu} href="/play/market" active={isMarket} icon={<Package size={16}/>} label="MARKET" />
+              {/* Updated Link */}
+              <MobileLink onClick={closeMenu} href="/market" active={isMarket} icon={<Package size={16}/>} label="MARKET" />
               <MobileLink onClick={closeMenu} href="/collections" active={isCollections} icon={<FolderOpen size={16}/>} label="COLLECTIONS" />
               <MobileLink onClick={closeMenu} href="/sports" active={isSports} icon={<Trophy size={16}/>} label="SPORTS" />
               

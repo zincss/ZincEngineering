@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
-import { createClient } from '@/utils/supabase/client'; // CHANGED: Import from utils (SSR/Cookie compatible)
+import { createClient } from '@/utils/supabase/client';
 import { User } from '@supabase/supabase-js';
 
 type Profile = {
@@ -17,21 +17,19 @@ interface AuthContextType {
   isAdmin: boolean;
   signIn: () => void;
   signOut: () => void;
-  refreshProfile: () => void;
+  refreshProfile: () => Promise<void>; // CHANGED: Now returns a Promise
   loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  // Instantiate the client inside the component
   const supabase = createClient();
   
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // Track profile fetch to prevent loops
   const lastFetchedUserId = useRef<string | null>(null);
 
   const fetchProfile = async (userId: string) => {
@@ -44,7 +42,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         if (error) {
             console.warn("Profile fetch warning:", error.message);
-            // Don't return here, allow the app to run with just user auth if profile fails
         }
 
         if (data) {
@@ -61,18 +58,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const initializeAuth = async () => {
       try {
-        // Check active session
         const { data: { session } } = await supabase.auth.getSession();
         
         if (mounted) {
           if (session?.user) {
             setUser(session.user);
-            // Only fetch profile if strictly necessary
             if (lastFetchedUserId.current !== session.user.id) {
                await fetchProfile(session.user.id);
             }
           } else {
-            // No session found
             setUser(null);
             setProfile(null);
           }
@@ -86,12 +80,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     initializeAuth();
 
-    // Listen for changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       
-      console.log(`Auth event: ${event}`); // Debugging help
-
       if (event === 'SIGNED_OUT') {
           setUser(null);
           setProfile(null);
@@ -105,23 +96,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (currentUser) {
           setUser(currentUser);
           if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-             // Only fetch profile on explicit sign-in or distinct user change
              if (lastFetchedUserId.current !== currentUser.id) {
                 await fetchProfile(currentUser.id);
              }
           }
       } else {
-          // Fallback if session is missing but event wasn't SIGNED_OUT
           setUser(null);
           setProfile(null);
       }
-      
       setLoading(false);
     });
-
-    // REMOVED: The manual 'visibilitychange' listener. 
-    // Supabase SDK handles auto-refresh and recovery internally. 
-    // Manually checking often triggers false logouts on mobile.
 
     return () => {
         mounted = false;
@@ -129,12 +113,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  const refreshProfile = () => {
-    if (user) fetchProfile(user.id);
+  // CHANGED: Now async
+  const refreshProfile = async () => {
+    if (user) await fetchProfile(user.id);
   };
 
   const signIn = () => {
-    // Ideally use router.push, but window.location is safer for full reset if needed
     window.location.href = '/login'; 
   };
 
@@ -145,7 +129,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (err) {
         console.error("Error during sign out:", err);
     } finally {
-        // Clear state immediately to give UI feedback
         setUser(null);
         setProfile(null);
         lastFetchedUserId.current = null;

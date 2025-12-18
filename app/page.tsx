@@ -294,7 +294,7 @@ export default function Home() {
 
         </motion.div>
 
-        {/* --- MARKET SECTION --- */}
+{/* --- MARKET SECTION --- */}
         <SectionHeader title="Underground Exchange" icon={<TrendingUp size={16} />} />
 
         <motion.div
@@ -304,7 +304,8 @@ export default function Home() {
            transition={{ duration: 0.8 }}
            className="mb-24"
         >
-            <Link href="/play/market" className="group relative block w-full min-h-[360px] rounded-[2.5rem] bg-zinc-900/40 border border-white/5 hover:border-[#DFFF00]/50 transition-all duration-500 overflow-hidden hover:shadow-[0_0_50px_rgba(223,255,0,0.1)]">
+            {/* UPDATED HREF: Was /play/market, now /market */}
+            <Link href="/market" className="group relative block w-full min-h-[360px] rounded-[2.5rem] bg-zinc-900/40 border border-white/5 hover:border-[#DFFF00]/50 transition-all duration-500 overflow-hidden hover:shadow-[0_0_50px_rgba(223,255,0,0.1)]">
                
                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1555680202-c86f0e12f086?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:opacity-10 transition-all duration-700 group-hover:scale-105 grayscale" />
                <div className="absolute inset-0 bg-gradient-to-l from-zinc-950 via-zinc-950/60 to-transparent" />

@@ -4,9 +4,8 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { 
-  Brain, ChevronRight, Construction, Spade, Trophy, Package, 
-  TrendingUp, Activity, ArrowRight, Info, X, LogIn, Flame, 
-  ShieldCheck, Cpu
+  Brain, ChevronRight, Construction, Spade, Trophy, Activity, ArrowRight, Info, X, LogIn, Flame, 
+  ShieldCheck, Cpu, Building2
 } from 'lucide-react';
 import BackButton from '../components/BackButton';
 import { useAuth } from '../context/AuthContext';
@@ -138,11 +137,11 @@ export default function PlayHub() {
             </motion.div>
 
             <Link 
-                href="/play/market"
+                href="/market"
                 className="group flex items-center gap-3 px-8 py-4 bg-[#DFFF00] hover:bg-white text-black rounded-full font-bold uppercase tracking-widest text-xs transition-all shadow-[0_0_30px_rgba(223,255,0,0.3)] hover:shadow-[0_0_50px_rgba(255,255,255,0.4)] hover:-translate-y-1 active:scale-95"
             >
-                <Package size={16} className="group-hover:rotate-12 transition-transform" />
-                <span>Access Black Market</span>
+                <Building2 size={16} className="group-hover:rotate-12 transition-transform" />
+                <span>Enter Economy Hub</span>
                 <ArrowRight size={16} className="-rotate-45 group-hover:rotate-0 transition-transform" />
             </Link>
           </div>
@@ -229,7 +228,7 @@ export default function PlayHub() {
             </motion.div>
 
             {/* 3. HOTSEAT */}
-            <motion.div variants={itemVar} className="md:col-span-4">
+            <motion.div variants={itemVar} className="md:col-span-6">
                 <Link 
                     href="/play/hotseat" 
                     className="group relative block h-full min-h-[300px] rounded-[2.5rem] border border-white/5 bg-zinc-900/40 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500 hover:shadow-[0_0_30px_rgba(239,68,68,0.15)]"
@@ -253,7 +252,7 @@ export default function PlayHub() {
             </motion.div>
 
             {/* 4. TRIVIA */}
-            <motion.div variants={itemVar} className="md:col-span-4">
+            <motion.div variants={itemVar} className="md:col-span-6">
                 <Link 
                     href="/collections/trivia" 
                     className="group relative block h-full min-h-[300px] rounded-[2.5rem] border border-white/5 bg-zinc-900/40 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500"
@@ -274,29 +273,7 @@ export default function PlayHub() {
                 </Link>
             </motion.div>
 
-            {/* 5. STOCKS */}
-            <motion.div variants={itemVar} className="md:col-span-4">
-                <Link 
-                    href="/play/stocks" 
-                    className="group relative block h-full min-h-[300px] rounded-[2.5rem] border border-white/5 bg-zinc-900/40 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500 hover:shadow-[0_0_30px_rgba(16,185,129,0.1)]"
-                >
-                    <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/210607/pexels-photo-210607.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1')] bg-cover bg-center opacity-30 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
-                    <div className="absolute inset-0 bg-gradient-to-br from-zinc-950/90 to-transparent" />
-                    
-                    <div className="absolute top-0 left-0 w-full p-8 flex justify-between items-start">
-                       <TrendingUp size={32} className="text-zinc-600 group-hover:text-[#DFFF00] transition-colors" />
-                    </div>
-
-                    <div className="absolute bottom-0 left-0 p-8 w-full">
-                       <h2 className="text-2xl font-black uppercase text-white mb-2">Zinc Exchange</h2>
-                       <p className="text-zinc-500 font-mono text-xs mt-2 group-hover:text-zinc-300 transition-colors">
-                          Volatile market simulation.
-                       </p>
-                    </div>
-                </Link>
-            </motion.div>
-
-            {/* 6. COMING SOON */}
+            {/* 5. COMING SOON */}
             <motion.div variants={itemVar} className="md:col-span-12">
                 <div className="group relative h-40 rounded-[2.5rem] border border-dashed border-zinc-800 bg-zinc-950/30 flex flex-col items-center justify-center text-center p-8 opacity-60 hover:opacity-100 transition-all hover:border-zinc-700">
                     <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-full text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-2">

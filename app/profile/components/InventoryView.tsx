@@ -4,11 +4,11 @@ import React, { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { Loader2, Search, Box, Grid, BookOpen, ChevronDown, ChevronUp, CheckCircle2 } from 'lucide-react'; // Added CheckCircle2
 import { ItemDetailModal } from './ItemDetailModal';
-import { TradingCard } from '@/app/play/market/components/TradingCard'; 
+import { TradingCard } from '@/app/market/components/components/TradingCard'; 
 
 // Import Source Data
 import { CARS } from '@/app/automotive/data';
-import { REEL_ITEMS_SOURCE, FLAIR_ITEMS_SOURCE, CAR_PACK_SOURCE } from '@/app/play/market/components/shared';
+import { REEL_ITEMS_SOURCE, FLAIR_ITEMS_SOURCE, CAR_PACK_SOURCE } from '@/app/market/components/components/shared';
 
 // Rarity Ranker for Sorting
 const RARITY_RANK: Record<string, number> = {
