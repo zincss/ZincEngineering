@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { 
   Brain, ChevronRight, Construction, Spade, Trophy, Activity, ArrowRight, Info, X, LogIn, Flame, 
-  ShieldCheck, Cpu, Building2
+  ShieldCheck, Cpu, Building2, CircleDashed
 } from 'lucide-react';
 import BackButton from '../components/BackButton';
 import { useAuth } from '../context/AuthContext';
@@ -227,8 +227,32 @@ export default function PlayHub() {
                 </Link>
             </motion.div>
 
+            {/* NEW: ROULETTE */}
+            <motion.div variants={itemVar} className="md:col-span-8">
+                <Link 
+                    href="/play/roulette" 
+                    className="group relative block h-full min-h-[300px] rounded-[2.5rem] border border-white/5 bg-zinc-900/40 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500 hover:shadow-[0_0_40px_rgba(255,255,255,0.1)]"
+                >
+                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1605870445919-838d190e8e1b?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:opacity-20 grayscale transition-all duration-700 group-hover:scale-105" />
+                    <div className="absolute inset-0 bg-gradient-to-l from-zinc-950 via-zinc-950/60 to-transparent" />
+                    
+                    <div className="absolute top-8 right-8">
+                       <div className="bg-zinc-900 border border-zinc-700 p-3 rounded-full group-hover:scale-110 transition-transform shadow-xl">
+                          <CircleDashed size={24} className="text-[#DFFF00] animate-spin-slow" />
+                       </div>
+                    </div>
+
+                    <div className="absolute bottom-0 right-0 p-10 text-right w-full">
+                       <h2 className="text-3xl md:text-5xl font-black uppercase text-white mb-2 italic">Roulette <br/> Royale</h2>
+                       <p className="text-zinc-400 font-mono text-xs uppercase tracking-widest">
+                          European Wheel // 36x Payouts
+                       </p>
+                    </div>
+                </Link>
+            </motion.div>
+
             {/* 3. HOTSEAT */}
-            <motion.div variants={itemVar} className="md:col-span-6">
+            <motion.div variants={itemVar} className="md:col-span-4">
                 <Link 
                     href="/play/hotseat" 
                     className="group relative block h-full min-h-[300px] rounded-[2.5rem] border border-white/5 bg-zinc-900/40 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500 hover:shadow-[0_0_30px_rgba(239,68,68,0.15)]"
@@ -245,7 +269,7 @@ export default function PlayHub() {
                     <div className="absolute bottom-0 left-0 p-8 w-full">
                        <h2 className="text-2xl font-black uppercase text-white mb-2 italic">Protocol: Hotseat</h2>
                        <p className="text-zinc-500 font-mono text-xs mt-2 group-hover:text-zinc-300 transition-colors">
-                          15 Questions. 5,000 Credits. High voltage trivia.
+                          High voltage trivia.
                        </p>
                     </div>
                 </Link>
@@ -255,7 +279,7 @@ export default function PlayHub() {
             <motion.div variants={itemVar} className="md:col-span-6">
                 <Link 
                     href="/collections/trivia" 
-                    className="group relative block h-full min-h-[300px] rounded-[2.5rem] border border-white/5 bg-zinc-900/40 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500"
+                    className="group relative block h-full min-h-[260px] rounded-[2.5rem] border border-white/5 bg-zinc-900/40 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500"
                 >
                     <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
                     <div className="absolute inset-0 bg-gradient-to-br from-zinc-950/90 to-transparent" />
@@ -274,8 +298,8 @@ export default function PlayHub() {
             </motion.div>
 
             {/* 5. COMING SOON */}
-            <motion.div variants={itemVar} className="md:col-span-12">
-                <div className="group relative h-40 rounded-[2.5rem] border border-dashed border-zinc-800 bg-zinc-950/30 flex flex-col items-center justify-center text-center p-8 opacity-60 hover:opacity-100 transition-all hover:border-zinc-700">
+            <motion.div variants={itemVar} className="md:col-span-6">
+                <div className="group relative h-full min-h-[260px] rounded-[2.5rem] border border-dashed border-zinc-800 bg-zinc-950/30 flex flex-col items-center justify-center text-center p-8 opacity-60 hover:opacity-100 transition-all hover:border-zinc-700">
                     <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-full text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-2">
                         <Construction size={10} />
                         In Development

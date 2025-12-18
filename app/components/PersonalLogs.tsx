@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Terminal, PenTool, Save, X, Calendar, Hash, ChevronRight, Lock, Unlock, Key, Edit, Trash2, Loader2, Maximize2, LogOut } from 'lucide-react';
-import { createClient } from '@/utils/supabase/client'; // CHANGED: Imported the correct client
+import { createClient } from '@/utils/supabase/client';
+import { useAuth } from '../context/AuthContext';
 
 interface LogEntry {
   id: string;
@@ -14,8 +15,8 @@ interface LogEntry {
 }
 
 export default function PersonalLogs() {
-  // CHANGED: Initialize the client instance here
   const supabase = createClient();
+  const { isAdmin } = useAuth(); // FIX: Use the auth context to check for admin status
 
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,14 +47,10 @@ export default function PersonalLogs() {
   };
 
   useEffect(() => {
-    // CHANGED: Check if the user is already logged in via the main app
-    const checkSession = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setIsAuthenticated(true);
-      }
-    };
-    checkSession();
+    // FIX: Only grant access if the user is an admin
+    if (isAdmin) {
+      setIsAuthenticated(true);
+    }
 
     fetchLogs();
 
@@ -67,7 +64,7 @@ export default function PersonalLogs() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [isAdmin]); // Depend on isAdmin so it updates when auth state loads
 
   // --- AUTH HANDLERS ---
   const handleAccessRequest = () => {
@@ -96,8 +93,7 @@ export default function PersonalLogs() {
   };
 
   const handleLogout = async () => {
-    // Optional: Only log out locally from this component view, or sign out entirely
-    // If you want to sign out the whole app: await supabase.auth.signOut();
+    // Logs out locally from this component view
     setIsAuthenticated(false);
     setIsWriting(false);
     setEditingId(null);

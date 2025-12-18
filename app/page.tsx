@@ -206,13 +206,19 @@ export default function Home() {
           className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-24"
         >
           
-          {/* 1. SPORTS (Fixed: Clicking buttons now works properly) */}
+          {/* 1. SPORTS */}
           <motion.div variants={itemVar} className="md:col-span-4 md:row-span-2">
             <div className="group relative flex flex-col h-full min-h-[500px] rounded-[2.5rem] bg-zinc-900/40 border border-white/5 hover:border-blue-500/50 transition-all duration-500 overflow-hidden hover:shadow-[0_0_40px_rgba(59,130,246,0.15)]">
                
                {/* Background links to Main Sports Page */}
                <Link href="/sports" className="absolute inset-0 z-0">
-                   <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-10 transition-all duration-700 group-hover:scale-110 grayscale" />
+                   {/* CHANGED: Video Background */}
+                   <video 
+                     autoPlay loop muted playsInline 
+                     className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:opacity-10 transition-all duration-700 group-hover:scale-110 grayscale"
+                   >
+                     <source src="/sports-page.mp4" type="video/mp4" />
+                   </video>
                    <div className="absolute inset-0 bg-zinc-950/60" />
                </Link>
 
@@ -226,7 +232,7 @@ export default function Home() {
 
                   <h2 className="text-4xl font-black uppercase text-white mb-6 tracking-tighter">Sports<br/>Telemetry</h2>
                   
-                  {/* Buttons Container - Re-enabled pointer events */}
+                  {/* Buttons Container */}
                   <div className="space-y-3 pointer-events-auto">
                      {[
                         { label: 'Formula 1', path: '/sports/f1' },
@@ -250,7 +256,14 @@ export default function Home() {
           {/* 2. ARCHIVES / COLLECTIONS */}
           <motion.div variants={itemVar} className="md:col-span-8">
             <Link href="/collections" className="group relative flex flex-col h-full min-h-[260px] rounded-[2.5rem] bg-zinc-900/40 border border-white/5 hover:border-purple-500/50 transition-all duration-500 overflow-hidden hover:shadow-[0_0_40px_rgba(168,85,247,0.15)]">
-               <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-10 transition-all duration-700 group-hover:scale-110 grayscale" />
+               {/* CHANGED: Video Background */}
+               <video 
+                 autoPlay loop muted playsInline 
+                 className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:opacity-10 transition-all duration-700 group-hover:scale-110 grayscale"
+               >
+                 <source src="/archive-page.mp4" type="video/mp4" />
+               </video>
+               
                <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent" />
 
                <div className="relative p-10 h-full flex flex-col justify-between z-10">
@@ -268,10 +281,17 @@ export default function Home() {
             </Link>
           </motion.div>
 
-          {/* 3. ARCADE (Updated Text) */}
+          {/* 3. ARCADE */}
           <motion.div variants={itemVar} className="md:col-span-8">
             <Link href="/play" className="group relative block h-full min-h-[260px] rounded-[2.5rem] bg-zinc-900/40 border border-white/5 hover:border-[#DFFF00]/50 transition-all duration-500 overflow-hidden hover:shadow-[0_0_40px_rgba(223,255,0,0.1)]">
-               <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:opacity-20 transition-all duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0" />
+               {/* CHANGED: Video Background */}
+               <video 
+                 autoPlay loop muted playsInline 
+                 className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-20 transition-all duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0"
+               >
+                 <source src="/play-page.mp4" type="video/mp4" />
+               </video>
+
                <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/80 to-transparent" />
 
                <div className="relative p-10 h-full flex flex-col justify-between z-10">
@@ -304,10 +324,16 @@ export default function Home() {
            transition={{ duration: 0.8 }}
            className="mb-24"
         >
-            {/* UPDATED HREF: Was /play/market, now /market */}
             <Link href="/market" className="group relative block w-full min-h-[360px] rounded-[2.5rem] bg-zinc-900/40 border border-white/5 hover:border-[#DFFF00]/50 transition-all duration-500 overflow-hidden hover:shadow-[0_0_50px_rgba(223,255,0,0.1)]">
                
-               <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1555680202-c86f0e12f086?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:opacity-10 transition-all duration-700 group-hover:scale-105 grayscale" />
+               {/* CHANGED: Video Background */}
+               <video 
+                 autoPlay loop muted playsInline 
+                 className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-10 transition-all duration-700 group-hover:scale-105 grayscale"
+               >
+                 <source src="/market-page.mp4" type="video/mp4" />
+               </video>
+
                <div className="absolute inset-0 bg-gradient-to-l from-zinc-950 via-zinc-950/60 to-transparent" />
 
                <div className="relative p-12 h-full flex flex-col justify-center items-end text-right z-10">
@@ -344,7 +370,7 @@ export default function Home() {
 
       </section>
 
-      {/* --- FOOTER (Improved) --- */}
+      {/* --- FOOTER --- */}
       <footer className="relative z-10 pt-20 pb-12 px-6 text-center border-t border-white/5 bg-zinc-950">
         <div className="max-w-[1600px] mx-auto flex flex-col items-center gap-8">
             
