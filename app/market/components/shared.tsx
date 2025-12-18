@@ -72,6 +72,29 @@ export const CAR_PACK_SOURCE = CARS.map(car => {
   };
 });
 
+// --- FLAIR ITEMS (Added) ---
+const FLAIR_LIST = [
+    'Neon Genesis', 'Cyber Angel', 'Void Walker', 'Chrome Heart', 'Solar Flare', 
+    'Lunar Eclipse', 'Star Dust', 'Net Runner', 'Data Wraith', 'System Shock',
+    'Zinc Operator', 'Core Dev', 'Bug Hunter', 'Early Access', 'Founder'
+];
+
+export const FLAIR_ITEMS_SOURCE = FLAIR_LIST.map((name, i) => {
+    let rarity = 'RARE';
+    if (name === 'Zinc Operator' || name === 'Founder') rarity = 'COSMIC';
+    else if (i < 5) rarity = 'ZENITH';
+    else if (i < 10) rarity = 'ULTRA';
+
+    return {
+        name,
+        rarity,
+        type: 'FLAIR',
+        description: `Digital signature profile flair: ${name}.`,
+        searchQuery: `${name} aesthetic abstract 3d render`
+    };
+});
+
+
 // --- FALLBACK AI ---
 export const getAssetUrl = (name: string, type?: string) => {
     const seed = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);

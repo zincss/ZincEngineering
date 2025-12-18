@@ -4,11 +4,11 @@ import React, { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { Loader2, Search, Box, Grid, BookOpen, ChevronDown, ChevronUp, CheckCircle2 } from 'lucide-react'; // Added CheckCircle2
 import { ItemDetailModal } from './ItemDetailModal';
-import { TradingCard } from '@/app/market/components/components/TradingCard'; 
+import { TradingCard } from '@/app/market/components/TradingCard'; 
 
 // Import Source Data
 import { CARS } from '@/app/automotive/data';
-import { REEL_ITEMS_SOURCE, FLAIR_ITEMS_SOURCE, CAR_PACK_SOURCE } from '@/app/market/components/components/shared';
+import { REEL_ITEMS_SOURCE, FLAIR_ITEMS_SOURCE, CAR_PACK_SOURCE } from '@/app/market/components/shared';
 
 // Rarity Ranker for Sorting
 const RARITY_RANK: Record<string, number> = {
@@ -48,7 +48,7 @@ export default function InventoryView({ user }: { user: any }) {
                if (carMatch) {
                   sourceData = { type: 'CAR', searchQuery: carMatch.searchQuery || `${carMatch.manufacturer} ${carMatch.name}`, description: carMatch.history };
                } else {
-                  const flairMatch = FLAIR_ITEMS_SOURCE.find(f => f.name === name);
+                  const flairMatch = FLAIR_ITEMS_SOURCE.find((f: any) => f.name === name);
                   if (flairMatch) sourceData = { type: 'FLAIR', searchQuery: flairMatch.searchQuery, description: flairMatch.description };
                }
                return { ...item, sourceData };

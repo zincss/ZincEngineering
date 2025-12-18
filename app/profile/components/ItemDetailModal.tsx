@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { X, Hash, Globe, BarChart3, Calendar, RefreshCw, Hammer, Gem, Loader2, ScanLine, Activity, Sparkles } from 'lucide-react';
 import { InventoryItem } from '../types';
-import { TradingCard } from '@/app/market/components/components/TradingCard';
+import { TradingCard } from '@/app/market/components/TradingCard';
 
 interface EnrichedItem extends InventoryItem {
     sourceData?: {
