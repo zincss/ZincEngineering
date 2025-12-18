@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import BackButton from '../components/BackButton';
 import GlobalTicker from '../components/GlobalTicker';
+import EditableContent from '@/app/components/EditableContent'; // IMPORT ADDED
 
 const containerVar: Variants = {
   hidden: { opacity: 0 },
@@ -53,20 +54,24 @@ export default function SportsHub() {
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-[#DFFF00]"></span>
                 </span>
                 <span className="text-[10px] font-mono font-bold text-zinc-300 tracking-[0.2em] uppercase">
-                  Athletics Uplink
+                  <EditableContent id="sports-status-pill" defaultContent="Athletics Uplink" tag="span" />
                 </span>
              </div>
           </motion.div>
 
           {/* MASSIVE TYPOGRAPHY */}
-          <motion.h1 
+          <motion.div 
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 1, ease: "circOut" }}
-            className="text-[12vw] md:text-[9rem] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 uppercase leading-[0.8] select-none"
           >
-            LEAGUE <span className="text-stroke-3 text-transparent bg-clip-text bg-gradient-to-b from-zinc-700 to-zinc-900">OPS</span>
-          </motion.h1>
+            <h1 className="text-[12vw] md:text-[9rem] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 uppercase leading-[0.8] select-none">
+                <EditableContent id="sports-hero-text-1" defaultContent="LEAGUE" tag="span" />{' '}
+                <span className="text-stroke-3 text-transparent bg-clip-text bg-gradient-to-b from-zinc-700 to-zinc-900">
+                    <EditableContent id="sports-hero-text-2" defaultContent="OPS" tag="span" />
+                </span>
+            </h1>
+          </motion.div>
           
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -76,7 +81,9 @@ export default function SportsHub() {
           >
              <div className="flex items-center justify-center gap-3 text-zinc-400 font-mono text-sm md:text-base leading-relaxed tracking-widest uppercase">
                <span className="text-[#DFFF00] font-black">///</span>
-               <span>Real-time Telemetry & Archives</span>
+               <span>
+                  <EditableContent id="sports-hero-desc" defaultContent="Real-time Telemetry & Archives" tag="span" />
+               </span>
              </div>
           </motion.div>
         </div>
@@ -93,7 +100,9 @@ export default function SportsHub() {
             <div className="h-px flex-1 bg-gradient-to-r from-zinc-800 to-transparent" />
             <div className="flex items-center gap-2 bg-zinc-900/50 px-4 py-2 rounded-full border border-white/5 backdrop-blur-md">
                  <Radio size={16} className="text-[#DFFF00]" />
-                 <span className="text-xs font-mono font-bold text-zinc-400 uppercase tracking-widest">Active Frequencies</span>
+                 <span className="text-xs font-mono font-bold text-zinc-400 uppercase tracking-widest">
+                    <EditableContent id="sports-section-header" defaultContent="Active Frequencies" tag="span" />
+                 </span>
             </div>
         </div>
 
@@ -121,10 +130,19 @@ export default function SportsHub() {
                                  RedZone Link
                             </span>
                         </div>
-                        <h2 className="text-4xl md:text-6xl font-black uppercase text-white mb-4 italic tracking-tight">NFL Nexus</h2>
-                        <p className="text-zinc-400 font-mono text-sm md:text-base leading-relaxed max-w-xl group-hover:text-zinc-200 transition-colors">
-                            National Football League. Playoff picture, roster depth charts, and live scoring telemetry.
-                        </p>
+                        <EditableContent 
+                            id="sports-card-nfl-title" 
+                            defaultContent="NFL Nexus" 
+                            tag="h2" 
+                            className="text-4xl md:text-6xl font-black uppercase text-white mb-4 italic tracking-tight"
+                        />
+                        <div className="text-zinc-400 font-mono text-sm md:text-base leading-relaxed max-w-xl group-hover:text-zinc-200 transition-colors">
+                            <EditableContent 
+                                id="sports-card-nfl-desc" 
+                                defaultContent="National Football League. Playoff picture, roster depth charts, and live scoring telemetry." 
+                                tag="p" 
+                            />
+                        </div>
                     </div>
                 </Link>
             </motion.div>
@@ -141,10 +159,19 @@ export default function SportsHub() {
 
                     <div className="absolute bottom-0 left-0 p-10 w-full">
                         <Trophy size={48} className="text-zinc-600 group-hover:text-[#DFFF00] mb-6 transition-colors duration-500" />
-                        <h2 className="text-4xl font-black uppercase text-white mb-2">NBA Ops</h2>
-                        <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest mb-6 group-hover:text-zinc-300 transition-colors">
-                            Hardwood<br/>Analytics
-                        </p>
+                        <EditableContent 
+                            id="sports-card-nba-title" 
+                            defaultContent="NBA Ops" 
+                            tag="h2" 
+                            className="text-4xl font-black uppercase text-white mb-2"
+                        />
+                        <div className="text-zinc-500 font-mono text-xs uppercase tracking-widest mb-6 group-hover:text-zinc-300 transition-colors">
+                            <EditableContent 
+                                id="sports-card-nba-desc" 
+                                defaultContent="Hardwood Analytics" 
+                                tag="p" 
+                            />
+                        </div>
                         <div className="h-0.5 w-12 bg-[#DFFF00] group-hover:w-full transition-all duration-700" />
                     </div>
                 </Link>
@@ -166,10 +193,19 @@ export default function SportsHub() {
                     </div>
                     
                     <div className="absolute bottom-0 left-0 p-8 w-full">
-                        <h2 className="text-3xl font-black uppercase text-white mb-2 leading-none">Formula 1<br/>Telemetry</h2>
-                        <p className="text-zinc-500 font-mono text-xs mt-2 group-hover:text-white transition-colors">
-                            Live timing & driver standings.
-                        </p>
+                        <EditableContent 
+                            id="sports-card-f1-title" 
+                            defaultContent="Formula 1 Telemetry" 
+                            tag="h2" 
+                            className="text-3xl font-black uppercase text-white mb-2 leading-none"
+                        />
+                        <div className="text-zinc-500 font-mono text-xs mt-2 group-hover:text-white transition-colors">
+                             <EditableContent 
+                                id="sports-card-f1-desc" 
+                                defaultContent="Live timing & driver standings." 
+                                tag="p" 
+                            />
+                        </div>
                     </div>
                 </Link>
             </motion.div>
@@ -182,7 +218,12 @@ export default function SportsHub() {
                     <div className="absolute inset-0 bg-zinc-950/60" />
                     <div className="absolute inset-0 p-8 flex items-center justify-between">
                          <div>
-                            <h3 className="text-2xl font-black uppercase text-white italic">NRL</h3>
+                            <EditableContent 
+                                id="sports-card-nrl-title" 
+                                defaultContent="NRL" 
+                                tag="h3" 
+                                className="text-2xl font-black uppercase text-white italic"
+                            />
                             <span className="text-zinc-500 text-[10px] font-mono uppercase tracking-widest">Premiership</span>
                          </div>
                          <Shield size={24} className="text-zinc-600 group-hover:text-[#DFFF00] transition-colors" />
@@ -195,7 +236,12 @@ export default function SportsHub() {
                     <div className="absolute inset-0 bg-zinc-950/60" />
                     <div className="absolute inset-0 p-8 flex items-center justify-between">
                          <div>
-                            <h3 className="text-2xl font-black uppercase text-white italic">PGA Golf</h3>
+                            <EditableContent 
+                                id="sports-card-golf-title" 
+                                defaultContent="PGA Golf" 
+                                tag="h3" 
+                                className="text-2xl font-black uppercase text-white italic"
+                            />
                             <span className="text-zinc-500 text-[10px] font-mono uppercase tracking-widest">Tour Rankings</span>
                          </div>
                          <Flag size={24} className="text-zinc-600 group-hover:text-[#DFFF00] transition-colors" />
