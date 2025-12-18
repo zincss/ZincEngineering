@@ -2,7 +2,19 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { CarFront, Gamepad2, ChevronRight, Flag, CloudHail, Database, ArrowRight, BookOpen, ChefHat } from 'lucide-react'; // Added ChefHat
+import { 
+  CarFront, 
+  Gamepad2, 
+  ChevronRight, 
+  Flag, 
+  CloudHail, 
+  Database, 
+  ArrowRight, 
+  BookOpen, 
+  ChefHat, 
+  Search, 
+  Globe 
+} from 'lucide-react'; 
 import BackButton from '../components/BackButton';
 import GlobalTicker from '../components/GlobalTicker';
 
@@ -16,7 +28,7 @@ export default function CollectionsHub() {
 
       {/* --- HERO SECTION --- */}
       <section className="relative h-[65vh] flex flex-col items-center justify-center border-b border-zinc-800/50 overflow-hidden">
-        {/* ... (Keep existing Hero content identical) ... */}
+        
         {/* HERO BACKGROUND */}
         <div className="absolute inset-0 z-0">
            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-zinc-950/30 z-10" />
@@ -24,7 +36,7 @@ export default function CollectionsHub() {
         </div>
         
         <div className="relative z-20 w-full max-w-[1800px] mx-auto px-6 flex flex-col items-center text-center">
-          {/* ... (Keep existing Title/Status Pill identical) ... */}
+          
           <div className="mb-8 animate-in fade-in slide-in-from-top-8 duration-1000">
              <div className="inline-flex items-center gap-3 px-4 py-2 bg-zinc-900/40 border border-zinc-800/50 backdrop-blur-xl rounded-full shadow-2xl">
                 <span className="relative flex h-2.5 w-2.5">
@@ -143,8 +155,8 @@ export default function CollectionsHub() {
                 </div>
             </Link>
 
-            {/* 5. NEW RANDOM RECIPES MODULE */}
-            <Link href="/collections/recipes" className="group md:col-span-12 relative h-80 rounded-[2.5rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500 mt-6">
+            {/* 5. RANDOM RECIPES MODULE */}
+            <Link href="/collections/recipes" className="group md:col-span-6 relative h-80 rounded-[2.5rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500 mt-6">
                 <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/60 to-transparent" />
                 
@@ -157,10 +169,38 @@ export default function CollectionsHub() {
                         <span className="px-3 py-1 bg-[#DFFF00] text-black font-bold text-xs uppercase tracking-widest rounded-full">New</span>
                         <span className="text-zinc-500 font-mono text-xs uppercase tracking-widest">Global Database</span>
                     </div>
-                    <h2 className="text-4xl md:text-5xl font-black uppercase text-white mb-4">Random Recipes</h2>
-                    <p className="text-zinc-400 font-mono text-sm md:text-base leading-relaxed max-w-xl group-hover:text-zinc-200 transition-colors">
-                        Access thousands of culinary schematics. Categories include: Breakfast, Lunch, Dinner, Treats & Bakes.
+                    <h2 className="text-3xl md:text-4xl font-black uppercase text-white mb-4">Random Recipes</h2>
+                    <p className="text-zinc-400 font-mono text-sm leading-relaxed max-w-xs group-hover:text-zinc-200 transition-colors">
+                        Access culinary schematics. Breakfast, Lunch, Dinner, Treats & Bakes.
                     </p>
+                </div>
+            </Link>
+
+            {/* 6. ZINC SEARCH ENGINE (NEW SECTION) */}
+            <Link href="/collections/search" className="group md:col-span-6 relative h-80 rounded-[2.5rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500 mt-6">
+                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
+                <div className="absolute inset-0 bg-zinc-950/40" />
+                
+                {/* Center "Google-like" Search Bar Visualization */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-8 z-10">
+                   <h2 className="text-4xl md:text-5xl font-black text-white mb-6 tracking-tighter group-hover:scale-110 transition-transform duration-500">
+                      <span className="text-[#DFFF00]">Z</span>INC
+                   </h2>
+                   
+                   <div className="w-full max-w-sm h-12 rounded-full border border-zinc-600 bg-black/40 backdrop-blur-md flex items-center px-4 gap-3 group-hover:border-[#DFFF00] group-hover:shadow-[0_0_30px_rgba(223,255,0,0.2)] transition-all duration-500">
+                      <Search className="text-zinc-500 group-hover:text-[#DFFF00] transition-colors" size={16} />
+                      <span className="text-zinc-500 font-mono text-xs uppercase tracking-widest group-hover:text-zinc-300">
+                         Search Archive...
+                      </span>
+                   </div>
+                </div>
+
+                {/* Corner Label */}
+                <div className="absolute bottom-8 right-8">
+                   <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-950 border border-zinc-800">
+                      <Globe size={12} className="text-[#DFFF00]" />
+                      <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase">Global Web</span>
+                   </div>
                 </div>
             </Link>
 
