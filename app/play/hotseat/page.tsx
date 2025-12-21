@@ -9,11 +9,11 @@ import {
   ShieldAlert, 
   Coins, 
   Trophy, 
-  ShieldCheck, // Replaced Lock
+  ShieldCheck, 
   Zap,
   Terminal,
-  AlertTriangle, // Replaced Skull
-  LogOut // Used for Custom Back Button
+  AlertTriangle, 
+  LogOut
 } from 'lucide-react';
 import { PRIZE_LADDER, SAFETY_NETS, ENTRY_FEE } from './game-config';
 import { fetchGameQuestions, Question } from './trivia-api';
@@ -277,18 +277,19 @@ export default function HotseatPage() {
     };
 
     return (
-        <main className={`min-h-screen bg-zinc-950 text-white selection:bg-[#DFFF00] selection:text-black overflow-hidden relative ${gameStateClass} transition-colors duration-500`}>
-            <div className="bg-grid-pattern opacity-20 absolute inset-0" />
+        // FIX: Changed 'h-screen' to 'min-h-screen' to prevent content clipping on mobile
+        <main className={`min-h-screen bg-zinc-950 text-white selection:bg-[#DFFF00] selection:text-black overflow-x-hidden relative ${gameStateClass} transition-colors duration-500`}>
+            <div className="bg-grid-pattern opacity-20 absolute inset-0 fixed" />
             <Scanlines />
             
             {/* --- HEADER --- */}
             <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-start z-40">
-                {/* CUSTOM ABORT BUTTON (replaces universal BackButton to avoid overlap) */}
+                {/* CUSTOM ABORT BUTTON */}
                 <Link 
                     href="/play" 
                     className="flex items-center gap-2 px-4 py-2 bg-zinc-900/80 border border-zinc-700 rounded-full text-zinc-400 hover:text-red-400 hover:border-red-500/50 transition-all text-[10px] font-bold uppercase tracking-widest backdrop-blur-md shadow-lg"
                 >
-                    <LogOut size={14} /> Abort Sequence
+                    <LogOut size={14} /> <span className="hidden sm:inline">Abort Sequence</span><span className="sm:hidden">Exit</span>
                 </Link>
 
                 <div className="flex items-center gap-2 bg-zinc-900/80 backdrop-blur px-4 py-2 rounded-full border border-zinc-800 shadow-xl">
@@ -304,7 +305,7 @@ export default function HotseatPage() {
                         <div className="absolute inset-0 bg-[#DFFF00] blur-[120px] opacity-20 group-hover:opacity-30 transition-opacity duration-1000" />
                         <div className="relative border border-zinc-800 bg-zinc-900/50 backdrop-blur-md p-12 rounded-3xl shadow-2xl">
                             <Flame size={64} className="text-[#DFFF00] mx-auto mb-6 animate-pulse" />
-                            <h1 className="text-6xl md:text-8xl font-black uppercase tracking-tighter italic mb-2 text-white">
+                            <h1 className="text-4xl md:text-8xl font-black uppercase tracking-tighter italic mb-2 text-white">
                                 Hotseat
                             </h1>
                             <div className="flex items-center justify-center gap-2 text-zinc-500 font-mono text-xs uppercase tracking-[0.3em]">
@@ -347,26 +348,28 @@ export default function HotseatPage() {
 
             {/* --- GAMEPLAY SCREEN --- */}
             {status === 'PLAYING' && (
-                <div className="relative z-30 grid grid-cols-1 lg:grid-cols-12 h-screen pt-20 pb-8 px-4 lg:px-12 gap-6">
+                // FIX: Added 'pb-20' to account for mobile scrolling and spacing
+                <div className="relative z-30 grid grid-cols-1 lg:grid-cols-12 min-h-screen pt-20 pb-20 px-4 lg:px-12 gap-6 w-full max-w-[1600px] mx-auto">
                     
                     {/* LEFT COLUMN: GAME BOARD */}
-                    <div className="lg:col-span-9 flex flex-col h-full max-w-4xl mx-auto w-full">
+                    <div className="lg:col-span-9 flex flex-col h-full mx-auto w-full">
                         
                         {/* HUD */}
                         <div className="flex items-end justify-between mb-8">
                             <div className="flex items-center gap-6">
                                 {/* Timer */}
-                                <div className="relative w-20 h-20">
+                                <div className="relative w-16 h-16 md:w-20 md:h-20">
                                     <svg className="w-full h-full -rotate-90">
-                                        <circle cx="40" cy="40" r="36" stroke="#333" strokeWidth="4" fill="none" />
+                                        <circle cx="50%" cy="50%" r="45%" stroke="#333" strokeWidth="4" fill="none" />
                                         <circle 
-                                            cx="40" cy="40" r="36" stroke={timeLeft < 10 ? '#ef4444' : '#DFFF00'} strokeWidth="4" fill="none" 
+                                            cx="50%" cy="50%" r="45%" stroke={timeLeft < 10 ? '#ef4444' : '#DFFF00'} strokeWidth="4" fill="none" 
+                                            // Approximate circumference for r=45% is ~280% of radius unit
                                             strokeDasharray="226" 
                                             strokeDashoffset={226 - (226 * timeLeft) / 30}
                                             className="transition-all duration-1000 ease-linear"
                                         />
                                     </svg>
-                                    <div className="absolute inset-0 flex items-center justify-center font-mono font-black text-2xl">
+                                    <div className="absolute inset-0 flex items-center justify-center font-mono font-black text-xl md:text-2xl">
                                         {timeLeft}
                                     </div>
                                 </div>
@@ -374,7 +377,7 @@ export default function HotseatPage() {
                                 {/* Prize Info */}
                                 <div>
                                     <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-1">Current Value</div>
-                                    <div className="text-4xl font-black text-white tracking-tighter flex items-center gap-2">
+                                    <div className="text-3xl md:text-4xl font-black text-white tracking-tighter flex items-center gap-2">
                                         {currentPrize.toLocaleString()} <span className="text-sm text-zinc-600 font-normal">ZINC</span>
                                     </div>
                                 </div>
@@ -388,7 +391,7 @@ export default function HotseatPage() {
 
                         {/* QUESTION CARD */}
                         <div className="flex-1 flex flex-col justify-center mb-8">
-                            <div className="bg-zinc-900/80 border border-zinc-700 p-8 lg:p-10 rounded-[2rem] shadow-2xl relative overflow-hidden backdrop-blur-xl min-h-[200px] flex flex-col justify-center">
+                            <div className="bg-zinc-900/80 border border-zinc-700 p-6 lg:p-10 rounded-[2rem] shadow-2xl relative overflow-hidden backdrop-blur-xl min-h-[160px] md:min-h-[200px] flex flex-col justify-center">
                                 {/* Decorative elements */}
                                 <div className="absolute top-4 left-6 flex gap-2">
                                     <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
@@ -399,30 +402,32 @@ export default function HotseatPage() {
                                     Sector: {currentQuestion.category}
                                 </div>
 
-                                <h2 className="text-xl md:text-3xl font-bold text-center leading-snug font-mono mt-4">
+                                {/* FIX: Responsive text size for questions */}
+                                <h2 className="text-lg md:text-3xl font-bold text-center leading-snug font-mono mt-4">
                                     <TypewriterText key={currentQuestion.id} text={currentQuestion.text} speed={30} />
                                 </h2>
                             </div>
                         </div>
 
                         {/* ANSWERS GRID */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 lg:mb-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-8">
                             {currentQuestion.options.map((opt, i) => (
                                 <button
                                     key={i}
                                     onClick={() => !hiddenOptions.includes(i) && handleAnswer(i)}
                                     disabled={selectedAnswer !== null || hiddenOptions.includes(i)}
                                     className={`
-                                        relative p-5 rounded-xl border-2 text-left transition-all duration-200
-                                        flex items-center gap-4 group overflow-hidden
+                                        relative p-4 md:p-5 rounded-xl border-2 text-left transition-all duration-200
+                                        flex items-center gap-4 group overflow-hidden active:scale-95
                                         ${hiddenOptions.includes(i) ? 'opacity-0 pointer-events-none' : 'opacity-100'}
                                         ${getButtonColor(i)}
                                     `}
                                 >
-                                    <div className="w-8 h-8 rounded bg-black/40 flex items-center justify-center font-mono font-bold text-zinc-500 group-hover:text-white transition-colors">
+                                    <div className="w-8 h-8 rounded bg-black/40 flex items-center justify-center font-mono font-bold text-zinc-500 group-hover:text-white transition-colors shrink-0">
                                         {['A', 'B', 'C', 'D'][i]}
                                     </div>
-                                    <span className="font-bold text-sm md:text-lg">{opt}</span>
+                                    {/* FIX: Smaller text on mobile for answers */}
+                                    <span className="font-bold text-xs md:text-lg">{opt}</span>
                                 </button>
                             ))}
                         </div>
@@ -460,7 +465,7 @@ export default function HotseatPage() {
 
             {/* --- RESULTS OVERLAY --- */}
             {(status === 'VICTORY' || status === 'GAME_OVER' || status === 'CASHOUT') && (
-                <div className="absolute inset-0 z-50 bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
+                <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500 overflow-y-auto">
                     
                     <div className="mb-8 relative">
                         <div className={`absolute inset-0 blur-[80px] opacity-20 ${status === 'GAME_OVER' ? 'bg-red-500' : 'bg-[#DFFF00]'}`} />
@@ -476,7 +481,7 @@ export default function HotseatPage() {
                     <div className="bg-zinc-900 border border-zinc-800 p-10 rounded-3xl mb-10 min-w-[320px] shadow-2xl relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
                         <div className="text-zinc-500 font-mono uppercase text-xs tracking-[0.2em] mb-4">Total Payout</div>
-                        <div className="text-6xl font-black text-white flex items-center justify-center gap-4">
+                        <div className="text-5xl md:text-6xl font-black text-white flex items-center justify-center gap-4">
                             <Coins size={40} className={status === 'GAME_OVER' ? 'text-zinc-700' : 'text-[#DFFF00]'} />
                             {status === 'CASHOUT' ? currentPrize.toLocaleString() : 
                              status === 'VICTORY' ? PRIZE_LADDER[14].toLocaleString() : 

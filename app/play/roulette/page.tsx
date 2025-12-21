@@ -2,7 +2,18 @@
 
 import React, { useState, useRef } from 'react';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
-import { Loader2, RotateCcw, Coins, ChevronLeft, Smartphone, RefreshCw, Trophy, Info } from 'lucide-react';
+import { 
+  Loader2, 
+  RotateCcw, 
+  Coins, 
+  ChevronLeft, 
+  Smartphone, 
+  RefreshCw, 
+  Trophy, 
+  X,
+  AlertTriangle,
+  Crown
+} from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '../../context/AuthContext';
 import { spinRoulette } from './actions';
@@ -14,7 +25,7 @@ const Chip = ({ amount, selected, onClick }: { amount: number, selected: boolean
   <button 
     onClick={onClick}
     className={`
-      relative w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all duration-200
+      relative w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all duration-200 shrink-0
       ${selected 
         ? 'scale-110 shadow-[0_0_15px_#DFFF00] bg-zinc-900 border-2 border-[#DFFF00]' 
         : 'scale-100 bg-zinc-900/80 border border-white/10 hover:border-white/40'
@@ -56,7 +67,7 @@ const BetCell = ({
     <button
       onClick={onClick}
       className={`
-        relative flex flex-col items-center justify-center border font-mono font-bold transition-all group overflow-hidden
+        relative flex flex-col items-center justify-center border font-mono font-bold transition-all group overflow-hidden touch-manipulation active:scale-95
         ${bgStyle} ${className}
       `}
       style={{ gridColumn: `span ${colSpan}` }}
@@ -93,9 +104,11 @@ export default function RoulettePage() {
   const [isSpinning, setIsSpinning] = useState(false);
   const [lastResult, setLastResult] = useState<number | null>(null);
   const [lastWinnings, setLastWinnings] = useState<number>(0);
+  const [showResultModal, setShowResultModal] = useState(false);
   
   const controls = useAnimation();
   const rotationRef = useRef(0);
+  const wheelRef = useRef<HTMLDivElement>(null); // Ref for auto-scroll
 
   // --- CONIC GRADIENT GENERATION ---
   const sliceAngle = 360 / 37;
@@ -127,7 +140,13 @@ export default function RoulettePage() {
     if (isSpinning || totalBet === 0 || !profile) return;
     if (totalBet > profile.credits) return alert("INSUFFICIENT FUNDS");
 
+    // UX: Scroll to wheel on mobile so user sees the result
+    if (wheelRef.current && window.innerWidth < 1024) {
+        wheelRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
     setIsSpinning(true);
+    setShowResultModal(false);
     setLastResult(null);
 
     const response = await spinRoulette(bets);
@@ -157,38 +176,41 @@ export default function RoulettePage() {
     setLastWinnings(response.winnings);
     await refreshProfile();
     setIsSpinning(false);
+    
+    // UX: Show result modal after spin completes
+    setTimeout(() => setShowResultModal(true), 500);
   };
 
   const getBetAmount = (type: any, value: any) => bets.find(b => b.type === type && b.value === value)?.amount;
 
   return (
-    <main className="h-screen w-screen bg-zinc-950 text-white overflow-hidden relative selection:bg-[#DFFF00] selection:text-black flex flex-col">
+    <main className="min-h-screen w-full bg-zinc-950 text-white relative selection:bg-[#DFFF00] selection:text-black flex flex-col overflow-x-hidden">
       
       {/* --- MOBILE ORIENTATION LOCK --- */}
-      <div className="md:hidden portrait:flex fixed inset-0 z-[100] bg-zinc-950 flex-col items-center justify-center p-8 text-center gap-6">
+      <div className="md:hidden portrait:flex hidden fixed inset-0 z-[100] bg-zinc-950 flex-col items-center justify-center p-8 text-center gap-6">
          <div className="w-16 h-16 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center animate-pulse">
             <Smartphone className="rotate-90 text-[#DFFF00]" size={32} />
          </div>
          <div>
             <h2 className="text-2xl font-black uppercase text-white mb-2">System Locked</h2>
             <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest">
-               Landscape Orientation Required
+               Please Rotate Device
             </p>
          </div>
       </div>
 
       {/* --- BACKGROUND --- */}
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none z-0" />
-      <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-900/20 to-zinc-950 pointer-events-none z-0" />
+      <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none z-0" />
+      <div className="fixed inset-0 bg-gradient-to-t from-zinc-950 via-zinc-900/20 to-zinc-950 pointer-events-none z-0" />
 
       {/* --- HEADER --- */}
-      <header className="relative z-50 px-6 py-4 flex items-center justify-between border-b border-white/5 bg-zinc-950/80 backdrop-blur-md shrink-0 h-16">
-         <div className="flex items-center gap-6">
+      <header className="relative z-50 px-4 md:px-6 py-4 flex items-center justify-between border-b border-white/5 bg-zinc-950/80 backdrop-blur-md shrink-0 h-16">
+         <div className="flex items-center gap-4 md:gap-6">
             <Link href="/play" className="flex items-center gap-2 text-zinc-500 hover:text-white transition-colors group">
                <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-               <span className="font-mono text-xs font-bold uppercase tracking-widest">Exit</span>
+               <span className="font-mono text-xs font-bold uppercase tracking-widest hidden sm:inline">Exit</span>
             </Link>
-            <div className="h-4 w-px bg-white/10" />
+            <div className="h-4 w-px bg-white/10 hidden sm:block" />
             <h1 className="font-black italic text-lg uppercase text-zinc-300 tracking-tighter">Roulette <span className="text-[#DFFF00]">Pro</span></h1>
          </div>
 
@@ -206,11 +228,12 @@ export default function RoulettePage() {
       </header>
 
       {/* --- CONTENT --- */}
-      <div className="flex-1 flex flex-col lg:flex-row items-center justify-center gap-4 lg:gap-12 p-4 lg:px-12 relative z-10 h-full overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row items-center lg:items-start justify-center gap-8 lg:gap-12 p-4 lg:px-12 relative z-10 h-auto w-full max-w-[1400px] mx-auto">
         
         {/* === LEFT: WHEEL === */}
-        <div className="flex-1 flex flex-col items-center justify-center h-full max-h-[600px] w-full max-w-[600px]">
-           <div className="relative aspect-square w-[300px] sm:w-[380px] lg:w-[480px]">
+        <div ref={wheelRef} className="flex-none flex flex-col items-center justify-center w-full max-w-[500px] lg:sticky lg:top-24">
+           
+           <div className="relative aspect-square w-[280px] sm:w-[380px] lg:w-[480px] scale-90 sm:scale-100 transition-transform">
               {/* Outer Housing */}
               <div className="absolute inset-0 rounded-full bg-zinc-950 border-[12px] border-zinc-900 shadow-2xl flex items-center justify-center z-0 ring-1 ring-white/10">
                  <div className="absolute inset-[-4px] rounded-full border border-[#DFFF00]/20" />
@@ -250,7 +273,7 @@ export default function RoulettePage() {
            </div>
 
            {/* STATUS */}
-           <div className="mt-8 h-16 flex flex-col items-center justify-center">
+           <div className="mt-4 md:mt-8 h-16 flex flex-col items-center justify-center">
               <AnimatePresence mode="wait">
                  {isSpinning ? (
                     <motion.div 
@@ -260,26 +283,16 @@ export default function RoulettePage() {
                        <Loader2 className="animate-spin text-[#DFFF00]" size={16} />
                        <span className="text-xs font-mono text-zinc-400 uppercase tracking-widest">Spinning...</span>
                     </motion.div>
-                 ) : lastResult !== null ? (
+                 ) : lastResult !== null && !showResultModal ? (
+                     // Small result indicator if modal is closed but result exists
                     <motion.div 
                        initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
-                       className="flex flex-col items-center gap-1"
+                       className="flex items-center gap-2"
                     >
-                       <div className="flex items-center gap-4 bg-zinc-900/80 px-8 py-3 rounded-2xl border border-white/10 shadow-xl">
-                          <span className={`text-4xl font-black ${getNumberColor(lastResult) === 'red' ? 'text-red-500' : getNumberColor(lastResult) === 'black' ? 'text-white' : 'text-emerald-500'}`}>
-                             {lastResult}
-                          </span>
-                          <div className="h-8 w-px bg-white/10" />
-                          <div className="flex flex-col text-[10px] font-mono uppercase text-zinc-500 leading-tight">
-                             <span className="text-white font-bold">{getNumberColor(lastResult)}</span>
-                             <span>{lastResult % 2 === 0 ? 'EVEN' : 'ODD'}</span>
-                          </div>
-                       </div>
-                       {lastWinnings > 0 && (
-                          <span className="text-[#DFFF00] font-bold text-xs uppercase tracking-wider flex items-center gap-1 mt-2">
-                             <Trophy size={12} /> Won {lastWinnings} Credits
-                          </span>
-                       )}
+                       <span className="text-zinc-500 font-mono text-xs uppercase tracking-widest">Last Roll:</span>
+                       <span className={`font-black text-xl ${getNumberColor(lastResult) === 'red' ? 'text-red-500' : getNumberColor(lastResult) === 'black' ? 'text-white' : 'text-emerald-500'}`}>
+                            {lastResult}
+                       </span>
                     </motion.div>
                  ) : (
                     <span className="text-zinc-600 font-mono text-xs uppercase tracking-widest">Place Your Bets</span>
@@ -289,21 +302,21 @@ export default function RoulettePage() {
         </div>
 
         {/* === RIGHT: TABLE === */}
-        <div className="flex-1 w-full max-w-[600px] h-full max-h-[600px] flex flex-col">
+        <div className="flex-1 w-full max-w-[600px] flex flex-col pb-12 lg:pb-0">
            
-           <div className="flex-1 bg-zinc-900/40 border border-white/5 rounded-2xl p-4 lg:p-6 backdrop-blur-md flex flex-col shadow-2xl">
+           <div className="bg-zinc-900/40 border border-white/5 rounded-2xl p-4 lg:p-6 backdrop-blur-md flex flex-col shadow-2xl">
               
               {/* CHIPS */}
-              <div className="flex justify-center gap-3 mb-4 pb-4 border-b border-white/5">
+              <div className="flex justify-center gap-2 md:gap-3 mb-4 pb-4 border-b border-white/5 overflow-x-auto no-scrollbar py-2">
                  {[10, 50, 100, 500, 1000].map(val => (
                     <Chip key={val} amount={val} selected={selectedChip === val} onClick={() => setSelectedChip(val)} />
                  ))}
               </div>
 
               {/* TABLE LAYOUT */}
-              <div className="flex-1 flex flex-col gap-1 select-none overflow-hidden h-full">
+              <div className="flex-1 flex flex-col gap-1 select-none overflow-hidden min-h-[300px] md:min-h-[400px]">
                  
-                 <div className="flex-1 grid grid-cols-[3rem_1fr] gap-1 h-full max-h-[400px]">
+                 <div className="flex-1 grid grid-cols-[3rem_1fr] gap-1 max-h-[400px]">
                     
                     {/* ZERO - STRICT WIDTH */}
                     <BetCell 
@@ -331,14 +344,14 @@ export default function RoulettePage() {
                                  colorType={RED_NUMBERS.includes(num) ? 'red' : 'black'}
                                  chipAmount={getBetAmount('STRAIGHT', num)}
                                  onClick={() => placeBet('STRAIGHT', num)}
-                                 className="h-full rounded-sm hover:brightness-125"
+                                 className="h-full rounded-sm hover:brightness-125 min-h-[32px] md:min-h-0"
                               />
                            )
                         })}
                     </div>
                  </div>
 
-                 {/* DOZENS - IMPROVED DESIGN */}
+                 {/* DOZENS */}
                  <div className="grid grid-cols-[3rem_1fr] gap-1 h-12 shrink-0">
                     <div /> {/* Spacer for Zero */}
                     <div className="grid grid-cols-3 gap-1">
@@ -348,7 +361,7 @@ export default function RoulettePage() {
                     </div>
                  </div>
 
-                 {/* SIDE BETS - IMPROVED DESIGN */}
+                 {/* SIDE BETS */}
                  <div className="grid grid-cols-[3rem_1fr] gap-1 h-12 shrink-0">
                     <div /> {/* Spacer for Zero */}
                     <div className="grid grid-cols-6 gap-1">
@@ -364,7 +377,7 @@ export default function RoulettePage() {
               </div>
 
               {/* CONTROLS */}
-              <div className="mt-4 flex items-center gap-3">
+              <div className="mt-4 flex items-center gap-3 sticky bottom-0 z-10">
                  <button 
                     onClick={undoLastBet} disabled={isSpinning || bets.length === 0}
                     className="h-12 w-12 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 disabled:opacity-50 border border-white/5 transition-colors"
@@ -397,6 +410,84 @@ export default function RoulettePage() {
         </div>
 
       </div>
+
+      {/* --- RESULT OVERLAY POPUP --- */}
+      <AnimatePresence>
+        {showResultModal && lastResult !== null && (
+            <motion.div 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm"
+                onClick={() => setShowResultModal(false)}
+            >
+                <motion.div 
+                   initial={{ scale: 0.8, y: 50, opacity: 0 }} 
+                   animate={{ scale: 1, y: 0, opacity: 1 }} 
+                   exit={{ scale: 0.8, y: 50, opacity: 0 }}
+                   transition={{ type: "spring", damping: 20 }}
+                   className="relative bg-zinc-950 border border-zinc-800 p-8 rounded-[2rem] shadow-2xl max-w-sm w-full overflow-hidden text-center"
+                   onClick={e => e.stopPropagation()}
+                >
+                    {/* Background Glow */}
+                    <div className={`absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] ${lastWinnings > 0 ? 'from-[#DFFF00] to-transparent' : 'from-red-600 to-transparent'}`} />
+
+                    {/* Close Button */}
+                    <button onClick={() => setShowResultModal(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors">
+                        <X size={24} />
+                    </button>
+
+                    <div className="relative z-10 flex flex-col items-center gap-4">
+                        
+                        {/* Icon */}
+                        <div className={`
+                            w-20 h-20 rounded-full flex items-center justify-center border-[4px] shadow-2xl mb-2
+                            ${lastWinnings > 0 ? 'bg-[#DFFF00] border-white text-black shadow-[0_0_40px_#DFFF00]' : 'bg-zinc-900 border-zinc-700 text-zinc-500'}
+                        `}>
+                            {lastWinnings > 0 ? <Crown size={40} className="animate-bounce" /> : <AlertTriangle size={40} />}
+                        </div>
+
+                        {/* Text */}
+                        <div>
+                            <h2 className="text-3xl font-black uppercase italic tracking-tighter text-white">
+                                {lastWinnings > 0 ? 'Jackpot' : 'System Failure'}
+                            </h2>
+                            <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest mt-1">
+                                {lastWinnings > 0 ? 'Funds Transferred' : 'No Payout Detected'}
+                            </p>
+                        </div>
+
+                        {/* Result Display */}
+                        <div className="bg-zinc-900/80 border border-white/10 px-8 py-3 rounded-xl flex items-center gap-4 shadow-inner">
+                            <span className={`text-4xl font-black ${getNumberColor(lastResult) === 'red' ? 'text-red-500' : getNumberColor(lastResult) === 'black' ? 'text-white' : 'text-emerald-500'}`}>
+                                {lastResult}
+                            </span>
+                            <div className="h-8 w-px bg-white/10" />
+                            <div className="flex flex-col text-left">
+                                <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Result</span>
+                                <span className="text-xs font-bold text-white uppercase">{getNumberColor(lastResult)}</span>
+                            </div>
+                        </div>
+
+                        {/* Winnings or Loss */}
+                        {lastWinnings > 0 && (
+                            <div className="flex items-center gap-2 text-[#DFFF00] font-black text-xl bg-[#DFFF00]/10 px-4 py-2 rounded-lg border border-[#DFFF00]/20">
+                                <Coins size={20} />
+                                +{lastWinnings.toLocaleString()}
+                            </div>
+                        )}
+
+                        <button 
+                            onClick={() => setShowResultModal(false)}
+                            className="w-full py-4 mt-4 bg-white text-black font-black uppercase tracking-widest rounded-xl hover:scale-105 active:scale-95 transition-all shadow-xl"
+                        >
+                            {lastWinnings > 0 ? 'Collect & Continue' : 'Retry Sequence'}
+                        </button>
+                    </div>
+                </motion.div>
+            </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }

@@ -17,7 +17,7 @@ interface AuthContextType {
   isAdmin: boolean;
   signIn: () => void;
   signOut: () => void;
-  refreshProfile: () => Promise<void>; // CHANGED: Now returns a Promise
+  refreshProfile: () => Promise<void>;
   loading: boolean;
 }
 
@@ -56,33 +56,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     let mounted = true;
 
-    const initializeAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (mounted) {
-          if (session?.user) {
-            setUser(session.user);
-            if (lastFetchedUserId.current !== session.user.id) {
-               await fetchProfile(session.user.id);
-            }
-          } else {
-            setUser(null);
-            setProfile(null);
-          }
-        }
-      } catch (err) {
-        console.error("Auth init error:", err);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
-    initializeAuth();
-
+    // We can rely primarily on onAuthStateChange for all state updates
+    // including the initial load (INITIAL_SESSION)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       
+      // Handle Sign Out explicitly
       if (event === 'SIGNED_OUT') {
           setUser(null);
           setProfile(null);
@@ -95,15 +74,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (currentUser) {
           setUser(currentUser);
-          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-             if (lastFetchedUserId.current !== currentUser.id) {
-                await fetchProfile(currentUser.id);
-             }
+          
+          // FIX: Always fetch profile if we have a user and haven't fetched it yet.
+          // This covers INITIAL_SESSION, SIGNED_IN, and TOKEN_REFRESHED.
+          if (lastFetchedUserId.current !== currentUser.id) {
+             // Keep loading true while we fetch the profile to prevent "Ghost" UI flicker
+             await fetchProfile(currentUser.id);
           }
       } else {
           setUser(null);
           setProfile(null);
       }
+      
       setLoading(false);
     });
 
@@ -113,7 +95,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  // CHANGED: Now async
   const refreshProfile = async () => {
     if (user) await fetchProfile(user.id);
   };
@@ -129,6 +110,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (err) {
         console.error("Error during sign out:", err);
     } finally {
+        // FORCE CLEAR: Ensure local storage is wiped even if Supabase network call fails
+        // This fixes the "infinite loop" where you can't sign out in Brave/Safari
+        if (typeof window !== 'undefined') {
+            window.localStorage.removeItem('sb-' + process.env.NEXT_PUBLIC_SUPABASE_PROJECT_ID + '-auth-token');
+            // Or just clear everything if you don't use local storage for other things:
+            // window.localStorage.clear();
+        }
+
         setUser(null);
         setProfile(null);
         lastFetchedUserId.current = null;
