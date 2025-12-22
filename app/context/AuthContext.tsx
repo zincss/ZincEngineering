@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { User } from '@supabase/supabase-js';
 
@@ -30,9 +30,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   
-  const lastFetchedUserId = useRef<string | null>(null);
+  // Use a ref to prevent "flash" fetching if data is already fresh
+  const isFetchingRef = useRef(false);
 
-  const fetchProfile = async (userId: string) => {
+  // --- CORE FETCH LOGIC ---
+  const fetchProfile = useCallback(async (userId: string) => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+
     try {
         const { data, error } = await supabase
         .from('profiles')
@@ -41,19 +46,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .single();
         
         if (error) {
-            console.warn("Profile fetch warning:", error.message);
-            // Don't throw, allows retry on next pass
+            console.warn("Sync warning:", error.message);
+            // If fetch fails (e.g. 406 Not Acceptable), it often means auth token is stale.
+            // We do NOT log out here to avoid loops, but we leave profile null to trigger retry.
         }
 
         if (data) {
             setProfile(data as Profile);
-            lastFetchedUserId.current = userId;
         }
     } catch (error) {
-        console.error("Profile fetch error:", error);
+        console.error("Critical Sync Error:", error);
+    } finally {
+        isFetchingRef.current = false;
     }
-  };
+  }, [supabase]);
 
+  // --- 1. AUTH STATE LISTENER ---
   useEffect(() => {
     let mounted = true;
 
@@ -62,26 +70,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       const currentUser = session?.user ?? null;
 
-      // Handle explicit Sign Out
-      if (event === 'SIGNED_OUT') {
+      // IMMEDIATE RESET ON SIGNOUT
+      if (event === 'SIGNED_OUT' || !currentUser) {
           setUser(null);
           setProfile(null);
-          lastFetchedUserId.current = null;
           setLoading(false);
           return;
       }
       
+      // USER DETECTED
       if (currentUser) {
           setUser(currentUser);
-          
-          // CRITICAL FIX: Retry fetch if profile is null (Ghost Profile Fix)
-          // This ensures that even if the first fetch failed, we try again.
-          if (lastFetchedUserId.current !== currentUser.id || !profile) {
+          // Only fetch if we don't have a profile OR the user ID changed
+          if (!profile || profile.username === undefined) {
              await fetchProfile(currentUser.id);
           }
-      } else {
-          setUser(null);
-          setProfile(null);
       }
       
       setLoading(false);
@@ -91,13 +94,54 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         mounted = false;
         subscription.unsubscribe();
     };
-  }, []); // Empty dependency array ensures we only attach the listener once
+  }, [supabase, fetchProfile, profile]);
+
+  // --- 2. MULTI-DEVICE REALTIME SYNC (The "Ghost" Killer) ---
+  useEffect(() => {
+    if (!user) return;
+
+    // A. Realtime Database Subscription
+    // This listens for ANY change to your profile (credits spent on phone, etc.)
+    // and updates this browser instantly.
+    const channel = supabase
+        .channel(`profile-sync-${user.id}`)
+        .on(
+            'postgres_changes',
+            {
+                event: '*', // Listen to INSERT, UPDATE, and DELETE
+                schema: 'public',
+                table: 'profiles',
+                filter: `id=eq.${user.id}`,
+            },
+            (payload) => {
+                // Instantly update state with new data from DB
+                if (payload.new) {
+                    setProfile(payload.new as Profile);
+                }
+            }
+        )
+        .subscribe();
+
+    // B. Window Focus / Network Recovery Logic
+    // If you switch tabs or come back from sleep mode, force a soft refresh.
+    const handleReconnection = () => fetchProfile(user.id);
+    
+    window.addEventListener('focus', handleReconnection);
+    window.addEventListener('online', handleReconnection);
+
+    return () => {
+        supabase.removeChannel(channel);
+        window.removeEventListener('focus', handleReconnection);
+        window.removeEventListener('online', handleReconnection);
+    };
+  }, [user, supabase, fetchProfile]);
 
   const refreshProfile = async () => {
     if (user) await fetchProfile(user.id);
   };
 
   const signIn = () => {
+    // Redirect to login
     window.location.href = '/login'; 
   };
 
@@ -106,19 +150,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setLoading(true);
         await supabase.auth.signOut();
     } catch (err) {
-        console.error("Error during sign out:", err);
+        console.error("SignOut Error:", err);
     } finally {
-        // FORCE CLEAR: Manually wipe storage to prevent "infinite loop" logout issues
+        // AGGRESSIVE CLEANUP: Remove local storage items to prevent
+        // "stuck" sessions between multiple Google accounts/browsers.
         if (typeof window !== 'undefined') {
-            const projectId = process.env.NEXT_PUBLIC_SUPABASE_PROJECT_ID;
-            if (projectId) window.localStorage.removeItem(`sb-${projectId}-auth-token`);
-            // Fallback: Clear all if ID is missing or unknown
-            else window.localStorage.clear();
+            localStorage.clear(); // Safest bet for "ghost" issues
         }
-
         setUser(null);
         setProfile(null);
-        lastFetchedUserId.current = null;
         setLoading(false);
         window.location.href = '/';
     }
