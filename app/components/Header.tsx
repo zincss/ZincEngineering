@@ -191,7 +191,7 @@ export default function Header() {
       </header>
 
       {isMobileMenuOpen && (
-          <div className="fixed inset-0 top-0 pt-20 z-49 bg-zinc-950/95 backdrop-blur-xl p-4 flex flex-col gap-3 animate-in fade-in slide-in-from-top-4 border-t border-zinc-800 overflow-y-auto">
+          <div className="fixed inset-0 top-0 pt-20 z-[49] bg-zinc-950/95 backdrop-blur-xl p-4 flex flex-col gap-3 animate-in fade-in slide-in-from-top-4 border-t border-zinc-800 overflow-y-auto">
               <MobileLink onClick={closeMenu} href="/collections/weather" active={isWeather} icon={<CloudHail size={16}/>} label="WEATHER" />
               <MobileLink onClick={closeMenu} href="/play" active={isPlay} icon={<Gamepad2 size={16}/>} label="PLAY" />
               <MobileLink onClick={closeMenu} href="/market" active={isMarket} icon={<Package size={16}/>} label="MARKET" />
