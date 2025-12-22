@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { User } from '@supabase/supabase-js';
+import { User, Session } from '@supabase/supabase-js';
 
 type Profile = {
   username: string;
@@ -30,14 +30,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   
+  // Use a ref to track if we are currently syncing to avoid race conditions
   const isFetchingRef = useRef(false);
 
-  // --- CORE FETCH LOGIC ---
-  const fetchProfile = useCallback(async (userId: string) => {
-    if (isFetchingRef.current) return;
+  // --- CORE FETCH LOGIC (With Retry) ---
+  const fetchProfile = useCallback(async (userId: string, retryCount = 0) => {
+    if (isFetchingRef.current && retryCount === 0) return; // Only block initial calls, allow retries
     isFetchingRef.current = true;
 
     try {
+        // 1. Force a session check before fetching data
+        // This ensures the client library refreshes the token if needed
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError || !session) {
+           // If we can't get a session, we are definitely logged out.
+           throw new Error("No active session");
+        }
+
+        // 2. Fetch Profile
         const { data, error } = await supabase
         .from('profiles')
         .select('username, credits, role, created_at') 
@@ -45,17 +56,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .single();
         
         if (error) {
-            console.warn("Sync warning:", error.message);
-            
-            // --- GHOST KILLER LOGIC ---
-            // If the database rejects us (406) or we have a JWT error, 
-            // the session is likely desynced. We must logout to clear the "Ghost".
-            if (error.code === 'PGRST301' || error.message.includes('JWT') || error.code === '406') {
-                console.error("Stale session detected. Force signing out.");
-                await supabase.auth.signOut();
-                setUser(null);
-                setProfile(null);
-                if (typeof window !== 'undefined') localStorage.clear();
+            // RLS Policy Violation (PGRST116 = 0 rows, 406 = Not Acceptable)
+            // This usually means the token is technically valid but lacks permissions 
+            // OR the user genuinely has no profile.
+            console.warn(`Profile sync failed (Attempt ${retryCount + 1}):`, error.message);
+
+            // RETRY LOGIC: If we failed, wait 1s and try ONCE more.
+            // This fixes the "Token Refreshed but Request fired too early" bug.
+            if (retryCount < 1) {
+                setTimeout(() => {
+                    isFetchingRef.current = false; // Reset lock
+                    fetchProfile(userId, retryCount + 1);
+                }, 1000);
                 return;
             }
         }
@@ -65,8 +77,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     } catch (error) {
         console.error("Critical Sync Error:", error);
+        // If we really can't get a session, clear state
+        setUser(null);
+        setProfile(null);
     } finally {
-        isFetchingRef.current = false;
+        if (retryCount === 0) isFetchingRef.current = false;
     }
   }, [supabase]);
 
@@ -74,14 +89,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     let mounted = true;
 
-    // Check active session immediately on mount
     const checkSession = async () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
              setUser(session.user);
              await fetchProfile(session.user.id);
+        } else {
+             setLoading(false);
         }
-        setLoading(false);
     };
     checkSession();
 
@@ -90,23 +105,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       const currentUser = session?.user ?? null;
 
-      // IMMEDIATE RESET ON SIGNOUT
+      // Handle events
       if (event === 'SIGNED_OUT' || !currentUser) {
           setUser(null);
           setProfile(null);
           setLoading(false);
-          return;
-      }
-      
-      // HANDLE REFRESH AND INITIAL LOGIN
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || (event === 'INITIAL_SESSION' && currentUser)) {
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+          // If the token refreshed, we MUST refetch the profile to ensure we have data
           setUser(currentUser);
-          // Always try to fetch profile if we have a user but no profile
-          // OR if the token just refreshed (to ensure data is current)
           await fetchProfile(currentUser.id);
+          setLoading(false);
       }
-      
-      setLoading(false);
     });
 
     return () => {
@@ -137,17 +146,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         )
         .subscribe();
 
-    // Aggressive re-validation on focus
-    const handleReconnection = async () => {
-        // Force session refresh first
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error || !session) {
-            // If session is dead on reconnect, kill the ghost
-            await signOut(); 
-        } else {
-            // Session valid, fetch data
-            await fetchProfile(user.id);
-        }
+    const handleReconnection = () => {
+        // When tab focuses, fetch immediately
+        if (user) fetchProfile(user.id);
     };
     
     window.addEventListener('focus', handleReconnection);
@@ -158,7 +159,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         window.removeEventListener('focus', handleReconnection);
         window.removeEventListener('online', handleReconnection);
     };
-  }, [user, supabase, fetchProfile]); // Added signOut to dependencies if needed, or define logic inside
+  }, [user, supabase, fetchProfile]);
 
   const refreshProfile = async () => {
     if (user) await fetchProfile(user.id);
@@ -172,12 +173,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
         setLoading(true);
         await supabase.auth.signOut();
-    } catch (err) {
-        console.error("SignOut Error:", err);
     } finally {
-        if (typeof window !== 'undefined') {
-            localStorage.clear();
-        }
+        // Clear everything
         setUser(null);
         setProfile(null);
         setLoading(false);
