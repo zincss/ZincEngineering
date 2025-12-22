@@ -63,7 +63,7 @@ export default function SportsHub() {
             transition={{ duration: 1, ease: "circOut" }}
             className="text-[12vw] md:text-[9rem] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 uppercase leading-[0.8] select-none"
           >
-            LEAGUE <span className="text-stroke-3 text-transparent bg-clip-text bg-gradient-to-b from-zinc-700 to-zinc-900">OPS</span>
+            LEAGUE <span className="text-stroke-3 text-transparent bg-clip-text bg-gradient-to-b from-zinc-700 to-zinc-900">INFO</span>
           </motion.h1>
           
           <motion.div 
@@ -119,7 +119,7 @@ export default function SportsHub() {
                                  RedZone Link
                             </span>
                         </div>
-                        <h2 className="text-4xl md:text-6xl font-black uppercase text-white mb-4 italic tracking-tight">NFL Nexus</h2>
+                        <h2 className="text-4xl md:text-6xl font-black uppercase text-white mb-4 italic tracking-tight">NFL</h2>
                         <p className="text-zinc-400 font-mono text-sm md:text-base leading-relaxed max-w-xl group-hover:text-zinc-200 transition-colors">
                             National Football League. Playoff picture, roster depth charts, and live scoring telemetry.
                         </p>
@@ -139,7 +139,7 @@ export default function SportsHub() {
 
                     <div className="absolute bottom-0 left-0 p-10 w-full">
                         <Trophy size={48} className="text-zinc-600 group-hover:text-[#DFFF00] mb-6 transition-colors duration-500" />
-                        <h2 className="text-4xl font-black uppercase text-white mb-2">NBA Ops</h2>
+                        <h2 className="text-4xl font-black uppercase text-white mb-2">NBA</h2>
                         <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest mb-6 group-hover:text-zinc-300 transition-colors">
                             Hardwood<br/>Analytics
                         </p>

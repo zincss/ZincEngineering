@@ -29,7 +29,8 @@ export default function RootLayout({
       <body className="font-sans bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50 min-h-screen flex flex-col selection:bg-[#DFFF00] selection:text-black">
         <Providers>
           <Header /> 
-          <main className="flex-1 relative">
+          {/* ADDED PADDING TOP HERE (pt-14 mobile, pt-20 desktop) */}
+          <main className="flex-1 relative pt-14 md:pt-20">
             {children}
           </main>
         </Providers>

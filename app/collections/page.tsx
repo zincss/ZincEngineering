@@ -53,7 +53,7 @@ export default function CollectionsHub() {
           </div>
 
           <h1 className="text-6xl md:text-[10vw] font-black tracking-tighter text-white uppercase leading-[0.9] md:leading-[0.8] animate-in fade-in zoom-in-95 duration-1000 delay-100 select-none">
-            Digital <span className="text-transparent bg-clip-text bg-gradient-to-b from-zinc-500 to-zinc-800">Archive</span>
+            Digital <span className="text-transparent bg-clip-text bg-gradient-to-b from-zinc-500 to-zinc-800">Archives</span>
           </h1>
           
           <div className="mt-8 md:mt-12 max-w-lg md:max-w-2xl text-center animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
@@ -166,7 +166,7 @@ export default function CollectionsHub() {
                 </div>
                 
                 <div className="absolute bottom-0 left-0 p-6 md:p-8 w-full">
-                    <h2 className="text-2xl md:text-3xl font-black uppercase text-white mb-1 leading-none">Atmosphere<br/>Scanner</h2>
+                    <h2 className="text-2xl md:text-3xl font-black uppercase text-white mb-1 leading-none">Weather<br/>Scanner</h2>
                     <p className="text-zinc-500 font-mono text-[10px] md:text-xs mt-2 group-hover:text-white transition-colors truncate">
                         Warning: AI personality is hostile.
                     </p>
@@ -197,7 +197,7 @@ export default function CollectionsHub() {
                 </div>
                 
                 <div className="absolute bottom-0 left-0 p-6 md:p-8 w-full">
-                    <h2 className="text-2xl md:text-3xl font-black uppercase text-white mb-1 leading-none">Tactical<br/>Scorecard</h2>
+                    <h2 className="text-2xl md:text-3xl font-black uppercase text-white mb-1 leading-none">Golf<br/>Scorecard</h2>
                     <p className="text-zinc-500 font-mono text-[10px] md:text-xs mt-2 group-hover:text-white transition-colors">
                         4-Operative capacity.
                     </p>

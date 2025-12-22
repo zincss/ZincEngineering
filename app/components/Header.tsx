@@ -55,10 +55,17 @@ export default function Header() {
 
       const currentScrollY = window.scrollY;
 
+      // 1. Prevent negative scroll (bounce effect on mobile)
+      if (currentScrollY < 0) return;
+
+      // 2. Delta Check: Only trigger if scrolled more than 10px to reduce jitter
+      const delta = Math.abs(currentScrollY - lastScrollY);
+      if (delta < 10) return;
+
       // Logic: 
-      // 1. If at top (within 50px), always show.
-      // 2. If scrolling UP, show.
-      // 3. If scrolling DOWN and past top, hide.
+      // - If at top (within 50px), always show.
+      // - If scrolling DOWN (> lastScrollY), hide.
+      // - If scrolling UP (< lastScrollY), show.
       if (currentScrollY < 50) {
         setIsVisible(true);
       } else if (currentScrollY > lastScrollY) {
