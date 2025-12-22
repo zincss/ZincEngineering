@@ -1,16 +1,14 @@
 'use server';
 
-import { createClient } from '@/utils/supabase/server'; // Adjust based on your actual server client path
-import { cookies } from 'next/headers';
+import { createClient } from '@/utils/supabase/server';
 
 export async function processHotseatTransaction(amount: number) {
-  const cookieStore = cookies();
-  const supabase = createClient(cookieStore);
+  // [FIX] No arguments needed, createClient handles cookies internally
+  const supabase = createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Unauthorized' };
 
-  // Use the existing RPC function we saw in your poker code
   const { data, error } = await supabase.rpc('add_credits', { 
     amount: amount 
   });
