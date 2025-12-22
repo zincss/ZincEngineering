@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { createClient } from '@/utils/supabase/client';
-import { X, Hash, Globe, BarChart3, Calendar, RefreshCw, Hammer, Gem, Loader2, ScanLine, Activity, Sparkles } from 'lucide-react';
+import { X, Hash, Globe, RefreshCw, Hammer, Gem, Loader2, ScanLine, Sparkles } from 'lucide-react';
 import { InventoryItem } from '../types';
 import { TradingCard } from '@/app/market/components/TradingCard';
 
@@ -55,6 +56,9 @@ export const ItemDetailModal = ({
     item, onClose, onQuickSell, onBreakdown, onEquip
 }: ItemDetailModalProps) => {
     
+    // --- PORTAL STATE ---
+    const [mounted, setMounted] = useState(false);
+
     const [globalSupply, setGlobalSupply] = useState<number | null>(null);
     const [loadingSupply, setLoadingSupply] = useState(true);
     const supabase = createClient();
@@ -63,8 +67,8 @@ export const ItemDetailModal = ({
     const yieldData = BREAKDOWN_YIELDS[item.item_templates.rarity];
     const rarityStats = getRarityStats(item.item_templates.rarity);
 
-    // FETCH GLOBAL COUNT ON MOUNT
     useEffect(() => {
+        setMounted(true); // Signal that we are on client and can portal
         const fetchSupply = async () => {
             setLoadingSupply(true);
             const { count, error } = await supabase
@@ -76,6 +80,10 @@ export const ItemDetailModal = ({
             setLoadingSupply(false);
         };
         fetchSupply();
+        
+        // Lock body scroll
+        document.body.style.overflow = 'hidden';
+        return () => { document.body.style.overflow = 'unset'; }
     }, [item.item_templates.id]);
 
     // Map to TradingCard format
@@ -89,21 +97,24 @@ export const ItemDetailModal = ({
         isShiny: item.is_shiny
     };
 
-    return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-md animate-in fade-in duration-300 md:p-4" onClick={onClose}>
+    if (!mounted) return null;
+
+    // --- RENDER VIA PORTAL ---
+    return createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 backdrop-blur-md animate-in fade-in duration-300 md:p-4" onClick={onClose}>
             
             <div 
                 className="relative w-full h-full md:h-auto md:max-w-5xl bg-zinc-950 md:border border-zinc-800 md:rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row md:max-h-[90vh]" 
                 onClick={e => e.stopPropagation()}
             >
-                {/* Close Button - Sticky on Mobile */}
-                <div className="absolute top-4 right-4 z-50">
-                    <button onClick={onClose} className="p-3 bg-black/60 hover:bg-white hover:text-black text-zinc-400 rounded-full transition-all border border-zinc-700 backdrop-blur-md">
+                {/* Close Button - Now GUARANTEED to be on top via Portal */}
+                <div className="absolute top-4 right-4 z-[10000]">
+                    <button onClick={onClose} className="p-3 bg-black/80 hover:bg-white hover:text-black text-zinc-400 rounded-full transition-all border border-zinc-700 backdrop-blur-md shadow-2xl">
                         <X size={20} />
                     </button>
                 </div>
 
-                {/* LEFT: CARD VISUAL (Top on Mobile) */}
+                {/* LEFT: CARD VISUAL */}
                 <div className="w-full md:w-1/2 lg:w-5/12 bg-zinc-900/50 p-8 pt-16 md:pt-8 flex items-center justify-center relative overflow-hidden shrink-0">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-800/20 via-transparent to-transparent" />
                     
@@ -111,14 +122,13 @@ export const ItemDetailModal = ({
                         <TradingCard item={cardItem} showDetails={false} />
                     </div>
 
-                    {/* Prismatic Background Effect */}
                     {item.is_shiny && (
                          <div className="absolute inset-0 bg-gradient-to-tr from-[#DFFF00]/10 via-purple-500/10 to-blue-500/10 animate-pulse pointer-events-none mix-blend-overlay" />
                     )}
                 </div>
 
-                {/* RIGHT: INTEL & ACTIONS (Bottom/Scrollable on Mobile) */}
-                <div className="w-full md:w-1/2 lg:w-7/12 p-6 md:p-10 overflow-y-auto custom-scrollbar flex flex-col flex-1 bg-zinc-950">
+                {/* RIGHT: INTEL & ACTIONS */}
+                <div className="w-full md:w-1/2 lg:w-7/12 p-6 md:p-10 overflow-y-auto custom-scrollbar flex flex-col flex-1 bg-zinc-950 pb-24 md:pb-10">
                     
                     <div className="mb-8">
                         <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -164,7 +174,7 @@ export const ItemDetailModal = ({
                         </p>
                     </div>
 
-                    <div className="mt-auto space-y-3 pb-safe">
+                    <div className="mt-auto space-y-3">
                         {item.item_templates.rarity === 'COSMIC' && onEquip && (
                             <button onClick={onEquip} className="w-full py-4 bg-[#DFFF00] hover:bg-white text-black rounded-xl flex items-center justify-center gap-2 font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(223,255,0,0.3)] animate-pulse">
                                 <Gem size={16} />
@@ -195,6 +205,7 @@ export const ItemDetailModal = ({
                 </div>
 
             </div>
-        </div>
+        </div>,
+        document.body // PORTAL TARGET
     );
 };
