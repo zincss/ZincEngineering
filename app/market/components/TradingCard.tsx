@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { RealAssetImage } from '@/app/market/components/shared';
-import { Trophy, Wind, Activity, ScanLine, Lock } from 'lucide-react';
+import { Trophy, Wind, Activity, ScanLine, Lock, Star, Shield, Flame, Crown } from 'lucide-react';
 
 interface TradingCardProps {
   item: any;
@@ -22,20 +22,115 @@ const getRarityConfig = (rarity: string) => {
   }
 };
 
-export const TradingCard = ({ item, showDetails = true, isLocked = false }: TradingCardProps) => {
-  const isCar = item.type === 'CAR';
-  const config = getRarityConfig(item.rarity);
-  
-  const description = item.description || item.history || "No data available.";
-  
-  // If locked, show generic serial placeholder
-  const serialNo = isLocked 
-    ? '????' 
-    : item.serial_number 
-        ? String(item.serial_number).padStart(4, '0') 
-        : Math.floor(Math.random() * 9000) + 1000;
+// --- SPECIAL VARIANT: GRIDIRON LEGENDS ---
+const GridironCard = ({ item, isLocked, serialNo, config }: any) => {
+    const teamColor = item.color || '#333';
+    
+    // Split description to get position/team cleanly if possible
+    const parts = item.description?.split('|') || [];
+    const position = parts[0]?.trim() || 'PLY';
+    const teamName = parts[1]?.trim() || 'LEGEND';
+    
+    return (
+      <div className={`
+        relative w-full h-full rounded-2xl overflow-hidden flex flex-col
+        transition-all duration-500
+        ${isLocked ? 'grayscale opacity-60' : 'hover:scale-[1.02] hover:-translate-y-2'}
+      `}
+      style={{
+          background: isLocked ? '#18181b' : `linear-gradient(145deg, #09090b 0%, ${teamColor}40 100%)`,
+          boxShadow: isLocked ? 'none' : `0 0 20px -5px ${teamColor}60`
+      }}>
+          
+          {/* Dynamic Background Pattern */}
+          <div className="absolute inset-0 opacity-20 pointer-events-none" 
+               style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, #ffffff10 10px, #ffffff10 11px)' }} 
+          />
 
-  return (
+          {/* Rarity Stripe */}
+          <div className="absolute top-0 left-0 w-full h-1 z-50" style={{ backgroundColor: config.color }} />
+
+          {/* Top Bar: Team & Position */}
+          <div className="relative z-10 p-3 flex justify-between items-center bg-black/40 backdrop-blur-sm border-b border-white/10">
+              <div className="flex flex-col leading-none">
+                  <span className="text-[9px] text-zinc-400 font-mono uppercase tracking-widest">Team</span>
+                  <span className="text-xs font-black italic uppercase text-white shadow-black drop-shadow-md">{teamName}</span>
+              </div>
+              <div className="flex flex-col items-end leading-none">
+                  <span className="text-[9px] text-zinc-400 font-mono uppercase tracking-widest">Pos</span>
+                  <span className="text-xl font-black text-white" style={{ textShadow: `0 0 10px ${teamColor}` }}>{position}</span>
+              </div>
+          </div>
+
+          {/* Main Image Area */}
+          <div className="relative flex-1 m-2 my-0 overflow-hidden rounded-lg border border-white/10 bg-black/20 group">
+              {/* Image */}
+              <div className="absolute inset-0">
+                   <RealAssetImage 
+                        name={item.name} 
+                        searchQuery={item.searchQuery} 
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                   />
+              </div>
+              
+              {/* Gradient Overlay for Text Visibility */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-90" />
+              
+              {/* Player Name (Bottom of Image) */}
+              <div className="absolute bottom-2 left-2 right-2 z-20">
+                  <h2 className="text-2xl font-black uppercase italic leading-none text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
+                      {item.name.split(' ').map((n:string, i:number) => (
+                          <span key={i} className="block">{n}</span>
+                      ))}
+                  </h2>
+              </div>
+          </div>
+
+          {/* Stats / Info Bar */}
+          <div className="relative z-10 px-3 py-2 grid grid-cols-3 gap-1 text-center bg-black/20">
+              <div className="bg-black/40 rounded p-1 border border-white/5">
+                  <div className="text-[8px] text-zinc-500 uppercase">ERA</div>
+                  <div className="text-[9px] font-bold text-white">{parts[2]?.split('-')[0] || 'Unknown'}</div>
+              </div>
+              <div className="bg-black/40 rounded p-1 border border-white/5">
+                  <div className="text-[8px] text-zinc-500 uppercase">Rarity</div>
+                  <div className="text-[9px] font-bold" style={{ color: config.color }}>{item.rarity.substring(0,3)}</div>
+              </div>
+              <div className="bg-black/40 rounded p-1 border border-white/5">
+                  <div className="text-[8px] text-zinc-500 uppercase">Serial</div>
+                  <div className="text-[9px] font-bold text-zinc-300">#{serialNo}</div>
+              </div>
+          </div>
+
+          {/* Decorative Footer */}
+          <div className="relative z-10 h-6 bg-zinc-950 flex items-center justify-between px-3">
+               <div className="flex gap-1">
+                   {[...Array(5)].map((_, i) => (
+                       <div key={i} className={`w-1 h-1 rounded-full ${i < 3 ? 'bg-zinc-600' : 'bg-zinc-800'}`} />
+                   ))}
+               </div>
+               <div className="text-[8px] font-black italic text-zinc-600 uppercase">
+                   GRIDIRON LEGENDS // 2025
+               </div>
+          </div>
+
+          {/* Shiny Overlay for Premium Cards */}
+          {!isLocked && ['ZENITH', 'ULTRA', 'SUPER_RARE'].includes(item.rarity) && (
+              <div className="absolute inset-0 z-30 pointer-events-none bg-gradient-to-tr from-transparent via-white/10 to-transparent animate-shine opacity-50 mix-blend-overlay" />
+          )}
+
+          {isLocked && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+                <Lock className="text-zinc-600" size={32} />
+            </div>
+          )}
+      </div>
+    );
+};
+
+
+// --- STANDARD ZINC VARIANT ---
+const ZincCard = ({ item, isLocked, serialNo, config, description, isCar }: any) => (
     <div className={`
       relative group w-full h-full aspect-[2/3] rounded-3xl 
       bg-zinc-950 border ${isLocked ? 'border-zinc-800' : config.border} ${isLocked ? '' : config.glow}
@@ -43,7 +138,6 @@ export const TradingCard = ({ item, showDetails = true, isLocked = false }: Trad
       ${isLocked ? 'opacity-60 grayscale' : 'hover:scale-[1.02] hover:-translate-y-2'}
     `}>
       
-      {/* LOCKED OVERLAY */}
       {isLocked && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-[2px]">
             <div className="p-4 rounded-full bg-zinc-900 border-2 border-zinc-700 mb-2">
@@ -53,7 +147,6 @@ export const TradingCard = ({ item, showDetails = true, isLocked = false }: Trad
         </div>
       )}
 
-      {/* SHINY EFFECT */}
       {item.isShiny && !isLocked && (
         <div className="absolute inset-0 z-30 pointer-events-none opacity-40 mix-blend-overlay bg-gradient-to-tr from-transparent via-white/30 to-transparent animate-shine" />
       )}
@@ -85,10 +178,8 @@ export const TradingCard = ({ item, showDetails = true, isLocked = false }: Trad
       </div>
 
       <div className="relative z-10 px-5 py-4">
-        {/* Linter bypass: Using arbitrary values (e.g. rounded-[16px]) prevents conflict warnings with nested rounded classes */}
         <div className="relative aspect-square w-full rounded-[16px] overflow-hidden border border-zinc-800 bg-zinc-900 group-hover:border-zinc-600 transition-colors shadow-inner">
             <div className="absolute inset-0 p-1">
-               {/* Using style for overflow to avoid Tailwind linter duplicate warning on nested elements */}
                <div className="w-full h-full rounded-[12px] relative" style={{ overflow: 'hidden' }}>
                   <RealAssetImage 
                     name={item.name} 
@@ -119,7 +210,27 @@ export const TradingCard = ({ item, showDetails = true, isLocked = false }: Trad
          </span>
          <span>Zinc Eng. © 2025</span>
       </div>
-
     </div>
-  );
+);
+
+
+// --- MAIN COMPONENT ---
+export const TradingCard = ({ item, showDetails = true, isLocked = false }: TradingCardProps) => {
+  const isCar = item.type === 'CAR';
+  const isGridiron = item.type === 'NFL_PLAYER';
+  const config = getRarityConfig(item.rarity);
+  
+  const description = item.description || item.history || "No data available.";
+  
+  const serialNo = isLocked 
+    ? '????' 
+    : item.serial_number 
+        ? String(item.serial_number).padStart(4, '0') 
+        : Math.floor(Math.random() * 9000) + 1000;
+
+  if (isGridiron) {
+      return <GridironCard item={item} isLocked={isLocked} serialNo={serialNo} config={config} />;
+  }
+
+  return <ZincCard item={item} isLocked={isLocked} serialNo={serialNo} config={config} description={description} isCar={isCar} />;
 };

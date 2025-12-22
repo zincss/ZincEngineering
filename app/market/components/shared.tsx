@@ -1,9 +1,10 @@
-// app/market/components/shared.tsx
 'use client'
 
 import React, { useState, useEffect } from 'react';
-import { Loader2, ImageOff } from 'lucide-react';
+import { Loader2, ImageOff, Trophy } from 'lucide-react';
+import { createClient } from '@/utils/supabase/client'; // Ensure this exists
 import { CARS } from '@/app/automotive/data';
+import { NFL_PLAYERS } from '@/app/market/lib/nfl_data';
 
 // --- DATA SOURCES ---
 
@@ -72,7 +73,26 @@ export const CAR_PACK_SOURCE = CARS.map(car => {
   };
 });
 
-// --- FLAIR ITEMS (Added) ---
+export const GRIDIRON_PACK_SOURCE = NFL_PLAYERS.map((player, i) => {
+    let rarity = 'COMMON';
+    if (player.name === 'Tom Brady') rarity = 'ZENITH';
+    else if (i < 15) rarity = 'ULTRA';      
+    else if (i < 40) rarity = 'SUPER_RARE'; 
+    else if (i < 75) rarity = 'RARE';       
+    else if (i < 115) rarity = 'UNCOMMON';  
+    else rarity = 'COMMON';                 
+
+    return {
+        ...player,
+        rarity,
+        type: 'NFL_PLAYER',
+        description: `${player.position} | ${player.team} | ${player.era} - ${player.history}`,
+        searchQuery: player.searchQuery || `${player.name} NFL`,
+        color: player.accentColor 
+    };
+});
+
+// --- FLAIR ITEMS ---
 const FLAIR_LIST = [
     'Neon Genesis', 'Cyber Angel', 'Void Walker', 'Chrome Heart', 'Solar Flare', 
     'Lunar Eclipse', 'Star Dust', 'Net Runner', 'Data Wraith', 'System Shock',
@@ -102,14 +122,20 @@ export const getAssetUrl = (name: string, type?: string) => {
     return `https://image.pollinations.ai/prompt/${prompt}?width=1080&height=1080&seed=${seed}&nologo=true&model=flux-realism`;
 };
 
-// --- REAL ASSET FETCHER COMPONENT ---
+// --- REAL ASSET FETCHER COMPONENT (UPDATED) ---
 const IMAGE_CACHE = new Map<string, string>();
 
-export const RealAssetImage = ({ name, searchQuery, className = "" }: { name: string, searchQuery: string, className?: string }) => {
-    const [src, setSrc] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
+export const RealAssetImage = ({ name, searchQuery, className = "", forcedUrl }: { name: string, searchQuery: string, className?: string, forcedUrl?: string }) => {
+    const [src, setSrc] = useState<string | null>(forcedUrl || null);
+    const [loading, setLoading] = useState(!forcedUrl);
 
     useEffect(() => {
+        if (forcedUrl) {
+            setSrc(forcedUrl);
+            setLoading(false);
+            return;
+        }
+
         const fetchImage = async () => {
             const query = searchQuery || name;
             
@@ -120,14 +146,30 @@ export const RealAssetImage = ({ name, searchQuery, className = "" }: { name: st
             }
 
             try {
-                let searchContext = query;
-                const isCar = CAR_PACK_SOURCE.some(c => c.name === name);
+                const supabase = createClient();
                 
-                if (isCar && !query.toLowerCase().includes('car')) {
-                    searchContext = `${query} car`; 
+                // 1. Check for Admin Override First
+                const { data: override } = await supabase
+                    .from('asset_overrides')
+                    .select('image_url')
+                    .eq('name', name)
+                    .single();
+
+                if (override && override.image_url) {
+                    IMAGE_CACHE.set(query, override.image_url);
+                    setSrc(override.image_url);
+                    setLoading(false);
+                    return;
                 }
 
-                // Search Wikimedia Commons
+                // 2. Fallback to Wikimedia
+                let searchContext = query;
+                const isCar = CAR_PACK_SOURCE.some(c => c.name === name);
+                const isPlayer = GRIDIRON_PACK_SOURCE.some(p => p.name === name);
+                
+                if (isCar && !query.toLowerCase().includes('car')) searchContext = `${query} car`; 
+                if (isPlayer && !query.toLowerCase().includes('nfl')) searchContext = `${query} NFL`;
+
                 const response = await fetch(
                     `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(searchContext)}&gsrlimit=1&prop=imageinfo&iiprop=url&format=json&origin=*`
                 );
@@ -161,7 +203,7 @@ export const RealAssetImage = ({ name, searchQuery, className = "" }: { name: st
         };
 
         fetchImage();
-    }, [name, searchQuery]);
+    }, [name, searchQuery, forcedUrl]);
 
     if (loading) {
         return <div className={`flex items-center justify-center bg-zinc-900 ${className}`}><Loader2 className="animate-spin text-zinc-600" /></div>;
