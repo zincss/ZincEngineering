@@ -30,7 +30,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // Use a ref to prevent "flash" fetching if data is already fresh
   const isFetchingRef = useRef(false);
 
   // --- CORE FETCH LOGIC ---
@@ -47,8 +46,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         if (error) {
             console.warn("Sync warning:", error.message);
-            // If fetch fails (e.g. 406 Not Acceptable), it often means auth token is stale.
-            // We do NOT log out here to avoid loops, but we leave profile null to trigger retry.
+            
+            // --- GHOST KILLER LOGIC ---
+            // If the database rejects us (406) or we have a JWT error, 
+            // the session is likely desynced. We must logout to clear the "Ghost".
+            if (error.code === 'PGRST301' || error.message.includes('JWT') || error.code === '406') {
+                console.error("Stale session detected. Force signing out.");
+                await supabase.auth.signOut();
+                setUser(null);
+                setProfile(null);
+                if (typeof window !== 'undefined') localStorage.clear();
+                return;
+            }
         }
 
         if (data) {
@@ -65,6 +74,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     let mounted = true;
 
+    // Check active session immediately on mount
+    const checkSession = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+             setUser(session.user);
+             await fetchProfile(session.user.id);
+        }
+        setLoading(false);
+    };
+    checkSession();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       
@@ -78,13 +98,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return;
       }
       
-      // USER DETECTED
-      if (currentUser) {
+      // HANDLE REFRESH AND INITIAL LOGIN
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || (event === 'INITIAL_SESSION' && currentUser)) {
           setUser(currentUser);
-          // Only fetch if we don't have a profile OR the user ID changed
-          if (!profile || profile.username === undefined) {
-             await fetchProfile(currentUser.id);
-          }
+          // Always try to fetch profile if we have a user but no profile
+          // OR if the token just refreshed (to ensure data is current)
+          await fetchProfile(currentUser.id);
       }
       
       setLoading(false);
@@ -94,27 +113,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         mounted = false;
         subscription.unsubscribe();
     };
-  }, [supabase, fetchProfile, profile]);
+  }, [supabase, fetchProfile]);
 
-  // --- 2. MULTI-DEVICE REALTIME SYNC (The "Ghost" Killer) ---
+  // --- 2. MULTI-DEVICE REALTIME SYNC ---
   useEffect(() => {
     if (!user) return;
 
-    // A. Realtime Database Subscription
-    // This listens for ANY change to your profile (credits spent on phone, etc.)
-    // and updates this browser instantly.
     const channel = supabase
         .channel(`profile-sync-${user.id}`)
         .on(
             'postgres_changes',
             {
-                event: '*', // Listen to INSERT, UPDATE, and DELETE
+                event: '*',
                 schema: 'public',
                 table: 'profiles',
                 filter: `id=eq.${user.id}`,
             },
             (payload) => {
-                // Instantly update state with new data from DB
                 if (payload.new) {
                     setProfile(payload.new as Profile);
                 }
@@ -122,9 +137,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         )
         .subscribe();
 
-    // B. Window Focus / Network Recovery Logic
-    // If you switch tabs or come back from sleep mode, force a soft refresh.
-    const handleReconnection = () => fetchProfile(user.id);
+    // Aggressive re-validation on focus
+    const handleReconnection = async () => {
+        // Force session refresh first
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error || !session) {
+            // If session is dead on reconnect, kill the ghost
+            await signOut(); 
+        } else {
+            // Session valid, fetch data
+            await fetchProfile(user.id);
+        }
+    };
     
     window.addEventListener('focus', handleReconnection);
     window.addEventListener('online', handleReconnection);
@@ -134,14 +158,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         window.removeEventListener('focus', handleReconnection);
         window.removeEventListener('online', handleReconnection);
     };
-  }, [user, supabase, fetchProfile]);
+  }, [user, supabase, fetchProfile]); // Added signOut to dependencies if needed, or define logic inside
 
   const refreshProfile = async () => {
     if (user) await fetchProfile(user.id);
   };
 
   const signIn = () => {
-    // Redirect to login
     window.location.href = '/login'; 
   };
 
@@ -152,10 +175,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (err) {
         console.error("SignOut Error:", err);
     } finally {
-        // AGGRESSIVE CLEANUP: Remove local storage items to prevent
-        // "stuck" sessions between multiple Google accounts/browsers.
         if (typeof window !== 'undefined') {
-            localStorage.clear(); // Safest bet for "ghost" issues
+            localStorage.clear();
         }
         setUser(null);
         setProfile(null);
