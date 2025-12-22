@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { User } from '@supabase/supabase-js';
+// [FIX] Added detailed types from supabase-js
+import { User, Session, AuthChangeEvent, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 type Profile = {
   username: string;
@@ -34,19 +35,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // --- CORE FETCH LOGIC (WITH RETRY) ---
   const fetchProfile = useCallback(async (userId: string, retryCount = 0) => {
-    // Allow retries even if 'isFetching' was true previously
     if (isFetchingRef.current && retryCount === 0) return;
     isFetchingRef.current = true;
 
     try {
-        // 1. Force a session refresh to ensure the cookie is read
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError || !session) {
            throw new Error("No active session");
         }
 
-        // 2. Fetch Profile
         const { data, error } = await supabase
         .from('profiles')
         .select('username, credits, role, created_at') 
@@ -56,14 +54,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (error) {
             console.warn(`Profile sync failed (Attempt ${retryCount + 1}):`, error.message);
 
-            // --- RETRY LOGIC ---
-            // If it failed, it might be the race condition. Wait 1s and try ONCE more.
             if (retryCount < 2) {
                 console.log("Retrying profile fetch...");
                 setTimeout(() => {
                     isFetchingRef.current = false; 
                     fetchProfile(userId, retryCount + 1);
-                }, 1000 * (retryCount + 1)); // Backoff: 1s, then 2s
+                }, 1000 * (retryCount + 1));
                 return;
             }
         }
@@ -82,7 +78,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     let mounted = true;
 
-    // Check immediately on mount
     const checkSession = async () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
@@ -93,7 +88,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
     checkSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // [FIX] Added explicit types: (event: AuthChangeEvent, session: Session | null)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
       if (!mounted) return;
       
       const currentUser = session?.user ?? null;
@@ -121,13 +117,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const channel = supabase
         .channel(`profile-sync-${user.id}`)
+        // [FIX] Added explicit type: (payload: RealtimePostgresChangesPayload<Profile>)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}`},
-            (payload) => { if (payload.new) setProfile(payload.new as Profile); }
+            (payload: RealtimePostgresChangesPayload<Profile>) => { 
+                if (payload.new) {
+                    // payload.new is technically partial, but we cast it safely here
+                    setProfile(payload.new as Profile); 
+                }
+            }
         )
         .subscribe();
 
     const handleReconnection = () => {
-        // When tab focuses, wait 500ms for the middleware to do its job, then fetch
         setTimeout(() => {
              if (user) fetchProfile(user.id);
         }, 500);
