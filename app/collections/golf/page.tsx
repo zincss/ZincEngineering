@@ -3,14 +3,12 @@
 import React from 'react';
 import { Target, Wind, Activity } from 'lucide-react';
 import GolfScorecard from './components/GolfScorecard';
-import BackButton from '../../components/BackButton';
 
 export default function GolfTrackerPage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white selection:bg-[#DFFF00] selection:text-black">
       
       {/* NAVIGATION */}
-      <BackButton href="/collections" label="COLLECTIONS HUB" />
       
       {/* HEADER */}
       <div className="pt-32 pb-8 px-6 max-w-[1600px] mx-auto border-b border-zinc-800 mb-8">

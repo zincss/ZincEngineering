@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import { supabase } from '@/lib/supabaseClient'; 
-import BackButton from '@/app/components/BackButton';
 import { Coins, User, Trophy, Cpu, LogOut, Loader2, RefreshCw, AlertTriangle, Smartphone } from 'lucide-react';
 import { createDeck, evaluateHand, getAIDecision, Card } from './poker-utils';
 
@@ -500,7 +499,6 @@ export default function PokerPage() {
     if (!table) {
         return (
             <div className="min-h-[100dvh] bg-zinc-950 text-white flex flex-col items-center p-4 relative overflow-hidden">
-                <BackButton href="/play" label="ARCADE HUB" />
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#000_100%)] z-0"/>
                 
                 <div className="z-10 w-full max-w-md flex flex-col items-center mt-12 mb-8">

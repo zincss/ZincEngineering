@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { getMarketStatus, getPortfolio, buyStock, sellStock } from './actions';
-import BackButton from '@/app/components/BackButton';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -175,7 +174,6 @@ export default function StockMarketPage() {
       {/* BACKGROUND FIX: pointer-events-none allows clicks to pass through */}
       <div className="bg-grid-pattern opacity-5 absolute inset-0 fixed pointer-events-none" />
       
-      <BackButton href="/play" label="ARCADE HUB" />
       
       {/* HEADER SECTION */}
       <div className="max-w-[1600px] mx-auto pt-20 mb-8">
