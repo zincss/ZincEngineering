@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { getBookieBoard, placeWager } from './actions';
-import BackButton from '@/app/components/BackButton';
 import { DollarSign, TrendingUp, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 
@@ -34,7 +33,6 @@ export default function BookiesPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-6">
-      <BackButton href="/play" label="ARCADE" />
       
       {/* HEADER */}
       <div className="max-w-4xl mx-auto pt-20 mb-12 flex justify-between items-end border-b border-zinc-800 pb-6">

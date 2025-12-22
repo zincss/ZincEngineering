@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { createClient } from '@/utils/supabase/client'; // CHANGED
 import { useRouter } from 'next/navigation';
 import { Lock, Mail, User } from 'lucide-react';
-import BackButton from '@/app/components/BackButton';
 
 export default function LoginPage() {
   const supabase = createClient(); // Create instance here
@@ -88,7 +87,6 @@ export default function LoginPage() {
           {isSignUp ? 'Already have access? Login' : 'Need new credentials? Sign Up'}
         </button>
       </div>
-      <BackButton href="/" label="Cancel" />
     </div>
   );
 }

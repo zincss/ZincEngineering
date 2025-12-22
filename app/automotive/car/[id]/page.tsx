@@ -6,7 +6,6 @@ import { Cpu, Gauge, History, Wind, Zap, Loader2, Lock, Unlock, Edit3, Save, X, 
 import { useParams } from 'next/navigation';
 import { CARS } from '../../data';
 import { getDatabaseCars, updateCar } from '../../actions';
-import BackButton from '../../../components/BackButton';
 
 export default function CarDetail() {
   const params = useParams();
@@ -182,7 +181,6 @@ export default function CarDetail() {
       </div>
 
       {/* NEW SHARED BACK BUTTON */}
-      <BackButton href="/automotive" label="BACK TO INDEX" />
 
       {/* HERO */}
       <div className="relative w-full h-[70vh] flex items-end group">

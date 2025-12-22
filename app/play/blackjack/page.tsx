@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/app/context/AuthContext';
-import BackButton from '@/app/components/BackButton';
 import { 
     Coins, 
     Layers, 
@@ -331,7 +330,6 @@ export default function BlackjackPage() {
 
       {/* Top Bar */}
       <div className="absolute top-0 left-0 right-0 p-3 flex justify-between items-start z-30 pointer-events-none">
-          <BackButton href="/play" label="ARCADE HUB" />
           <div className="flex flex-col gap-0.5 pointer-events-auto bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5">
                 <div className="text-[#DFFF00] font-black uppercase tracking-widest text-xs flex items-center gap-2 justify-end">
                     <Wallet size={12} />
