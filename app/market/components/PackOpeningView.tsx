@@ -25,14 +25,14 @@ const getHypeConfig = (rarity: string) => {
             color: '#DFFF00', 
             label: 'ZENITH CLASS', 
             icon: Crown, 
-            detectText: 'OMEGA LEVEL EVENT',
+            detectText: 'ZENITH LEVEL EVENT',
             revealText: 'MYTHIC ARTIFACT',
             bg: 'bg-yellow-500'
         };
         case 'ULTRA': return { 
             tier: 3,
             color: '#A855F7', 
-            label: 'OMEGA CLASS', 
+            label: 'ULTRA CLASS', 
             icon: Radiation, 
             detectText: 'CRITICAL ANOMALY',
             revealText: 'ULTRA RARE ASSET',
@@ -41,7 +41,7 @@ const getHypeConfig = (rarity: string) => {
         case 'SUPER_RARE': return { 
             tier: 3,
             color: '#F97316', 
-            label: 'SIGMA CLASS', 
+            label: 'SUPER RARE CLASS', 
             icon: Zap, 
             detectText: 'SECURITY BREACH',
             revealText: 'HIGH VOLTAGE SIGNATURE',

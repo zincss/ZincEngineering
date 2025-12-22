@@ -103,7 +103,7 @@ export default function GlobalTicker() {
   }, []);
 
   return (
-    <div className="relative w-full h-10 bg-zinc-950/80 backdrop-blur-md border-y border-white/5 overflow-hidden flex items-center z-40">
+    <div className="relative w-full h-10 bg-zinc-950/80 backdrop-blur-md border-y border-white/5 overflow-hidden flex items-center z-30">
       
       {/* LEFT ANCHOR: LABEL */}
       <div className="absolute left-0 top-0 bottom-0 z-20 bg-zinc-950/90 backdrop-blur-xl pl-4 pr-6 flex items-center gap-3 border-r border-white/5 clip-path-slant">
