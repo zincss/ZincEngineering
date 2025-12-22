@@ -7,7 +7,6 @@ import {
   ArrowRight, Trophy, Wind, Shield, Flag, Zap, Activity, Radio, 
   Cpu, ShieldCheck 
 } from 'lucide-react';
-import BackButton from '../components/BackButton';
 import GlobalTicker from '../components/GlobalTicker';
 
 const containerVar: Variants = {
@@ -34,7 +33,6 @@ export default function SportsHub() {
           <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1522778119026-d647f0565c6a?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 grayscale mix-blend-overlay" />
       </div>
 
-      <BackButton href="/" label="HOME" />
 
       {/* --- HERO SECTION --- */}
       <section className="relative min-h-[80vh] flex flex-col items-center justify-center overflow-hidden py-20 border-b border-white/5">
