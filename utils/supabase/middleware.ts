@@ -17,9 +17,7 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            request.cookies.set(name, value)
-          )
+          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
           response = NextResponse.next({
             request: {
               headers: request.headers,
@@ -33,27 +31,7 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // IMPORTANT:
-  // This will refresh the session if needed, effectively "keeping the user logged in"
-  // if the token has expired but the refresh token is still valid.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  // PROTECTED ROUTE LOGIC (Optional but recommended)
-  // If you want to force redirect unauthenticated users away from specific paths:
-  /*
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith('/login') &&
-    !request.nextUrl.pathname.startsWith('/auth')
-  ) {
-    // no user, potentially respond by redirecting the user to the login page
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
-  }
-  */
+  await supabase.auth.getUser() // This refreshes the cookie!
 
   return response
 }
