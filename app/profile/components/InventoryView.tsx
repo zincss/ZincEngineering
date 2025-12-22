@@ -6,7 +6,7 @@ import { Loader2, Search, Box, Grid, BookOpen, ChevronUp, CheckCircle2, Gavel, X
 import { ProfileAssetCard } from './ProfileAssetCard'; 
 import { ItemDetailModal } from './ItemDetailModal';
 import { TradingCard } from '@/app/market/components/TradingCard';
-import { quickSellItem, breakdownItem, listAuctionItem } from '@/app/profile/actions';
+import { quickSellItem, breakdownItem, listAuctionItem } from '@/app/profile/actions'; // Adjust path if needed
 
 // Import Source Data
 import { CARS } from '@/app/automotive/data';
@@ -35,6 +35,7 @@ export default function InventoryView({ user }: { user: any }) {
   const [auctionDuration, setAuctionDuration] = useState(24);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Collapsible State for Collections
   const [collapsedSets, setCollapsedSets] = useState<Record<string, boolean>>({});
 
   const fetchInventory = async () => {
@@ -179,7 +180,8 @@ export default function InventoryView({ user }: { user: any }) {
                 <p className="text-xs uppercase tracking-widest">No Assets Found</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 pb-20">
+            // REDESIGNED GRID LAYOUT
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6 pb-20">
                 {items.filter(i => i.item_templates.name.toLowerCase().includes(search.toLowerCase())).map((item) => (
                     <ProfileAssetCard 
                         key={item.id} 
