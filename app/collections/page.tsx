@@ -14,7 +14,6 @@ import {
   Search, 
   Globe 
 } from 'lucide-react'; 
-import BackButton from '../components/BackButton';
 import GlobalTicker from '../components/GlobalTicker';
 
 export default function CollectionsHub() {
@@ -23,7 +22,6 @@ export default function CollectionsHub() {
       
       {/* BACKGROUND */}
       <div className="bg-starfield" />
-      <BackButton href="/" label="HOME" />
 
       {/* --- HERO SECTION --- */}
       <section className="relative h-[50vh] md:h-[65vh] flex flex-col items-center justify-center border-b border-zinc-800/50 overflow-hidden">

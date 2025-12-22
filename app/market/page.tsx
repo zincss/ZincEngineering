@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import { Package, Gavel, ArrowLeftRight, Wallet, Activity, TrendingUp } from 'lucide-react';
-import BackButton from '@/app/components/BackButton';
 import { AssetPreloader, animationStyles } from './components/shared';
 
 // IMPORTS: Ensure these files are located in app/market/components/
@@ -22,7 +21,6 @@ export default function MarketHubPage() {
       <style dangerouslySetInnerHTML={{ __html: animationStyles }} />
       
       {/* Navigation Helper */}
-      <BackButton href="/" label="MAIN TERMINAL" />
 
       {/* HEADER SECTION - Optimized for Mobile */}
       {/* FIX: Reduced top padding from pt-24 to pt-20 on mobile */}

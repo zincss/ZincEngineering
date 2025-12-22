@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { Search, Music2, Activity, Disc, PlayCircle, ArrowDown } from 'lucide-react';
-import BackButton from '../../components/BackButton';
 import { searchTracks, generateFlow } from './actions';
 
 export default function ResonanceModule() {
@@ -38,7 +37,6 @@ export default function ResonanceModule() {
     <main className="min-h-screen bg-zinc-950 text-white selection:bg-emerald-400 selection:text-black pb-20 relative overflow-hidden">
       
       <div className="bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-900/20 via-zinc-950 to-zinc-950 fixed inset-0 z-0" />
-      <BackButton href="/collections" label="COLLECTIONS" />
 
       <div className="relative z-10 max-w-4xl mx-auto px-6 pt-24">
         

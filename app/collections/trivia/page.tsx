@@ -1,6 +1,5 @@
 import React from 'react';
 import { Brain, Hash } from 'lucide-react';
-import BackButton from '../../components/BackButton';
 import TriviaGame from './components/TriviaGame';
 
 export const metadata = {
@@ -13,7 +12,6 @@ export default function TriviaPage() {
     <div className="min-h-screen bg-zinc-950 text-white selection:bg-[#DFFF00] selection:text-black">
       
       {/* GLOBAL BACK BUTTON */}
-      <BackButton href="/collections" label="ARCHIVES" />
 
       {/* HEADER */}
       <div className="pt-32 pb-8 px-6 max-w-[1600px] mx-auto border-b border-zinc-800 mb-6 md:mb-12 relative">

@@ -20,7 +20,6 @@ import {
   RefreshCw,
   AlertCircle
 } from 'lucide-react';
-import BackButton from '@/app/components/BackButton';
 
 // --- TYPES ---
 type TierLabel = 'S' | 'A' | 'B' | 'C' | 'D' | 'F';
@@ -391,7 +390,6 @@ export default function TierListCreator() {
   return (
     <main className="min-h-screen bg-zinc-950 text-white pb-20 selection:bg-[#DFFF00] selection:text-black">
       <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none z-0" />
-      <BackButton href="/collections" label="BACK TO HUB" />
 
       {/* HEADER */}
       <div className="relative z-10 pt-24 pb-6 px-4 md:px-8 max-w-7xl mx-auto flex flex-col gap-6 border-b border-zinc-800/50">

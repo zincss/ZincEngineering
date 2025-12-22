@@ -6,7 +6,6 @@ import GameTicker from './components/GameTicker';
 import NFLStandings from './components/NFLStandings';
 import PlayerSearch from './components/PlayerSearch';
 import Link from 'next/link';
-import BackButton from '../../components/BackButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +14,6 @@ export default async function NFLHub() {
 
   return (
     <main className="min-h-screen bg-zinc-950 text-white pb-20 selection:bg-[#DFFF00] selection:text-black">
-      <BackButton href="/sports" />
       
       {/* HERO SECTION */}
       <section className="relative h-[40vh] min-h-[400px] flex items-center overflow-hidden border-b border-zinc-800">

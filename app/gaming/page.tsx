@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import Link from "next/link";
 import { Ghost, ArrowRight, Plus, Lock, KeyRound, AlertCircle, Loader2 } from "lucide-react";
-import BackButton from '../components/BackButton';
 
 export default function EntertainmentHub() {
   // --- SECURITY LOGIC ---
@@ -104,7 +103,6 @@ export default function EntertainmentHub() {
     <div className="min-h-[calc(100vh-80px)] flex flex-col items-center justify-center relative px-4 pb-20">
       
       {/* ADD BACK BUTTON HERE */}
-      <BackButton href="/" label="MAIN TERMINAL" />
 
       {/* BACKGROUND */}
       <div className="bg-starfield">

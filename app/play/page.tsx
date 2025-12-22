@@ -7,7 +7,6 @@ import {
   Brain, ChevronRight, Construction, Spade, Trophy, Activity, ArrowRight, Info, X, LogIn, Flame, 
   ShieldCheck, Cpu, Building2, CircleDashed
 } from 'lucide-react';
-import BackButton from '../components/BackButton';
 import { useAuth } from '../context/AuthContext';
 
 const containerVar: Variants = {
@@ -51,7 +50,6 @@ export default function PlayHub() {
       </div>
       <div className="bg-starfield" />
 
-      <BackButton href="/" label="MAIN TERMINAL" />
 
       {/* --- NOT AUTHENTICATED POPUP MODAL --- */}
       <AnimatePresence>

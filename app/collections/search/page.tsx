@@ -2,7 +2,6 @@
 
 import React from 'react';
 import ZincSearchInterface from './components/ZincSearchInterface';
-import BackButton from '../../components/BackButton';
 
 export default function SearchPage() {
   return (
@@ -12,7 +11,6 @@ export default function SearchPage() {
       <div className="bg-starfield fixed inset-0 z-0" />
       
       {/* NAVIGATION */}
-      <BackButton href="/collections" label="COLLECTIONS HUB" />
 
       {/* SEARCH MODULE */}
       <ZincSearchInterface />

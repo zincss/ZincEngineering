@@ -1,7 +1,6 @@
 import React from 'react';
 import { getGolfDashboard } from './actions';
 import LiveTournament from './components/LiveTournament';
-import BackButton from '../../components/BackButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +9,6 @@ export default async function GolfHub() {
 
   return (
     <main className="h-screen bg-black text-white selection:bg-[#DFFF00] selection:text-black overflow-hidden flex flex-col font-sans">
-      <BackButton href="/sports" />
       
       {/* Background Ambient Glow */}
       <div className="fixed inset-0 pointer-events-none">

@@ -8,7 +8,6 @@ import {
   Search, ScanLine, ArrowLeft, ArrowRight, CheckCircle2,
   Leaf, Nut, Milk, Wheat, Info, Beef, X, Zap, ChevronDown, ChevronUp
 } from 'lucide-react';
-import BackButton from '../../components/BackButton';
 import { getRandomRecipe, searchRecipesByIngredients, getRecipeById, Recipe, RecipeSummary } from './actions';
 
 // --- UTILITY: Measurement Converter ---
@@ -282,7 +281,6 @@ export default function RecipesPage() {
          <div className="absolute inset-0 bg-gradient-to-b from-zinc-950 via-zinc-950/90 to-zinc-950" />
       </div>
 
-      <BackButton href="/collections" label="COLLECTIONS HUB" />
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 md:px-6 pt-32 md:pt-24">
         

@@ -2,7 +2,6 @@
 import React from 'react';
 import { getF1DashboardData } from './actions';
 import F1Dashboard from './components/Dashboard';
-import BackButton from '../../components/BackButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +12,6 @@ export default async function F1Page() {
 
     return (
         <>
-            <BackButton href="/sports" />
             <F1Dashboard 
                 activeDrivers={data.drivers} 
                 teams={data.teams} 

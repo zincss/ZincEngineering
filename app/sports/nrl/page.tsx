@@ -6,7 +6,6 @@ import { Trophy, Loader2, AlertTriangle, TrendingUp, LayoutGrid, Users, Activity
 import Link from 'next/link';
 import { NRL_TEAMS, TEAM_LOGOS } from './data';
 import { getLiveScores, getStandings, getLeagueLeaders } from './actions'; 
-import BackButton from '../../components/BackButton';
 
 // --- LOADER OVERLAY ---
 const NavigationLoader = () => (
@@ -242,7 +241,6 @@ export default function NRLHub() {
             </div>
 
             {/* BACK BUTTON INTEGRATION */}
-            <BackButton href="/sports" />
 
             {/* NAVIGATION LOADER */}
             {isNavigating && <NavigationLoader />}

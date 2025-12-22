@@ -28,24 +28,51 @@ export default function Header() {
   const isWeather = pathname?.startsWith('/collections/weather');
   const isCollections = (pathname?.startsWith('/collections') && !isWeather) || pathname?.startsWith('/gaming') || pathname?.startsWith('/automotive');
   
-  // Play Routes
-  // Updated: Removed the old '/play/market' exclusion since market is now at root
   const isPlay = pathname?.startsWith('/play') && !pathname?.startsWith('/play/poker');
-  
-  // Updated: Now detects the new /market route
   const isMarket = pathname?.startsWith('/market');
-  
   const isSports = pathname?.startsWith('/sports');
-
-  // SPECIAL CASE: HIDE HEADER ON POKER GAME (Immersive Mode)
   const isPoker = pathname === '/play/poker';
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // --- SCROLL AWARENESS LOGIC ---
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
 
   // Close mobile menu when route changes
   useEffect(() => {
     setIsMobileMenuOpen(false);
+    setIsVisible(true); // Reset visibility on route change
   }, [pathname]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      // If menu is open, always keep header visible
+      if (isMobileMenuOpen) {
+        setIsVisible(true);
+        return;
+      }
+
+      const currentScrollY = window.scrollY;
+
+      // Logic: 
+      // 1. If at top (within 50px), always show.
+      // 2. If scrolling UP, show.
+      // 3. If scrolling DOWN and past top, hide.
+      if (currentScrollY < 50) {
+        setIsVisible(true);
+      } else if (currentScrollY > lastScrollY) {
+        setIsVisible(false); // Scrolling DOWN
+      } else {
+        setIsVisible(true);  // Scrolling UP
+      }
+
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY, isMobileMenuOpen]);
 
   const closeMenu = () => setIsMobileMenuOpen(false);
 
@@ -53,7 +80,15 @@ export default function Header() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 bg-zinc-950/90 backdrop-blur-md border-b border-white/5 transition-all duration-300 supports-[backdrop-filter]:bg-zinc-950/60">
+      <header 
+        className={`
+          fixed top-0 left-0 right-0 z-50 
+          bg-zinc-950/90 backdrop-blur-md border-b border-white/5 
+          transition-transform duration-300 ease-in-out
+          supports-[backdrop-filter]:bg-zinc-950/60
+          ${isVisible ? 'translate-y-0' : '-translate-y-full'}
+        `}
+      >
         {/* CONTAINER: h-14 on mobile (56px), h-20 on desktop (80px) */}
         <div className="max-w-[1800px] mx-auto px-4 md:px-6 h-14 md:h-20 flex items-center justify-between gap-4 md:gap-8">
           
@@ -77,7 +112,6 @@ export default function Header() {
               <nav className="hidden xl:flex items-center gap-1 bg-zinc-900/50 p-1 rounded-full border border-white/5">
                   <NavLink href="/collections/weather" active={isWeather} icon={<CloudHail size={14} />}>WEATHER</NavLink>
                   <NavLink href="/play" active={isPlay} icon={<Gamepad2 size={14} />}>PLAY</NavLink>
-                  {/* Updated Link */}
                   <NavLink href="/market" active={isMarket} icon={<Package size={14} />}>MARKET</NavLink>
                   <NavLink href="/collections" active={isCollections} icon={<FolderOpen size={14} />}>ARCHIVE</NavLink>
                   <NavLink href="/sports" active={isSports} icon={<Trophy size={14} />}>SPORTS</NavLink>
@@ -173,7 +207,6 @@ export default function Header() {
           <div className="fixed inset-0 top-0 pt-20 z-40 bg-zinc-950/95 backdrop-blur-xl p-4 flex flex-col gap-3 animate-in fade-in slide-in-from-top-4 border-t border-zinc-800 overflow-y-auto">
               <MobileLink onClick={closeMenu} href="/collections/weather" active={isWeather} icon={<CloudHail size={16}/>} label="WEATHER" />
               <MobileLink onClick={closeMenu} href="/play" active={isPlay} icon={<Gamepad2 size={16}/>} label="PLAY" />
-              {/* Updated Link */}
               <MobileLink onClick={closeMenu} href="/market" active={isMarket} icon={<Package size={16}/>} label="MARKET" />
               <MobileLink onClick={closeMenu} href="/collections" active={isCollections} icon={<FolderOpen size={16}/>} label="COLLECTIONS" />
               <MobileLink onClick={closeMenu} href="/sports" active={isSports} icon={<Trophy size={16}/>} label="SPORTS" />

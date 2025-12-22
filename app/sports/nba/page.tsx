@@ -6,7 +6,6 @@ import { getDashboardData } from './actions';
 import GameTicker from './components/GameTicker';
 import NBASearch from './components/NBASearch';
 import ConferenceStandings from './components/ConferenceStandings';
-import BackButton from '../../components/BackButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +14,6 @@ export default async function NBAHub() {
 
   return (
     <main className="min-h-screen bg-zinc-950 text-white pb-20 selection:bg-[#DFFF00] selection:text-black">
-      <BackButton href="/sports" />
       
       {/* HERO SECTION */}
       <section className="relative pt-24 pb-12 px-6 border-b border-zinc-800 z-40">
