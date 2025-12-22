@@ -2,7 +2,6 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { cookies } from 'next/headers';
 
 const QUICK_SELL_VALUES: Record<string, number> = {
     'COMMON': 2, 'UNCOMMON': 5, 'RARE': 20, 'SUPER_RARE': 100, 
@@ -20,8 +19,8 @@ const BREAKDOWN_YIELDS: Record<string, { type: string, amount: number }> = {
 };
 
 export async function quickSellItem(itemId: string, rarity: string) {
-    const cookieStore = cookies();
-    const supabase = createClient(cookieStore);
+    // [FIX] No arguments needed, createClient handles cookies internally now
+    const supabase = createClient();
     
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: 'Unauthorized' };
@@ -45,8 +44,8 @@ export async function quickSellItem(itemId: string, rarity: string) {
 }
 
 export async function breakdownItem(itemId: string, rarity: string) {
-    const cookieStore = cookies();
-    const supabase = createClient(cookieStore);
+    // [FIX] No arguments needed
+    const supabase = createClient();
     
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: 'Unauthorized' };
@@ -71,8 +70,8 @@ export async function breakdownItem(itemId: string, rarity: string) {
 }
 
 export async function listAuctionItem(itemId: string, startPrice: number, buyoutPrice: number, durationHours: number) {
-    const cookieStore = cookies();
-    const supabase = createClient(cookieStore);
+    // [FIX] No arguments needed
+    const supabase = createClient();
     
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: 'Unauthorized' };

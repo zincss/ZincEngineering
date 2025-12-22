@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { createClient } from '@/utils/supabase/client';
 import { User, Session, AuthChangeEvent, AuthError, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
+// ... (Keep your Profile and AuthContextType definitions the same) ...
 type Profile = {
   username: string;
   credits: number;
@@ -23,13 +24,20 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  // [CRITICAL FIX 1] Initialize client once to prevent re-renders triggering infinite loops
+// [UPDATE] Add initialUser prop here
+export const AuthProvider = ({ 
+  children, 
+  initialUser 
+}: { 
+  children: React.ReactNode; 
+  initialUser: User | null;
+}) => {
   const [supabase] = useState(() => createClient());
   
-  const [user, setUser] = useState<User | null>(null);
+  // [UPDATE] Initialize state with the user passed from the server
+  const [user, setUser] = useState<User | null>(initialUser);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialUser);
   
   const isFetchingRef = useRef(false);
 
@@ -46,8 +54,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         if (data) {
             setProfile(data as Profile);
-        } else if (error) {
-            console.warn("Profile sync warning:", error.message);
         }
     } catch (error) {
         console.error("Profile fetch error:", error);
@@ -56,29 +62,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [supabase]);
 
-  // --- 1. AUTH STATE LISTENER ---
+  // [UPDATE] Immediate profile fetch if initialUser exists
+  useEffect(() => {
+    if (initialUser) {
+      fetchProfile(initialUser.id);
+    }
+  }, [initialUser, fetchProfile]);
+
   useEffect(() => {
     let mounted = true;
 
     const checkSession = async () => {
         try {
-            // [CRITICAL FIX 2] Use getSession first for speed/persistence
             const { data: { session } } = await supabase.auth.getSession();
             
             if (session?.user) {
                  if (mounted) {
-                   setUser(session.user);
-                   await fetchProfile(session.user.id);
+                   // Only update if different to prevent re-renders
+                   if (session.user.id !== user?.id) {
+                     setUser(session.user);
+                     await fetchProfile(session.user.id);
+                   }
                  }
-                 
-                 // [TS ERROR FIX] Explicitly type the response here
-                 supabase.auth.getUser().then(({ data, error }: { data: { user: User | null }; error: AuthError | null }) => {
-                    if (error || !data.user) {
-                        console.warn("Token invalid, session might be stale");
-                        // Optional: Force logout if strictly required
-                        // if (mounted) setUser(null); 
-                    }
-                 });
             }
         } catch (e) {
             console.error("Session check failed", e);
@@ -87,20 +92,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
     
-    checkSession();
+    if (!initialUser) {
+      checkSession();
+    }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
       if (!mounted) return;
       
       const currentUser = session?.user ?? null;
 
-      if (event === 'SIGNED_OUT' || !currentUser) {
+      if (event === 'SIGNED_OUT') {
           setUser(null);
           setProfile(null);
           setLoading(false);
-      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           setUser(currentUser);
-          await fetchProfile(currentUser.id);
+          if (currentUser) await fetchProfile(currentUser.id);
           setLoading(false);
       }
     });
@@ -109,8 +116,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         mounted = false;
         subscription.unsubscribe();
     };
-  }, [supabase, fetchProfile]);
+  }, [supabase, fetchProfile, initialUser, user?.id]);
 
+  // ... (Keep real-time sync, signIn, signOut, return logic exactly the same) ...
+  // Re-paste the rest of your logic here (Realtime sync, signIn, signOut)
+  
   // --- 2. MULTI-DEVICE REALTIME SYNC ---
   useEffect(() => {
     if (!user) return;

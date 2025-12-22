@@ -1,9 +1,10 @@
 'use client'
 
 import { ThemeProvider } from 'next-themes'
-import { AuthProvider } from './context/AuthContext' // Import this
+import { AuthProvider } from './context/AuthContext'
 
-export function Providers({ children }: { children: React.ReactNode }) {
+// [UPDATE] Accept initialUser prop
+export function Providers({ children, initialUser }: { children: React.ReactNode, initialUser: any }) {
   return (
     <ThemeProvider 
       attribute="class" 
@@ -11,7 +12,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       forcedTheme="dark" 
       enableSystem={false}
     >
-      <AuthProvider> {/* Wrap here */}
+      <AuthProvider initialUser={initialUser}>
         {children}
       </AuthProvider>
     </ThemeProvider>
