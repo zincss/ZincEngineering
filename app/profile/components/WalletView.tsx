@@ -172,13 +172,13 @@ export function WalletView({ profile, onRefresh }: WalletViewProps) {
     };
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
             
             {/* LEFT COLUMN: BALANCE & TRANSFER */}
             <div className="lg:col-span-5 space-y-6">
                 
                 {/* BALANCE CARD */}
-                <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-zinc-900 to-zinc-950 border border-zinc-800 p-8 shadow-2xl">
+                <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-zinc-900 to-zinc-950 border border-zinc-800 p-6 md:p-8 shadow-2xl">
                     <div className="absolute top-0 right-0 p-8 opacity-10">
                         <Coins size={120} />
                     </div>
@@ -199,7 +199,7 @@ export function WalletView({ profile, onRefresh }: WalletViewProps) {
                 </div>
 
                 {/* TRANSFER FORM */}
-                <div className="rounded-[2rem] bg-zinc-900/50 border border-zinc-800 p-8 backdrop-blur-sm relative">
+                <div className="rounded-[2rem] bg-zinc-900/50 border border-zinc-800 p-6 md:p-8 backdrop-blur-sm relative">
                     <div className="flex items-center gap-3 mb-6">
                         <div className="p-2 rounded-full bg-[#DFFF00]/10 text-[#DFFF00]">
                             <Send size={18} />
@@ -270,7 +270,7 @@ export function WalletView({ profile, onRefresh }: WalletViewProps) {
                         <button 
                             type="submit" 
                             disabled={sending || !amount || !recipient}
-                            className="w-full bg-[#DFFF00] hover:bg-white text-black font-black uppercase py-4 rounded-xl transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4"
+                            className="w-full bg-[#DFFF00] hover:bg-white text-black font-black uppercase py-4 rounded-xl transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4"
                         >
                             {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                             {sending ? 'Processing...' : 'Initiate Transfer'}
@@ -281,7 +281,7 @@ export function WalletView({ profile, onRefresh }: WalletViewProps) {
 
             {/* RIGHT COLUMN: HISTORY */}
             <div className="lg:col-span-7">
-                <div className="h-full rounded-[2rem] bg-zinc-900/30 border border-zinc-800 p-8 flex flex-col">
+                <div className="h-full rounded-[2rem] bg-zinc-900/30 border border-zinc-800 p-6 md:p-8 flex flex-col">
                     <div className="flex items-center justify-between mb-8">
                         <div className="flex items-center gap-3">
                             <div className="p-2 rounded-full bg-zinc-800 text-zinc-400">
@@ -316,21 +316,21 @@ export function WalletView({ profile, onRefresh }: WalletViewProps) {
                                         key={tx.id} 
                                         className="group flex items-center justify-between p-4 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-600 transition-all hover:bg-zinc-900"
                                     >
-                                        <div className="flex items-center gap-4">
-                                            <div className={`p-3 rounded-full ${isReceived ? 'bg-emerald-900/20 text-emerald-500' : 'bg-red-900/20 text-red-500'}`}>
+                                        <div className="flex items-center gap-3 md:gap-4">
+                                            <div className={`p-2 md:p-3 rounded-full ${isReceived ? 'bg-emerald-900/20 text-emerald-500' : 'bg-red-900/20 text-red-500'}`}>
                                                 {icon}
                                             </div>
                                             <div>
-                                                <div className="text-sm font-bold text-white">
+                                                <div className="text-sm font-bold text-white truncate max-w-[140px] md:max-w-none">
                                                     {label} <span className="text-zinc-400">{partyName}</span>
                                                 </div>
                                                 <div className="text-[10px] font-mono text-zinc-500 uppercase mt-1">
-                                                    {new Date(tx.created_at).toLocaleDateString()} • {new Date(tx.created_at).toLocaleTimeString()}
+                                                    {new Date(tx.created_at).toLocaleDateString()}
                                                 </div>
                                             </div>
                                         </div>
                                         
-                                        <div className={`font-mono font-black text-lg ${isReceived ? 'text-emerald-500' : 'text-zinc-500'}`}>
+                                        <div className={`font-mono font-black text-base md:text-lg ${isReceived ? 'text-emerald-500' : 'text-zinc-500'}`}>
                                             {isReceived ? '+' : '-'}{tx.amount.toLocaleString()}
                                         </div>
                                     </div>

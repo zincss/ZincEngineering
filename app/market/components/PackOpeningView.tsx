@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { 
     Layers, Grid3X3, Info, Lock, Zap, CarFront, Loader2, X, Sparkles, Cpu, 
@@ -414,6 +414,20 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
         return 6000;
     };
 
+    // --- SCROLL TO CENTER LOGIC ---
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+    const selectPack = (packId: any) => {
+        setSelectedPack(packId);
+        setShowInfo(false);
+        
+        // Scroll to center logic
+        const element = document.getElementById(`pack-${packId}`);
+        if (element && scrollContainerRef.current) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+    };
+
     const handleOpenPack = async () => {
         if (authLoading || !profile || profile.credits < cost || currentConfig.comingSoon) return;
         
@@ -572,9 +586,18 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
             <AnimatePresence>
                 {stage === 'IDLE' && (
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, filter: 'blur(10px)' }} className="w-full max-w-4xl flex flex-col items-center z-10">
-                        <div className="flex items-center gap-8 mb-12 h-[350px] w-full overflow-x-auto no-scrollbar snap-x snap-mandatory px-4 md:justify-center">
+                        {/* PACK SELECTION SCROLL - OPTIMIZED FOR MOBILE */}
+                        <div 
+                            ref={scrollContainerRef}
+                            className="flex items-center gap-8 mb-8 md:mb-12 h-[350px] w-full overflow-x-auto no-scrollbar snap-x snap-mandatory px-[calc(50%-6rem)] md:px-4 md:justify-center scroll-smooth"
+                        >
                             {['BASE', 'CARS', 'GRIDIRON', 'TEST'].map((packId) => (
-                                <div key={packId} onClick={() => { setSelectedPack(packId as any); setShowInfo(false); }} className="cursor-pointer snap-center shrink-0">
+                                <div 
+                                    key={packId} 
+                                    id={`pack-${packId}`}
+                                    onClick={() => selectPack(packId as any)} 
+                                    className="cursor-pointer snap-center shrink-0 transition-transform duration-300 active:scale-95"
+                                >
                                     <FoilPack config={PACK_CONFIG[packId as keyof typeof PACK_CONFIG]} isSelected={selectedPack === packId} />
                                 </div>
                             ))}

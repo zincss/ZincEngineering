@@ -34,22 +34,22 @@ export default function ProfilePage() {
           <ProfileHeader profile={profile} inventoryCount={0} />
           
           {/* BASE CAMP BUTTON (ABSOLUTE TOP RIGHT) */}
-          <div className="absolute top-6 right-6 md:top-8 md:right-8 z-20">
+          <div className="absolute top-4 right-4 md:top-8 md:right-8 z-20">
               <button 
                 onClick={() => setShowBaseCamp(true)}
-                className="group relative flex items-center gap-2 px-4 py-2 bg-zinc-900/80 backdrop-blur border border-zinc-700 rounded-full hover:border-[#DFFF00] hover:bg-black transition-all shadow-lg overflow-hidden"
+                className="group relative flex items-center gap-2 px-3 py-2 md:px-4 md:py-2 bg-zinc-900/80 backdrop-blur border border-zinc-700 rounded-full hover:border-[#DFFF00] hover:bg-black transition-all shadow-lg overflow-hidden"
               >
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#DFFF00]/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                   <Tent size={14} className="text-[#DFFF00]" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-zinc-300 group-hover:text-white">Base Camp</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-zinc-300 group-hover:text-white hidden sm:inline">Base Camp</span>
               </button>
           </div>
       </div>
 
       <main className="max-w-[1600px] mx-auto px-4 md:px-6 relative z-10">
         
-        {/* CLEAN TAB NAVIGATION */}
-        <div className="flex border-b border-zinc-800 mb-8 overflow-x-auto no-scrollbar">
+        {/* CLEAN TAB NAVIGATION - MOBILE OPTIMIZED */}
+        <div className="flex border-b border-zinc-800 mb-8 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
           {TABS.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -57,7 +57,7 @@ export default function ProfilePage() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
                 className={`
-                  relative flex items-center gap-2 px-6 py-4 transition-all whitespace-nowrap outline-none
+                  relative flex items-center gap-2 px-6 py-4 transition-all whitespace-nowrap outline-none shrink-0
                   ${isActive ? 'text-[#DFFF00]' : 'text-zinc-500 hover:text-zinc-300'}
                 `}
               >
@@ -87,7 +87,7 @@ export default function ProfilePage() {
       {showBaseCamp && (
           <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col animate-in fade-in duration-200">
               {/* MODAL HEADER */}
-              <div className="flex justify-between items-center p-6 border-b border-zinc-800 bg-zinc-950">
+              <div className="flex justify-between items-center p-4 md:p-6 border-b border-zinc-800 bg-zinc-950">
                   <div className="flex items-center gap-4">
                       <div className="p-3 bg-zinc-900 rounded-full border border-zinc-800 text-[#DFFF00]">
                         <Tent size={24} />

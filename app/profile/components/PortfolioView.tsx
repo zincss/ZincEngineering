@@ -66,7 +66,7 @@ export const PortfolioView = ({ userId }: { userId: string }) => {
   if (loading) return <div className="p-12 text-center text-zinc-500 animate-pulse font-mono tracking-widest">LOADING ASSETS...</div>;
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
         
         {/* HEADER SUMMARY SECTION */}
         <div className="flex flex-col md:flex-row gap-4 mb-8">
@@ -89,15 +89,17 @@ export const PortfolioView = ({ userId }: { userId: string }) => {
             </div>
 
             {/* EXCHANGE LINK CARD */}
-            <Link href="/play/stocks" className="bg-zinc-900/50 border border-zinc-800 hover:border-[#DFFF00] p-6 rounded-2xl flex flex-col justify-center items-center gap-3 group transition-all cursor-pointer md:w-64">
-                <div className="p-3 rounded-full bg-zinc-800 text-zinc-400 group-hover:bg-[#DFFF00] group-hover:text-black transition-colors">
-                    <TrendingUp size={24} />
+            <Link href="/play/stocks" className="bg-zinc-900/50 border border-zinc-800 hover:border-[#DFFF00] p-6 rounded-2xl flex md:flex-col items-center justify-between md:justify-center gap-3 group transition-all cursor-pointer w-full md:w-64">
+                <div className="flex items-center gap-4 md:flex-col">
+                    <div className="p-3 rounded-full bg-zinc-800 text-zinc-400 group-hover:bg-[#DFFF00] group-hover:text-black transition-colors">
+                        <TrendingUp size={24} />
+                    </div>
+                    <div className="text-left md:text-center">
+                        <div className="font-bold text-white group-hover:text-[#DFFF00] transition-colors">ZINC EXCHANGE</div>
+                        <div className="text-[10px] text-zinc-500 font-mono uppercase mt-1">Trade Stocks & Assets</div>
+                    </div>
                 </div>
-                <div className="text-center">
-                    <div className="font-bold text-white group-hover:text-[#DFFF00] transition-colors">ZINC EXCHANGE</div>
-                    <div className="text-[10px] text-zinc-500 font-mono uppercase mt-1">Trade Stocks & Assets</div>
-                </div>
-                <ExternalLink size={14} className="text-zinc-600 group-hover:text-white absolute top-4 right-4" />
+                <ExternalLink size={14} className="text-zinc-600 group-hover:text-white md:absolute md:top-4 md:right-4" />
             </Link>
         </div>
 
@@ -112,7 +114,7 @@ export const PortfolioView = ({ userId }: { userId: string }) => {
             </div>
         ) : (
             <div className="grid gap-3">
-                <div className="flex items-center justify-between px-4 pb-2 text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+                <div className="flex items-center justify-between px-4 pb-2 text-[10px] font-mono text-zinc-500 uppercase tracking-widest hidden md:flex">
                     <span>Asset</span>
                     <span className="text-right">Performance</span>
                 </div>
@@ -120,13 +122,13 @@ export const PortfolioView = ({ userId }: { userId: string }) => {
                 {portfolio.map((stock) => (
                     <div key={stock.ticker} className="group bg-zinc-900/50 border border-zinc-800 hover:border-zinc-600 p-4 rounded-xl flex items-center justify-between transition-all">
                         <div className="flex items-center gap-4">
-                            <div className="bg-black border border-zinc-800 p-3 rounded-lg text-[#DFFF00] font-black font-mono text-lg w-16 text-center group-hover:border-[#DFFF00]/50 transition-colors">
+                            <div className="bg-black border border-zinc-800 p-3 rounded-lg text-[#DFFF00] font-black font-mono text-lg w-14 md:w-16 text-center group-hover:border-[#DFFF00]/50 transition-colors">
                                 {stock.ticker}
                             </div>
                             <div>
                                 <div className="font-bold text-white text-sm md:text-base">{stock.name}</div>
                                 <div className="text-[10px] text-zinc-500 font-mono uppercase">
-                                    {stock.quantity} Shares @ {stock.avg_price?.toFixed(2) ?? '0.00'} CR
+                                    {stock.quantity} Shares <span className="hidden md:inline">@ {stock.avg_price?.toFixed(2) ?? '0.00'} CR</span>
                                 </div>
                             </div>
                         </div>
@@ -135,7 +137,7 @@ export const PortfolioView = ({ userId }: { userId: string }) => {
                             <div className="text-base md:text-lg font-mono font-bold text-white">{stock.value.toFixed(0)} CR</div>
                             <div className={`flex items-center justify-end gap-1 text-xs font-mono font-bold ${stock.gainPercent >= 0 ? 'text-[#DFFF00]' : 'text-red-500'}`}>
                                 {stock.gainPercent >= 0 ? '+' : ''}{stock.gainPercent.toFixed(2)}%
-                                ({stock.gainValue >= 0 ? '+' : ''}{stock.gainValue.toFixed(0)})
+                                <span className="hidden md:inline">({stock.gainValue >= 0 ? '+' : ''}{stock.gainValue.toFixed(0)})</span>
                             </div>
                         </div>
                     </div>

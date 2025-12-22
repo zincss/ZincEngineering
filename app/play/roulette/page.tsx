@@ -228,25 +228,26 @@ export default function RoulettePage() {
       </header>
 
       {/* --- CONTENT --- */}
-      <div className="flex-1 flex flex-col lg:flex-row items-center lg:items-start justify-center gap-8 lg:gap-12 p-4 lg:px-12 relative z-10 h-auto w-full max-w-[1400px] mx-auto">
+      <div className="flex-1 flex flex-col lg:flex-row items-center lg:items-start justify-center gap-6 lg:gap-12 p-2 lg:px-12 relative z-10 h-auto w-full max-w-[1400px] mx-auto">
         
         {/* === LEFT: WHEEL === */}
         <div ref={wheelRef} className="flex-none flex flex-col items-center justify-center w-full max-w-[500px] lg:sticky lg:top-24">
            
-           <div className="relative aspect-square w-[280px] sm:w-[380px] lg:w-[480px] scale-90 sm:scale-100 transition-transform">
+           {/* SCALED DOWN WHEEL FOR MOBILE */}
+           <div className="relative aspect-square w-[220px] xs:w-[260px] sm:w-[380px] lg:w-[480px] transition-transform">
               {/* Outer Housing */}
-              <div className="absolute inset-0 rounded-full bg-zinc-950 border-[12px] border-zinc-900 shadow-2xl flex items-center justify-center z-0 ring-1 ring-white/10">
+              <div className="absolute inset-0 rounded-full bg-zinc-950 border-[8px] sm:border-[12px] border-zinc-900 shadow-2xl flex items-center justify-center z-0 ring-1 ring-white/10">
                  <div className="absolute inset-[-4px] rounded-full border border-[#DFFF00]/20" />
               </div>
               {/* Indicator */}
               <div className="absolute -top-1 left-1/2 -translate-x-1/2 z-30 drop-shadow-[0_4px_6px_rgba(0,0,0,1)]">
-                 <div className="w-6 h-8 bg-[#DFFF00] clip-path-triangle shadow-[0_0_20px_#DFFF00]" style={{ clipPath: 'polygon(50% 100%, 0 0, 100% 0)' }} />
+                 <div className="w-4 h-6 sm:w-6 sm:h-8 bg-[#DFFF00] clip-path-triangle shadow-[0_0_20px_#DFFF00]" style={{ clipPath: 'polygon(50% 100%, 0 0, 100% 0)' }} />
               </div>
 
               {/* SPINNING WHEEL */}
               <motion.div 
                  animate={controls}
-                 className="absolute inset-[16px] rounded-full overflow-hidden bg-zinc-900"
+                 className="absolute inset-[10px] sm:inset-[16px] rounded-full overflow-hidden bg-zinc-900"
                  style={{ background: wheelGradient, rotate: rotationRef.current }}
               >
                  <div className="absolute inset-0 rounded-full">
@@ -255,25 +256,25 @@ export default function RoulettePage() {
                        return (
                           <div 
                              key={i}
-                             className="absolute top-0 left-[calc(50%-1px)] h-[50%] w-[2px] origin-bottom flex justify-center pt-2"
+                             className="absolute top-0 left-[calc(50%-1px)] h-[50%] w-[2px] origin-bottom flex justify-center pt-1 sm:pt-2"
                              style={{ transform: `rotate(${angle}deg)` }}
                           >
-                             <span className="block text-white font-black text-[10px] sm:text-xs lg:text-sm transform" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>{num}</span>
+                             <span className="block text-white font-black text-[8px] sm:text-xs lg:text-sm transform" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>{num}</span>
                           </div>
                        )
                     })}
                  </div>
                  {/* Hub */}
                  <div className="absolute inset-[35%] rounded-full bg-gradient-to-br from-zinc-800 to-black border-4 border-zinc-700 shadow-2xl flex items-center justify-center z-20">
-                    <div className="w-16 h-16 rounded-full border border-white/5 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-800 to-zinc-950 flex items-center justify-center">
-                       <div className="w-4 h-4 rounded-full bg-[#DFFF00] animate-pulse shadow-[0_0_15px_#DFFF00]" />
+                    <div className="w-10 h-10 sm:w-16 sm:h-16 rounded-full border border-white/5 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-800 to-zinc-950 flex items-center justify-center">
+                       <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-[#DFFF00] animate-pulse shadow-[0_0_15px_#DFFF00]" />
                     </div>
                  </div>
               </motion.div>
            </div>
 
            {/* STATUS */}
-           <div className="mt-4 md:mt-8 h-16 flex flex-col items-center justify-center">
+           <div className="mt-4 md:mt-8 h-12 flex flex-col items-center justify-center">
               <AnimatePresence mode="wait">
                  {isSpinning ? (
                     <motion.div 
@@ -302,9 +303,9 @@ export default function RoulettePage() {
         </div>
 
         {/* === RIGHT: TABLE === */}
-        <div className="flex-1 w-full max-w-[600px] flex flex-col pb-12 lg:pb-0">
+        <div className="flex-1 w-full max-w-[600px] flex flex-col pb-24 lg:pb-0">
            
-           <div className="bg-zinc-900/40 border border-white/5 rounded-2xl p-4 lg:p-6 backdrop-blur-md flex flex-col shadow-2xl">
+           <div className="bg-zinc-900/40 border border-white/5 rounded-2xl p-2 sm:p-4 lg:p-6 backdrop-blur-md flex flex-col shadow-2xl">
               
               {/* CHIPS */}
               <div className="flex justify-center gap-2 md:gap-3 mb-4 pb-4 border-b border-white/5 overflow-x-auto no-scrollbar py-2">
@@ -313,10 +314,10 @@ export default function RoulettePage() {
                  ))}
               </div>
 
-              {/* TABLE LAYOUT */}
-              <div className="flex-1 flex flex-col gap-1 select-none overflow-hidden min-h-[300px] md:min-h-[400px]">
+              {/* TABLE LAYOUT - COMPACT ON MOBILE */}
+              <div className="flex-1 flex flex-col gap-1 select-none overflow-hidden h-[350px] sm:min-h-[400px]">
                  
-                 <div className="flex-1 grid grid-cols-[3rem_1fr] gap-1 max-h-[400px]">
+                 <div className="flex-1 grid grid-cols-[2.5rem_1fr] sm:grid-cols-[3rem_1fr] gap-1 h-[220px] sm:max-h-[400px]">
                     
                     {/* ZERO - STRICT WIDTH */}
                     <BetCell 
@@ -344,7 +345,7 @@ export default function RoulettePage() {
                                  colorType={RED_NUMBERS.includes(num) ? 'red' : 'black'}
                                  chipAmount={getBetAmount('STRAIGHT', num)}
                                  onClick={() => placeBet('STRAIGHT', num)}
-                                 className="h-full rounded-sm hover:brightness-125 min-h-[32px] md:min-h-0"
+                                 className="h-full rounded-sm hover:brightness-125 min-h-[24px] sm:min-h-[32px] md:min-h-0"
                               />
                            )
                         })}
@@ -352,7 +353,7 @@ export default function RoulettePage() {
                  </div>
 
                  {/* DOZENS */}
-                 <div className="grid grid-cols-[3rem_1fr] gap-1 h-12 shrink-0">
+                 <div className="grid grid-cols-[2.5rem_1fr] sm:grid-cols-[3rem_1fr] gap-1 h-10 sm:h-12 shrink-0">
                     <div /> {/* Spacer for Zero */}
                     <div className="grid grid-cols-3 gap-1">
                        <BetCell label="1st 12" subLabel="2:1" chipAmount={getBetAmount('DOZEN_1', '1')} onClick={() => placeBet('DOZEN_1', '1')} />
@@ -362,7 +363,7 @@ export default function RoulettePage() {
                  </div>
 
                  {/* SIDE BETS */}
-                 <div className="grid grid-cols-[3rem_1fr] gap-1 h-12 shrink-0">
+                 <div className="grid grid-cols-[2.5rem_1fr] sm:grid-cols-[3rem_1fr] gap-1 h-10 sm:h-12 shrink-0">
                     <div /> {/* Spacer for Zero */}
                     <div className="grid grid-cols-6 gap-1">
                        <BetCell label="1-18" subLabel="1:1" chipAmount={getBetAmount('LOW', 'L')} onClick={() => placeBet('LOW', 'L')} className="rounded-bl-lg" />
@@ -377,25 +378,25 @@ export default function RoulettePage() {
               </div>
 
               {/* CONTROLS */}
-              <div className="mt-4 flex items-center gap-3 sticky bottom-0 z-10">
+              <div className="mt-2 sm:mt-4 flex items-center gap-3 sticky bottom-0 z-10">
                  <button 
                     onClick={undoLastBet} disabled={isSpinning || bets.length === 0}
-                    className="h-12 w-12 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 disabled:opacity-50 border border-white/5 transition-colors"
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 disabled:opacity-50 border border-white/5 transition-colors"
                  >
-                    <RotateCcw size={18} />
+                    <RotateCcw size={16} />
                  </button>
                  <button 
                     onClick={clearBets} disabled={isSpinning || bets.length === 0}
-                    className="h-12 w-12 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 disabled:opacity-50 border border-white/5 transition-colors"
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 disabled:opacity-50 border border-white/5 transition-colors"
                  >
-                    <RefreshCw size={18} />
+                    <RefreshCw size={16} />
                  </button>
 
                  <button
                     onClick={handleSpin}
                     disabled={isSpinning || bets.length === 0}
                     className={`
-                       flex-1 h-12 rounded-xl font-black uppercase tracking-widest text-sm transition-all flex items-center justify-center gap-2
+                       flex-1 h-10 sm:h-12 rounded-xl font-black uppercase tracking-widest text-xs sm:text-sm transition-all flex items-center justify-center gap-2
                        ${isSpinning 
                           ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' 
                           : 'bg-[#DFFF00] text-black hover:bg-white hover:scale-[1.01] shadow-[0_0_20px_rgba(223,255,0,0.15)]'

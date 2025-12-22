@@ -2,13 +2,18 @@
 
 import React, { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { Loader2, Search, Box, Grid, BookOpen, ChevronDown, ChevronUp, CheckCircle2 } from 'lucide-react'; // Added CheckCircle2
+import { Loader2, Search, Box, Grid, BookOpen, ChevronDown, ChevronUp, CheckCircle2 } from 'lucide-react';
 import { ItemDetailModal } from './ItemDetailModal';
 import { TradingCard } from '@/app/market/components/TradingCard'; 
 
 // Import Source Data
 import { CARS } from '@/app/automotive/data';
-import { REEL_ITEMS_SOURCE, FLAIR_ITEMS_SOURCE, CAR_PACK_SOURCE } from '@/app/market/components/shared';
+import { 
+    REEL_ITEMS_SOURCE, 
+    FLAIR_ITEMS_SOURCE, 
+    CAR_PACK_SOURCE,
+    GRIDIRON_PACK_SOURCE // Added Import
+} from '@/app/market/components/shared';
 
 // Rarity Ranker for Sorting
 const RARITY_RANK: Record<string, number> = {
@@ -62,6 +67,9 @@ export default function InventoryView({ user }: { user: any }) {
 
   // --- COLLECTION LOGIC ---
   const generateCollection = (title: string, sourceList: any[], type: string) => {
+      // Safety check if sourceList is undefined
+      if (!sourceList) return { id: title, title, total: 0, collected: 0, grid: [] };
+
       const total = sourceList.length;
       let collected = 0;
 
@@ -89,6 +97,7 @@ export default function InventoryView({ user }: { user: any }) {
   const COLLECTIONS = [
       generateCollection("Base Set // Series 1", REEL_ITEMS_SOURCE, 'ITEM'),
       generateCollection("Automotive Legends", CAR_PACK_SOURCE, 'CAR'),
+      generateCollection("Gridiron Legends", GRIDIRON_PACK_SOURCE, 'GRIDIRON'), // Added Collection
       generateCollection("Profile Flair", FLAIR_ITEMS_SOURCE, 'FLAIR'),
   ];
 
@@ -102,17 +111,17 @@ export default function InventoryView({ user }: { user: any }) {
     <div className="w-full">
       
       {/* VIEW TOGGLE */}
-      <div className="sticky top-0 z-30 bg-zinc-950/95 backdrop-blur-md pt-2 pb-6 mb-6 flex flex-col gap-4 border-b border-zinc-800/50">
-         <div className="flex bg-zinc-900 p-1 rounded-xl border border-zinc-800 self-start">
+      <div className="sticky top-0 z-30 bg-zinc-950/95 backdrop-blur-md pt-2 pb-4 mb-6 flex flex-col gap-4 border-b border-zinc-800/50">
+         <div className="flex bg-zinc-900 p-1 rounded-xl border border-zinc-800 self-start w-full md:w-auto overflow-x-auto no-scrollbar">
              <button 
                 onClick={() => setViewMode('VAULT')}
-                className={`flex items-center gap-2 px-4 md:px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'VAULT' ? 'bg-[#DFFF00] text-black shadow-lg' : 'text-zinc-500 hover:text-white'}`}
+                className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-3 md:py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${viewMode === 'VAULT' ? 'bg-[#DFFF00] text-black shadow-lg' : 'text-zinc-500 hover:text-white'}`}
              >
                 <Grid size={14}/> My Vault ({items.length})
              </button>
              <button 
                 onClick={() => setViewMode('COLLECTIONS')}
-                className={`flex items-center gap-2 px-4 md:px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'COLLECTIONS' ? 'bg-[#DFFF00] text-black shadow-lg' : 'text-zinc-500 hover:text-white'}`}
+                className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-3 md:py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${viewMode === 'COLLECTIONS' ? 'bg-[#DFFF00] text-black shadow-lg' : 'text-zinc-500 hover:text-white'}`}
              >
                 <BookOpen size={14}/> Collections
              </button>
@@ -137,9 +146,9 @@ export default function InventoryView({ user }: { user: any }) {
                 <p className="text-xs uppercase tracking-widest">No Assets Found</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pb-20">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 pb-20">
                 {items.filter(i => i.item_templates.name.toLowerCase().includes(search.toLowerCase())).map((item) => (
-                    <div key={item.id} onClick={() => setSelectedItem(item)} className="cursor-pointer hover:scale-105 transition-transform duration-300">
+                    <div key={item.id} onClick={() => setSelectedItem(item)} className="cursor-pointer active:scale-95 hover:scale-105 transition-transform duration-200 tap-highlight-transparent">
                         <TradingCard item={{
                             name: item.item_templates.name,
                             rarity: item.item_templates.rarity,
@@ -157,20 +166,20 @@ export default function InventoryView({ user }: { user: any }) {
 
       {/* --- VIEW: COLLECTIONS --- */}
       {viewMode === 'COLLECTIONS' && (
-          <div className="space-y-8 pb-20">
+          <div className="space-y-6 md:space-y-8 pb-20">
               {COLLECTIONS.map((col) => {
                   const isCollapsed = collapsedSets[col.id];
-                  const percent = Math.round((col.collected / col.total) * 100);
+                  const percent = col.total > 0 ? Math.round((col.collected / col.total) * 100) : 0;
 
                   return (
                     <div key={col.id} className="relative bg-zinc-900/20 border border-zinc-800 rounded-2xl overflow-hidden">
                         {/* Section Header */}
                         <div 
-                            className="flex items-center justify-between p-4 cursor-pointer hover:bg-zinc-900/50 transition-colors"
+                            className="flex flex-col md:flex-row md:items-center justify-between p-4 cursor-pointer hover:bg-zinc-900/50 transition-colors gap-4 md:gap-0"
                             onClick={() => toggleSet(col.id)}
                         >
                             <div className="flex flex-col gap-1">
-                                <h3 className="text-lg md:text-xl font-black text-white uppercase tracking-tighter flex items-center gap-2">
+                                <h3 className="text-base md:text-xl font-black text-white uppercase tracking-tighter flex items-center gap-2">
                                     {col.title}
                                     {percent === 100 && <CheckCircle2 size={16} className="text-[#DFFF00]" />}
                                 </h3>
@@ -181,13 +190,13 @@ export default function InventoryView({ user }: { user: any }) {
                                 </div>
                             </div>
                             
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
                                 {/* Progress Bar */}
-                                <div className="hidden md:block w-32 h-1.5 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800">
+                                <div className="w-full md:w-32 h-1.5 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800">
                                     <div className={`h-full transition-all duration-1000 ${percent === 100 ? 'bg-[#DFFF00]' : 'bg-zinc-600'}`} style={{ width: `${percent}%` }} />
                                 </div>
                                 
-                                <div className={`p-2 rounded-full bg-zinc-900 border border-zinc-800 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`}>
+                                <div className={`p-2 rounded-full bg-zinc-900 border border-zinc-800 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''} shrink-0`}>
                                     <ChevronUp size={16} className="text-zinc-400" />
                                 </div>
                             </div>
@@ -196,11 +205,11 @@ export default function InventoryView({ user }: { user: any }) {
                         {/* The Grid (Collapsible) */}
                         {!isCollapsed && (
                             <div className="p-4 pt-0 border-t border-zinc-800/50 bg-zinc-950/30 animate-in slide-in-from-top-2 duration-300">
-                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4 mt-4">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4 mt-4">
                                     {col.grid.map((item: any, idx: number) => (
                                         <div 
                                             key={`${col.id}-${idx}`} 
-                                            className={`${item.isLocked ? 'opacity-60 pointer-events-none grayscale' : 'cursor-pointer hover:scale-105 transition-transform duration-300'}`} 
+                                            className={`${item.isLocked ? 'opacity-60 pointer-events-none grayscale' : 'cursor-pointer active:scale-95 hover:scale-105 transition-transform duration-200 tap-highlight-transparent'}`} 
                                             onClick={() => !item.isLocked && setSelectedItem(items.find(i => i.item_templates.name === item.name))}
                                         >
                                             <TradingCard item={item} isLocked={item.isLocked} />
