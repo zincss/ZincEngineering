@@ -1,7 +1,6 @@
 'use server'
 
 import { createClient } from '@/utils/supabase/server';
-import { cookies } from 'next/headers';
 import { getCurrentPrice } from './utils';
 import { revalidatePath } from 'next/cache';
 
@@ -28,8 +27,8 @@ export async function getMarketStatus() {
 
 // Fetch user's portfolio
 export async function getPortfolio() {
-  const cookieStore = cookies();
-  const supabase = createClient(cookieStore);
+  // [FIX] No arguments needed
+  const supabase = createClient();
   
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
@@ -49,8 +48,8 @@ export async function getPortfolio() {
 
 // Buy Stock via Secure RPC
 export async function buyStock(ticker: string, quantity: number) {
-  const cookieStore = cookies();
-  const supabase = createClient(cookieStore);
+  // [FIX] No arguments needed
+  const supabase = createClient();
   
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Unauthorized' };
@@ -74,8 +73,8 @@ export async function buyStock(ticker: string, quantity: number) {
 
 // Sell Stock via Secure RPC
 export async function sellStock(ticker: string, quantity: number) {
-  const cookieStore = cookies();
-  const supabase = createClient(cookieStore);
+  // [FIX] No arguments needed
+  const supabase = createClient();
   
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Unauthorized' };

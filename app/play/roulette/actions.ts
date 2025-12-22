@@ -1,13 +1,12 @@
 'use server'
 
 import { createClient } from '@/utils/supabase/server';
-import { cookies } from 'next/headers';
 import { calculateWinnings, Bet } from './utils';
 import { revalidatePath } from 'next/cache';
 
 export async function spinRoulette(bets: Bet[]) {
-  const cookieStore = cookies();
-  const supabase = createClient(cookieStore);
+  // [FIX] No arguments needed
+  const supabase = createClient();
   
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Unauthorized' };
@@ -34,7 +33,6 @@ export async function spinRoulette(bets: Bet[]) {
   const netChange = winnings - totalBet;
 
   // 5. Update Database
-  // ideally use an rpc, but standard update works for this scale
   const newBalance = profile.credits + netChange;
   
   const { error: updateError } = await supabase
