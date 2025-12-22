@@ -1,8 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { User, Session, AuthChangeEvent, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { User, Session, AuthChangeEvent, AuthError, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 type Profile = {
   username: string;
@@ -24,8 +24,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  // Uses the Singleton client from utils/supabase/client.ts
-  const supabase = createClient();
+  // [CRITICAL FIX 1] Initialize client once to prevent re-renders triggering infinite loops
+  const [supabase] = useState(() => createClient());
   
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -33,52 +33,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   
   const isFetchingRef = useRef(false);
 
-  // --- CORE FETCH LOGIC ---
-  const fetchProfile = useCallback(async (userId: string, retryCount = 0) => {
-    if (isFetchingRef.current && retryCount === 0) return;
+  const fetchProfile = useCallback(async (userId: string) => {
+    if (isFetchingRef.current) return;
     isFetchingRef.current = true;
 
     try {
-        // [STRICT CHECK]
-        // Instead of getSession() which trusts the cache, we use getUser().
-        // This forces a network call. If the token is revoked/invalid, this throws error.
-        const { data: { user: validUser }, error: authError } = await supabase.auth.getUser();
-        
-        if (authError || !validUser) {
-           throw new Error("Token is invalid on server. Forcing logout.");
-        }
-
-        // Fetch Profile Data
         const { data, error } = await supabase
         .from('profiles')
         .select('username, credits, role, created_at') 
         .eq('id', userId)
         .single();
         
-        if (error) {
-            console.warn(`Profile sync failed (Attempt ${retryCount + 1}):`, error.message);
-
-            // Retry Logic for network jitters
-            if (retryCount < 2) {
-                console.log("Retrying profile fetch...");
-                setTimeout(() => {
-                    isFetchingRef.current = false; 
-                    fetchProfile(userId, retryCount + 1);
-                }, 1000 * (retryCount + 1));
-                return;
-            }
-        }
-
         if (data) {
             setProfile(data as Profile);
+        } else if (error) {
+            console.warn("Profile sync warning:", error.message);
         }
     } catch (error) {
-        console.error("Critical Sync Error:", error);
-        // If getUser() failed, we are definitely not logged in.
-        setUser(null);
-        setProfile(null);
+        console.error("Profile fetch error:", error);
     } finally {
-        if (retryCount === 0) isFetchingRef.current = false;
+        isFetchingRef.current = false;
     }
   }, [supabase]);
 
@@ -88,22 +62,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const checkSession = async () => {
         try {
-            // [STRICT CHECK] Validate session with server immediately on mount
-            const { data: { user }, error } = await supabase.auth.getUser();
+            // [CRITICAL FIX 2] Use getSession first for speed/persistence
+            const { data: { session } } = await supabase.auth.getSession();
             
-            if (user && !error) {
-                 setUser(user);
-                 await fetchProfile(user.id);
-            } else {
-                 // Token is dead, clear everything
-                 setUser(null);
-                 setProfile(null);
+            if (session?.user) {
+                 if (mounted) {
+                   setUser(session.user);
+                   await fetchProfile(session.user.id);
+                 }
+                 
+                 // [TS ERROR FIX] Explicitly type the response here
+                 supabase.auth.getUser().then(({ data, error }: { data: { user: User | null }; error: AuthError | null }) => {
+                    if (error || !data.user) {
+                        console.warn("Token invalid, session might be stale");
+                        // Optional: Force logout if strictly required
+                        // if (mounted) setUser(null); 
+                    }
+                 });
             }
         } catch (e) {
-            setUser(null);
-            setProfile(null);
+            console.error("Session check failed", e);
         } finally {
-            setLoading(false);
+            if (mounted) setLoading(false);
         }
     };
     
@@ -147,7 +127,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .subscribe();
 
     const handleReconnection = () => {
-        // Wait 500ms for middleware to refresh cookie, then fetch
         setTimeout(() => {
              if (user) fetchProfile(user.id);
         }, 500);

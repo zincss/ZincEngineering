@@ -2,10 +2,8 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
+  let supabaseResponse = NextResponse.next({
+    request,
   })
 
   const supabase = createServerClient(
@@ -17,21 +15,26 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
+          // This updates the request cookies
           cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
+            request.cookies.set(name, value)
+          )
+          
+          supabaseResponse = NextResponse.next({
+            request,
+          })
+          
+          // This updates the response cookies (CRITICAL for persistence)
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
           )
         },
       },
     }
   )
 
-  await supabase.auth.getUser() // This refreshes the cookie!
+  // This will refresh the session if needed
+  await supabase.auth.getUser()
 
-  return response
+  return supabaseResponse
 }
