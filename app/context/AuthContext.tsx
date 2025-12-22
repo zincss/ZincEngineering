@@ -42,6 +42,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         if (error) {
             console.warn("Profile fetch warning:", error.message);
+            // Don't throw, allows retry on next pass
         }
 
         if (data) {
@@ -56,12 +57,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     let mounted = true;
 
-    // We can rely primarily on onAuthStateChange for all state updates
-    // including the initial load (INITIAL_SESSION)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       
-      // Handle Sign Out explicitly
+      const currentUser = session?.user ?? null;
+
+      // Handle explicit Sign Out
       if (event === 'SIGNED_OUT') {
           setUser(null);
           setProfile(null);
@@ -69,16 +70,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setLoading(false);
           return;
       }
-
-      const currentUser = session?.user ?? null;
       
       if (currentUser) {
           setUser(currentUser);
           
-          // FIX: Always fetch profile if we have a user and haven't fetched it yet.
-          // This covers INITIAL_SESSION, SIGNED_IN, and TOKEN_REFRESHED.
-          if (lastFetchedUserId.current !== currentUser.id) {
-             // Keep loading true while we fetch the profile to prevent "Ghost" UI flicker
+          // CRITICAL FIX: Retry fetch if profile is null (Ghost Profile Fix)
+          // This ensures that even if the first fetch failed, we try again.
+          if (lastFetchedUserId.current !== currentUser.id || !profile) {
              await fetchProfile(currentUser.id);
           }
       } else {
@@ -93,7 +91,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         mounted = false;
         subscription.unsubscribe();
     };
-  }, []);
+  }, []); // Empty dependency array ensures we only attach the listener once
 
   const refreshProfile = async () => {
     if (user) await fetchProfile(user.id);
@@ -110,12 +108,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (err) {
         console.error("Error during sign out:", err);
     } finally {
-        // FORCE CLEAR: Ensure local storage is wiped even if Supabase network call fails
-        // This fixes the "infinite loop" where you can't sign out in Brave/Safari
+        // FORCE CLEAR: Manually wipe storage to prevent "infinite loop" logout issues
         if (typeof window !== 'undefined') {
-            window.localStorage.removeItem('sb-' + process.env.NEXT_PUBLIC_SUPABASE_PROJECT_ID + '-auth-token');
-            // Or just clear everything if you don't use local storage for other things:
-            // window.localStorage.clear();
+            const projectId = process.env.NEXT_PUBLIC_SUPABASE_PROJECT_ID;
+            if (projectId) window.localStorage.removeItem(`sb-${projectId}-auth-token`);
+            // Fallback: Clear all if ID is missing or unknown
+            else window.localStorage.clear();
         }
 
         setUser(null);

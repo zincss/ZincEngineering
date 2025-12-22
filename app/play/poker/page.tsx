@@ -6,9 +6,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { Coins, User, Trophy, Cpu, LogOut, Loader2, RefreshCw, AlertTriangle, Smartphone } from 'lucide-react';
 import { createDeck, evaluateHand, getAIDecision, Card } from './poker-utils';
 
-// --- VISUAL COMPONENTS ---
-
-// Helper for haptics
+// ... (Visual Helpers remain the same) ...
 const vibrate = (pattern: number | number[] = 15) => {
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate(pattern);
@@ -143,14 +141,29 @@ export default function PokerPage() {
     const [aiRevealedHand, setAiRevealedHand] = useState(false);
     const [isLeaving, setIsLeaving] = useState(false);
     const [gameLog, setGameLog] = useState<string[]>([]);
+    const [processing, setProcessing] = useState(false);
 
     // --- LOGIC ---
-    const joinTable = (selectedTable: typeof TABLES[number]) => {
+
+    // SAFE JOIN: Deducts money immediately to ensure consistency
+    const joinTable = async (selectedTable: typeof TABLES[number]) => {
         vibrate();
         if (!profile || profile.credits < selectedTable.buyIn) {
             alert("Insufficient Funds");
             return;
         }
+
+        setProcessing(true);
+        // TRANSACTION 1: DEDUCT BUY-IN
+        const { error } = await supabase.rpc('add_credits', { amount: -selectedTable.buyIn });
+        
+        if (error) {
+            alert("Transaction failed. Please try again.");
+            setProcessing(false);
+            return;
+        }
+
+        await refreshProfile();
         setTable(selectedTable);
         setPlayers([
             { id: 0, name: profile.username, chips: selectedTable.buyIn, hand: [], currentBet: 0, folded: false, isBot: false, status: 'WAITING' },
@@ -159,6 +172,7 @@ export default function PokerPage() {
             { id: 3, name: 'Bot Gamma', chips: selectedTable.buyIn, hand: [], currentBet: 0, folded: false, isBot: true, status: 'WAITING' },
         ]);
         setGameLog([`Joined ${selectedTable.name}.`]);
+        setProcessing(false);
     };
 
     const addToLog = (msg: string) => {
@@ -229,6 +243,7 @@ export default function PokerPage() {
         addToLog("Cards Dealt");
     };
 
+    // SAFE REBUY: Deduct cost immediately
     const handleRebuy = async () => {
         vibrate();
         if (!profile || !table) return;
@@ -240,6 +255,14 @@ export default function PokerPage() {
             return;
         }
 
+        // TRANSACTION: Deduct Rebuy
+        const { error } = await supabase.rpc('add_credits', { amount: -rebuyCost });
+        if (error) {
+            alert("Rebuy failed.");
+            return;
+        }
+        await refreshProfile();
+
         const newPlayers = [...players];
         newPlayers[0].chips += rebuyCost;
         setPlayers(newPlayers);
@@ -248,6 +271,49 @@ export default function PokerPage() {
         startHand();
     };
 
+    // SAFE LEAVE: Deposit remaining chips
+    const leaveTable = async () => {
+        vibrate();
+        if (!table || isLeaving) return;
+        
+        setIsLeaving(true);
+        addToLog("Cashing out...");
+
+        // Calculate current chips (Total Equity)
+        const currentChips = players[0]?.chips || 0;
+
+        // TRANSACTION: Deposit Chips
+        if (currentChips > 0 && profile) {
+            try {
+                const { error } = await supabase.rpc('add_credits', { amount: currentChips });
+                if (error) {
+                    console.error("Save error:", error);
+                    alert("Error saving chips. Please contact support.");
+                } else {
+                    await refreshProfile();
+                }
+            } catch (e) {
+                console.error("Save exception:", e);
+            }
+        }
+
+        setTable(null);
+        setIsLeaving(false);
+    };
+    
+    // SAFETY: Warn user if they try to refresh/close tab while playing
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (table && gameStatus !== 'IDLE' && gameStatus !== 'BANKRUPT') {
+                e.preventDefault();
+                e.returnValue = ''; // Trigger browser warning
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [table, gameStatus]);
+
+    // AI LOGIC
     useEffect(() => {
         if (gameStatus !== 'PLAYING') return;
 
@@ -258,9 +324,7 @@ export default function PokerPage() {
         }
 
         if (currentPlayer.isBot) {
-            // Randomize thinking time to feel more human (0.8s - 2.5s)
             const thinkTime = 800 + Math.random() * 1700;
-            
             const timer = setTimeout(() => {
                 const decision = getAIDecision(
                     table!.difficulty, 
@@ -270,8 +334,8 @@ export default function PokerPage() {
                     currentPlayer.currentBet,
                     phase === 'PRE-FLOP',
                     table!.blind,
-                    pot,                // NEW: Passed Pot
-                    currentPlayer.chips // NEW: Passed Chips
+                    pot,
+                    currentPlayer.chips
                 );
                 handleAction(decision);
             }, thinkTime); 
@@ -317,7 +381,6 @@ export default function PokerPage() {
             }
         }
         else if (action === 'RAISE') {
-            // Determine decent raise size (Min raise = 2x previous bet or 1 BB)
             const minRaise = table!.blind;
             const raiseAmt = currentBet + minRaise; 
             const totalCost = raiseAmt - p.currentBet;
@@ -329,7 +392,6 @@ export default function PokerPage() {
                 setCurrentBet(raiseAmt);
                 addToLog(`${p.name} Raises to ${raiseAmt}`);
             } else {
-                // Not enough to raise, just call/shove
                 actionStr = 'CALL'; 
                 const callCost = currentBet - p.currentBet;
                 const actualCost = Math.min(callCost, p.chips);
@@ -455,35 +517,6 @@ export default function PokerPage() {
         }
     };
 
-    const leaveTable = async () => {
-        vibrate();
-        if (!table) return;
-        setIsLeaving(true);
-        addToLog("Saving...");
-
-        const currentChips = players[0]?.chips || 0;
-        const buyIn = table.buyIn;
-        const netChange = currentChips - buyIn;
-
-        const saveOperation = async () => {
-            if (netChange !== 0 && profile) {
-                try {
-                    const { error } = await supabase.rpc('add_credits', { amount: netChange });
-                    if (error) console.error("Save error:", error);
-                    else refreshProfile();
-                } catch (e) {
-                    console.error("Save exception:", e);
-                }
-            }
-        };
-
-        const timeoutOperation = new Promise(resolve => setTimeout(resolve, 1500));
-        await Promise.race([saveOperation(), timeoutOperation]);
-
-        setTable(null);
-        setIsLeaving(false);
-    };
-
     // --- RENDER HELPERS ---
     const userPlayer = players[0];
     const isShowdown = phase === 'SHOWDOWN' || gameStatus === 'FINISHED';
@@ -512,8 +545,9 @@ export default function PokerPage() {
                     {TABLES.map(t => (
                         <button 
                             key={t.id} 
-                            onClick={() => joinTable(t)}
-                            className="group relative border border-zinc-800 bg-zinc-900/80 p-6 rounded-2xl hover:border-[#DFFF00] hover:bg-zinc-900 transition-all text-left overflow-hidden active:scale-95 duration-200"
+                            onClick={() => !processing && joinTable(t)}
+                            disabled={processing}
+                            className="group relative border border-zinc-800 bg-zinc-900/80 p-6 rounded-2xl hover:border-[#DFFF00] hover:bg-zinc-900 transition-all text-left overflow-hidden active:scale-95 duration-200 disabled:opacity-50"
                         >
                             <div className="absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-100 transition-opacity">
                                 <Coins className="text-[#DFFF00]" size={24} />
@@ -526,6 +560,11 @@ export default function PokerPage() {
                                 <span>Buy-In: <span className="text-white">{t.buyIn}</span></span>
                                 <span>Blinds: <span className="text-white">{t.blind/2}/{t.blind}</span></span>
                             </div>
+                            {processing && (
+                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                    <Loader2 className="animate-spin text-[#DFFF00]" />
+                                </div>
+                            )}
                         </button>
                     ))}
                 </div>

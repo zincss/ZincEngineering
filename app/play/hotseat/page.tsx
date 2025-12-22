@@ -129,9 +129,28 @@ export default function HotseatPage() {
     const currentQuestion = questions[qIndex];
     const currentPrize = qIndex > 0 ? PRIZE_LADDER[qIndex - 1] : 0;
     
+    // --- RESET / REBOOT LOGIC ---
+    const resetGame = () => {
+        // Instead of reloading window, we reset state
+        setStatus('INTRO');
+        setQuestions([]);
+        setQIndex(0);
+        setTimeLeft(30);
+        setSelectedAnswer(null);
+        setGameStateClass('');
+        setLifelines({ fiftyFifty: false, addTime: false, swap: false });
+        setHiddenOptions([]);
+        // Optional: refresh profile here to ensure balance is up to date before next run
+        refreshProfile(); 
+    };
+
     // --- INITIALIZATION ---
     const startGame = async () => {
-        if (!profile || profile.credits < ENTRY_FEE) {
+        if (!profile) {
+            alert("Connection lost. Please refresh.");
+            return;
+        }
+        if (profile.credits < ENTRY_FEE) {
             alert(`Insufficient funds. Need ${ENTRY_FEE} Credits.`);
             return;
         }
@@ -145,7 +164,8 @@ export default function HotseatPage() {
             alert("Payment declined by server.");
             return;
         }
-        refreshProfile();
+        // Force update credits in UI immediately
+        await refreshProfile();
 
         // Fetch Questions
         const newQuestions = await fetchGameQuestions();
@@ -277,9 +297,8 @@ export default function HotseatPage() {
     };
 
     return (
-        // FIX: Changed 'h-screen' to 'min-h-screen' to prevent content clipping on mobile
         <main className={`min-h-screen bg-zinc-950 text-white selection:bg-[#DFFF00] selection:text-black overflow-x-hidden relative ${gameStateClass} transition-colors duration-500`}>
-            <div className="bg-grid-pattern opacity-20 absolute inset-0 fixed" />
+            <div className="bg-grid-pattern opacity-20 absolute inset-0" />
             <Scanlines />
             
             {/* --- HEADER --- */}
@@ -348,7 +367,6 @@ export default function HotseatPage() {
 
             {/* --- GAMEPLAY SCREEN --- */}
             {status === 'PLAYING' && (
-                // FIX: Added 'pb-20' to account for mobile scrolling and spacing
                 <div className="relative z-30 grid grid-cols-1 lg:grid-cols-12 min-h-screen pt-20 pb-20 px-4 lg:px-12 gap-6 w-full max-w-[1600px] mx-auto">
                     
                     {/* LEFT COLUMN: GAME BOARD */}
@@ -363,7 +381,6 @@ export default function HotseatPage() {
                                         <circle cx="50%" cy="50%" r="45%" stroke="#333" strokeWidth="4" fill="none" />
                                         <circle 
                                             cx="50%" cy="50%" r="45%" stroke={timeLeft < 10 ? '#ef4444' : '#DFFF00'} strokeWidth="4" fill="none" 
-                                            // Approximate circumference for r=45% is ~280% of radius unit
                                             strokeDasharray="226" 
                                             strokeDashoffset={226 - (226 * timeLeft) / 30}
                                             className="transition-all duration-1000 ease-linear"
@@ -402,7 +419,6 @@ export default function HotseatPage() {
                                     Sector: {currentQuestion.category}
                                 </div>
 
-                                {/* FIX: Responsive text size for questions */}
                                 <h2 className="text-lg md:text-3xl font-bold text-center leading-snug font-mono mt-4">
                                     <TypewriterText key={currentQuestion.id} text={currentQuestion.text} speed={30} />
                                 </h2>
@@ -426,7 +442,6 @@ export default function HotseatPage() {
                                     <div className="w-8 h-8 rounded bg-black/40 flex items-center justify-center font-mono font-bold text-zinc-500 group-hover:text-white transition-colors shrink-0">
                                         {['A', 'B', 'C', 'D'][i]}
                                     </div>
-                                    {/* FIX: Smaller text on mobile for answers */}
                                     <span className="font-bold text-xs md:text-lg">{opt}</span>
                                 </button>
                             ))}
@@ -490,7 +505,8 @@ export default function HotseatPage() {
                     </div>
 
                     <div className="flex flex-col md:flex-row gap-4 w-full max-w-md">
-                        <button onClick={() => window.location.reload()} className="flex-1 py-4 bg-[#DFFF00] text-black font-black uppercase rounded-xl hover:scale-105 transition-transform shadow-[0_0_30px_rgba(223,255,0,0.3)]">
+                        {/* CHANGED TO USE RESETGAME INSTEAD OF RELOAD */}
+                        <button onClick={resetGame} className="flex-1 py-4 bg-[#DFFF00] text-black font-black uppercase rounded-xl hover:scale-105 transition-transform shadow-[0_0_30px_rgba(223,255,0,0.3)]">
                             Reboot System
                         </button>
                         <Link href="/play" className="flex-1 flex items-center justify-center py-4 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-white font-bold uppercase rounded-xl">
