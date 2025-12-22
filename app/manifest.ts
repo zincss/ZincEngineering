@@ -10,11 +10,16 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: '#09090b', // Changed to zinc-950 to match your dark theme
     theme_color: '#09090b', // Changed to zinc-950
     icons: [
-      {
-        src: '/icon', // This points to the file we just created
-        sizes: '512x512',
-        type: 'image/png',
-      },
-    ],
+  {
+    src: '/favicon.ico', // Safest bet (always exists)
+    sizes: 'any',
+    type: 'image/x-icon',
+  },
+  {
+    src: '/icon.svg', // Point to the actual file extension
+    sizes: 'any',
+    type: 'image/svg+xml',
+  },
+],
   }
 }

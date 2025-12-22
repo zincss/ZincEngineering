@@ -4,13 +4,16 @@ import Header from './components/Header'
 import { Providers } from './providers'
 
 export const metadata: Metadata = {
-  title: 'ZINC ENGINEERING // HUB',
-  description: 'Advanced Tactical & Athletic Telemetry',
-  manifest: "/manifest.json",
+  title: "Zinc Engineering",
+  // ...
   appleWebApp: {
-    capable: true,
+    title: "Zinc Engineering",
     statusBarStyle: "default",
-    title: "ZincHub",
+    // capable: true, // REMOVED to fix console warning
+  },
+  // Add the modern equivalent manually if you really need full-screen mode
+  other: {
+    "mobile-web-app-capable": "yes",
   },
 }
 

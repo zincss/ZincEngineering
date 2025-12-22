@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
-// [FIX] Added detailed types from supabase-js
 import { User, Session, AuthChangeEvent, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 type Profile = {
@@ -25,6 +24,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  // Uses the Singleton client from utils/supabase/client.ts
   const supabase = createClient();
   
   const [user, setUser] = useState<User | null>(null);
@@ -33,18 +33,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   
   const isFetchingRef = useRef(false);
 
-  // --- CORE FETCH LOGIC (WITH RETRY) ---
+  // --- CORE FETCH LOGIC ---
   const fetchProfile = useCallback(async (userId: string, retryCount = 0) => {
     if (isFetchingRef.current && retryCount === 0) return;
     isFetchingRef.current = true;
 
     try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        // [STRICT CHECK]
+        // Instead of getSession() which trusts the cache, we use getUser().
+        // This forces a network call. If the token is revoked/invalid, this throws error.
+        const { data: { user: validUser }, error: authError } = await supabase.auth.getUser();
         
-        if (sessionError || !session) {
-           throw new Error("No active session");
+        if (authError || !validUser) {
+           throw new Error("Token is invalid on server. Forcing logout.");
         }
 
+        // Fetch Profile Data
         const { data, error } = await supabase
         .from('profiles')
         .select('username, credits, role, created_at') 
@@ -54,6 +58,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (error) {
             console.warn(`Profile sync failed (Attempt ${retryCount + 1}):`, error.message);
 
+            // Retry Logic for network jitters
             if (retryCount < 2) {
                 console.log("Retrying profile fetch...");
                 setTimeout(() => {
@@ -69,6 +74,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     } catch (error) {
         console.error("Critical Sync Error:", error);
+        // If getUser() failed, we are definitely not logged in.
+        setUser(null);
+        setProfile(null);
     } finally {
         if (retryCount === 0) isFetchingRef.current = false;
     }
@@ -79,16 +87,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     let mounted = true;
 
     const checkSession = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-             setUser(session.user);
-             await fetchProfile(session.user.id);
+        try {
+            // [STRICT CHECK] Validate session with server immediately on mount
+            const { data: { user }, error } = await supabase.auth.getUser();
+            
+            if (user && !error) {
+                 setUser(user);
+                 await fetchProfile(user.id);
+            } else {
+                 // Token is dead, clear everything
+                 setUser(null);
+                 setProfile(null);
+            }
+        } catch (e) {
+            setUser(null);
+            setProfile(null);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
+    
     checkSession();
 
-    // [FIX] Added explicit types: (event: AuthChangeEvent, session: Session | null)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
       if (!mounted) return;
       
@@ -117,11 +137,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const channel = supabase
         .channel(`profile-sync-${user.id}`)
-        // [FIX] Added explicit type: (payload: RealtimePostgresChangesPayload<Profile>)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}`},
             (payload: RealtimePostgresChangesPayload<Profile>) => { 
                 if (payload.new) {
-                    // payload.new is technically partial, but we cast it safely here
                     setProfile(payload.new as Profile); 
                 }
             }
@@ -129,6 +147,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .subscribe();
 
     const handleReconnection = () => {
+        // Wait 500ms for middleware to refresh cookie, then fetch
         setTimeout(() => {
              if (user) fetchProfile(user.id);
         }, 500);
