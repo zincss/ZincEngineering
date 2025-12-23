@@ -2,24 +2,109 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { 
-  Brain, ChevronRight, Construction, Spade, Trophy, Activity, ArrowRight, Info, X, LogIn, Flame, 
-  ShieldCheck, Cpu, Building2, CircleDashed
+  Brain, 
+  ChevronRight, 
+  Construction, 
+  Spade, 
+  Trophy, 
+  Package, 
+  ArrowRight,
+  Info,
+  X,
+  LogIn,
+  Flame,
+  Zap,
+  Hash // Added Hash icon for Cyphers
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const containerVar: Variants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1, delayChildren: 0.3 }
-  }
-};
+// --- COMPONENTS ---
 
-const itemVar: Variants = {
-  hidden: { y: 20, opacity: 0 },
-  show: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 50 } }
+const SectionHeader = ({ icon: Icon, title, subtitle }: { icon: any, title: string, subtitle: string }) => (
+  <div className="flex items-center gap-4 mb-6 px-2 sticky top-20 z-20 py-2 glass-panel rounded-xl md:static md:bg-transparent md:p-0">
+      <div className="p-2 bg-[#DFFF00]/10 rounded-lg border border-[#DFFF00]/20 hidden md:block">
+           <Icon size={18} className="text-[#DFFF00]" />
+      </div>
+      <div className="flex-1">
+          <h3 className="text-lg md:text-xl font-black uppercase tracking-tight text-white flex items-center gap-2">
+            <span className="md:hidden text-[#DFFF00]"><Icon size={16} /></span>
+            {title}
+          </h3>
+          <p className="text-[10px] md:text-xs font-mono text-zinc-500 uppercase tracking-widest">
+            {subtitle}
+          </p>
+      </div>
+      <div className="h-px flex-1 bg-zinc-800 hidden md:block" />
+  </div>
+);
+
+// Updated GameCard to accept className for custom sizing/grids
+const GameCard = ({ 
+  href, 
+  title, 
+  description, 
+  icon: Icon, 
+  bgImage, 
+  accentColor = "text-white", 
+  tag = "",
+  size = "standard",
+  className = "" 
+}: { 
+  href: string, 
+  title: string, 
+  description: string, 
+  icon: any, 
+  bgImage: string, 
+  accentColor?: string,
+  tag?: string,
+  size?: "standard" | "large" | "wide",
+  className?: string
+}) => {
+  // Base size logic (can be overridden by className prop)
+  const heightClass = size === 'large' ? 'h-96' : size === 'wide' ? 'h-64 md:h-80' : 'h-64';
+  const colSpanClass = size === 'large' ? 'col-span-1 md:col-span-2 lg:col-span-8' : size === 'wide' ? 'col-span-1 md:col-span-2' : 'col-span-1';
+
+  return (
+    <Link 
+      href={href}
+      className={`
+        group relative block ${heightClass} ${colSpanClass} 
+        rounded-[2rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden 
+        hover:border-[#DFFF00]/50 transition-all duration-500 
+        hover:shadow-[0_0_50px_rgba(0,0,0,0.5)] active:scale-[0.98]
+        ${className}
+      `}
+    >
+      {/* Background Image */}
+      <div className={`absolute inset-0 bg-cover bg-center opacity-40 group-hover:opacity-20 grayscale transition-all duration-700 group-hover:scale-105`} style={{ backgroundImage: `url('${bgImage}')` }} />
+      <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/50 to-transparent" />
+      
+      {/* Icon Badge */}
+      <div className="absolute top-6 left-6 flex justify-between w-[calc(100%-3rem)]">
+         <div className="bg-black/40 backdrop-blur-md p-3 rounded-2xl border border-white/10 group-hover:border-[#DFFF00]/50 transition-colors">
+            <Icon size={24} className={`${accentColor} group-hover:text-[#DFFF00] transition-colors`} />
+         </div>
+         {tag && (
+           <div className="px-3 py-1.5 h-fit bg-[#DFFF00] text-black font-black text-[10px] uppercase tracking-widest rounded-full shadow-[0_0_15px_rgba(223,255,0,0.4)] animate-pulse">
+             {tag}
+           </div>
+         )}
+      </div>
+
+      {/* Content */}
+      <div className="absolute bottom-0 left-0 p-6 md:p-8 w-full">
+         <h2 className="text-2xl md:text-3xl font-black uppercase text-white mb-2 leading-none group-hover:text-[#DFFF00] transition-colors">{title}</h2>
+         <p className="text-zinc-400 font-mono text-xs uppercase tracking-wider group-hover:text-zinc-200 transition-colors line-clamp-2">
+           {description}
+         </p>
+         
+         <div className="mt-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500 group-hover:text-white transition-colors opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 duration-300">
+              Initialize <ChevronRight size={10} />
+         </div>
+      </div>
+    </Link>
+  );
 };
 
 export default function PlayHub() {
@@ -29,9 +114,7 @@ export default function PlayHub() {
   useEffect(() => {
     if (!loading && !user) {
       const hasSeenIntro = sessionStorage.getItem('zinc_play_intro_seen');
-      if (!hasSeenIntro) {
-        setShowInfoModal(true);
-      }
+      if (!hasSeenIntro) setShowInfoModal(true);
     }
   }, [loading, user]);
 
@@ -41,289 +124,209 @@ export default function PlayHub() {
   };
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-white selection:bg-[#DFFF00] selection:text-black pb-20 relative overflow-x-hidden">
+    <main className="min-h-screen bg-zinc-950 text-white pb-20 relative overflow-x-hidden selection:bg-[#DFFF00] selection:text-black">
       
-      {/* BACKGROUND */}
-      <div className="fixed inset-0 z-0">
-          <div className="absolute inset-0 bg-zinc-950/80 z-10" />
-          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 z-10 mix-blend-overlay pointer-events-none" />
-      </div>
-      <div className="bg-starfield" />
+      <div className="bg-starfield fixed inset-0 z-0" />
 
-
-      {/* --- NOT AUTHENTICATED POPUP MODAL --- */}
-      <AnimatePresence>
+      {/* --- GUEST MODAL --- */}
       {showInfoModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-            onClick={closeInfoModal}
-          />
-          <motion.div 
-            initial={{ scale: 0.9, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            className="relative bg-zinc-900 border border-[#DFFF00]/30 rounded-[2rem] p-8 max-w-lg w-full shadow-[0_0_50px_rgba(223,255,0,0.1)]"
-          >
-            <button 
-              onClick={closeInfoModal}
-              className="absolute top-6 right-6 p-2 rounded-full hover:bg-zinc-800 text-zinc-500 hover:text-white transition-colors"
-            >
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in" onClick={closeInfoModal} />
+          <div className="relative bg-zinc-900 border border-[#DFFF00]/30 rounded-3xl p-8 max-w-lg w-full animate-in zoom-in-95 slide-in-from-bottom-4">
+            <button onClick={closeInfoModal} className="absolute top-4 right-4 p-2 rounded-full hover:bg-zinc-800 text-zinc-500 hover:text-white">
               <X size={20} />
             </button>
-
             <div className="flex items-center gap-3 mb-6">
               <div className="p-3 bg-[#DFFF00]/10 rounded-full border border-[#DFFF00]/20">
                 <Info className="text-[#DFFF00]" size={24} />
               </div>
               <div>
-                <h3 className="text-xl font-black uppercase tracking-tight text-white">Ecosystem Access</h3>
+                <h3 className="text-xl font-black uppercase tracking-tight">Ecosystem Access</h3>
                 <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Guest Mode Detected</p>
               </div>
             </div>
-
-            <div className="space-y-4 font-mono text-sm text-zinc-400 leading-relaxed border-t border-b border-zinc-800 py-6 mb-6">
-              <p><strong className="text-white">Welcome to the Zinc Arcade.</strong></p>
-              <p>This platform works with our <span className="text-[#DFFF00]">currency system</span>. Signing in unlocks:</p>
-              <ul className="grid grid-cols-2 gap-2 mt-2">
-                <li className="flex items-center gap-2 text-xs text-zinc-300"><span className="w-1.5 h-1.5 bg-[#DFFF00] rounded-full" /> Pack Openings</li>
-                <li className="flex items-center gap-2 text-xs text-zinc-300"><span className="w-1.5 h-1.5 bg-[#DFFF00] rounded-full" /> Zinc Exchange</li>
-                <li className="flex items-center gap-2 text-xs text-zinc-300"><span className="w-1.5 h-1.5 bg-[#DFFF00] rounded-full" /> Persistent Profiles</li>
-                <li className="flex items-center gap-2 text-xs text-zinc-300"><span className="w-1.5 h-1.5 bg-[#DFFF00] rounded-full" /> Global Stats</li>
-              </ul>
+            <div className="space-y-4 font-mono text-sm text-zinc-400 py-6 border-y border-zinc-800 mb-6">
+              <p><strong className="text-white">Welcome to Zinc Arcade.</strong> Signing in unlocks persistence, credits, and the global economy.</p>
             </div>
-
             <div className="flex flex-col sm:flex-row gap-3">
-              <Link href="/login" className="flex-1 flex items-center justify-center gap-2 bg-[#DFFF00] hover:bg-white text-black font-bold py-3 px-4 rounded-xl transition-all uppercase text-xs tracking-widest">
+              <Link href="/login" className="flex-1 flex items-center justify-center gap-2 bg-[#DFFF00] hover:bg-[#cce600] text-black font-bold py-3 px-4 rounded-xl uppercase text-xs tracking-widest">
                 <LogIn size={16} /> Initialize Session
               </Link>
-              <button onClick={closeInfoModal} className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 px-4 rounded-xl transition-all uppercase text-xs tracking-widest border border-zinc-700">
+              <button onClick={closeInfoModal} className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 px-4 rounded-xl uppercase text-xs tracking-widest">
                 Continue as Guest
               </button>
             </div>
-          </motion.div>
+          </div>
         </div>
       )}
-      </AnimatePresence>
 
-      {/* --- HEADER SECTION --- */}
-      <section className="relative pt-40 pb-12 px-6 border-b border-white/5">
-        <div className="max-w-[1600px] mx-auto relative">
-          
-          <div className="absolute top-0 right-0 hidden md:flex items-center gap-2">
-             <div className="bg-zinc-900/50 px-4 py-1.5 rounded-full border border-white/10 backdrop-blur-md flex items-center gap-2">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#DFFF00] opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[#DFFF00]"></span>
-                </span>
-                <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-widest">
-                  Arcade Protocols Online
-                </span>
-             </div>
-          </div>
-
-          <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-8">
-            <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: 0.8 }}>
-                <h1 className="text-6xl md:text-[8rem] font-black uppercase tracking-tighter mb-4 text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-600 leading-[0.8]">
-                    SYSTEM <span className="text-stroke-3 text-transparent bg-clip-text bg-gradient-to-b from-zinc-700 to-zinc-900">ARCADE</span>
+      {/* --- HEADER --- */}
+      <section className="relative pt-32 pb-8 px-6 border-b border-zinc-800/50 z-10 bg-zinc-950/50 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-end justify-between gap-6">
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter mb-2 text-white">
+                    System <span className="text-zinc-800">Arcade</span>
                 </h1>
-                <p className="text-zinc-400 font-mono text-sm md:text-base max-w-2xl leading-relaxed tracking-widest mt-8">
+                <p className="text-zinc-400 font-mono text-xs md:text-sm max-w-xl leading-relaxed">
                    <span className="text-[#DFFF00] font-black mr-2">///</span>
-                   Interactive entertainment modules and cognitive assessment tools.
+                   Interactive simulation modules. Wager credits. Test algorithms.
                 </p>
-            </motion.div>
-
+            </div>
+            
             <Link 
-                href="/market"
-                className="group flex items-center gap-3 px-8 py-4 bg-[#DFFF00] hover:bg-white text-black rounded-full font-bold uppercase tracking-widest text-xs transition-all shadow-[0_0_30px_rgba(223,255,0,0.3)] hover:shadow-[0_0_50px_rgba(255,255,255,0.4)] hover:-translate-y-1 active:scale-95"
+                href="/play/market"
+                className="group flex items-center gap-3 px-6 py-3 bg-[#DFFF00] hover:bg-white text-black rounded-full font-bold uppercase tracking-widest text-xs transition-all shadow-[0_0_20px_rgba(223,255,0,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:-translate-y-1 active:scale-95 whitespace-nowrap"
             >
-                <Building2 size={16} className="group-hover:rotate-12 transition-transform" />
-                <span>Enter Economy Hub</span>
+                <Package size={16} className="group-hover:rotate-12 transition-transform" />
+                <span>Black Market</span>
                 <ArrowRight size={16} className="-rotate-45 group-hover:rotate-0 transition-transform" />
             </Link>
-          </div>
         </div>
       </section>
 
-      {/* --- MODULE GRID --- */}
-      <section className="relative z-10 max-w-[1600px] mx-auto px-4 md:px-6 py-12">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-10 space-y-16 relative z-10">
         
-        <div className="flex items-center gap-4 mb-12 px-2">
-            <div className="w-2 h-2 bg-[#DFFF00] rounded-full shadow-[0_0_10px_#DFFF00]" />
-            <div className="h-px flex-1 bg-gradient-to-r from-zinc-800 to-transparent" />
-            <div className="flex items-center gap-2 bg-zinc-900/50 px-4 py-2 rounded-full border border-white/5 backdrop-blur-md">
-                 <Activity size={16} className="text-[#DFFF00]" />
-                 <span className="text-xs font-mono font-bold text-zinc-400 uppercase tracking-widest">Active Simulations</span>
-            </div>
-        </div>
+        {/* --- 1. DAILY ENGAGEMENT (HERO) --- */}
+        <section>
+           <div className="flex items-center gap-2 mb-4">
+              <Zap size={16} className="text-[#DFFF00] fill-[#DFFF00] animate-pulse" />
+              <span className="text-xs font-mono font-bold text-[#DFFF00] uppercase tracking-widest">Daily Protocol</span>
+           </div>
 
-        <motion.div 
-            variants={containerVar}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true }}
-            className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-fr"
-        >
-            
-            {/* 1. TEXAS HOLD'EM (Video BG) */}
-            <motion.div variants={itemVar} className="md:col-span-8">
-                <Link 
-                    href="/play/poker" 
-                    className="group relative block min-h-[380px] h-full rounded-[2.5rem] border border-white/5 bg-zinc-900/40 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500 hover:shadow-[0_0_50px_rgba(223,255,0,0.1)]"
-                >
-                    <div className="absolute inset-0 overflow-hidden">
-                       <video 
-                         autoPlay loop muted playsInline 
-                         className="w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity duration-700 group-hover:scale-105"
-                       >
-                          <source src="/videos/casino-bg.mp4" type="video/mp4" />
-                       </video>
-                    </div>
-                    <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/80 to-transparent" />
+           <Link 
+              href="/play/wordle"
+              className="group relative block w-full h-[400px] md:h-[320px] rounded-[2.5rem] overflow-hidden border border-zinc-700 hover:border-[#DFFF00] transition-all duration-500 shadow-2xl"
+           >
+              {/* Animated BG */}
+              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-40 group-hover:opacity-20 transition-all duration-700 group-hover:scale-105 saturate-0 group-hover:saturate-100" />
+              <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/80 to-transparent" />
+              
+              <div className="absolute inset-0 p-8 md:p-12 flex flex-col justify-center max-w-2xl">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#DFFF00] text-black text-[10px] font-black uppercase tracking-widest rounded-full w-fit mb-4">
+                     <span className="w-1.5 h-1.5 bg-black rounded-full animate-pulse" /> New Module
+                  </div>
+                  <h2 className="text-4xl md:text-6xl font-black uppercase text-white mb-4 tracking-tight group-hover:text-[#DFFF00] transition-colors">
+                    Protocol <br/><span className="text-zinc-600 group-hover:text-white transition-colors">Cyphers</span>
+                  </h2>
+                  <p className="text-zinc-400 font-mono text-sm leading-relaxed mb-6 max-w-md">
+                    Daily cryptographic sequence challenge. Decrypt 4, 5, and 6-letter security layers to earn credits.
+                  </p>
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white group-hover:translate-x-2 transition-transform">
+                      Initiate Hack <ArrowRight size={14} />
+                  </div>
+              </div>
+           </Link>
+        </section>
 
-                    <div className="absolute top-8 right-8 bg-black/40 backdrop-blur-xl p-4 rounded-2xl border border-white/10 group-hover:border-[#DFFF00] transition-colors">
-                        <Trophy className="text-[#DFFF00]" size={24} />
-                    </div>
+        {/* --- 2. LIVE TABLES --- */}
+        <section>
+          <SectionHeader icon={Spade} title="Live Tables" subtitle="High Stakes Environment" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 items-stretch">
+             
+             {/* POKER (Featured Half-Width) */}
+             <div className="col-span-1 md:col-span-2 lg:col-span-6 group relative min-h-[300px] rounded-[2rem] border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500">
+                <Link href="/play/poker" className="block h-full">
+                  <div className="absolute inset-0 overflow-hidden">
+                     {/* Try to load video, fallback to image if needed */}
+                     <video autoPlay loop muted playsInline className="w-full h-full object-cover opacity-50 group-hover:opacity-30 transition-opacity duration-700">
+                        <source src="/videos/casino-bg.mp4" type="video/mp4" />
+                     </video>
+                     <div className="absolute inset-0 bg-zinc-950/50" /> 
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent" />
+                  
+                  <div className="absolute top-6 right-6 bg-black/50 backdrop-blur p-3 rounded-full border border-white/10 group-hover:scale-110 transition-transform">
+                      <Trophy className="text-[#DFFF00]" size={24} />
+                  </div>
 
-                    <div className="absolute bottom-0 left-0 p-10 md:p-12 w-full max-w-2xl">
-                        <div className="flex items-center gap-3 mb-4">
-                           <span className="px-3 py-1 rounded-full bg-zinc-900/50 text-zinc-300 border border-white/10 text-[10px] font-black uppercase tracking-widest group-hover:bg-[#DFFF00] group-hover:text-black group-hover:border-[#DFFF00] transition-colors backdrop-blur-md">
-                              Elite Stakes
-                           </span>
-                        </div>
-                        <h2 className="text-4xl md:text-5xl font-black uppercase text-white mb-4 italic tracking-tight">Texas Hold&apos;em</h2>
-                        <p className="text-zinc-400 font-mono text-sm leading-relaxed group-hover:text-zinc-200 transition-colors">
-                            No-Limit Protocol. Compete against neural network agents in a high-stakes environment.
-                        </p>
-                    </div>
+                  <div className="absolute bottom-0 left-0 p-8 w-full">
+                      <h2 className="text-4xl font-black uppercase text-white mb-2">Texas Hold&apos;em</h2>
+                      <p className="text-zinc-400 font-mono text-sm max-w-lg">
+                        No-Limit Protocol. Neural network opponents.
+                      </p>
+                  </div>
                 </Link>
-            </motion.div>
+             </div>
 
-            {/* 2. BLACKJACK */}
-            <motion.div variants={itemVar} className="md:col-span-4">
-                <Link 
-                    href="/play/blackjack" 
-                    className="group relative block min-h-[380px] h-full rounded-[2.5rem] border border-white/5 bg-zinc-900/40 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500"
-                >
-                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1511193311914-0346f16efe90?q=80&w=2674&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent" />
-                    
-                    <div className="absolute top-8 left-8">
-                       <Spade size={32} className="text-zinc-700 group-hover:text-[#DFFF00] transition-colors duration-500" />
-                    </div>
+             {/* BLACKJACK */}
+             <GameCard 
+                  href="/play/blackjack"
+                  title="Blackjack"
+                  description="21 Probability Sim"
+                  icon={Spade}
+                  bgImage="https://images.unsplash.com/photo-1511193311914-0346f16efe90?q=80&w=2674&auto=format&fit=crop"
+                  size="standard"
+                  className="lg:col-span-3 h-full min-h-[300px]"
+             />
 
-                    <div className="absolute bottom-0 left-0 p-10 w-full">
-                       <h2 className="text-3xl font-black uppercase text-white mb-2 leading-none">Tactical<br/>Blackjack</h2>
-                       <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest mb-6 group-hover:text-zinc-300 transition-colors">
-                         Probability Sim
-                       </p>
-                       <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500 group-hover:text-[#DFFF00] transition-colors">
-                            Enter Table <ChevronRight size={12} />
-                       </div>
-                    </div>
-                </Link>
-            </motion.div>
+             {/* ROULETTE (NEW) */}
+             <GameCard 
+                  href="/play/roulette"
+                  title="Roulette"
+                  description="Wheel of Fortune"
+                  icon={Spade}
+                  bgImage="https://images.unsplash.com/photo-1605870445919-838d190e8e1b?q=80&w=2672&auto=format&fit=crop"
+                  size="standard"
+                  className="lg:col-span-3 h-full min-h-[300px]"
+             />
+          </div>
+        </section>
 
-            {/* NEW: ROULETTE */}
-            <motion.div variants={itemVar} className="md:col-span-8">
-                <Link 
-                    href="/play/roulette" 
-                    className="group relative block h-full min-h-[300px] rounded-[2.5rem] border border-white/5 bg-zinc-900/40 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500 hover:shadow-[0_0_40px_rgba(255,255,255,0.1)]"
-                >
-                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1605870445919-838d190e8e1b?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:opacity-20 grayscale transition-all duration-700 group-hover:scale-105" />
-                    <div className="absolute inset-0 bg-gradient-to-l from-zinc-950 via-zinc-950/60 to-transparent" />
-                    
-                    <div className="absolute top-8 right-8">
-                       <div className="bg-zinc-900 border border-zinc-700 p-3 rounded-full group-hover:scale-110 transition-transform shadow-xl">
-                          <CircleDashed size={24} className="text-[#DFFF00] animate-spin-slow" />
-                       </div>
-                    </div>
+        {/* --- 3. SIMULATION & KNOWLEDGE --- */}
+        <section>
+          <SectionHeader icon={Brain} title="Cognitive Sims" subtitle="Market & Logic" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+             
+             {/* REPLACED: Zinc Exchange -> Cyphers */}
+             <GameCard 
+                href="/play/wordle"
+                title="Cyphers"
+                description="Cryptographic Word Logic"
+                icon={Hash}
+                bgImage="https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=2670&auto=format&fit=crop"
+                accentColor="text-[#DFFF00]"
+             />
 
-                    <div className="absolute bottom-0 right-0 p-10 text-right w-full">
-                       <h2 className="text-3xl md:text-5xl font-black uppercase text-white mb-2 italic">Roulette <br/> Royale</h2>
-                       <p className="text-zinc-400 font-mono text-xs uppercase tracking-widest">
-                          European Wheel // 36x Payouts
-                       </p>
-                    </div>
-                </Link>
-            </motion.div>
+             <GameCard 
+                href="/play/hotseat"
+                title="Hotseat"
+                description="Rapid Fire Trivia"
+                icon={Flame}
+                bgImage="https://images.pexels.com/photos/3826581/pexels-photo-3826581.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
+                accentColor="text-red-500"
+                tag="HOT"
+             />
 
-            {/* 3. HOTSEAT */}
-            <motion.div variants={itemVar} className="md:col-span-4">
-                <Link 
-                    href="/play/hotseat" 
-                    className="group relative block h-full min-h-[300px] rounded-[2.5rem] border border-white/5 bg-zinc-900/40 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500 hover:shadow-[0_0_30px_rgba(239,68,68,0.15)]"
-                >
-                    <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/3826581/pexels-photo-3826581.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1')] bg-cover bg-center opacity-30 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/50 to-transparent" />
-                    
-                    <div className="absolute top-0 left-0 w-full p-8 flex justify-between items-start">
-                       <div className="bg-red-500/10 p-2 rounded-xl border border-red-500/20 group-hover:border-red-500 group-hover:bg-red-500 text-red-500 group-hover:text-black transition-all">
-                           <Flame size={24} />
-                       </div>
-                    </div>
+             <GameCard 
+                href="/collections/trivia"
+                title="Trivia Matrix"
+                description="Standard Assessment"
+                icon={Brain}
+                bgImage="https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?q=80&w=2670&auto=format&fit=crop"
+             />
 
-                    <div className="absolute bottom-0 left-0 p-8 w-full">
-                       <h2 className="text-2xl font-black uppercase text-white mb-2 italic">Protocol: Hotseat</h2>
-                       <p className="text-zinc-500 font-mono text-xs mt-2 group-hover:text-zinc-300 transition-colors">
-                          High voltage trivia.
-                       </p>
-                    </div>
-                </Link>
-            </motion.div>
+          </div>
+        </section>
 
-            {/* 4. TRIVIA */}
-            <motion.div variants={itemVar} className="md:col-span-6">
-                <Link 
-                    href="/collections/trivia" 
-                    className="group relative block h-full min-h-[260px] rounded-[2.5rem] border border-white/5 bg-zinc-900/40 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500"
-                >
-                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
-                    <div className="absolute inset-0 bg-gradient-to-br from-zinc-950/90 to-transparent" />
-                    
-                    <div className="absolute top-0 left-0 w-full p-8 flex justify-between items-start">
-                       <Brain size={32} className="text-zinc-600 group-hover:text-[#DFFF00] transition-colors" />
-                    </div>
+        {/* --- 4. DEV --- */}
+        <section className="opacity-60 hover:opacity-100 transition-opacity">
+           <div className="border border-dashed border-zinc-800 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 bg-zinc-950/30">
+               <div className="flex items-center gap-4">
+                  <div className="p-4 bg-zinc-900 rounded-2xl text-zinc-600">
+                     <Construction size={32} />
+                  </div>
+                  <div>
+                     <h3 className="text-lg font-black uppercase text-zinc-500">Memory Core</h3>
+                     <p className="text-xs font-mono text-zinc-600">Module under construction</p>
+                  </div>
+               </div>
+               <div className="text-[10px] font-mono uppercase tracking-widest text-zinc-700 bg-zinc-900 px-4 py-2 rounded-full">
+                  v0.9.2 Alpha
+               </div>
+           </div>
+        </section>
 
-                    <div className="absolute bottom-0 left-0 p-8 w-full">
-                       <h2 className="text-2xl font-black uppercase text-white mb-2">Trivia Matrix</h2>
-                       <p className="text-zinc-500 font-mono text-xs mt-2 group-hover:text-zinc-300 transition-colors">
-                          Standard assessment generator.
-                       </p>
-                    </div>
-                </Link>
-            </motion.div>
-
-            {/* 5. COMING SOON */}
-            <motion.div variants={itemVar} className="md:col-span-6">
-                <div className="group relative h-full min-h-[260px] rounded-[2.5rem] border border-dashed border-zinc-800 bg-zinc-950/30 flex flex-col items-center justify-center text-center p-8 opacity-60 hover:opacity-100 transition-all hover:border-zinc-700">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-full text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-2">
-                        <Construction size={10} />
-                        In Development
-                    </div>
-                    <h3 className="text-xl font-black uppercase tracking-tight text-zinc-700 group-hover:text-zinc-400">
-                        Memory Core
-                    </h3>
-                </div>
-            </motion.div>
-        </motion.div>
-      </section>
-
-      {/* FOOTER */}
-      <footer className="relative z-10 pt-20 pb-12 px-6 text-center border-t border-white/5 bg-zinc-950">
-        <div className="max-w-[1600px] mx-auto flex flex-col items-center gap-8">
-            <div className="w-12 h-12 bg-[#DFFF00] rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(223,255,0,0.2)]">
-                <span className="font-black text-xl text-black">Z</span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-12 text-[10px] font-mono uppercase tracking-widest text-zinc-500">
-                <div className="flex items-center gap-2"><ShieldCheck size={14} className="text-emerald-500" /><span>Secure Connection</span></div>
-                <div className="flex items-center gap-2"><Cpu size={14} className="text-blue-500" /><span>System: Optimal</span></div>
-                <div className="flex items-center gap-2"><Activity size={14} className="text-[#DFFF00]" /><span>Version: 2.6.1</span></div>
-            </div>
-            <p className="text-zinc-600 font-bold text-xs uppercase tracking-wider">Zinc Engineering © 2025</p>
-        </div>
-      </footer>
+      </div>
     </main>
   );
 }
