@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import { createClient } from '@/utils/supabase/client';
 import { getDailyWords, checkGuess, LetterStatus, WORDS_4, WORDS_5, WORDS_6 } from './lib';
@@ -10,7 +10,6 @@ import {
     HelpCircle, 
     Trophy,
     ArrowLeft,
-    RotateCcw,
     XCircle,
     Loader2,
     Clock
@@ -32,7 +31,9 @@ interface DailyProgress {
     isDailyComplete: boolean;
 }
 
-// --- COUNTDOWN COMPONENT ---
+// --- SUB-COMPONENTS ---
+
+// 1. Countdown Timer
 const CountdownTimer = () => {
     const [timeLeft, setTimeLeft] = useState('');
 
@@ -40,7 +41,7 @@ const CountdownTimer = () => {
         const updateTimer = () => {
             const now = new Date();
             const tomorrow = new Date(now);
-            tomorrow.setHours(24, 0, 0, 0); // Set to next midnight
+            tomorrow.setHours(24, 0, 0, 0); 
             const diff = tomorrow.getTime() - now.getTime();
 
             if (diff <= 0) {
@@ -63,6 +64,78 @@ const CountdownTimer = () => {
     return <span className="font-mono">{timeLeft}</span>;
 };
 
+// 2. Memoized Row (Performance Optimization)
+const GameRow = memo(({ 
+    guess, 
+    target, 
+    level, 
+    isCurrentRow, 
+    isRevealed, 
+    shake 
+}: { 
+    guess: string, 
+    target: string, 
+    level: number, 
+    isCurrentRow: boolean, 
+    isRevealed: boolean, 
+    shake: boolean 
+}) => {
+    const colors = isRevealed ? checkGuess(guess, target) : [];
+
+    return (
+        <div 
+            className={`grid gap-2 ${isCurrentRow && shake ? 'animate-shake' : ''}`} 
+            style={{ gridTemplateColumns: `repeat(${level}, 1fr)` }}
+        >
+            {Array.from({ length: level }).map((_, colIndex) => {
+                const letter = guess[colIndex] || '';
+                const color = colors[colIndex];
+                const delay = `${colIndex * 150}ms`;
+
+                let borderClass = 'border-zinc-800 bg-zinc-900/50';
+                let textClass = 'text-white';
+
+                if (isCurrentRow && letter) {
+                    borderClass = 'border-zinc-600 bg-zinc-800 animate-pop';
+                }
+
+                const revealClass = isRevealed ? 'reveal-card' : '';
+                const statusData = isRevealed ? color : 'EMPTY';
+
+                return (
+                    <div 
+                        key={colIndex}
+                        className={`
+                            aspect-square border-2 rounded-lg flex items-center justify-center 
+                            text-2xl md:text-3xl font-black uppercase select-none 
+                            ${borderClass} ${textClass} ${revealClass}
+                            will-change-transform
+                        `}
+                        style={{ animationDelay: delay }}
+                        data-status={statusData}
+                    >
+                        <div className="card-face">{letter}</div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}, (prev, next) => {
+    return (
+        prev.guess === next.guess &&
+        prev.isCurrentRow === next.isCurrentRow &&
+        prev.isRevealed === next.isRevealed &&
+        prev.shake === next.shake &&
+        prev.level === next.level &&
+        prev.target === next.target
+    );
+});
+
+GameRow.displayName = 'GameRow';
+
+
+// --- MAIN COMPONENT ---
+
 export default function ZincCyphers() {
     const { user, refreshProfile } = useAuth();
     const supabase = createClient();
@@ -74,13 +147,11 @@ export default function ZincCyphers() {
     const [currentGuess, setCurrentGuess] = useState('');
     const [gameState, setGameState] = useState<GameState>('PLAYING');
     
-    // Animation & Feedback
     const [shakeRow, setShakeRow] = useState(false);
     const [revealedRows, setRevealedRows] = useState<number[]>([]); 
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
     const [isValidating, setIsValidating] = useState(false);
 
-    // UI State
     const [showHelp, setShowHelp] = useState(false);
     const [processingReward, setProcessingReward] = useState(false);
 
@@ -89,7 +160,7 @@ export default function ZincCyphers() {
         const daily = getDailyWords();
         setTargetWords(daily);
 
-        const saved = localStorage.getItem('zinc_cyphers_progress'); // Renamed key
+        const saved = localStorage.getItem('zinc_cyphers_progress');
         if (saved) {
             const progress: DailyProgress = JSON.parse(saved);
             if (progress.dayId !== daily.dayId) {
@@ -350,39 +421,35 @@ export default function ZincCyphers() {
                         <div className="text-6xl mb-6 grayscale">💀</div>
                         <h2 className="text-3xl font-black uppercase text-red-500 mb-2">Protocol Failed</h2>
                         <p className="text-zinc-400 mb-8">
-                            Sequence was: <span className="text-white font-bold ml-1">{getCurrentTarget()}</span>
+                            Sequence was: <span className="text-[#DFFF00] font-bold ml-1 tracking-widest">{getCurrentTarget()}</span>
                         </p>
-                        <button onClick={() => window.location.reload()} className="flex items-center gap-2 bg-white text-black px-6 py-3 rounded-full font-bold uppercase text-xs tracking-widest hover:bg-[#DFFF00] transition-colors">
-                            <RotateCcw size={16} /> Retry
-                        </button>
+                        <div className="bg-zinc-800/50 rounded-lg p-4 font-mono text-center min-w-[200px] border border-zinc-700">
+                            <div className="flex items-center justify-center gap-2 text-[10px] text-zinc-500 uppercase mb-1">
+                                <Clock size={12} /> Next Cypher In
+                            </div>
+                            <div className="text-xl text-white">
+                                <CountdownTimer />
+                            </div>
+                        </div>
                     </div>
                 ) : (
+                    // OPTIMIZED GRID RENDERER
                     <div className="grid gap-2 mb-4 w-full max-w-[350px]" style={{ gridTemplateRows: `repeat(${MAX_GUESSES}, minmax(0, 1fr))` }}>
                         {Array.from({ length: MAX_GUESSES }).map((_, rowIndex) => {
                             const isCurrentRow = rowIndex === guesses.length;
-                            const guess = guesses[rowIndex] || (isCurrentRow ? currentGuess : '');
+                            const rowGuess = guesses[rowIndex] || (isCurrentRow ? currentGuess : '');
                             const isRevealed = revealedRows.includes(rowIndex);
-                            const colors = guesses[rowIndex] ? checkGuess(guesses[rowIndex], getCurrentTarget()) : [];
+                            
                             return (
-                                <div key={rowIndex} className={`grid gap-2 ${isCurrentRow && shakeRow ? 'animate-shake' : ''}`} style={{ gridTemplateColumns: `repeat(${currentLevel}, 1fr)` }}>
-                                    {Array.from({ length: currentLevel }).map((_, colIndex) => {
-                                        const letter = guess[colIndex] || '';
-                                        const color = colors[colIndex];
-                                        const delay = `${colIndex * 150}ms`;
-                                        let borderClass = 'border-zinc-800 bg-zinc-900/50';
-                                        let textClass = 'text-white';
-                                        if (isCurrentRow && letter) {
-                                            borderClass = 'border-zinc-600 bg-zinc-800 animate-pop';
-                                        }
-                                        const revealClass = isRevealed ? 'reveal-card' : '';
-                                        const statusData = isRevealed ? color : 'EMPTY';
-                                        return (
-                                            <div key={colIndex} className={`aspect-square border-2 rounded-lg flex items-center justify-center text-2xl md:text-3xl font-black uppercase select-none ${borderClass} ${textClass} ${revealClass}`} style={{ animationDelay: delay }} data-status={statusData}>
-                                                <div className="card-face">{letter}</div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
+                                <GameRow 
+                                    key={rowIndex}
+                                    guess={rowGuess}
+                                    target={getCurrentTarget()}
+                                    level={currentLevel}
+                                    isCurrentRow={isCurrentRow}
+                                    isRevealed={isRevealed}
+                                    shake={isCurrentRow && shakeRow}
+                                />
                             );
                         })}
                     </div>
@@ -436,16 +503,26 @@ export default function ZincCyphers() {
             <style jsx global>{`
                 @keyframes shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-4px); } 40% { transform: translateX(4px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
                 .animate-shake { animation: shake 0.4s ease-in-out; }
-                @keyframes pop { 0% { transform: scale(1); border-color: #52525b; } 50% { transform: scale(1.1); border-color: #DFFF00; } 100% { transform: scale(1); border-color: #52525b; } }
+                
+                @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
                 .animate-pop { animation: pop 0.1s ease-out forwards; }
+                
                 .reveal-card { animation: flip-reveal 0.6s ease-in-out forwards; backface-visibility: hidden; }
+                
                 @keyframes flip-reveal { 0% { transform: rotateX(0); background-color: transparent; border-color: #27272a; } 49% { background-color: transparent; border-color: #27272a; } 50% { transform: rotateX(90deg); } 100% { transform: rotateX(0); } }
+                
                 .reveal-card[data-status='CORRECT'] { animation-name: flip-green; }
                 .reveal-card[data-status='PRESENT'] { animation-name: flip-yellow; }
                 .reveal-card[data-status='ABSENT'] { animation-name: flip-gray; }
+                
                 @keyframes flip-green { 0% { transform: rotateX(0); background-color: #18181b; } 50% { transform: rotateX(90deg); background-color: #18181b; } 51% { background-color: #DFFF00; border-color: #DFFF00; color: black; } 100% { transform: rotateX(0); background-color: #DFFF00; border-color: #DFFF00; color: black; } }
                 @keyframes flip-yellow { 0% { transform: rotateX(0); background-color: #18181b; } 50% { transform: rotateX(90deg); background-color: #18181b; } 51% { background-color: #ca8a04; border-color: #ca8a04; } 100% { transform: rotateX(0); background-color: #ca8a04; border-color: #ca8a04; } }
                 @keyframes flip-gray { 0% { transform: rotateX(0); background-color: #18181b; } 50% { transform: rotateX(90deg); background-color: #18181b; } 51% { background-color: #27272a; border-color: #27272a; color: #71717a; } 100% { transform: rotateX(0); background-color: #27272a; border-color: #27272a; color: #71717a; } }
+
+                .will-change-transform {
+                    will-change: transform;
+                    backface-visibility: hidden;
+                }
             `}</style>
         </main>
     );
