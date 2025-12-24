@@ -26,6 +26,8 @@ import Link from 'next/link';
 // --- CONFIG ---
 const MAX_GUESSES = 6;
 const REWARD_AMOUNT = 300;
+const TRANSITION_MS = 1500;
+const REVEAL_DELAY_MS = 80;
 
 // --- TYPES ---
 type GameLevel = 4 | 5 | 6;
@@ -43,7 +45,6 @@ interface DailyProgress {
 }
 
 // --- SUB-COMPONENTS ---
-
 const CountdownTimer = () => {
     const [timeLeft, setTimeLeft] = useState('');
 
@@ -99,7 +100,7 @@ const GameRow = memo(({
             {Array.from({ length: level }).map((_, colIndex) => {
                 const letter = guess[colIndex] || '';
                 const color = colors[colIndex];
-                const delay = `${colIndex * 150}ms`;
+                const delay = `${colIndex * REVEAL_DELAY_MS}ms`;
 
                 let borderClass = 'border-zinc-800 bg-zinc-900/50';
                 let textClass = 'text-white';
@@ -179,55 +180,66 @@ export default function ZincCyphers() {
 
     // --- INITIALIZATION ---
     useEffect(() => {
-        const daily = getDailyWords();
-        setTargetWords(daily);
-
-        const introShown = localStorage.getItem('zinc_cyphers_intro_shown');
-        if (!introShown) {
-            setShowIntro(true);
-        }
-
-        const saved = localStorage.getItem('zinc_cyphers_progress');
-        if (saved) {
-            const progress: DailyProgress = JSON.parse(saved);
-            if (progress.dayId !== daily.dayId) {
-                // New Day: Reset Progress
-                localStorage.removeItem('zinc_cyphers_progress');
-                setStartTime(Date.now());
-            } else {
-                // Load Saved Progress
-                setCurrentLevel(progress.currentLevel);
-                setHistory(progress.history || []);
-                setStartTime(progress.startTime || Date.now());
-                
-                if (progress.isDailyComplete) {
-                    setGameState('WON_DAILY');
-                    setGuesses([]);
-                    if (progress.completionTime) {
-                        setFinalTimeStr(formatDuration(progress.completionTime));
-                    }
-                } else if (progress.gameState === 'LOST') {
-                     setGameState('LOST');
-                     setGuesses([]);
-                     if (progress.completionTime) {
-                         setFinalTimeStr(formatDuration(progress.completionTime));
-                     }
-                } else if (progress.gameState === 'MEMORY_PHASE') {
-                     setGameState('MEMORY_PHASE');
-                     setMemoryLevel(4);
-                     setGuesses([]);
-                } else {
-                    setGuesses(progress.guesses);
-                    setRevealedRows(progress.guesses.map((_, i) => i));
-                }
+        const initGame = async () => {
+            // 1. Fetch Offset (if overridden by Admin)
+            let offset = 0;
+            const { data } = await supabase.from('asset_overrides').select('*').eq('name', 'CYPHER_OFFSET').single();
+            if (data && data.image_url) {
+                const parsed = parseInt(data.image_url);
+                if (!isNaN(parsed)) offset = parsed;
             }
-        } else {
-            // First time load for this day
-            setStartTime(Date.now());
-        }
+
+            // 2. Calculate Words with Offset
+            const daily = getDailyWords(offset);
+            setTargetWords(daily);
+
+            // 3. Load Save Data
+            const introShown = localStorage.getItem('zinc_cyphers_intro_shown');
+            if (!introShown) setShowIntro(true);
+
+            const saved = localStorage.getItem('zinc_cyphers_progress');
+            if (saved) {
+                const progress: DailyProgress = JSON.parse(saved);
+                if (progress.dayId !== daily.dayId) {
+                    // New Day (or New Offset): Reset Progress
+                    localStorage.removeItem('zinc_cyphers_progress');
+                    setStartTime(Date.now());
+                } else {
+                    // Load Saved Progress
+                    setCurrentLevel(progress.currentLevel);
+                    setHistory(progress.history || []);
+                    setStartTime(progress.startTime || Date.now());
+                    
+                    if (progress.isDailyComplete) {
+                        setGameState('WON_DAILY');
+                        setGuesses([]);
+                        if (progress.completionTime) {
+                            setFinalTimeStr(formatDuration(progress.completionTime));
+                        }
+                    } else if (progress.gameState === 'LOST') {
+                         setGameState('LOST');
+                         setGuesses([]);
+                         if (progress.completionTime) {
+                             setFinalTimeStr(formatDuration(progress.completionTime));
+                         }
+                    } else if (progress.gameState === 'MEMORY_PHASE') {
+                         setGameState('MEMORY_PHASE');
+                         setMemoryLevel(4);
+                         setGuesses([]);
+                    } else {
+                        setGuesses(progress.guesses);
+                        setRevealedRows(progress.guesses.map((_, i) => i));
+                    }
+                }
+            } else {
+                setStartTime(Date.now());
+            }
+        };
+
+        initGame();
     }, []);
 
-    // Save progress to local storage
+    // Save progress
     useEffect(() => {
         if (!targetWords) return;
         
@@ -241,7 +253,6 @@ export default function ZincCyphers() {
             isDailyComplete: gameState === 'WON_DAILY',
             gameState: stateToSave,
             startTime,
-            // If game is over, calculate and save the elapsed time
             completionTime: (gameState === 'WON_DAILY' || gameState === 'LOST') 
                 ? (Date.now() - startTime) 
                 : undefined
@@ -254,7 +265,6 @@ export default function ZincCyphers() {
         localStorage.setItem('zinc_cyphers_intro_shown', 'true');
     };
 
-    // --- HELPERS ---
     const formatDuration = (ms: number) => {
         const seconds = Math.floor((ms / 1000) % 60);
         const minutes = Math.floor((ms / 1000 / 60));
@@ -314,12 +324,10 @@ export default function ZincCyphers() {
         if (finalTimeStr) shareText += `Time: ${finalTimeStr}\n\n`;
         else shareText += `\n`;
 
-        // Add history
         if (history.length > 0) {
             shareText += history.join('\n\n');
         }
 
-        // Add final status
         if (gameState === 'WON_DAILY') {
             shareText += `\n\nProtocol Secured 🛡️`;
         } else if (gameState === 'LOST') {
@@ -353,23 +361,20 @@ export default function ZincCyphers() {
         }
     }, [currentGuess, currentLevel, memoryLevel, gameState, targetWords, isValidating]);
 
-    // --- MEMORY PHASE LOGIC ---
     const submitMemoryGuess = () => {
         const target = getTargetWord(memoryLevel, targetWords);
         
         if (currentGuess !== target) {
-            // CRITICAL FAILURE - SUDDEN DEATH
             setShakeRow(true);
             showStatus("MEMORY MISMATCH");
             setTimeout(() => {
                 setShakeRow(false);
                 setHistory(prev => [...prev, `Memory Check Failed 🧠💀`]);
-                handleLoss([], true); // True indicates memory failure
+                handleLoss([], true);
             }, 600);
             return;
         }
 
-        // Correct Guess
         setCurrentGuess('');
         if (memoryLevel === 4) {
             setMemoryLevel(5);
@@ -382,7 +387,6 @@ export default function ZincCyphers() {
         }
     };
 
-    // --- STANDARD GAME LOGIC ---
     const submitGuess = async () => {
         const target = getCurrentTarget();
         
@@ -413,25 +417,22 @@ export default function ZincCyphers() {
         setRevealedRows(prev => [...prev, newGuesses.length - 1]);
 
         if (currentGuess === target) {
-            setTimeout(() => handleLevelWin(newGuesses), 2000);
+            setTimeout(() => handleLevelWin(newGuesses), currentLevel * REVEAL_DELAY_MS + 600);
         } else if (newGuesses.length >= MAX_GUESSES) {
             setTimeout(() => handleLoss(newGuesses), 1500);
         }
     };
 
     const handleLevelWin = async (winningGuesses: string[]) => {
-        // Record history
         const grid = generateEmojiGrid(winningGuesses, getCurrentTarget());
         const entry = `Lv.${currentLevel} ${winningGuesses.length}/${MAX_GUESSES}\n${grid}`;
         setHistory(prev => [...prev, entry]);
 
-        // Trigger Transition Animation
         if (currentLevel === 4) {
             triggerTransition(5, "Sequence 1/3 Complete", "Initializing Level 5...");
         } else if (currentLevel === 5) {
             triggerTransition(6, "Sequence 2/3 Complete", "Initializing Level 6...");
         } else {
-            // Transition to Memory Phase
             triggerTransition('MEMORY', "All Sequences Cracked", "Entering Security Verification...");
         }
     };
@@ -452,7 +453,7 @@ export default function ZincCyphers() {
                 setCurrentLevel(nextStage as GameLevel);
                 setGameState('PLAYING');
             }
-        }, 3000); // 3 Second transition
+        }, TRANSITION_MS);
     };
 
     const handleLoss = (finalGuesses: string[], isMemoryFail = false) => {
@@ -656,7 +657,7 @@ export default function ZincCyphers() {
                         </div>
                     </div>
                 ) : gameState === 'TRANSITION' ? (
-                    <div className="flex flex-col items-center justify-center flex-1 w-full animate-in fade-in duration-300">
+                    <div className="flex flex-col items-center justify-center flex-1 w-full animate-in fade-in duration-200">
                         <div className="relative mb-6">
                             <div className="absolute inset-0 bg-[#DFFF00] blur-xl opacity-20 animate-pulse" />
                             <Unlock size={48} className="text-[#DFFF00] animate-bounce" />
@@ -668,7 +669,7 @@ export default function ZincCyphers() {
                         </div>
                     </div>
                 ) : gameState === 'MEMORY_PHASE' ? (
-                    <div className="flex flex-col items-center justify-center flex-1 w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="flex flex-col items-center justify-center flex-1 w-full animate-in fade-in slide-in-from-bottom-4 duration-300">
                         <div className="mb-8 text-center">
                             <div className="relative inline-block">
                                 <ShieldCheck size={48} className="text-[#DFFF00] mx-auto mb-4 relative z-10" />
@@ -817,7 +818,7 @@ export default function ZincCyphers() {
                 @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
                 .animate-pop { animation: pop 0.1s ease-out forwards; }
                 
-                .reveal-card { animation: flip-reveal 0.6s ease-in-out forwards; backface-visibility: hidden; }
+                .reveal-card { animation: flip-reveal 0.4s ease-in-out forwards; backface-visibility: hidden; }
                 
                 @keyframes flip-reveal { 0% { transform: rotateX(0); background-color: transparent; border-color: #27272a; } 49% { background-color: transparent; border-color: #27272a; } 50% { transform: rotateX(90deg); } 100% { transform: rotateX(0); } }
                 

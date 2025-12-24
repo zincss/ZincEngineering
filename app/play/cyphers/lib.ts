@@ -220,14 +220,14 @@ function seededRandom(seed: number) {
     return x - Math.floor(x);
 }
 
-export function getDailyWords() {
+// Updated to accept an optional offset
+export function getDailyWords(offset: number = 0) {
     const now = new Date();
-    // UTC Day ID
-    const dayId = Math.floor((now.getTime() - (now.getTimezoneOffset() * 60000 )) / 86400000);
+    // UTC Day ID + Offset
+    const dayId = Math.floor((now.getTime() - (now.getTimezoneOffset() * 60000 )) / 86400000) + offset;
 
     const getWordForDay = (list: string[], day: number, salt: number) => {
         const index = Math.floor(seededRandom(day + salt) * list.length);
-        // Ensure strictly uppercase and trimmed (just in case)
         return list[index].trim().toUpperCase();
     };
 

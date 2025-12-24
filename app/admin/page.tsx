@@ -3,15 +3,16 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
-import { Shield, Users, Coins, Save, Lock, Search, AlertTriangle, Database, Image as ImageIcon, X, ChevronLeft, ChevronRight, DownloadCloud, Loader2, Sparkles } from 'lucide-react';
+import { Shield, Users, Coins, Save, Lock, Search, AlertTriangle, Database, Image as ImageIcon, X, ChevronLeft, ChevronRight, DownloadCloud, Loader2, Sparkles, Brain, RefreshCw, RotateCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { REEL_ITEMS_SOURCE, CAR_PACK_SOURCE, GRIDIRON_PACK_SOURCE, RealAssetImage } from '@/app/market/components/shared';
+import { getDailyWords } from '@/app/play/wordle/lib';
 
 export default function AdminPage() {
   const { user, profile, isAdmin, loading: authLoading } = useAuth();
   const router = useRouter();
 
-  const [activeTab, setActiveTab] = useState<'USERS' | 'ASSETS'>('USERS');
+  const [activeTab, setActiveTab] = useState<'USERS' | 'ASSETS' | 'CYPHERS'>('USERS');
 
   // Dashboard State
   const [allUsers, setAllUsers] = useState<any[]>([]);
@@ -37,6 +38,10 @@ export default function AdminPage() {
   const [newPassword, setNewPassword] = useState('');
   const [passwordMsg, setPasswordMsg] = useState('');
 
+  // Cypher Manager State
+  const [cypherOffset, setCypherOffset] = useState(0);
+  const [currentCyphers, setCurrentCyphers] = useState<any>(null);
+
   useEffect(() => {
     if (!authLoading) {
       if (!isAdmin) {
@@ -44,6 +49,7 @@ export default function AdminPage() {
       } else {
         fetchUsers();
         fetchOverrides();
+        fetchCypherConfig();
       }
     }
   }, [isAdmin, authLoading, router]);
@@ -56,6 +62,12 @@ export default function AdminPage() {
         setCurrentFetchIndex(0);
     }
   }, [editingItem]);
+
+  // Recalculate cyphers whenever offset changes locally (preview)
+  useEffect(() => {
+    const words = getDailyWords(cypherOffset);
+    setCurrentCyphers(words);
+  }, [cypherOffset]);
 
   const fetchUsers = async () => {
     setLoadingUsers(true);
@@ -70,6 +82,35 @@ export default function AdminPage() {
           const map: Record<string, string> = {};
           data.forEach((item: any) => { map[item.name] = item.image_url });
           setOverrides(map);
+      }
+  };
+
+  const fetchCypherConfig = async () => {
+      // Assuming we store a 'cypher_offset' in a table (e.g., app_config or similar)
+      // For now, we utilize 'asset_overrides' as a generic kv store if needed, 
+      // or assume a 'game_config' table exists. 
+      // Note: User requested implementation, assuming we can use 'asset_overrides' 
+      // with a reserved key to avoid migration complexity for them, 
+      // OR a dedicated table 'game_settings'.
+      
+      // Let's use 'asset_overrides' with a special key 'CYPHER_OFFSET' for simplest integration
+      const { data } = await supabase.from('asset_overrides').select('*').eq('name', 'CYPHER_OFFSET').single();
+      if (data && data.image_url) {
+          const offset = parseInt(data.image_url);
+          if (!isNaN(offset)) setCypherOffset(offset);
+      }
+  };
+
+  const saveCypherOffset = async (newOffset: number) => {
+      const { error } = await supabase
+        .from('asset_overrides')
+        .upsert({ name: 'CYPHER_OFFSET', image_url: newOffset.toString() });
+      
+      if (error) {
+          alert("Failed to update cypher offset.");
+      } else {
+          setCypherOffset(newOffset);
+          alert("Cyphers Updated. Players will see new words on refresh.");
       }
   };
 
@@ -112,7 +153,6 @@ export default function AdminPage() {
     setFetchedImages([]);
     
     try {
-        // We use the query directly now since we have suggestions
         const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(queryToUse)}&gsrlimit=20&prop=imageinfo&iiprop=url&format=json&origin=*`);
         const data = await res.json();
         
@@ -128,7 +168,7 @@ export default function AdminPage() {
         if (images.length > 0) {
             setFetchedImages(images);
             setCurrentFetchIndex(0);
-            setNewImageUrl(images[0]); // Auto-select first result
+            setNewImageUrl(images[0]); 
         } else {
             alert("No images found for this query.");
         }
@@ -157,25 +197,17 @@ export default function AdminPage() {
       const suggestions = [base];
 
       if (selectedPack === 'GRIDIRON') {
-          // Extract primary team if multiple (e.g. "Patriots/Bucs" -> "Patriots")
           const team = editingItem.team ? editingItem.team.split('/')[0] : '';
-          
           if (team) suggestions.push(`${base} ${team}`);
           suggestions.push(`${base} NFL`);
           suggestions.push(`${base} american football`);
-          suggestions.push(`${base} portrait`);
-          suggestions.push(`${base} action`);
       } else if (selectedPack === 'CARS') {
           if (editingItem.manufacturer) suggestions.push(`${editingItem.manufacturer} ${base}`);
           suggestions.push(`${base} car`);
-          suggestions.push(`${base} racing`);
-          suggestions.push(`${base} front`);
       } else {
           suggestions.push(`${base} object`);
           suggestions.push(`${base} icon`);
       }
-
-      // Deduplicate
       return Array.from(new Set(suggestions));
   };
 
@@ -191,48 +223,77 @@ export default function AdminPage() {
   if (authLoading || !isAdmin) return <div className="min-h-screen bg-black flex items-center justify-center text-[#DFFF00] font-mono animate-pulse">VERIFYING CLEARANCE...</div>;
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white p-6 md:p-12 pt-32">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-zinc-950 text-white pb-20 md:pb-0">
+      <div className="max-w-7xl mx-auto p-4 md:p-12 md:pt-32 pt-24">
         
         {/* HEADER */}
-        <div className="flex items-center gap-4 mb-12 border-b border-zinc-800 pb-8">
+        <div className="flex flex-col md:flex-row items-center gap-4 mb-8 md:mb-12 border-b border-zinc-800 pb-8 text-center md:text-left">
             <div className="p-4 bg-red-900/20 border border-red-500 rounded-2xl">
-                <Shield size={48} className="text-red-500" />
+                <Shield size={32} className="text-red-500 md:w-12 md:h-12" />
             </div>
             <div>
-                <div className="text-red-500 font-mono text-xs font-bold uppercase tracking-widest mb-1">Restricted Area</div>
-                <h1 className="text-4xl md:text-5xl font-black uppercase">Command Console</h1>
-                <p className="text-zinc-500 font-mono text-sm">Welcome, Admin {profile?.username}</p>
+                <div className="text-red-500 font-mono text-[10px] md:text-xs font-bold uppercase tracking-widest mb-1">Restricted Area</div>
+                <h1 className="text-2xl md:text-5xl font-black uppercase">Command Console</h1>
+                <p className="text-zinc-500 font-mono text-xs md:text-sm">Welcome, Admin {profile?.username}</p>
             </div>
         </div>
 
-        {/* TABS */}
-        <div className="flex gap-4 mb-8">
-            <button onClick={() => setActiveTab('USERS')} className={`px-6 py-3 rounded-lg font-bold uppercase tracking-wider text-xs border transition-all ${activeTab === 'USERS' ? 'bg-white text-black border-white' : 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:text-white'}`}>
-                User Database
-            </button>
-            <button onClick={() => setActiveTab('ASSETS')} className={`px-6 py-3 rounded-lg font-bold uppercase tracking-wider text-xs border transition-all ${activeTab === 'ASSETS' ? 'bg-white text-black border-white' : 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:text-white'}`}>
-                Asset Manager
-            </button>
+        {/* MOBILE NAV TABS */}
+        <div className="flex overflow-x-auto gap-2 md:gap-4 mb-8 pb-2 scrollbar-hide">
+            {[
+                { id: 'USERS', icon: Users, label: 'Database' },
+                { id: 'ASSETS', icon: Database, label: 'Assets' },
+                { id: 'CYPHERS', icon: Brain, label: 'Cyphers' }
+            ].map((tab) => (
+                <button 
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)} 
+                    className={`
+                        flex items-center gap-2 px-4 md:px-6 py-3 rounded-lg font-bold uppercase tracking-wider text-[10px] md:text-xs border transition-all whitespace-nowrap
+                        ${activeTab === tab.id ? 'bg-white text-black border-white' : 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:text-white'}
+                    `}
+                >
+                    <tab.icon size={14} />
+                    {tab.label}
+                </button>
+            ))}
         </div>
 
         {activeTab === 'USERS' && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* USER MANAGEMENT */}
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-black uppercase flex items-center gap-2">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        <h2 className="text-lg md:text-xl font-black uppercase flex items-center gap-2">
                             <Users className="text-[#DFFF00]" /> User Database
                         </h2>
-                        <div className="relative">
+                        <div className="relative w-full md:w-auto">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={14} />
                             <input type="text" placeholder="SEARCH USERS..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                                className="bg-zinc-900 border border-zinc-800 rounded-lg pl-9 pr-4 py-2 text-xs font-mono uppercase focus:border-[#DFFF00] outline-none w-[200px]"
+                                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg pl-9 pr-4 py-2 text-xs font-mono uppercase focus:border-[#DFFF00] outline-none"
                             />
                         </div>
                     </div>
 
-                    <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden">
+                    {/* MOBILE CARD VIEW */}
+                    <div className="block md:hidden space-y-3">
+                        {filteredUsers.map(u => (
+                            <div key={u.id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div className="font-bold">{u.username || 'Unknown'}</div>
+                                    <span className={`text-[10px] px-2 py-1 rounded border ${u.role === 'admin' ? 'border-red-500 text-red-500 bg-red-950/20' : 'border-zinc-700 text-zinc-500'}`}>{u.role || 'USER'}</span>
+                                </div>
+                                <div className="text-xs font-mono text-[#DFFF00] mb-4">{u.credits} Credits</div>
+                                <div className="flex gap-2 justify-end">
+                                    <button onClick={() => handleUpdateCredits(u.id, u.credits, 100)} className="p-2 bg-zinc-800 hover:bg-[#DFFF00] hover:text-black rounded transition-colors"><Coins size={14} /> +100</button>
+                                    <button onClick={() => handleUpdateCredits(u.id, u.credits, 1000)} className="p-2 bg-zinc-800 hover:bg-[#DFFF00] hover:text-black rounded transition-colors"><Coins size={14} /> +1k</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* DESKTOP TABLE VIEW */}
+                    <div className="hidden md:block bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden">
                         <table className="w-full text-left text-sm">
                             <thead className="bg-zinc-900 text-zinc-500 font-mono text-[10px] uppercase tracking-widest">
                                 <tr><th className="p-4">User</th><th className="p-4">Role</th><th className="p-4">Credits</th><th className="p-4 text-right">Actions</th></tr>
@@ -246,7 +307,6 @@ export default function AdminPage() {
                                         <td className="p-4 flex justify-end gap-2">
                                             <button onClick={() => handleUpdateCredits(u.id, u.credits, 100)} className="p-2 bg-zinc-800 hover:bg-[#DFFF00] hover:text-black rounded transition-colors"><Coins size={14} /> +100</button>
                                             <button onClick={() => handleUpdateCredits(u.id, u.credits, 1000)} className="p-2 bg-zinc-800 hover:bg-[#DFFF00] hover:text-black rounded transition-colors"><Coins size={14} /> +1k</button>
-                                            <button onClick={() => { const amount = prompt("Enter amount:"); if (amount) handleUpdateCredits(u.id, u.credits, parseInt(amount)); }} className="p-2 bg-zinc-800 hover:bg-white hover:text-black rounded">...</button>
                                         </td>
                                     </tr>
                                 ))}
@@ -265,12 +325,63 @@ export default function AdminPage() {
                             {passwordMsg && <div className="text-[10px] font-mono text-[#DFFF00] text-center pt-2">{passwordMsg}</div>}
                         </div>
                     </div>
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-                        <h2 className="text-lg font-black uppercase flex items-center gap-2 mb-4"><AlertTriangle className="text-[#DFFF00]" size={18} /> System Status</h2>
-                        <div className="space-y-2 font-mono text-xs">
-                            <div className="flex justify-between p-2 bg-black rounded border border-zinc-800"><span className="text-zinc-500">USER_COUNT</span><span className="text-white">{allUsers.length}</span></div>
-                            <div className="flex justify-between p-2 bg-black rounded border border-zinc-800"><span className="text-zinc-500">TOTAL_CREDITS</span><span className="text-[#DFFF00]">{allUsers.reduce((acc, u) => acc + (u.credits || 0), 0).toLocaleString()}</span></div>
-                            <div className="flex justify-between p-2 bg-black rounded border border-zinc-800"><span className="text-zinc-500">DB_STATUS</span><span className="text-green-500">CONNECTED</span></div>
+                </div>
+            </div>
+        )}
+
+        {activeTab === 'CYPHERS' && (
+            <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="text-center mb-8">
+                    <Brain className="w-16 h-16 text-[#DFFF00] mx-auto mb-4" />
+                    <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight">Cypher Control</h2>
+                    <p className="text-zinc-500">Manipulate the daily protocol seed.</p>
+                </div>
+
+                <div className="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-6 md:p-8">
+                    <div className="flex flex-col gap-8">
+                        {/* CURRENT STATUS */}
+                        <div>
+                            <div className="text-zinc-500 font-mono text-xs uppercase tracking-widest mb-4">Current Protocol</div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {['word4', 'word5', 'word6'].map((key) => (
+                                    <div key={key} className="bg-black border border-zinc-800 p-4 rounded-xl text-center">
+                                        <div className="text-[10px] text-zinc-600 font-bold uppercase mb-1">{key.replace('word', 'Level ')}</div>
+                                        <div className="text-xl md:text-2xl font-black text-[#DFFF00] tracking-widest">
+                                            {currentCyphers?.[key] || '....'}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* CONTROLS */}
+                        <div className="border-t border-zinc-800 pt-8">
+                            <div className="text-zinc-500 font-mono text-xs uppercase tracking-widest mb-4">Override Controls</div>
+                            
+                            <div className="flex flex-col gap-4">
+                                <div className="p-4 bg-zinc-950 rounded-xl border border-zinc-800 flex items-center justify-between">
+                                    <span className="font-mono text-sm">Current Offset</span>
+                                    <span className="font-black text-xl text-white">{cypherOffset}</span>
+                                </div>
+                                
+                                <div className="grid grid-cols-2 gap-4">
+                                    <button 
+                                        onClick={() => saveCypherOffset(cypherOffset + 1)}
+                                        className="bg-[#DFFF00] text-black font-bold p-4 rounded-xl flex items-center justify-center gap-2 hover:bg-[#ccee00] transition-colors"
+                                    >
+                                        <RefreshCw size={18} /> Regenerate
+                                    </button>
+                                    <button 
+                                        onClick={() => saveCypherOffset(0)}
+                                        className="bg-zinc-800 text-white font-bold p-4 rounded-xl flex items-center justify-center gap-2 hover:bg-zinc-700 transition-colors"
+                                    >
+                                        <RotateCcw size={18} /> Reset Default
+                                    </button>
+                                </div>
+                                <p className="text-[10px] text-zinc-500 text-center mt-2">
+                                    Clicking Regenerate increments the daily seed offset, instantly changing words for all users upon their next refresh.
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -280,9 +391,9 @@ export default function AdminPage() {
         {activeTab === 'ASSETS' && (
             <div className="space-y-6">
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                         {['BASE', 'CARS', 'GRIDIRON'].map(pack => (
-                            <button key={pack} onClick={() => setSelectedPack(pack as any)} className={`px-4 py-2 rounded font-bold uppercase text-xs border ${selectedPack === pack ? 'bg-[#DFFF00] text-black border-[#DFFF00]' : 'bg-zinc-900 text-zinc-500 border-zinc-800'}`}>
+                            <button key={pack} onClick={() => setSelectedPack(pack as any)} className={`px-4 py-2 rounded font-bold uppercase text-[10px] md:text-xs border ${selectedPack === pack ? 'bg-[#DFFF00] text-black border-[#DFFF00]' : 'bg-zinc-900 text-zinc-500 border-zinc-800'}`}>
                                 {pack}
                             </button>
                         ))}
@@ -295,7 +406,7 @@ export default function AdminPage() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
                     {filteredAssets.map((item, i) => (
                         <div key={i} className="group relative bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden cursor-pointer hover:border-[#DFFF00] transition-colors"
                              onClick={() => { setEditingItem(item); setNewImageUrl(overrides[item.name] || ''); }}>
@@ -318,12 +429,12 @@ export default function AdminPage() {
         {/* EDIT MODAL */}
         {editingItem && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl p-6 relative flex flex-col md:flex-row gap-6">
+                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl p-6 relative flex flex-col md:flex-row gap-6 max-h-[90vh] overflow-y-auto">
                     <button onClick={() => setEditingItem(null)} className="absolute top-4 right-4 text-zinc-500 hover:text-white z-10"><X size={20} /></button>
                     
                     {/* LEFT: PREVIEW */}
                     <div className="w-full md:w-1/3 flex flex-col gap-4">
-                        <div className="aspect-[2/3] rounded-xl overflow-hidden border border-zinc-700 relative bg-black">
+                        <div className="aspect-[2/3] rounded-xl overflow-hidden border border-zinc-700 relative bg-black shrink-0">
                              {newImageUrl ? (
                                 <img src={newImageUrl} className="w-full h-full object-cover" onError={() => setNewImageUrl('')} />
                              ) : (
