@@ -16,7 +16,9 @@ import {
     Lock,
     ShieldCheck,
     Share2,
-    Check
+    Check,
+    Cpu,
+    Unlock
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -26,13 +28,13 @@ const REWARD_AMOUNT = 300;
 
 // --- TYPES ---
 type GameLevel = 4 | 5 | 6;
-type GameState = 'PLAYING' | 'MEMORY_PHASE' | 'WON_DAILY' | 'LOST';
+type GameState = 'PLAYING' | 'TRANSITION' | 'MEMORY_PHASE' | 'WON_DAILY' | 'LOST';
 
 interface DailyProgress {
     dayId: number;
     currentLevel: GameLevel;
     guesses: string[];
-    history: string[]; // Stores the emoji strings for completed levels
+    history: string[]; 
     isDailyComplete: boolean;
     gameState?: GameState;
 }
@@ -137,7 +139,6 @@ const GameRow = memo(({
 
 GameRow.displayName = 'GameRow';
 
-
 // --- MAIN COMPONENT ---
 
 export default function ZincCyphers() {
@@ -152,10 +153,13 @@ export default function ZincCyphers() {
     const [memoryLevel, setMemoryLevel] = useState<GameLevel>(4);
 
     const [guesses, setGuesses] = useState<string[]>([]);
-    const [history, setHistory] = useState<string[]>([]); // Stores results for sharing
+    const [history, setHistory] = useState<string[]>([]); 
     const [currentGuess, setCurrentGuess] = useState('');
     const [gameState, setGameState] = useState<GameState>('PLAYING');
     
+    // Transition State
+    const [transitionData, setTransitionData] = useState<{ msg: string, sub: string } | null>(null);
+
     const [shakeRow, setShakeRow] = useState(false);
     const [revealedRows, setRevealedRows] = useState<number[]>([]); 
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -183,7 +187,7 @@ export default function ZincCyphers() {
                 localStorage.removeItem('zinc_cyphers_progress');
             } else {
                 setCurrentLevel(progress.currentLevel);
-                setHistory(progress.history || []); // Restore history
+                setHistory(progress.history || []);
                 
                 if (progress.isDailyComplete) {
                     setGameState('WON_DAILY');
@@ -208,13 +212,17 @@ export default function ZincCyphers() {
 
     useEffect(() => {
         if (!targetWords) return;
+        
+        // Don't save transition state to local storage to prevent getting stuck in it
+        const stateToSave = gameState === 'TRANSITION' ? 'PLAYING' : gameState;
+        
         const progress: DailyProgress = {
             dayId: targetWords.dayId,
             currentLevel,
             guesses,
             history,
             isDailyComplete: gameState === 'WON_DAILY',
-            gameState: gameState 
+            gameState: stateToSave
         };
         localStorage.setItem('zinc_cyphers_progress', JSON.stringify(progress));
     }, [guesses, currentLevel, gameState, targetWords, history]);
@@ -276,7 +284,7 @@ export default function ZincCyphers() {
         
         let shareText = `Zinc Cyphers II #${targetWords.dayId}\n\n`;
         
-        // Add history (completed levels)
+        // Add history
         if (history.length > 0) {
             shareText += history.join('\n\n');
         }
@@ -315,31 +323,36 @@ export default function ZincCyphers() {
         }
     }, [currentGuess, currentLevel, memoryLevel, gameState, targetWords, isValidating]);
 
+    // --- MEMORY PHASE LOGIC ---
     const submitMemoryGuess = () => {
         const target = getTargetWord(memoryLevel, targetWords);
         
         if (currentGuess !== target) {
+            // CRITICAL FAILURE - SUDDEN DEATH
             setShakeRow(true);
-            showStatus("INCORRECT PROTOCOL");
+            showStatus("MEMORY MISMATCH");
             setTimeout(() => {
                 setShakeRow(false);
-                setCurrentGuess('');
+                setHistory(prev => [...prev, `Memory Check Failed 🧠💀`]);
+                setGameState('LOST');
             }, 600);
             return;
         }
 
+        // Correct Guess
         setCurrentGuess('');
         if (memoryLevel === 4) {
             setMemoryLevel(5);
-            showStatus("LEVEL 4 VERIFIED");
+            showStatus("4-CHAR VERIFIED");
         } else if (memoryLevel === 5) {
             setMemoryLevel(6);
-            showStatus("LEVEL 5 VERIFIED");
+            showStatus("5-CHAR VERIFIED");
         } else {
             handleDailyWin();
         }
     };
 
+    // --- STANDARD GAME LOGIC ---
     const submitGuess = async () => {
         const target = getCurrentTarget();
         
@@ -377,33 +390,45 @@ export default function ZincCyphers() {
     };
 
     const handleLevelWin = async (winningGuesses: string[]) => {
-        // Record history for this level before clearing guesses
+        // Record history
         const grid = generateEmojiGrid(winningGuesses, getCurrentTarget());
         const entry = `Lv.${currentLevel} ${winningGuesses.length}/${MAX_GUESSES}\n${grid}`;
         setHistory(prev => [...prev, entry]);
 
+        // Trigger Transition Animation
         if (currentLevel === 4) {
-            setCurrentLevel(5);
-            setGuesses([]);
-            setRevealedRows([]);
+            triggerTransition(5, "Sequence 1/3 Complete", "Initializing Level 5...");
         } else if (currentLevel === 5) {
-            setCurrentLevel(6);
-            setGuesses([]);
-            setRevealedRows([]);
+            triggerTransition(6, "Sequence 2/3 Complete", "Initializing Level 6...");
         } else {
-            setGameState('MEMORY_PHASE');
-            setMemoryLevel(4);
-            setGuesses([]);
-            setRevealedRows([]);
+            // Transition to Memory Phase
+            triggerTransition('MEMORY', "All Sequences Cracked", "Entering Security Verification...");
         }
     };
 
+    const triggerTransition = (nextStage: number | 'MEMORY', title: string, sub: string) => {
+        setGameState('TRANSITION');
+        setTransitionData({ msg: title, sub });
+
+        setTimeout(() => {
+            setGuesses([]);
+            setRevealedRows([]);
+            setTransitionData(null);
+
+            if (nextStage === 'MEMORY') {
+                setGameState('MEMORY_PHASE');
+                setMemoryLevel(4);
+            } else {
+                setCurrentLevel(nextStage as GameLevel);
+                setGameState('PLAYING');
+            }
+        }, 3000); // 3 Second transition
+    };
+
     const handleLoss = (finalGuesses: string[]) => {
-        // Record failure history
         const grid = generateEmojiGrid(finalGuesses, getCurrentTarget());
         const entry = `Lv.${currentLevel} X/${MAX_GUESSES}\n${grid}`;
         setHistory(prev => [...prev, entry]);
-        
         setGameState('LOST');
     };
 
@@ -440,7 +465,7 @@ export default function ZincCyphers() {
     }, [handleKey]);
 
     const getKeyStatus = (key: string): LetterStatus | 'DEFAULT' => {
-        if (!targetWords || gameState === 'MEMORY_PHASE') return 'DEFAULT';
+        if (!targetWords || gameState === 'MEMORY_PHASE' || gameState === 'TRANSITION') return 'DEFAULT';
         const target = getCurrentTarget();
         let bestStatus: LetterStatus | 'DEFAULT' = 'DEFAULT';
         guesses.forEach(g => {
@@ -550,6 +575,7 @@ export default function ZincCyphers() {
                         <div className="text-6xl mb-6 grayscale">💀</div>
                         <h2 className="text-3xl font-black uppercase text-red-500 mb-2">Protocol Failed</h2>
                         <p className="text-zinc-400 mb-8">
+                            {/* In memory phase loss, we show the one they failed on, otherwise current target */}
                             Sequence was: <span className="text-[#DFFF00] font-bold ml-1 tracking-widest">{getCurrentTarget()}</span>
                         </p>
 
@@ -572,13 +598,31 @@ export default function ZincCyphers() {
                             </div>
                         </div>
                     </div>
+                ) : gameState === 'TRANSITION' ? (
+                    <div className="flex flex-col items-center justify-center flex-1 w-full animate-in fade-in duration-300">
+                        <div className="relative mb-6">
+                            <div className="absolute inset-0 bg-[#DFFF00] blur-xl opacity-20 animate-pulse" />
+                            <Unlock size={48} className="text-[#DFFF00] animate-bounce" />
+                        </div>
+                        <h2 className="text-2xl font-black uppercase tracking-widest text-white mb-2 text-center">{transitionData?.msg}</h2>
+                        <div className="flex items-center gap-2 text-[#DFFF00] font-mono text-xs uppercase tracking-widest">
+                            <Loader2 size={12} className="animate-spin" />
+                            {transitionData?.sub}
+                        </div>
+                    </div>
                 ) : gameState === 'MEMORY_PHASE' ? (
                     <div className="flex flex-col items-center justify-center flex-1 w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="mb-8 text-center">
-                            <ShieldCheck size={48} className="text-[#DFFF00] mx-auto mb-4 animate-pulse" />
+                            <div className="relative inline-block">
+                                <ShieldCheck size={48} className="text-[#DFFF00] mx-auto mb-4 relative z-10" />
+                                <div className="absolute inset-0 bg-[#DFFF00] blur-xl opacity-30 animate-pulse" />
+                            </div>
                             <h2 className="text-2xl font-black uppercase tracking-tight text-white mb-2">Security Verification</h2>
-                            <p className="text-zinc-400 text-xs md:text-sm max-w-xs mx-auto">
-                                To unlock the cypher reward, re-enter the <span className="text-[#DFFF00]">{memoryLevel}-letter</span> password from memory.
+                            <p className="text-red-400 font-bold text-xs md:text-sm max-w-xs mx-auto animate-pulse">
+                                WARNING: 1 ATTEMPT ONLY.
+                            </p>
+                            <p className="text-zinc-500 text-xs mt-1">
+                                Re-enter <span className="text-white">{memoryLevel}-char</span> cypher to proceed.
                             </p>
                         </div>
                         
@@ -591,7 +635,7 @@ export default function ZincCyphers() {
                                         key={i} 
                                         className={`
                                             w-12 h-14 md:w-16 md:h-20 border-2 rounded-lg flex items-center justify-center 
-                                            text-3xl font-black uppercase 
+                                            text-3xl font-black uppercase transition-colors
                                             ${currentGuess[i] ? 'border-[#DFFF00] bg-zinc-900 text-white' : 'border-zinc-800 bg-zinc-900/50 text-zinc-700'}
                                         `}
                                     >
@@ -664,7 +708,7 @@ export default function ZincCyphers() {
                         
                         <div className="flex flex-col items-center text-center mb-6">
                             <div className="w-16 h-16 bg-zinc-800 rounded-2xl flex items-center justify-center mb-4 text-[#DFFF00] border border-zinc-700">
-                                <Lock size={32} />
+                                <Cpu size={32} />
                             </div>
                             <h3 className="text-2xl font-black uppercase tracking-tight text-white">Cyphers II</h3>
                             <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest mt-1">Daily Security Protocol</p>
@@ -677,11 +721,11 @@ export default function ZincCyphers() {
                             </div>
                             <div className="flex gap-4 items-start">
                                 <span className="w-6 h-6 rounded-full bg-zinc-800 text-[#DFFF00] font-bold flex-shrink-0 flex items-center justify-center text-xs border border-zinc-700">2</span>
-                                <p>Use logic. Green is correct. Yellow is wrong spot.</p>
+                                <p>Memorize them. You must <strong className="text-white">re-enter them blindly</strong> at the end.</p>
                             </div>
                             <div className="flex gap-4 items-start">
-                                <span className="w-6 h-6 rounded-full bg-zinc-800 text-[#DFFF00] font-bold flex-shrink-0 flex items-center justify-center text-xs border border-zinc-700">3</span>
-                                <p>Memorize the passwords. You will need to <strong className="text-white">re-enter them blindly</strong> to win.</p>
+                                <span className="w-6 h-6 rounded-full bg-red-900 text-red-100 font-bold flex-shrink-0 flex items-center justify-center text-xs border border-red-800">!</span>
+                                <p className="text-red-300">Final verification is <strong className="text-white">Sudden Death</strong>. One mistake, and you fail.</p>
                             </div>
                         </div>
 
