@@ -4,7 +4,6 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { createClient } from '@/utils/supabase/client';
 import { User, Session, AuthChangeEvent, AuthError, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
-// ... (Keep your Profile and AuthContextType definitions the same) ...
 type Profile = {
   username: string;
   credits: number;
@@ -24,7 +23,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
-// [UPDATE] Add initialUser prop here
 export const AuthProvider = ({ 
   children, 
   initialUser 
@@ -34,7 +32,7 @@ export const AuthProvider = ({
 }) => {
   const [supabase] = useState(() => createClient());
   
-  // [UPDATE] Initialize state with the user passed from the server
+  // Initialize state with the server value
   const [user, setUser] = useState<User | null>(initialUser);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(!initialUser);
@@ -62,13 +60,23 @@ export const AuthProvider = ({
     }
   }, [supabase]);
 
-  // [UPDATE] Immediate profile fetch if initialUser exists
+  // [FIX] Sync local state with Server Prop
+  // This ensures that when the server redirects and passes a new user, 
+  // the client updates immediately without needing a refresh.
   useEffect(() => {
+    setUser(initialUser);
+    
     if (initialUser) {
       fetchProfile(initialUser.id);
+    } else {
+      setProfile(null);
     }
+    
+    // Stop loading once we have a definitive state from the server
+    setLoading(false);
   }, [initialUser, fetchProfile]);
 
+  // Initial client-side session check (fallback)
   useEffect(() => {
     let mounted = true;
 
@@ -78,7 +86,6 @@ export const AuthProvider = ({
             
             if (session?.user) {
                  if (mounted) {
-                   // Only update if different to prevent re-renders
                    if (session.user.id !== user?.id) {
                      setUser(session.user);
                      await fetchProfile(session.user.id);
@@ -92,6 +99,7 @@ export const AuthProvider = ({
         }
     };
     
+    // Only run this check if we didn't get a user from the server
     if (!initialUser) {
       checkSession();
     }
@@ -118,10 +126,7 @@ export const AuthProvider = ({
     };
   }, [supabase, fetchProfile, initialUser, user?.id]);
 
-  // ... (Keep real-time sync, signIn, signOut, return logic exactly the same) ...
-  // Re-paste the rest of your logic here (Realtime sync, signIn, signOut)
-  
-  // --- 2. MULTI-DEVICE REALTIME SYNC ---
+  // --- MULTI-DEVICE REALTIME SYNC ---
   useEffect(() => {
     if (!user) return;
 
