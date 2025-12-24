@@ -12,7 +12,9 @@ import {
     ArrowLeft,
     XCircle,
     Loader2,
-    Clock
+    Clock,
+    Lock,
+    ShieldCheck
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -22,13 +24,14 @@ const REWARD_AMOUNT = 300;
 
 // --- TYPES ---
 type GameLevel = 4 | 5 | 6;
-type GameState = 'PLAYING' | 'WON_LEVEL' | 'WON_DAILY' | 'LOST';
+type GameState = 'PLAYING' | 'MEMORY_PHASE' | 'WON_DAILY' | 'LOST';
 
 interface DailyProgress {
     dayId: number;
     currentLevel: GameLevel;
     guesses: string[];
     isDailyComplete: boolean;
+    gameState?: GameState;
 }
 
 // --- SUB-COMPONENTS ---
@@ -84,7 +87,7 @@ const GameRow = memo(({
 
     return (
         <div 
-            className={`grid gap-2 ${isCurrentRow && shake ? 'animate-shake' : ''}`} 
+            className={`grid gap-1 md:gap-2 ${isCurrentRow && shake ? 'animate-shake' : ''}`} 
             style={{ gridTemplateColumns: `repeat(${level}, 1fr)` }}
         >
             {Array.from({ length: level }).map((_, colIndex) => {
@@ -106,7 +109,7 @@ const GameRow = memo(({
                     <div 
                         key={colIndex}
                         className={`
-                            aspect-square border-2 rounded-lg flex items-center justify-center 
+                            aspect-square border-2 rounded-md md:rounded-lg flex items-center justify-center 
                             text-2xl md:text-3xl font-black uppercase select-none 
                             ${borderClass} ${textClass} ${revealClass}
                             will-change-transform
@@ -143,6 +146,10 @@ export default function ZincCyphers() {
     // --- STATE ---
     const [targetWords, setTargetWords] = useState<{ word4: string, word5: string, word6: string, dayId: number } | null>(null);
     const [currentLevel, setCurrentLevel] = useState<GameLevel>(4);
+    
+    // Memory Phase State
+    const [memoryLevel, setMemoryLevel] = useState<GameLevel>(4);
+
     const [guesses, setGuesses] = useState<string[]>([]);
     const [currentGuess, setCurrentGuess] = useState('');
     const [gameState, setGameState] = useState<GameState>('PLAYING');
@@ -153,12 +160,19 @@ export default function ZincCyphers() {
     const [isValidating, setIsValidating] = useState(false);
 
     const [showHelp, setShowHelp] = useState(false);
+    const [showIntro, setShowIntro] = useState(false);
     const [processingReward, setProcessingReward] = useState(false);
 
     // --- INITIALIZATION ---
     useEffect(() => {
         const daily = getDailyWords();
         setTargetWords(daily);
+
+        // Check for first-time user
+        const introShown = localStorage.getItem('zinc_cyphers_intro_shown');
+        if (!introShown) {
+            setShowIntro(true);
+        }
 
         const saved = localStorage.getItem('zinc_cyphers_progress');
         if (saved) {
@@ -167,9 +181,15 @@ export default function ZincCyphers() {
                 localStorage.removeItem('zinc_cyphers_progress');
             } else {
                 setCurrentLevel(progress.currentLevel);
+                // Restore game state properly
                 if (progress.isDailyComplete) {
                     setGameState('WON_DAILY');
                     setGuesses([]);
+                } else if (progress.gameState === 'MEMORY_PHASE') {
+                     // If they refreshed during memory phase, we reset them to start of memory phase
+                     setGameState('MEMORY_PHASE');
+                     setMemoryLevel(4);
+                     setGuesses([]);
                 } else {
                     setGuesses(progress.guesses);
                     setRevealedRows(progress.guesses.map((_, i) => i));
@@ -190,10 +210,16 @@ export default function ZincCyphers() {
             dayId: targetWords.dayId,
             currentLevel,
             guesses,
-            isDailyComplete: gameState === 'WON_DAILY'
+            isDailyComplete: gameState === 'WON_DAILY',
+            gameState: gameState 
         };
         localStorage.setItem('zinc_cyphers_progress', JSON.stringify(progress));
     }, [guesses, currentLevel, gameState, targetWords]);
+
+    const handleCloseIntro = () => {
+        setShowIntro(false);
+        localStorage.setItem('zinc_cyphers_intro_shown', 'true');
+    };
 
     // --- HELPERS ---
     const getTargetWord = (level: GameLevel, words: any) => {
@@ -204,6 +230,10 @@ export default function ZincCyphers() {
 
     const getCurrentTarget = () => {
         if (!targetWords) return '';
+        // In Memory Phase, the target is the word for the current memory check level
+        if (gameState === 'MEMORY_PHASE') {
+            return getTargetWord(memoryLevel, targetWords);
+        }
         return getTargetWord(currentLevel, targetWords);
     };
 
@@ -229,17 +259,51 @@ export default function ZincCyphers() {
 
     // --- INPUT HANDLING ---
     const handleKey = useCallback((key: string) => {
-        if (gameState !== 'PLAYING' || !targetWords || isValidating) return;
+        if ((gameState !== 'PLAYING' && gameState !== 'MEMORY_PHASE') || !targetWords || isValidating) return;
+
+        const activeLevel = gameState === 'MEMORY_PHASE' ? memoryLevel : currentLevel;
 
         if (key === 'ENTER') {
-            submitGuess();
+            if (gameState === 'MEMORY_PHASE') {
+                submitMemoryGuess();
+            } else {
+                submitGuess();
+            }
         } else if (key === 'BACKSPACE') {
             setCurrentGuess(prev => prev.slice(0, -1));
-        } else if (currentGuess.length < currentLevel && /^[A-Z]$/.test(key)) {
+        } else if (currentGuess.length < activeLevel && /^[A-Z]$/.test(key)) {
             setCurrentGuess(prev => prev + key);
         }
-    }, [currentGuess, currentLevel, gameState, targetWords, isValidating]);
+    }, [currentGuess, currentLevel, memoryLevel, gameState, targetWords, isValidating]);
 
+    // --- MEMORY PHASE LOGIC ---
+    const submitMemoryGuess = () => {
+        const target = getTargetWord(memoryLevel, targetWords);
+        
+        if (currentGuess !== target) {
+            setShakeRow(true);
+            showStatus("INCORRECT PROTOCOL");
+            setTimeout(() => {
+                setShakeRow(false);
+                setCurrentGuess('');
+            }, 600);
+            return;
+        }
+
+        // Correct Memory Guess
+        setCurrentGuess('');
+        if (memoryLevel === 4) {
+            setMemoryLevel(5);
+            showStatus("LEVEL 4 VERIFIED");
+        } else if (memoryLevel === 5) {
+            setMemoryLevel(6);
+            showStatus("LEVEL 5 VERIFIED");
+        } else {
+            handleDailyWin();
+        }
+    };
+
+    // --- STANDARD GAME LOGIC ---
     const submitGuess = async () => {
         const target = getCurrentTarget();
         
@@ -286,7 +350,11 @@ export default function ZincCyphers() {
             setGuesses([]);
             setRevealedRows([]);
         } else {
-            handleDailyWin();
+            // Instead of winning immediately, enter Memory Phase
+            setGameState('MEMORY_PHASE');
+            setMemoryLevel(4);
+            setGuesses([]);
+            setRevealedRows([]);
         }
     };
 
@@ -323,7 +391,7 @@ export default function ZincCyphers() {
     }, [handleKey]);
 
     const getKeyStatus = (key: string): LetterStatus | 'DEFAULT' => {
-        if (!targetWords) return 'DEFAULT';
+        if (!targetWords || gameState === 'MEMORY_PHASE') return 'DEFAULT';
         const target = getCurrentTarget();
         let bestStatus: LetterStatus | 'DEFAULT' = 'DEFAULT';
         guesses.forEach(g => {
@@ -367,11 +435,11 @@ export default function ZincCyphers() {
                             Cyphers <span className="text-[#DFFF00]">II</span>
                         </h1>
                         <div className="flex items-center gap-2 text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
-                            <span className={currentLevel >= 4 ? "text-[#DFFF00]" : ""}>Lv.4</span>
+                            <span className={gameState === 'MEMORY_PHASE' || currentLevel >= 4 ? "text-[#DFFF00]" : ""}>Lv.4</span>
                             <span>•</span>
-                            <span className={currentLevel >= 5 ? "text-[#DFFF00]" : ""}>Lv.5</span>
+                            <span className={gameState === 'MEMORY_PHASE' || currentLevel >= 5 ? "text-[#DFFF00]" : ""}>Lv.5</span>
                             <span>•</span>
-                            <span className={currentLevel >= 6 ? "text-[#DFFF00]" : ""}>Lv.6</span>
+                            <span className={gameState === 'MEMORY_PHASE' || currentLevel >= 6 ? "text-[#DFFF00]" : ""}>Lv.6</span>
                         </div>
                     </div>
                 </div>
@@ -392,7 +460,7 @@ export default function ZincCyphers() {
             </div>
 
             {/* GAME AREA */}
-            <div className="flex-1 flex flex-col items-center justify-start pt-8 pb-4 px-4 w-full max-w-lg mx-auto relative overflow-y-auto">
+            <div className="flex-1 flex flex-col items-center justify-start pt-4 md:pt-8 pb-4 px-4 w-full max-w-lg mx-auto relative overflow-y-auto">
                 {gameState === 'WON_DAILY' ? (
                     <div className="flex flex-col items-center justify-center flex-1 animate-in zoom-in duration-500">
                         <div className="relative mb-8">
@@ -432,9 +500,44 @@ export default function ZincCyphers() {
                             </div>
                         </div>
                     </div>
+                ) : gameState === 'MEMORY_PHASE' ? (
+                    <div className="flex flex-col items-center justify-center flex-1 w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="mb-8 text-center">
+                            <ShieldCheck size={48} className="text-[#DFFF00] mx-auto mb-4 animate-pulse" />
+                            <h2 className="text-2xl font-black uppercase tracking-tight text-white mb-2">Security Verification</h2>
+                            <p className="text-zinc-400 text-xs md:text-sm max-w-xs mx-auto">
+                                To unlock the cypher reward, re-enter the <span className="text-[#DFFF00]">{memoryLevel}-letter</span> password from memory.
+                            </p>
+                        </div>
+                        
+                        <div className="mb-12">
+                             <div 
+                                className={`flex gap-2 ${shakeRow ? 'animate-shake' : ''}`} 
+                            >
+                                {Array.from({ length: memoryLevel }).map((_, i) => (
+                                    <div 
+                                        key={i} 
+                                        className={`
+                                            w-12 h-14 md:w-16 md:h-20 border-2 rounded-lg flex items-center justify-center 
+                                            text-3xl font-black uppercase 
+                                            ${currentGuess[i] ? 'border-[#DFFF00] bg-zinc-900 text-white' : 'border-zinc-800 bg-zinc-900/50 text-zinc-700'}
+                                        `}
+                                    >
+                                        {currentGuess[i] || ''}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex gap-2 justify-center mb-8">
+                            <div className={`h-2 w-12 rounded-full transition-colors ${memoryLevel >= 4 ? 'bg-[#DFFF00]' : 'bg-zinc-800'}`} />
+                            <div className={`h-2 w-12 rounded-full transition-colors ${memoryLevel >= 5 ? 'bg-[#DFFF00]' : 'bg-zinc-800'}`} />
+                            <div className={`h-2 w-12 rounded-full transition-colors ${memoryLevel >= 6 ? 'bg-[#DFFF00]' : 'bg-zinc-800'}`} />
+                        </div>
+                    </div>
                 ) : (
                     // OPTIMIZED GRID RENDERER
-                    <div className="grid gap-2 mb-4 w-full max-w-[350px]" style={{ gridTemplateRows: `repeat(${MAX_GUESSES}, minmax(0, 1fr))` }}>
+                    <div className="grid gap-1.5 md:gap-2 mb-4 w-full max-w-[320px] md:max-w-[350px]" style={{ gridTemplateRows: `repeat(${MAX_GUESSES}, minmax(0, 1fr))` }}>
                         {Array.from({ length: MAX_GUESSES }).map((_, rowIndex) => {
                             const isCurrentRow = rowIndex === guesses.length;
                             const rowGuess = guesses[rowIndex] || (isCurrentRow ? currentGuess : '');
@@ -456,13 +559,13 @@ export default function ZincCyphers() {
                 )}
             </div>
 
-            {gameState === 'PLAYING' && (
-                <div className="w-full max-w-2xl mx-auto p-2 pb-6 md:pb-8 bg-zinc-950/90 backdrop-blur-lg border-t border-zinc-800">
-                    <div className="flex flex-col gap-2 w-full">
+            {(gameState === 'PLAYING' || gameState === 'MEMORY_PHASE') && (
+                <div className="w-full max-w-2xl mx-auto p-1.5 pb-6 md:pb-8 bg-zinc-950/90 backdrop-blur-lg border-t border-zinc-800">
+                    <div className="flex flex-col gap-1.5 w-full">
                         {['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'].map((row, i) => (
-                            <div key={i} className="flex justify-center gap-1.5 w-full">
+                            <div key={i} className="flex justify-center gap-1 md:gap-1.5 w-full">
                                 {i === 2 && (
-                                    <button onClick={() => handleKey('ENTER')} className="h-12 px-2 md:px-4 bg-zinc-800 rounded text-[10px] md:text-xs font-bold uppercase tracking-wider hover:bg-zinc-700 transition-colors flex items-center justify-center flex-grow-[1.5]">ENT</button>
+                                    <button onClick={() => handleKey('ENTER')} className="h-14 px-2 md:px-4 bg-zinc-800 rounded text-[10px] md:text-xs font-bold uppercase tracking-wider hover:bg-zinc-700 transition-colors flex items-center justify-center flex-grow-[1.5]">ENT</button>
                                 )}
                                 {row.split('').map(char => {
                                     const status = getKeyStatus(char);
@@ -471,11 +574,11 @@ export default function ZincCyphers() {
                                     if (status === 'PRESENT') bg = 'bg-yellow-600 text-white border-transparent';
                                     if (status === 'ABSENT') bg = 'bg-zinc-900 text-zinc-600 border-transparent';
                                     return (
-                                        <button key={char} onClick={() => handleKey(char)} className={`${bg} h-12 flex-1 rounded font-bold transition-all active:scale-90 active:bg-zinc-200 active:text-black touch-manipulation`}>{char}</button>
+                                        <button key={char} onClick={() => handleKey(char)} className={`${bg} h-14 flex-1 rounded font-bold transition-all active:scale-90 active:bg-zinc-200 active:text-black touch-manipulation`}>{char}</button>
                                     );
                                 })}
                                 {i === 2 && (
-                                    <button onClick={() => handleKey('BACKSPACE')} className="h-12 px-2 md:px-4 bg-zinc-800 rounded hover:bg-zinc-700 transition-colors flex items-center justify-center flex-grow-[1.5]"><Delete size={18} /></button>
+                                    <button onClick={() => handleKey('BACKSPACE')} className="h-14 px-2 md:px-4 bg-zinc-800 rounded hover:bg-zinc-700 transition-colors flex items-center justify-center flex-grow-[1.5]"><Delete size={18} /></button>
                                 )}
                             </div>
                         ))}
@@ -483,6 +586,43 @@ export default function ZincCyphers() {
                 </div>
             )}
 
+            {/* FIRST TIME INTRO POPUP */}
+            {showIntro && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md" onClick={handleCloseIntro}>
+                    <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-3xl max-w-sm w-full shadow-2xl animate-in zoom-in-95 relative overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#DFFF00] to-transparent opacity-50" />
+                        
+                        <div className="flex flex-col items-center text-center mb-6">
+                            <div className="w-16 h-16 bg-zinc-800 rounded-2xl flex items-center justify-center mb-4 text-[#DFFF00] border border-zinc-700">
+                                <Lock size={32} />
+                            </div>
+                            <h3 className="text-2xl font-black uppercase tracking-tight text-white">Cyphers II</h3>
+                            <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest mt-1">Daily Security Protocol</p>
+                        </div>
+
+                        <div className="space-y-4 text-sm text-zinc-400 mb-8">
+                            <div className="flex gap-4 items-start">
+                                <span className="w-6 h-6 rounded-full bg-zinc-800 text-[#DFFF00] font-bold flex-shrink-0 flex items-center justify-center text-xs border border-zinc-700">1</span>
+                                <p>Hack the <strong className="text-white">4, 5, and 6</strong> letter passwords.</p>
+                            </div>
+                            <div className="flex gap-4 items-start">
+                                <span className="w-6 h-6 rounded-full bg-zinc-800 text-[#DFFF00] font-bold flex-shrink-0 flex items-center justify-center text-xs border border-zinc-700">2</span>
+                                <p>Use logic. Green is correct. Yellow is wrong spot.</p>
+                            </div>
+                            <div className="flex gap-4 items-start">
+                                <span className="w-6 h-6 rounded-full bg-zinc-800 text-[#DFFF00] font-bold flex-shrink-0 flex items-center justify-center text-xs border border-zinc-700">3</span>
+                                <p>Memorize the passwords. You will need to <strong className="text-white">re-enter them blindly</strong> to win.</p>
+                            </div>
+                        </div>
+
+                        <button onClick={handleCloseIntro} className="w-full bg-[#DFFF00] text-black font-black py-4 rounded-xl uppercase text-sm tracking-widest hover:bg-[#ccee00] transition-transform active:scale-95 shadow-lg shadow-[#DFFF00]/10">
+                            Initialize System
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* HELP MODAL */}
             {showHelp && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setShowHelp(false)}>
                     <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl max-w-sm w-full shadow-2xl animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
@@ -495,7 +635,7 @@ export default function ZincCyphers() {
                             <li className="flex gap-3"><span className="w-6 h-6 rounded bg-yellow-600 text-white font-bold flex items-center justify-center text-xs">B</span><span><strong className="text-white">Present.</strong> Letter is in the word but wrong spot.</span></li>
                             <li className="flex gap-3"><span className="w-6 h-6 rounded bg-zinc-800 text-zinc-500 font-bold flex items-center justify-center text-xs">C</span><span><strong className="text-white">Absent.</strong> Letter is not in the word.</span></li>
                         </ul>
-                        <button onClick={() => setShowHelp(false)} className="w-full bg-white text-black font-bold py-3 rounded-xl uppercase text-xs tracking-widest hover:bg-[#DFFF00] transition-colors">Initialize</button>
+                        <button onClick={() => setShowHelp(false)} className="w-full bg-white text-black font-bold py-3 rounded-xl uppercase text-xs tracking-widest hover:bg-[#DFFF00] transition-colors">Resume</button>
                     </div>
                 </div>
             )}
