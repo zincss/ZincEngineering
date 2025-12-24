@@ -194,7 +194,7 @@ export default function PlayHub() {
            </div>
 
            <Link 
-              href="/play/wordle"
+              href="/play/cyphers"
               className="group relative block w-full h-[400px] md:h-[320px] rounded-[2.5rem] overflow-hidden border border-zinc-700 hover:border-[#DFFF00] transition-all duration-500 shadow-2xl"
            >
               {/* Animated BG */}
@@ -279,7 +279,7 @@ export default function PlayHub() {
              
              {/* REPLACED: Zinc Exchange -> Cyphers */}
              <GameCard 
-                href="/play/wordle"
+                href="/play/cyphers"
                 title="Cyphers"
                 description="Cryptographic Word Logic"
                 icon={Hash}

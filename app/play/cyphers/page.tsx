@@ -14,7 +14,9 @@ import {
     Loader2,
     Clock,
     Lock,
-    ShieldCheck
+    ShieldCheck,
+    Share2,
+    Check
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -30,13 +32,13 @@ interface DailyProgress {
     dayId: number;
     currentLevel: GameLevel;
     guesses: string[];
+    history: string[]; // Stores the emoji strings for completed levels
     isDailyComplete: boolean;
     gameState?: GameState;
 }
 
 // --- SUB-COMPONENTS ---
 
-// 1. Countdown Timer
 const CountdownTimer = () => {
     const [timeLeft, setTimeLeft] = useState('');
 
@@ -67,7 +69,6 @@ const CountdownTimer = () => {
     return <span className="font-mono">{timeLeft}</span>;
 };
 
-// 2. Memoized Row (Performance Optimization)
 const GameRow = memo(({ 
     guess, 
     target, 
@@ -151,6 +152,7 @@ export default function ZincCyphers() {
     const [memoryLevel, setMemoryLevel] = useState<GameLevel>(4);
 
     const [guesses, setGuesses] = useState<string[]>([]);
+    const [history, setHistory] = useState<string[]>([]); // Stores results for sharing
     const [currentGuess, setCurrentGuess] = useState('');
     const [gameState, setGameState] = useState<GameState>('PLAYING');
     
@@ -162,13 +164,13 @@ export default function ZincCyphers() {
     const [showHelp, setShowHelp] = useState(false);
     const [showIntro, setShowIntro] = useState(false);
     const [processingReward, setProcessingReward] = useState(false);
+    const [justCopied, setJustCopied] = useState(false);
 
     // --- INITIALIZATION ---
     useEffect(() => {
         const daily = getDailyWords();
         setTargetWords(daily);
 
-        // Check for first-time user
         const introShown = localStorage.getItem('zinc_cyphers_intro_shown');
         if (!introShown) {
             setShowIntro(true);
@@ -181,12 +183,12 @@ export default function ZincCyphers() {
                 localStorage.removeItem('zinc_cyphers_progress');
             } else {
                 setCurrentLevel(progress.currentLevel);
-                // Restore game state properly
+                setHistory(progress.history || []); // Restore history
+                
                 if (progress.isDailyComplete) {
                     setGameState('WON_DAILY');
                     setGuesses([]);
                 } else if (progress.gameState === 'MEMORY_PHASE') {
-                     // If they refreshed during memory phase, we reset them to start of memory phase
                      setGameState('MEMORY_PHASE');
                      setMemoryLevel(4);
                      setGuesses([]);
@@ -210,11 +212,12 @@ export default function ZincCyphers() {
             dayId: targetWords.dayId,
             currentLevel,
             guesses,
+            history,
             isDailyComplete: gameState === 'WON_DAILY',
             gameState: gameState 
         };
         localStorage.setItem('zinc_cyphers_progress', JSON.stringify(progress));
-    }, [guesses, currentLevel, gameState, targetWords]);
+    }, [guesses, currentLevel, gameState, targetWords, history]);
 
     const handleCloseIntro = () => {
         setShowIntro(false);
@@ -230,7 +233,6 @@ export default function ZincCyphers() {
 
     const getCurrentTarget = () => {
         if (!targetWords) return '';
-        // In Memory Phase, the target is the word for the current memory check level
         if (gameState === 'MEMORY_PHASE') {
             return getTargetWord(memoryLevel, targetWords);
         }
@@ -257,11 +259,48 @@ export default function ZincCyphers() {
         return false;
     };
 
+    // --- SHARE FUNCTIONALITY ---
+    const generateEmojiGrid = (lvlGuesses: string[], lvlTarget: string) => {
+        return lvlGuesses.map(g => {
+            const status = checkGuess(g, lvlTarget);
+            return status.map(s => {
+                if (s === 'CORRECT') return '🟩';
+                if (s === 'PRESENT') return '🟨';
+                return '⬛';
+            }).join('');
+        }).join('\n');
+    };
+
+    const handleShare = async () => {
+        if (!targetWords) return;
+        
+        let shareText = `Zinc Cyphers II #${targetWords.dayId}\n\n`;
+        
+        // Add history (completed levels)
+        if (history.length > 0) {
+            shareText += history.join('\n\n');
+        }
+
+        // Add final status
+        if (gameState === 'WON_DAILY') {
+            shareText += `\n\nProtocol Secured 🛡️`;
+        } else if (gameState === 'LOST') {
+            shareText += `\n\nProtocol Failed 💀`;
+        }
+
+        try {
+            await navigator.clipboard.writeText(shareText);
+            setJustCopied(true);
+            showStatus("RESULTS COPIED");
+            setTimeout(() => setJustCopied(false), 2000);
+        } catch (err) {
+            showStatus("COPY FAILED");
+        }
+    };
+
     // --- INPUT HANDLING ---
     const handleKey = useCallback((key: string) => {
         if ((gameState !== 'PLAYING' && gameState !== 'MEMORY_PHASE') || !targetWords || isValidating) return;
-
-        const activeLevel = gameState === 'MEMORY_PHASE' ? memoryLevel : currentLevel;
 
         if (key === 'ENTER') {
             if (gameState === 'MEMORY_PHASE') {
@@ -271,12 +310,11 @@ export default function ZincCyphers() {
             }
         } else if (key === 'BACKSPACE') {
             setCurrentGuess(prev => prev.slice(0, -1));
-        } else if (currentGuess.length < activeLevel && /^[A-Z]$/.test(key)) {
+        } else if (currentGuess.length < (gameState === 'MEMORY_PHASE' ? memoryLevel : currentLevel) && /^[A-Z]$/.test(key)) {
             setCurrentGuess(prev => prev + key);
         }
     }, [currentGuess, currentLevel, memoryLevel, gameState, targetWords, isValidating]);
 
-    // --- MEMORY PHASE LOGIC ---
     const submitMemoryGuess = () => {
         const target = getTargetWord(memoryLevel, targetWords);
         
@@ -290,7 +328,6 @@ export default function ZincCyphers() {
             return;
         }
 
-        // Correct Memory Guess
         setCurrentGuess('');
         if (memoryLevel === 4) {
             setMemoryLevel(5);
@@ -303,7 +340,6 @@ export default function ZincCyphers() {
         }
     };
 
-    // --- STANDARD GAME LOGIC ---
     const submitGuess = async () => {
         const target = getCurrentTarget();
         
@@ -334,13 +370,18 @@ export default function ZincCyphers() {
         setRevealedRows(prev => [...prev, newGuesses.length - 1]);
 
         if (currentGuess === target) {
-            setTimeout(() => handleLevelWin(), 2000);
+            setTimeout(() => handleLevelWin(newGuesses), 2000);
         } else if (newGuesses.length >= MAX_GUESSES) {
-            setTimeout(() => setGameState('LOST'), 1500);
+            setTimeout(() => handleLoss(newGuesses), 1500);
         }
     };
 
-    const handleLevelWin = async () => {
+    const handleLevelWin = async (winningGuesses: string[]) => {
+        // Record history for this level before clearing guesses
+        const grid = generateEmojiGrid(winningGuesses, getCurrentTarget());
+        const entry = `Lv.${currentLevel} ${winningGuesses.length}/${MAX_GUESSES}\n${grid}`;
+        setHistory(prev => [...prev, entry]);
+
         if (currentLevel === 4) {
             setCurrentLevel(5);
             setGuesses([]);
@@ -350,12 +391,20 @@ export default function ZincCyphers() {
             setGuesses([]);
             setRevealedRows([]);
         } else {
-            // Instead of winning immediately, enter Memory Phase
             setGameState('MEMORY_PHASE');
             setMemoryLevel(4);
             setGuesses([]);
             setRevealedRows([]);
         }
+    };
+
+    const handleLoss = (finalGuesses: string[]) => {
+        // Record failure history
+        const grid = generateEmojiGrid(finalGuesses, getCurrentTarget());
+        const entry = `Lv.${currentLevel} X/${MAX_GUESSES}\n${grid}`;
+        setHistory(prev => [...prev, entry]);
+        
+        setGameState('LOST');
     };
 
     const handleDailyWin = async () => {
@@ -454,7 +503,7 @@ export default function ZincCyphers() {
             {/* STATUS TOAST */}
             <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-40 transition-all duration-300 ${statusMessage ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
                 <div className="bg-zinc-100 text-black font-black uppercase tracking-widest text-xs px-4 py-3 rounded-lg shadow-2xl flex items-center gap-2 border border-zinc-300">
-                    <XCircle size={14} className="text-red-500" />
+                    {justCopied ? <Check size={14} className="text-green-600"/> : <XCircle size={14} className="text-red-500" />}
                     {statusMessage}
                 </div>
             </div>
@@ -462,19 +511,31 @@ export default function ZincCyphers() {
             {/* GAME AREA */}
             <div className="flex-1 flex flex-col items-center justify-start pt-4 md:pt-8 pb-4 px-4 w-full max-w-lg mx-auto relative overflow-y-auto">
                 {gameState === 'WON_DAILY' ? (
-                    <div className="flex flex-col items-center justify-center flex-1 animate-in zoom-in duration-500">
+                    <div className="flex flex-col items-center justify-center flex-1 animate-in zoom-in duration-500 w-full">
                         <div className="relative mb-8">
                             <div className="absolute inset-0 bg-[#DFFF00] blur-[40px] opacity-20 animate-pulse" />
                             <Trophy size={80} className="text-[#DFFF00] relative z-10" />
                         </div>
                         <h2 className="text-4xl font-black uppercase tracking-tighter mb-2">Cypher Cracked</h2>
                         <p className="text-zinc-400 font-mono text-sm mb-8">Daily Protocol Complete</p>
+                        
                         {user && (
-                            <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl mb-8 flex flex-col items-center min-w-[200px]">
+                            <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl mb-6 flex flex-col items-center min-w-[200px]">
                                 <span className="text-zinc-500 text-[10px] font-mono uppercase tracking-widest mb-1">Reward</span>
                                 <span className="text-3xl font-black text-white">+{REWARD_AMOUNT} CR</span>
                             </div>
                         )}
+
+                        <div className="flex gap-3 mb-8 w-full max-w-[280px]">
+                            <button 
+                                onClick={handleShare}
+                                className="flex-1 bg-[#DFFF00] text-black font-bold py-3 rounded-xl uppercase text-xs tracking-widest hover:bg-[#ccee00] transition-colors flex items-center justify-center gap-2 shadow-lg shadow-[#DFFF00]/10"
+                            >
+                                {justCopied ? <Check size={16} /> : <Share2 size={16} />}
+                                Share Protocol
+                            </button>
+                        </div>
+
                         <div className="bg-zinc-800/50 rounded-lg p-4 font-mono text-center min-w-[200px] border border-zinc-700">
                             <div className="flex items-center justify-center gap-2 text-[10px] text-zinc-500 uppercase mb-1">
                                 <Clock size={12} /> Next Cypher In
@@ -485,12 +546,23 @@ export default function ZincCyphers() {
                         </div>
                     </div>
                 ) : gameState === 'LOST' ? (
-                    <div className="flex flex-col items-center justify-center flex-1 animate-in zoom-in duration-500">
+                    <div className="flex flex-col items-center justify-center flex-1 animate-in zoom-in duration-500 w-full">
                         <div className="text-6xl mb-6 grayscale">💀</div>
                         <h2 className="text-3xl font-black uppercase text-red-500 mb-2">Protocol Failed</h2>
                         <p className="text-zinc-400 mb-8">
                             Sequence was: <span className="text-[#DFFF00] font-bold ml-1 tracking-widest">{getCurrentTarget()}</span>
                         </p>
+
+                        <div className="flex gap-3 mb-8 w-full max-w-[280px]">
+                            <button 
+                                onClick={handleShare}
+                                className="flex-1 bg-zinc-800 text-white font-bold py-3 rounded-xl uppercase text-xs tracking-widest hover:bg-zinc-700 transition-colors flex items-center justify-center gap-2"
+                            >
+                                {justCopied ? <Check size={16} /> : <Share2 size={16} />}
+                                Share Failure
+                            </button>
+                        </div>
+
                         <div className="bg-zinc-800/50 rounded-lg p-4 font-mono text-center min-w-[200px] border border-zinc-700">
                             <div className="flex items-center justify-center gap-2 text-[10px] text-zinc-500 uppercase mb-1">
                                 <Clock size={12} /> Next Cypher In
@@ -536,7 +608,6 @@ export default function ZincCyphers() {
                         </div>
                     </div>
                 ) : (
-                    // OPTIMIZED GRID RENDERER
                     <div className="grid gap-1.5 md:gap-2 mb-4 w-full max-w-[320px] md:max-w-[350px]" style={{ gridTemplateRows: `repeat(${MAX_GUESSES}, minmax(0, 1fr))` }}>
                         {Array.from({ length: MAX_GUESSES }).map((_, rowIndex) => {
                             const isCurrentRow = rowIndex === guesses.length;
@@ -586,7 +657,6 @@ export default function ZincCyphers() {
                 </div>
             )}
 
-            {/* FIRST TIME INTRO POPUP */}
             {showIntro && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md" onClick={handleCloseIntro}>
                     <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-3xl max-w-sm w-full shadow-2xl animate-in zoom-in-95 relative overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -622,7 +692,6 @@ export default function ZincCyphers() {
                 </div>
             )}
 
-            {/* HELP MODAL */}
             {showHelp && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setShowHelp(false)}>
                     <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl max-w-sm w-full shadow-2xl animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
