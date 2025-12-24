@@ -2,14 +2,18 @@
 
 import { createClient } from '@/utils/supabase/client';
 import { useState } from 'react';
-import { login } from './actions'; // Imports the Server Action we defined in Step 1
+import { login, signup } from './actions';
+import { useRouter } from 'next/navigation';
+import { Loader2, Github, Mail, Key } from 'lucide-react'; // Assuming you have lucide-react, otherwise use SVGs
 
 export default function LoginPage() {
+  const [isSignUp, setIsSignUp] = useState(false);
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const supabase = createClient();
+  const router = useRouter();
 
-  // Client-Side OAuth (Required for window redirection)
   const handleOAuthLogin = async (provider: 'github' | 'google' | 'discord') => {
     setLoadingProvider(provider);
     setErrorMsg(null);
@@ -28,125 +32,152 @@ export default function LoginPage() {
     }
   };
 
-  // Server-Side Email Login (Fixes the persistence/cookie issue)
-  const handleEmailSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoadingProvider('email');
     setErrorMsg(null);
+    setSuccessMsg(null);
 
     const formData = new FormData(event.currentTarget);
     
-    // Call the Server Action
-    const response = await login(formData);
-
-    // If we get an error back, display it. 
-    // If success, the Server Action handles the redirect, so code stops here.
-    if (response?.error) {
-      setErrorMsg(response.error);
-      setLoadingProvider(null);
+    if (isSignUp) {
+        const response = await signup(formData);
+        if (response?.error) {
+            setErrorMsg(response.error);
+            setLoadingProvider(null);
+        } else {
+            // Supabase might require email confirmation
+            setSuccessMsg("Account created! Please check your email to confirm.");
+            setLoadingProvider(null);
+        }
+    } else {
+        const response = await login(formData);
+        if (response?.error) {
+            setErrorMsg(response.error);
+            setLoadingProvider(null);
+        }
+        // If successful, the server action redirects.
     }
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-zinc-950 text-zinc-100 overflow-hidden">
-      {/* Background Decor */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-zinc-800/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-zinc-900/30 rounded-full blur-3xl" />
-      </div>
+    <div className="relative flex flex-col items-center justify-center min-h-[calc(100vh-140px)] w-full px-4">
+      {/* Dynamic Background Effects (Matches Global Theme) */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#DFFF00]/10 rounded-full blur-[100px] -z-10 pointer-events-none" />
 
-      <div className="relative z-10 w-full max-w-sm px-4">
-        {/* Logo / Header */}
-        <div className="text-center mb-8 space-y-2">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-zinc-900 border border-zinc-800 mb-4 shadow-lg shadow-black/50">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-white">
-              <path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3" />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Zinc Engineering</h1>
-          <p className="text-sm text-zinc-400">Enter your credentials to access the terminal.</p>
-        </div>
-
-        {/* Card */}
-        <div className="bg-zinc-900/50 backdrop-blur-xl border border-zinc-800 rounded-2xl p-6 shadow-2xl">
+      <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="bg-zinc-900/40 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl relative overflow-hidden">
           
-          {/* Error Message */}
+          {/* Top Highlight Line */}
+          <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#DFFF00]/50 to-transparent" />
+
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-black text-white uppercase tracking-tight mb-2">
+              {isSignUp ? 'Initialize Access' : 'System Access'}
+            </h1>
+            <p className="text-zinc-400 text-xs font-mono uppercase tracking-widest">
+              {isSignUp ? 'Create new operator identity' : 'Authenticate credentials'}
+            </p>
+          </div>
+
+          {/* Feedback Messages */}
           {errorMsg && (
-            <div className="mb-4 p-3 text-sm text-red-400 bg-red-950/30 border border-red-900/50 rounded-lg">
-              {errorMsg}
+            <div className="mb-6 p-3 text-xs font-bold text-red-300 bg-red-950/30 border border-red-500/20 rounded-lg flex items-center gap-2">
+               <span className="block w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+               {errorMsg}
+            </div>
+          )}
+          {successMsg && (
+            <div className="mb-6 p-3 text-xs font-bold text-emerald-300 bg-emerald-950/30 border border-emerald-500/20 rounded-lg flex items-center gap-2">
+               <span className="block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+               {successMsg}
             </div>
           )}
 
-          {/* OAuth Grid */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            <button onClick={() => handleOAuthLogin('github')} disabled={!!loadingProvider} className="flex items-center justify-center p-2.5 bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 hover:border-zinc-600 rounded-lg transition-all disabled:opacity-50">
-              {/* Github Icon SVG */}
-              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405 1.02 0 2.04.135 3 .405 2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.285 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
-              </svg>
-            </button>
-            <button onClick={() => handleOAuthLogin('google')} disabled={!!loadingProvider} className="flex items-center justify-center p-2.5 bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 hover:border-zinc-600 rounded-lg transition-all disabled:opacity-50">
-              {/* Google Icon SVG */}
-              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                 <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .533 5.347.533 12S5.867 24 12.48 24c3.44 0 6.1-1.133 8.253-3.293 2.187-2.187 2.867-5.28 2.867-7.707 0-.76-.08-1.36-.173-1.92h-10.947z" />
-              </svg>
-            </button>
-            <button onClick={() => handleOAuthLogin('discord')} disabled={!!loadingProvider} className="flex items-center justify-center p-2.5 bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 hover:border-zinc-600 rounded-lg transition-all disabled:opacity-50">
-              {/* Discord Icon SVG */}
-              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.419-2.1568 2.419zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.419-2.1568 2.419z"/>
-              </svg>
-            </button>
+          {/* OAuth Buttons */}
+          <div className="grid grid-cols-3 gap-3 mb-8">
+            {['github', 'google', 'discord'].map((provider) => (
+               <button 
+                key={provider}
+                onClick={() => handleOAuthLogin(provider as any)} 
+                disabled={!!loadingProvider} 
+                className="group flex items-center justify-center p-3 bg-zinc-900/50 border border-zinc-800 hover:border-zinc-600 hover:bg-zinc-800 rounded-xl transition-all disabled:opacity-50"
+               >
+                 {provider === 'github' && <Github className="w-5 h-5 text-white group-hover:scale-110 transition-transform"/>}
+                 {provider === 'google' && (
+                    <svg className="w-5 h-5 fill-white group-hover:scale-110 transition-transform" viewBox="0 0 24 24"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .533 5.347.533 12S5.867 24 12.48 24c3.44 0 6.1-1.133 8.253-3.293 2.187-2.187 2.867-5.28 2.867-7.707 0-.76-.08-1.36-.173-1.92h-10.947z" /></svg>
+                 )}
+                 {provider === 'discord' && (
+                    <svg className="w-5 h-5 fill-white group-hover:scale-110 transition-transform" viewBox="0 0 24 24"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.419-2.1568 2.419zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.419-2.1568 2.419z"/></svg>
+                 )}
+               </button>
+            ))}
           </div>
 
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-zinc-800"></div>
-            </div>
-            <div className="relative flex justify-center text-xs uppercase tracking-wider">
-              <span className="bg-zinc-900/50 px-2 text-zinc-500">Or continue with</span>
+          <div className="relative mb-8">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-zinc-800"></div></div>
+            <div className="relative flex justify-center text-[10px] uppercase tracking-widest font-mono">
+              <span className="bg-zinc-950/80 backdrop-blur px-2 text-zinc-500">Or continue with email</span>
             </div>
           </div>
 
-          {/* Form with Server Action Handler */}
-          <form onSubmit={handleEmailSubmit} className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider" htmlFor="email">Email</label>
+          {/* Main Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2" htmlFor="email">
+                <Mail size={12} /> Email Address
+              </label>
               <input
                 id="email"
                 name="email"
                 type="email"
-                placeholder="engineer@zinc.com"
                 required
                 disabled={!!loadingProvider}
-                className="w-full px-3 py-2 bg-zinc-950/50 border border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:border-transparent text-sm placeholder:text-zinc-600 transition-all"
+                className="w-full px-4 py-3 bg-zinc-950/50 border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#DFFF00]/50 focus:border-[#DFFF00] text-sm text-white placeholder:text-zinc-600 transition-all"
+                placeholder="operator@zinc.com"
               />
             </div>
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider" htmlFor="password">Password</label>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2" htmlFor="password">
+                <Key size={12} /> Password
+              </label>
               <input
                 id="password"
                 name="password"
                 type="password"
-                placeholder="••••••••"
                 required
                 disabled={!!loadingProvider}
-                className="w-full px-3 py-2 bg-zinc-950/50 border border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:border-transparent text-sm placeholder:text-zinc-600 transition-all"
+                className="w-full px-4 py-3 bg-zinc-950/50 border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#DFFF00]/50 focus:border-[#DFFF00] text-sm text-white placeholder:text-zinc-600 transition-all"
+                placeholder="••••••••••••"
               />
             </div>
+
             <button
               type="submit"
               disabled={!!loadingProvider}
-              className="w-full py-2.5 px-4 bg-white text-black font-semibold rounded-lg hover:bg-zinc-200 focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-900 transition-all disabled:opacity-70 disabled:cursor-not-allowed mt-2"
+              className="w-full py-3 bg-[#DFFF00] text-black font-black uppercase tracking-widest text-xs rounded-xl hover:bg-white hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(223,255,0,0.15)] hover:shadow-[0_0_30px_rgba(223,255,0,0.3)] mt-2"
             >
               {loadingProvider === 'email' ? (
                  <span className="flex items-center justify-center gap-2">
-                   <svg className="animate-spin h-4 w-4 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                   Authenticating...
+                   <Loader2 className="animate-spin h-4 w-4" />
+                   Processing...
                  </span>
-              ) : 'Sign In'}
+              ) : (isSignUp ? 'Establish Identity' : 'Authenticate')}
             </button>
           </form>
+
+          {/* Toggle Sign Up / Login */}
+          <div className="mt-6 text-center">
+            <button 
+                type="button"
+                onClick={() => { setIsSignUp(!isSignUp); setErrorMsg(null); }}
+                className="text-xs text-zinc-500 hover:text-[#DFFF00] transition-colors"
+            >
+                {isSignUp ? "Already have credentials? Sign In" : "Need access? Create Identity"}
+            </button>
+          </div>
+
         </div>
       </div>
     </div>
