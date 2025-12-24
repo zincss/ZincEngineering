@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, memo } from 'react';
+import React, { useState, useEffect, useCallback, memo, useRef } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import { createClient } from '@/utils/supabase/client';
 import { getDailyWords, checkGuess, LetterStatus, WORDS_4, WORDS_5, WORDS_6 } from './lib';
@@ -18,7 +18,8 @@ import {
     Share2,
     Check,
     Cpu,
-    Unlock
+    Unlock,
+    Timer
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -37,6 +38,8 @@ interface DailyProgress {
     history: string[]; 
     isDailyComplete: boolean;
     gameState?: GameState;
+    startTime: number;
+    completionTime?: number;
 }
 
 // --- SUB-COMPONENTS ---
@@ -157,6 +160,10 @@ export default function ZincCyphers() {
     const [currentGuess, setCurrentGuess] = useState('');
     const [gameState, setGameState] = useState<GameState>('PLAYING');
     
+    // Timing State
+    const [startTime, setStartTime] = useState<number>(0);
+    const [finalTimeStr, setFinalTimeStr] = useState<string>('');
+
     // Transition State
     const [transitionData, setTransitionData] = useState<{ msg: string, sub: string } | null>(null);
 
@@ -184,14 +191,27 @@ export default function ZincCyphers() {
         if (saved) {
             const progress: DailyProgress = JSON.parse(saved);
             if (progress.dayId !== daily.dayId) {
+                // New Day: Reset Progress
                 localStorage.removeItem('zinc_cyphers_progress');
+                setStartTime(Date.now());
             } else {
+                // Load Saved Progress
                 setCurrentLevel(progress.currentLevel);
                 setHistory(progress.history || []);
+                setStartTime(progress.startTime || Date.now());
                 
                 if (progress.isDailyComplete) {
                     setGameState('WON_DAILY');
                     setGuesses([]);
+                    if (progress.completionTime) {
+                        setFinalTimeStr(formatDuration(progress.completionTime));
+                    }
+                } else if (progress.gameState === 'LOST') {
+                     setGameState('LOST');
+                     setGuesses([]);
+                     if (progress.completionTime) {
+                         setFinalTimeStr(formatDuration(progress.completionTime));
+                     }
                 } else if (progress.gameState === 'MEMORY_PHASE') {
                      setGameState('MEMORY_PHASE');
                      setMemoryLevel(4);
@@ -199,21 +219,18 @@ export default function ZincCyphers() {
                 } else {
                     setGuesses(progress.guesses);
                     setRevealedRows(progress.guesses.map((_, i) => i));
-                    
-                    const target = getTargetWord(progress.currentLevel, daily);
-                    if (progress.guesses.length >= MAX_GUESSES && 
-                        progress.guesses[progress.guesses.length - 1] !== target) {
-                        setGameState('LOST');
-                    }
                 }
             }
+        } else {
+            // First time load for this day
+            setStartTime(Date.now());
         }
     }, []);
 
+    // Save progress to local storage
     useEffect(() => {
         if (!targetWords) return;
         
-        // Don't save transition state to local storage to prevent getting stuck in it
         const stateToSave = gameState === 'TRANSITION' ? 'PLAYING' : gameState;
         
         const progress: DailyProgress = {
@@ -222,10 +239,15 @@ export default function ZincCyphers() {
             guesses,
             history,
             isDailyComplete: gameState === 'WON_DAILY',
-            gameState: stateToSave
+            gameState: stateToSave,
+            startTime,
+            // If game is over, calculate and save the elapsed time
+            completionTime: (gameState === 'WON_DAILY' || gameState === 'LOST') 
+                ? (Date.now() - startTime) 
+                : undefined
         };
         localStorage.setItem('zinc_cyphers_progress', JSON.stringify(progress));
-    }, [guesses, currentLevel, gameState, targetWords, history]);
+    }, [guesses, currentLevel, gameState, targetWords, history, startTime]);
 
     const handleCloseIntro = () => {
         setShowIntro(false);
@@ -233,6 +255,12 @@ export default function ZincCyphers() {
     };
 
     // --- HELPERS ---
+    const formatDuration = (ms: number) => {
+        const seconds = Math.floor((ms / 1000) % 60);
+        const minutes = Math.floor((ms / 1000 / 60));
+        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    };
+
     const getTargetWord = (level: GameLevel, words: any) => {
         if (level === 4) return words.word4;
         if (level === 5) return words.word5;
@@ -282,8 +310,10 @@ export default function ZincCyphers() {
     const handleShare = async () => {
         if (!targetWords) return;
         
-        let shareText = `Zinc Cyphers II #${targetWords.dayId}\n\n`;
-        
+        let shareText = `Zinc Cyphers II #${targetWords.dayId}\n`;
+        if (finalTimeStr) shareText += `Time: ${finalTimeStr}\n\n`;
+        else shareText += `\n`;
+
         // Add history
         if (history.length > 0) {
             shareText += history.join('\n\n');
@@ -334,7 +364,7 @@ export default function ZincCyphers() {
             setTimeout(() => {
                 setShakeRow(false);
                 setHistory(prev => [...prev, `Memory Check Failed 🧠💀`]);
-                setGameState('LOST');
+                handleLoss([], true); // True indicates memory failure
             }, 600);
             return;
         }
@@ -425,14 +455,19 @@ export default function ZincCyphers() {
         }, 3000); // 3 Second transition
     };
 
-    const handleLoss = (finalGuesses: string[]) => {
-        const grid = generateEmojiGrid(finalGuesses, getCurrentTarget());
-        const entry = `Lv.${currentLevel} X/${MAX_GUESSES}\n${grid}`;
-        setHistory(prev => [...prev, entry]);
+    const handleLoss = (finalGuesses: string[], isMemoryFail = false) => {
+        if (!isMemoryFail) {
+            const grid = generateEmojiGrid(finalGuesses, getCurrentTarget());
+            const entry = `Lv.${currentLevel} X/${MAX_GUESSES}\n${grid}`;
+            setHistory(prev => [...prev, entry]);
+        }
+        
+        setFinalTimeStr(formatDuration(Date.now() - startTime));
         setGameState('LOST');
     };
 
     const handleDailyWin = async () => {
+        setFinalTimeStr(formatDuration(Date.now() - startTime));
         setGameState('WON_DAILY');
         if (user) {
             setProcessingReward(true);
@@ -542,8 +577,13 @@ export default function ZincCyphers() {
                             <Trophy size={80} className="text-[#DFFF00] relative z-10" />
                         </div>
                         <h2 className="text-4xl font-black uppercase tracking-tighter mb-2">Cypher Cracked</h2>
-                        <p className="text-zinc-400 font-mono text-sm mb-8">Daily Protocol Complete</p>
+                        <p className="text-zinc-400 font-mono text-sm mb-6">Daily Protocol Complete</p>
                         
+                        <div className="flex items-center gap-2 font-mono text-zinc-300 mb-8 bg-zinc-900/50 px-4 py-2 rounded-full border border-zinc-800">
+                            <Timer size={14} className="text-[#DFFF00]" />
+                            <span className="text-sm tracking-widest">{finalTimeStr}</span>
+                        </div>
+
                         {user && (
                             <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl mb-6 flex flex-col items-center min-w-[200px]">
                                 <span className="text-zinc-500 text-[10px] font-mono uppercase tracking-widest mb-1">Reward</span>
@@ -574,10 +614,27 @@ export default function ZincCyphers() {
                     <div className="flex flex-col items-center justify-center flex-1 animate-in zoom-in duration-500 w-full">
                         <div className="text-6xl mb-6 grayscale">💀</div>
                         <h2 className="text-3xl font-black uppercase text-red-500 mb-2">Protocol Failed</h2>
-                        <p className="text-zinc-400 mb-8">
-                            {/* In memory phase loss, we show the one they failed on, otherwise current target */}
-                            Sequence was: <span className="text-[#DFFF00] font-bold ml-1 tracking-widest">{getCurrentTarget()}</span>
-                        </p>
+                        
+                        <div className="flex items-center gap-2 font-mono text-zinc-300 mb-6 bg-zinc-900/50 px-4 py-2 rounded-full border border-zinc-800">
+                            <Timer size={14} className="text-red-500" />
+                            <span className="text-sm tracking-widest">{finalTimeStr}</span>
+                        </div>
+
+                        <div className="flex flex-col gap-2 mb-8 w-full max-w-[280px] bg-zinc-900/50 p-4 rounded-xl border border-zinc-800">
+                            <div className="text-xs font-mono text-zinc-500 uppercase text-center mb-2 tracking-widest">Decrypted Sequence</div>
+                            <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
+                                <span className="text-zinc-600 text-[10px] font-bold uppercase">Lvl 4</span>
+                                <span className="text-[#DFFF00] font-bold tracking-[0.2em]">{targetWords.word4}</span>
+                            </div>
+                            <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
+                                <span className="text-zinc-600 text-[10px] font-bold uppercase">Lvl 5</span>
+                                <span className="text-[#DFFF00] font-bold tracking-[0.2em]">{targetWords.word5}</span>
+                            </div>
+                            <div className="flex justify-between items-center pt-1">
+                                <span className="text-zinc-600 text-[10px] font-bold uppercase">Lvl 6</span>
+                                <span className="text-[#DFFF00] font-bold tracking-[0.2em]">{targetWords.word6}</span>
+                            </div>
+                        </div>
 
                         <div className="flex gap-3 mb-8 w-full max-w-[280px]">
                             <button 
