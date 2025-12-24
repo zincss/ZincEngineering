@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { Shield, Users, Coins, Save, Lock, Search, AlertTriangle, Database, Image as ImageIcon, X, ChevronLeft, ChevronRight, DownloadCloud, Loader2, Sparkles, Brain, RefreshCw, RotateCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { REEL_ITEMS_SOURCE, CAR_PACK_SOURCE, GRIDIRON_PACK_SOURCE, RealAssetImage } from '@/app/market/components/shared';
-import { getDailyWords } from '@/app/play/wordle/lib';
+import { getDailyWords } from '@/app/play/cyphers/lib';
 
 export default function AdminPage() {
   const { user, profile, isAdmin, loading: authLoading } = useAuth();
