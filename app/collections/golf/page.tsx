@@ -1,14 +1,13 @@
 'use client';
 
 import React from 'react';
-import { Target, Wind, Activity } from 'lucide-react';
+import { Target, Wind, Activity, BrainCircuit, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 import GolfScorecard from './components/GolfScorecard';
 
 export default function GolfTrackerPage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white selection:bg-[#DFFF00] selection:text-black">
-      
-      {/* NAVIGATION */}
       
       {/* HEADER */}
       <div className="pt-32 pb-8 px-6 max-w-[1600px] mx-auto border-b border-zinc-800 mb-8">
@@ -38,6 +37,23 @@ export default function GolfTrackerPage() {
                     <div className="text-xl font-black text-white">CALM</div>
                 </div>
             </div>
+        </div>
+
+        {/* --- NEW SECTION: TOOLBAR --- */}
+        <div className="mt-8 flex items-center gap-4">
+            <Link 
+              href="/collections/golf/coach"
+              className="group flex items-center gap-3 px-6 py-4 bg-zinc-900 border border-zinc-800 hover:border-[#DFFF00] hover:bg-zinc-800 transition-all rounded-xl w-full md:w-auto"
+            >
+                <div className="bg-black p-2 rounded-lg group-hover:text-[#DFFF00] transition-colors">
+                    <BrainCircuit size={20} />
+                </div>
+                <div className="text-left">
+                    <div className="text-sm font-black text-white uppercase tracking-tight">Virtual Caddie</div>
+                    <div className="text-[10px] text-zinc-500 font-mono uppercase tracking-widest">Diagnose & Fix Swing</div>
+                </div>
+                <ArrowRight size={16} className="ml-4 text-zinc-600 group-hover:translate-x-1 transition-transform" />
+            </Link>
         </div>
       </div>
 

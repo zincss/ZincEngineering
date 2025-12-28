@@ -76,7 +76,8 @@ export async function getPlayerGameLog(playerId: string) {
 }
 
 export async function getGameSummary(gameId: string) {
-    return await ESPN.fetchGameSummary(gameId);
+    // UPDATED: Changed from fetchGameSummary to fetchGameAnalysis to match lib/espn.ts export
+    return await ESPN.fetchGameAnalysis(gameId);
 }
 
 export async function forceRefreshDashboard() {
