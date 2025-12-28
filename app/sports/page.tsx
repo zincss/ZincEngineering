@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { motion, Variants } from 'framer-motion';
 import { 
   ArrowRight, Trophy, Wind, Shield, Flag, Zap, Activity, Radio, 
-  Cpu, ShieldCheck 
+  Cpu, ShieldCheck, Microscope 
 } from 'lucide-react';
 import GlobalTicker from '../components/GlobalTicker';
 
@@ -33,12 +33,10 @@ export default function SportsHub() {
           <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1522778119026-d647f0565c6a?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 grayscale mix-blend-overlay" />
       </div>
 
-
       {/* --- HERO SECTION --- */}
-      <section className="relative min-h-[80vh] flex flex-col items-center justify-center overflow-hidden py-20 border-b border-white/5">
+      <section className="relative min-h-[60vh] flex flex-col items-center justify-center overflow-hidden py-20 border-b border-white/5">
         <div className="relative z-20 w-full max-w-[1600px] mx-auto px-6 flex flex-col items-center text-center">
           
-          {/* STATUS PILL */}
           <motion.div 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -56,7 +54,6 @@ export default function SportsHub() {
              </div>
           </motion.div>
 
-          {/* MASSIVE TYPOGRAPHY */}
           <motion.h1 
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -85,7 +82,6 @@ export default function SportsHub() {
       {/* --- MODULE GRID --- */}
       <section className="relative z-10 max-w-[1600px] mx-auto px-4 md:px-6 py-20">
         
-        {/* SECTION HEADER */}
         <div className="flex items-center gap-4 mb-12 px-2">
             <div className="w-2 h-2 bg-[#DFFF00] rounded-full shadow-[0_0_10px_#DFFF00]" />
             <div className="h-px flex-1 bg-gradient-to-r from-zinc-800 to-transparent" />
@@ -102,6 +98,37 @@ export default function SportsHub() {
             viewport={{ once: true }}
             className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-fr"
         >
+            {/* NEW: THE BREAKDOWN (Featured Top) */}
+            <motion.div variants={itemVar} className="md:col-span-12">
+               <Link href="/sports/breakdown" className="group relative block min-h-[300px] rounded-[2.5rem] border border-white/5 bg-zinc-900/40 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500">
+                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1631194758628-71ec7c35137e?q=80&w=2532&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:opacity-40 transition-all duration-700 grayscale mix-blend-luminosity" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/80 to-transparent" />
+                    
+                    <div className="absolute top-0 right-0 p-8">
+                       <div className="bg-[#DFFF00] text-black px-4 py-1.5 rounded-full font-black text-xs uppercase tracking-widest shadow-lg animate-pulse">
+                          New Uplink
+                       </div>
+                    </div>
+
+                    <div className="absolute inset-0 flex flex-col justify-center p-10 md:p-16 max-w-4xl">
+                        <div className="flex items-center gap-3 text-[#DFFF00] mb-4">
+                            <Microscope size={24} />
+                            <span className="font-mono text-sm uppercase tracking-[0.3em]">Deep Analysis Protocol</span>
+                        </div>
+                        <h2 className="text-5xl md:text-7xl font-black uppercase text-white mb-6 tracking-tighter italic">
+                           The <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#DFFF00] to-zinc-500">Breakdown</span>
+                        </h2>
+                        <p className="text-zinc-400 font-mono text-sm md:text-lg leading-relaxed max-w-xl border-l-2 border-[#DFFF00] pl-6">
+                            Comprehensive offensive & defensive matchup analysis. 
+                            Win probability, historical telemetry, and real-time tactical overlays.
+                        </p>
+                        <div className="mt-8 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white group-hover:translate-x-4 transition-transform">
+                             <span>Initialize Scan</span>
+                             <ArrowRight size={16} className="text-[#DFFF00]" />
+                        </div>
+                    </div>
+               </Link>
+            </motion.div>
             
             {/* 1. NFL (Featured Wide) */}
             <motion.div variants={itemVar} className="md:col-span-8">
@@ -114,11 +141,6 @@ export default function SportsHub() {
                     </div>
 
                     <div className="absolute bottom-0 left-0 p-10 md:p-12 w-full max-w-3xl">
-                        <div className="flex items-center gap-3 mb-4">
-                            <span className="px-3 py-1 rounded-full bg-[#DFFF00]/10 border border-[#DFFF00]/20 text-[#DFFF00] text-[10px] font-black uppercase tracking-widest backdrop-blur-md">
-                                 RedZone Link
-                            </span>
-                        </div>
                         <h2 className="text-4xl md:text-6xl font-black uppercase text-white mb-4 italic tracking-tight">NFL</h2>
                         <p className="text-zinc-400 font-mono text-sm md:text-base leading-relaxed max-w-xl group-hover:text-zinc-200 transition-colors">
                             National Football League. Playoff picture, roster depth charts, and live scoring telemetry.
@@ -154,28 +176,15 @@ export default function SportsHub() {
                     <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1517672651691-24622a91b550?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
                     <div className="absolute inset-0 bg-zinc-950/50" />
                     
-                    <div className="absolute top-0 left-0 w-full p-8 flex justify-between items-start">
-                        <div className="p-3 bg-zinc-950/50 backdrop-blur-md rounded-2xl border border-white/10 text-red-500">
-                             <Wind size={24} />
-                        </div>
-                        <div className="bg-zinc-900/80 backdrop-blur-md px-3 py-1 rounded-full border border-zinc-800">
-                            <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase">Season 2025</span>
-                        </div>
-                    </div>
-                    
                     <div className="absolute bottom-0 left-0 p-8 w-full">
                         <h2 className="text-3xl font-black uppercase text-white mb-2 leading-none">Formula 1<br/>Telemetry</h2>
-                        <p className="text-zinc-500 font-mono text-xs mt-2 group-hover:text-white transition-colors">
-                            Live timing & driver standings.
-                        </p>
                     </div>
                 </Link>
             </motion.div>
 
             {/* 4. NRL & GOLF (Stacked) */}
             <motion.div variants={itemVar} className="md:col-span-4 flex flex-col gap-6">
-                 {/* NRL */}
-                <Link href="/sports/nrl" className="group relative flex-1 min-h-[160px] rounded-[2.5rem] border border-white/5 bg-zinc-900/40 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500 hover:shadow-[0_0_30px_rgba(223,255,0,0.1)]">
+                <Link href="/sports/nrl" className="group relative flex-1 min-h-[160px] rounded-[2.5rem] border border-white/5 bg-zinc-900/40 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500">
                     <div className="absolute inset-0 bg-[url('https://www.rlpa.com.au/wp-content/themes/yootheme/cache/5a/Erin-Clark-Named-2025-RLPA-NRL-Recruit-of-the-Year-5a22c256.jpeg')] bg-cover bg-center opacity-20 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
                     <div className="absolute inset-0 bg-zinc-950/60" />
                     <div className="absolute inset-0 p-8 flex items-center justify-between">
@@ -187,8 +196,7 @@ export default function SportsHub() {
                     </div>
                 </Link>
 
-                 {/* GOLF */}
-                 <Link href="/sports/golf" className="group relative flex-1 min-h-[160px] rounded-[2.5rem] border border-white/5 bg-zinc-900/40 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500 hover:shadow-[0_0_30px_rgba(34,197,94,0.1)]">
+                 <Link href="/sports/golf" className="group relative flex-1 min-h-[160px] rounded-[2.5rem] border border-white/5 bg-zinc-900/40 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500">
                     <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1535131749006-b7f58c99034b?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105" />
                     <div className="absolute inset-0 bg-zinc-950/60" />
                     <div className="absolute inset-0 p-8 flex items-center justify-between">
@@ -203,17 +211,12 @@ export default function SportsHub() {
 
         </motion.div>
       </section>
-
+      
       {/* FOOTER */}
       <footer className="relative z-10 pt-20 pb-12 px-6 text-center border-t border-white/5 bg-zinc-950">
         <div className="max-w-[1600px] mx-auto flex flex-col items-center gap-8">
             <div className="w-12 h-12 bg-[#DFFF00] rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(223,255,0,0.2)]">
                 <span className="font-black text-xl text-black">Z</span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-12 text-[10px] font-mono uppercase tracking-widest text-zinc-500">
-                <div className="flex items-center gap-2"><ShieldCheck size={14} className="text-emerald-500" /><span>Secure Connection</span></div>
-                <div className="flex items-center gap-2"><Cpu size={14} className="text-blue-500" /><span>System: Optimal</span></div>
-                <div className="flex items-center gap-2"><Activity size={14} className="text-[#DFFF00]" /><span>Version: 2.6.1</span></div>
             </div>
             <p className="text-zinc-600 font-bold text-xs uppercase tracking-wider">Zinc Engineering © 2025</p>
         </div>
