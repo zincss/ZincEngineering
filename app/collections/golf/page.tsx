@@ -116,18 +116,6 @@ export default function GolfPage() {
 
       </div>
 
-      {/* Footer / Status Bar */}
-      <div className="fixed bottom-0 left-0 w-full bg-zinc-950/80 backdrop-blur-md border-t border-zinc-800 py-2 px-6 flex justify-between items-center z-50">
-           <div className="flex items-center gap-2 text-[10px] font-mono text-zinc-600 uppercase">
-               <div className={`w-2 h-2 rounded-full ${activeTab === 'SCORECARD' ? 'bg-emerald-500' : 'bg-zinc-600'}`} />
-               Database
-           </div>
-           <div className="flex items-center gap-2 text-[10px] font-mono text-zinc-600 uppercase">
-               AI Engine
-               <div className={`w-2 h-2 rounded-full ${activeTab === 'CADDIE' ? 'bg-[#DFFF00]' : 'bg-zinc-600'}`} />
-           </div>
-      </div>
-
     </div>
   );
 }
