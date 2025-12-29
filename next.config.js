@@ -23,7 +23,10 @@ const nextConfig = {
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'https', hostname: 'pga-tour-res.cloudinary.com' },
       { protocol: 'https', hostname: 'flagcdn.com' },
-      { protocol: 'https', hostname: 'i.scdn.co'}
+      { protocol: 'https', hostname: 'i.scdn.co' },
+      // Added for Clipflation feature
+      { protocol: 'https', hostname: 'a.espncdn.com' },
+      { protocol: 'https', hostname: 'cdn.nba.com' }
     ],
   },
 };

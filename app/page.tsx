@@ -398,10 +398,22 @@ export default function Home() {
             {/* Divider */}
             <div className="w-full max-w-xs h-px bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
 
-            {/* Copyright */}
-            <p className="text-zinc-600 font-bold text-xs uppercase tracking-wider hover:text-white transition-colors cursor-default">
-              Zinc Engineering © 2025 // All Rights Reserved
-            </p>
+            {/* Copyright Easter Egg */}
+            <Link 
+              href="/clipflation"
+              className="group relative px-4 py-2 rounded-lg hover:bg-white/5 transition-all duration-500"
+            >
+              <p className="text-zinc-600 font-bold text-xs uppercase tracking-wider group-hover:text-zinc-400 transition-colors">
+                Zinc Engineering © 2025 // All Rights Reserved
+              </p>
+              
+              {/* Hidden Tooltip Effect on Hover */}
+              <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 pointer-events-none">
+                 <span className="text-[10px] font-mono text-red-500 whitespace-nowrap bg-red-950/30 border border-red-500/20 px-2 py-1 rounded">
+                    ⚠ Unauthorized Access Detected
+                 </span>
+              </div>
+            </Link>
         </div>
       </footer>
     </main>
