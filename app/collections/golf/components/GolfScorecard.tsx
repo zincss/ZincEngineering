@@ -4,14 +4,12 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Plus, Minus, Users, Play, X, Compass, Power,
   DollarSign, TrendingUp, TrendingDown, Menu, ArrowUp, Navigation, 
-  Crosshair, MapPin, Target, Activity, Trophy, Wind, ChevronRight // <--- Add this
+  MapPin, Target, Activity, Trophy, Wind, ChevronRight
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { getUserBag, Club } from '../actions';
-import TheArmory from './TheArmory';
+import { GolfProfile } from '../actions';
 
-// --- TYPES ---
 type GameMode = 'STROKE' | 'SCRAMBLE' | 'MATCH' | 'MONEY';
 type UnitSystem = 'METRIC' | 'IMPERIAL';
 type HolePhase = 'INTEL' | 'ENGAGEMENT'; 
@@ -39,18 +37,15 @@ interface LocalWeather {
 const TOTAL_HOLES = 18;
 const DEFAULT_PARS = Array(18).fill(4); 
 
-// --- UTILITY ---
 function cn(...classes: (string | undefined | null | false)[]) {
   return classes.filter(Boolean).join(' ');
 }
 
-export default function GolfScorecard() {
-  // --- STATE ---
+export default function GolfScorecard({ profile }: { profile: GolfProfile | null }) {
   const [mode, setMode] = useState<'SETUP' | 'ACTIVE' | 'SUMMARY'>('SETUP');
   const [gameMode, setGameMode] = useState<GameMode>('STROKE');
-  const [units, setUnits] = useState<UnitSystem>('METRIC');
+  const [units, setUnits] = useState<UnitSystem>(profile?.units || 'IMPERIAL');
   
-  // Players & Game
   const [players, setPlayers] = useState<Player[]>([]);
   const [inputName, setInputName] = useState('');
   const [currentHole, setCurrentHole] = useState(1);
@@ -58,42 +53,27 @@ export default function GolfScorecard() {
   const [holePhase, setHolePhase] = useState<HolePhase>('INTEL'); 
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
-  // Money Mode State
   const [baseStake, setBaseStake] = useState(10); 
   const [holeStakes, setHoleStakes] = useState<number[]>(Array(18).fill(10)); 
   
-  // Transition State
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [transitionTarget, setTransitionTarget] = useState(1); 
 
-  // Tactical / Compass State
   const [deviceHeading, setDeviceHeading] = useState<number | null>(null);
   const [manualHeading, setManualHeading] = useState(0); 
   const [isCompassActive, setIsCompassActive] = useState(false);
 
-  // Armory State (New)
-  const [bag, setBag] = useState<Club[]>([]);
-  const [showArmory, setShowArmory] = useState(false);
-
-  // Auto-Scroll Refs
   const activeSectionRef = useRef<HTMLDivElement>(null);
   const mainContainerRef = useRef<HTMLDivElement>(null);
 
-  // Weather
   const [weather, setWeather] = useState<LocalWeather>({ 
     temp: 0, windSpeed: 0, windDirection: 0, loaded: false 
   });
 
-  // --- EFFECT: LOAD USER BAG ---
   useEffect(() => {
-    const loadBag = async () => {
-        const { data } = await getUserBag();
-        if (data) setBag(data);
-    };
-    loadBag();
-  }, []);
+      if(profile?.units) setUnits(profile.units);
+  }, [profile?.units]);
 
-  // --- EFFECT: WEATHER ---
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(async (pos) => {
@@ -114,18 +94,11 @@ export default function GolfScorecard() {
     }
   }, []);
 
-  // --- COMPASS HANDLERS ---
   const handleOrientation = useCallback((event: any) => {
       let heading: number | null = null;
-      if (event.webkitCompassHeading) {
-          heading = event.webkitCompassHeading;
-      } 
-      else if (event.alpha !== null) {
-          heading = 360 - event.alpha;
-      }
-      if (heading !== null) {
-          setDeviceHeading(heading);
-      }
+      if (event.webkitCompassHeading) heading = event.webkitCompassHeading;
+      else if (event.alpha !== null) heading = 360 - event.alpha;
+      if (heading !== null) setDeviceHeading(heading);
   }, []);
 
   const toggleCompass = async () => {
@@ -137,7 +110,6 @@ export default function GolfScorecard() {
           setDeviceHeading(null);
           return;
       }
-
       const startListening = () => {
           setIsCompassActive(true);
           // @ts-ignore
@@ -148,17 +120,13 @@ export default function GolfScorecard() {
                window.addEventListener('deviceorientation', handleOrientation);
           }
       };
-
       // @ts-ignore
       if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
           try {
               // @ts-ignore
               const permission = await DeviceOrientationEvent.requestPermission();
-              if (permission === 'granted') {
-                  startListening();
-              } else {
-                  alert("Compass permission required for wind vectoring.");
-              }
+              if (permission === 'granted') startListening();
+              else alert("Compass permission required for wind vectoring.");
           } catch (error) { console.error(error); }
       } else {
           startListening();
@@ -176,8 +144,6 @@ export default function GolfScorecard() {
       };
   }, [handleOrientation]);
 
-
-  // --- EFFECT: AUTO-SCROLL ---
   useEffect(() => {
     if (mode === 'ACTIVE' && !isTransitioning) {
         setTimeout(() => {
@@ -189,23 +155,17 @@ export default function GolfScorecard() {
     }
   }, [holePhase, currentHole, mode, isTransitioning]);
 
-
-  // --- HELPERS ---
   const displayVal = (val: number, type: 'temp'|'speed') => {
       if (type === 'temp') return units === 'METRIC' ? `${Math.round(val)}°C` : `${Math.round((val * 9/5)+32)}°F`;
       if (type === 'speed') return units === 'METRIC' ? `${Math.round(val)}kph` : `${Math.round(val * 0.62)}mph`;
       return '';
   };
 
-  // --- ADVANCED WIND ANALYSIS (UPDATED) ---
   const getWindAnalysis = () => {
       if (!weather.loaded) return { term: "OFFLINE", color: "text-zinc-500", advice: "Weather data unavailable", angle: 0 };
       
       const headingToUse = isCompassActive && deviceHeading !== null ? deviceHeading : manualHeading;
-      
-      // Calculate where wind is coming FROM relative to user
       let rel = (weather.windDirection - headingToUse + 360) % 360;
-      
       const speedMph = weather.windSpeed * 0.621371;
       const isSignificant = speedMph > 5;
       
@@ -234,27 +194,18 @@ export default function GolfScorecard() {
               advice = "Aim Left. Wind will fade ball Right.";
           }
 
-          // ** NEW: BAG INTEGRATION **
-          // If we have a bag, suggest a specific club. 
-          // Logic: Base calculation on a "standard approach" of 165y (7i usually) modified by wind
-          if (bag.length > 0) {
-              const targetDist = 165; // Simulated 'Approach' distance
-              // Simple Physics: Headwind adds distance, Tailwind subtracts distance
-              // Cosine of angle gives us the "Headwind Component"
-              // cos(0) = 1 (Full Headwind), cos(180) = -1 (Full Tailwind)
-              // Convert deg to rad
+          if (profile && profile.clubs.length > 0) {
+              const isMetric = profile.units === 'METRIC';
+              let targetDist = isMetric ? 150 : 165; 
+              
               const rad = (rel * Math.PI) / 180;
-              // If rel is 0 (Headwind), cos is 1. We want to ADD yardage.
-              // If rel is 180 (Tailwind), cos is -1. We want to SUBTRACT yardage.
-              // Approx 1 yard per 1 mph of vector wind
               const windEffect = Math.cos(rad) * speedMph; 
               
-              const playingDistance = targetDist + windEffect;
+              const playingDistance = targetDist + windEffect; 
 
-              // Find closest club
-              let bestClub = bag[0];
+              let bestClub = profile.clubs[0];
               let minDiff = 1000;
-              bag.forEach(c => {
+              profile.clubs.forEach(c => {
                   const diff = Math.abs(c.dist - playingDistance);
                   if (diff < minDiff) {
                       minDiff = diff;
@@ -262,15 +213,13 @@ export default function GolfScorecard() {
                   }
               });
 
-              // Append to advice
-              advice += ` (Plays like ${Math.round(playingDistance)}y → Rec: ${bestClub.name})`;
+              advice += ` (Plays like ${Math.round(playingDistance)} ${isMetric ? 'm' : 'y'} → Rec: ${bestClub.name})`;
           }
       }
 
       return { term, color, advice, angle: rel, rawSpeed: speedMph };
   };
 
-  // --- LOGIC ---
   const calculateBalances = () => {
       const balances = new Map<string, number>();
       players.forEach(p => balances.set(p.id, 0));
@@ -321,7 +270,6 @@ export default function GolfScorecard() {
       }).sort((a,b) => a.relative - b.relative);
   };
 
-  // --- ACTIONS ---
   const handleAddPlayer = () => {
     const limit = gameMode === 'SCRAMBLE' ? 1 : gameMode === 'MATCH' ? 2 : 4;
     if (!inputName.trim() || players.length >= limit) return;
@@ -371,12 +319,10 @@ export default function GolfScorecard() {
       if(confirm('TERMINATE MISSION EARLY?')) { setMode('SUMMARY'); setShowLeaderboard(false); }
   };
 
-  // --- RENDER HELPERS ---
   const { carryover } = calculateBalances();
   const currentHoleStake = holeStakes[currentHole-1];
   const totalPot = currentHoleStake + carryover;
 
-  // ================= VIEW: SETUP =================
   if (mode === 'SETUP') {
     return (
       <div className="max-w-xl mx-auto pb-32 animate-in fade-in slide-in-from-bottom-4 px-4 pt-12">
@@ -484,7 +430,6 @@ export default function GolfScorecard() {
     );
   }
 
-  // ================= VIEW: ACTIVE =================
   if (mode === 'ACTIVE') {
       const par = pars[currentHole-1];
       const windAnalysis = getWindAnalysis();
@@ -492,17 +437,6 @@ export default function GolfScorecard() {
 
       return (
         <div ref={mainContainerRef} className="relative min-h-screen pb-32 bg-zinc-950">
-            
-            {/* NEW: ARMORY MODAL */}
-            {showArmory && (
-                <TheArmory 
-                    initialBag={bag} 
-                    onClose={() => setShowArmory(false)} 
-                    onUpdate={(newBag) => setBag(newBag)} 
-                />
-            )}
-
-            {/* TRANSITION OVERLAY */}
             <div className={cn(
                 "fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center transition-transform duration-700 ease-in-out",
                 isTransitioning ? "translate-y-0" : "-translate-y-full"
@@ -514,7 +448,6 @@ export default function GolfScorecard() {
                  <h2 className="text-7xl font-black text-white italic">HOLE {transitionTarget}</h2>
             </div>
 
-            {/* LIVE MENU OVERLAY */}
             {showLeaderboard && (
                 <div className="fixed inset-0 z-[90] bg-black/95 backdrop-blur-xl animate-in fade-in duration-200 flex flex-col p-6">
                     <div className="flex justify-between items-center mb-12">
@@ -555,7 +488,6 @@ export default function GolfScorecard() {
                 </div>
             )}
             
-            {/* --- STICKY HEADER --- */}
             <div className="fixed top-0 left-0 w-full z-40 bg-zinc-950/90 backdrop-blur border-b border-zinc-800 px-4 py-3 flex justify-between items-center shadow-md">
                 <div className="flex flex-col">
                     <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Sector {currentHole}</span>
@@ -584,18 +516,8 @@ export default function GolfScorecard() {
                 </div>
             </div>
 
-            {/* --- PHASE 1: INTEL --- */}
             {holePhase === 'INTEL' && (
                 <div className="pt-24 pb-48 px-4 flex flex-col items-center animate-in fade-in slide-in-from-bottom-8 duration-500 min-h-screen">
-                    
-                    {/* ARMORY BUTTON */}
-                    <button 
-                        onClick={() => setShowArmory(true)}
-                        className="absolute top-24 right-4 z-50 p-3 bg-zinc-900 border border-zinc-800 rounded-full text-zinc-400 hover:text-[#DFFF00] hover:border-[#DFFF00] transition-colors shadow-xl"
-                    >
-                        <Crosshair size={24} />
-                    </button>
-
                     <div ref={activeSectionRef} className="text-center mb-10 w-full">
                          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-[#DFFF00]/10 border border-[#DFFF00] text-[#DFFF00] mb-6 shadow-[0_0_40px_rgba(223,255,0,0.2)]">
                              <MapPin size={40} />
@@ -663,13 +585,9 @@ export default function GolfScorecard() {
                 </div>
             )}
 
-            {/* --- PHASE 2: ENGAGEMENT --- */}
             {holePhase === 'ENGAGEMENT' && (
                 <div className="pt-24 pb-40 px-4 animate-in fade-in zoom-in-95 duration-300">
-                    
-                    {/* UPDATED TACTICAL COMPASS UI */}
                     <div ref={activeSectionRef} className="mb-6 bg-zinc-900/80 backdrop-blur border border-zinc-800 rounded-2xl p-5 shadow-2xl overflow-hidden relative">
-                        {/* Header Info */}
                         <div className="flex items-start justify-between mb-6 z-10 relative">
                              <div className="flex flex-col">
                                  <div className="flex items-center gap-2 text-zinc-400 mb-1">
@@ -686,7 +604,6 @@ export default function GolfScorecard() {
                              </div>
                         </div>
 
-                        {/* Compass Visualizer */}
                         <div className="flex justify-center items-center py-4 relative mb-4">
                              <div className="w-56 h-56 rounded-full border-2 border-zinc-800 bg-zinc-950/50 shadow-inner flex items-center justify-center relative">
                                   <div 
@@ -724,7 +641,6 @@ export default function GolfScorecard() {
                              </div>
                         </div>
 
-                        {/* Controls */}
                         <div className="flex items-center gap-3">
                             <button 
                                 onClick={toggleCompass}
@@ -752,7 +668,6 @@ export default function GolfScorecard() {
                         </div>
                     </div>
 
-                    {/* SCORING CARDS */}
                     <div className="space-y-4">
                         {gameMode === 'MATCH' && (
                             <div className="grid grid-cols-2 gap-3">
@@ -801,7 +716,6 @@ export default function GolfScorecard() {
                 </div>
             )}
 
-            {/* --- FIXED FOOTER (ACTION BAR) --- */}
             <div className="fixed bottom-0 left-0 w-full p-4 bg-zinc-950/90 backdrop-blur border-t border-zinc-800 z-30">
                 {holePhase === 'INTEL' ? (
                      <button 
@@ -827,7 +741,6 @@ export default function GolfScorecard() {
       );
   }
 
-  // ================= VIEW: SUMMARY =================
   if (mode === 'SUMMARY') {
       const sortedPlayers = getLeaderboard();
       return (
