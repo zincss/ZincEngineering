@@ -1,14 +1,15 @@
-//
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
-  Plus, Minus, Users, Play, RotateCcw, ChevronLeft, ChevronRight, 
-  Trophy, Wind, Thermometer, MapPin, Target, Activity, ListOrdered, X, Compass, Power,
-  DollarSign, TrendingUp, TrendingDown, Menu, ArrowUp, Navigation
+  Plus, Minus, Users, Play, X, Compass, Power,
+  DollarSign, TrendingUp, TrendingDown, Menu, ArrowUp, Navigation, 
+  Crosshair, MapPin, Target, Activity, Trophy, Wind, ChevronRight // <--- Add this
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { getUserBag, Club } from '../actions';
+import TheArmory from './TheArmory';
 
 // --- TYPES ---
 type GameMode = 'STROKE' | 'SCRAMBLE' | 'MATCH' | 'MONEY';
@@ -70,6 +71,10 @@ export default function GolfScorecard() {
   const [manualHeading, setManualHeading] = useState(0); 
   const [isCompassActive, setIsCompassActive] = useState(false);
 
+  // Armory State (New)
+  const [bag, setBag] = useState<Club[]>([]);
+  const [showArmory, setShowArmory] = useState(false);
+
   // Auto-Scroll Refs
   const activeSectionRef = useRef<HTMLDivElement>(null);
   const mainContainerRef = useRef<HTMLDivElement>(null);
@@ -78,6 +83,15 @@ export default function GolfScorecard() {
   const [weather, setWeather] = useState<LocalWeather>({ 
     temp: 0, windSpeed: 0, windDirection: 0, loaded: false 
   });
+
+  // --- EFFECT: LOAD USER BAG ---
+  useEffect(() => {
+    const loadBag = async () => {
+        const { data } = await getUserBag();
+        if (data) setBag(data);
+    };
+    loadBag();
+  }, []);
 
   // --- EFFECT: WEATHER ---
   useEffect(() => {
@@ -103,17 +117,12 @@ export default function GolfScorecard() {
   // --- COMPASS HANDLERS ---
   const handleOrientation = useCallback((event: any) => {
       let heading: number | null = null;
-      
-      // iOS WebKit Support
       if (event.webkitCompassHeading) {
           heading = event.webkitCompassHeading;
       } 
-      // Standard / Android (Try to use absolute if available, else relative alpha)
       else if (event.alpha !== null) {
-          // If the device reports absolute orientation, or generally on Android chrome
           heading = 360 - event.alpha;
       }
-
       if (heading !== null) {
           setDeviceHeading(heading);
       }
@@ -131,8 +140,7 @@ export default function GolfScorecard() {
 
       const startListening = () => {
           setIsCompassActive(true);
-          // Try absolute first for Android
-          // Cast to any to avoid TS narrowing window to 'never' if property is missing from type defs
+          // @ts-ignore
           if ('ondeviceorientationabsolute' in (window as any)) {
                // @ts-ignore
                (window as any).addEventListener('deviceorientationabsolute', handleOrientation);
@@ -141,7 +149,6 @@ export default function GolfScorecard() {
           }
       };
 
-      // Check for iOS permission requirement
       // @ts-ignore
       if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
           try {
@@ -152,11 +159,8 @@ export default function GolfScorecard() {
               } else {
                   alert("Compass permission required for wind vectoring.");
               }
-          } catch (error) {
-              console.error(error);
-          }
+          } catch (error) { console.error(error); }
       } else {
-          // Standard devices
           startListening();
       }
   };
@@ -193,20 +197,15 @@ export default function GolfScorecard() {
       return '';
   };
 
-  // --- ADVANCED WIND ANALYSIS ---
+  // --- ADVANCED WIND ANALYSIS (UPDATED) ---
   const getWindAnalysis = () => {
       if (!weather.loaded) return { term: "OFFLINE", color: "text-zinc-500", advice: "Weather data unavailable", angle: 0 };
       
       const headingToUse = isCompassActive && deviceHeading !== null ? deviceHeading : manualHeading;
       
       // Calculate where wind is coming FROM relative to user
-      // 0 = Wind hitting face (Headwind)
-      // 180 = Wind hitting back (Tailwind)
-      // 90 = Wind from right
-      // 270 = Wind from left
       let rel = (weather.windDirection - headingToUse + 360) % 360;
       
-      // Calculate wind speed in MPH for advice logic (approx 1 club per 10mph)
       const speedMph = weather.windSpeed * 0.621371;
       const isSignificant = speedMph > 5;
       
@@ -219,7 +218,7 @@ export default function GolfScorecard() {
               term = "HEADWIND";
               color = "text-red-500";
               const clubs = Math.ceil(speedMph / 10);
-              advice = `Club Up ${clubs} ${clubs > 1 ? 'clubs' : 'club'}. Keep it low.`;
+              advice = `Club Up ${clubs}. Keep it low.`;
           } else if (rel >= 45 && rel < 135) {
               term = "RIGHT-TO-LEFT";
               color = "text-orange-400";
@@ -233,6 +232,38 @@ export default function GolfScorecard() {
               term = "LEFT-TO-RIGHT";
               color = "text-orange-400";
               advice = "Aim Left. Wind will fade ball Right.";
+          }
+
+          // ** NEW: BAG INTEGRATION **
+          // If we have a bag, suggest a specific club. 
+          // Logic: Base calculation on a "standard approach" of 165y (7i usually) modified by wind
+          if (bag.length > 0) {
+              const targetDist = 165; // Simulated 'Approach' distance
+              // Simple Physics: Headwind adds distance, Tailwind subtracts distance
+              // Cosine of angle gives us the "Headwind Component"
+              // cos(0) = 1 (Full Headwind), cos(180) = -1 (Full Tailwind)
+              // Convert deg to rad
+              const rad = (rel * Math.PI) / 180;
+              // If rel is 0 (Headwind), cos is 1. We want to ADD yardage.
+              // If rel is 180 (Tailwind), cos is -1. We want to SUBTRACT yardage.
+              // Approx 1 yard per 1 mph of vector wind
+              const windEffect = Math.cos(rad) * speedMph; 
+              
+              const playingDistance = targetDist + windEffect;
+
+              // Find closest club
+              let bestClub = bag[0];
+              let minDiff = 1000;
+              bag.forEach(c => {
+                  const diff = Math.abs(c.dist - playingDistance);
+                  if (diff < minDiff) {
+                      minDiff = diff;
+                      bestClub = c;
+                  }
+              });
+
+              // Append to advice
+              advice += ` (Plays like ${Math.round(playingDistance)}y → Rec: ${bestClub.name})`;
           }
       }
 
@@ -462,6 +493,15 @@ export default function GolfScorecard() {
       return (
         <div ref={mainContainerRef} className="relative min-h-screen pb-32 bg-zinc-950">
             
+            {/* NEW: ARMORY MODAL */}
+            {showArmory && (
+                <TheArmory 
+                    initialBag={bag} 
+                    onClose={() => setShowArmory(false)} 
+                    onUpdate={(newBag) => setBag(newBag)} 
+                />
+            )}
+
             {/* TRANSITION OVERLAY */}
             <div className={cn(
                 "fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center transition-transform duration-700 ease-in-out",
@@ -548,6 +588,14 @@ export default function GolfScorecard() {
             {holePhase === 'INTEL' && (
                 <div className="pt-24 pb-48 px-4 flex flex-col items-center animate-in fade-in slide-in-from-bottom-8 duration-500 min-h-screen">
                     
+                    {/* ARMORY BUTTON */}
+                    <button 
+                        onClick={() => setShowArmory(true)}
+                        className="absolute top-24 right-4 z-50 p-3 bg-zinc-900 border border-zinc-800 rounded-full text-zinc-400 hover:text-[#DFFF00] hover:border-[#DFFF00] transition-colors shadow-xl"
+                    >
+                        <Crosshair size={24} />
+                    </button>
+
                     <div ref={activeSectionRef} className="text-center mb-10 w-full">
                          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-[#DFFF00]/10 border border-[#DFFF00] text-[#DFFF00] mb-6 shadow-[0_0_40px_rgba(223,255,0,0.2)]">
                              <MapPin size={40} />
@@ -632,7 +680,7 @@ export default function GolfScorecard() {
                              </div>
                              <div className="text-right">
                                  <div className={cn("text-sm font-black uppercase", windAnalysis.color)}>{windAnalysis.term}</div>
-                                 <div className="text-[10px] text-zinc-500 font-mono uppercase tracking-wide">
+                                 <div className="text-[10px] text-zinc-500 font-mono uppercase tracking-wide max-w-[200px] ml-auto">
                                     {windAnalysis.advice}
                                  </div>
                              </div>
@@ -640,46 +688,36 @@ export default function GolfScorecard() {
 
                         {/* Compass Visualizer */}
                         <div className="flex justify-center items-center py-4 relative mb-4">
-                             {/* Bezel Ring */}
                              <div className="w-56 h-56 rounded-full border-2 border-zinc-800 bg-zinc-950/50 shadow-inner flex items-center justify-center relative">
-                                  
-                                  {/* Compass Card (Rotates opposite to heading so 'N' stays North) */}
                                   <div 
                                     style={{ transform: `rotate(${-compassRotation}deg)` }}
                                     className="absolute inset-0 w-full h-full rounded-full transition-transform duration-200 ease-out will-change-transform"
                                   >
-                                      {/* Cardinal Points */}
                                       <div className="absolute top-2 left-1/2 -translate-x-1/2 font-black text-[#DFFF00] text-xs">N</div>
                                       <div className="absolute bottom-2 left-1/2 -translate-x-1/2 font-bold text-zinc-700 text-[10px]">S</div>
                                       <div className="absolute right-3 top-1/2 -translate-y-1/2 font-bold text-zinc-700 text-[10px]">E</div>
                                       <div className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-zinc-700 text-[10px]">W</div>
                                       
-                                      {/* Ticks */}
                                       {[0, 45, 90, 135, 180, 225, 270, 315].map(deg => (
                                           <div key={deg} style={{ transform: `rotate(${deg}deg)` }} className="absolute top-0 left-1/2 w-0.5 h-full -ml-[1px]">
                                               <div className="w-full h-1 bg-zinc-800"></div>
                                           </div>
                                       ))}
 
-                                      {/* ABSOLUTE WIND VECTOR: Attached to the Compass Card at the Wind Angle */}
-                                      {/* This arrow points in the direction the wind is blowing TO (meteorological convention inverted) */}
                                       <div 
                                         style={{ transform: `rotate(${weather.windDirection}deg)` }}
                                         className="absolute inset-0 w-full h-full pointer-events-none"
                                       >
-                                           {/* Arrow Head (Wind Origin) */}
                                            <div className="absolute top-6 left-1/2 -translate-x-1/2 flex flex-col items-center">
                                                <ArrowUp size={24} className="text-[#DFFF00] fill-[#DFFF00] rotate-180 drop-shadow-[0_0_8px_rgba(223,255,0,0.8)]" />
                                            </div>
                                       </div>
                                   </div>
 
-                                  {/* User Indicator (Fixed Center) */}
                                   <div className="z-10 w-16 h-16 bg-zinc-900 rounded-full border border-zinc-700 flex items-center justify-center shadow-2xl">
                                       <Navigation size={24} className="text-white fill-white" />
                                   </div>
                                   
-                                  {/* Heading Readout */}
                                   <div className="absolute -bottom-6 text-[10px] font-mono text-zinc-600">
                                       HDG: {Math.round(compassRotation)}°
                                   </div>
