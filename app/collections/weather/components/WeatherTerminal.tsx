@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import dynamic from 'next/dynamic'; // Import dynamic for the map
 import { 
-  CloudRain, Wind, Search, Skull, 
+  CloudRain, Wind, Search, Skull, Globe, Map,
   MapPin, Loader2, Smile, Frown, Zap, Baby, Briefcase, RefreshCcw, 
   Cpu, Droplets, Gauge, Navigation, Calendar, Radio, CloudSnow, CloudLightning, Sun, Crosshair, History, X,
   CloudHail, ArrowRight
@@ -10,6 +11,18 @@ import {
 
 // Import the massive commentary database
 import { COMMENTARY_DB, PersonalityMode } from '../lib/commentary';
+
+// --- DYNAMIC IMPORTS ---
+// We must dynamically import the map picker to avoid SSR issues with Leaflet
+const WeatherMapPicker = dynamic(() => import('./WeatherMapPicker'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[400px] bg-zinc-900/50 rounded-[2rem] border border-zinc-800 flex flex-col items-center justify-center text-zinc-500 gap-4">
+       <Loader2 className="animate-spin" size={32} />
+       <span className="font-mono text-xs uppercase tracking-widest">Loading Cartography...</span>
+    </div>
+  )
+});
 
 // --- SUB-COMPONENT: ROBUST TYPEWRITER ---
 const Typewriter = ({ text, speed = 30 }: { text: string; speed?: number }) => {
@@ -153,7 +166,7 @@ interface WeatherData {
   location: string;
   code: number;
   isDay: number;
-  forecast: DailyForecast[]; // Added forecast array
+  forecast: DailyForecast[]; 
 }
 
 interface GeocodingResult {
@@ -177,6 +190,7 @@ const PERSONALITIES: { id: PersonalityMode; label: string; icon: any; desc: stri
 export default function WeatherTerminal() {
   // --- STATE ---
   const [step, setStep] = useState<'SEARCH' | 'RESULT'>('SEARCH');
+  const [searchMode, setSearchMode] = useState<'TEXT' | 'MAP'>('TEXT'); // New State for Tab Switching
   
   const [input, setInput] = useState('');
   const [suggestions, setSuggestions] = useState<GeocodingResult[]>([]);
@@ -273,6 +287,18 @@ export default function WeatherTerminal() {
     const randomPersonality = PERSONALITIES[Math.floor(Math.random() * PERSONALITIES.length)];
     executeFetch(loc, randomPersonality.id);
   };
+  
+  // Handler for Map Picker
+  const handleMapSelection = (loc: { lat: number, lon: number, name: string, country: string }) => {
+      const geoResult: GeocodingResult = {
+          id: Date.now(),
+          name: loc.name,
+          country: loc.country,
+          latitude: loc.lat,
+          longitude: loc.lon
+      };
+      handleLocationSelect(geoResult);
+  };
 
   const handleCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -340,8 +366,6 @@ export default function WeatherTerminal() {
     setStep('RESULT');
 
     try {
-        // Changed forecast_days to 6 to get Today + 5 Days
-        // Added weather_code to daily params
         const weatherRes = await fetch(
             `https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,is_day&hourly=uv_index&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=auto&forecast_days=6`
         );
@@ -356,14 +380,13 @@ export default function WeatherTerminal() {
 
         const conditionText = getConditionText(current.weather_code);
 
-        // Map forecast data
         const forecastData: DailyForecast[] = daily.time.map((t: string, i: number) => ({
             date: t,
             maxTemp: daily.temperature_2m_max[i],
             minTemp: daily.temperature_2m_min[i],
             code: daily.weather_code[i],
             condition: getConditionText(daily.weather_code[i])
-        })).slice(1); // Remove current day (index 0)
+        })).slice(1);
 
         const newWeather: WeatherData = {
             temp: current.temperature_2m,
@@ -422,7 +445,7 @@ export default function WeatherTerminal() {
           case 'RAINING': return <CloudRain size={size} className="text-blue-400" />;
           case 'STORM': return <CloudLightning size={size} className="text-purple-400" />;
           case 'SNOW': return <CloudSnow size={size} className="text-white" />;
-          case 'CLOUDY': return <CloudHail size={size} className="text-zinc-400" />; // Fallback cloud icon
+          case 'CLOUDY': return <CloudHail size={size} className="text-zinc-400" />; 
           default: return <Sun size={size} className="text-orange-400" />;
       }
   };
@@ -476,53 +499,80 @@ export default function WeatherTerminal() {
                 </div>
              )}
 
-             {/* SEARCH WIDGET */}
-             <div className="bg-zinc-950/80 backdrop-blur-lg border border-zinc-800 rounded-[2rem] p-2 shadow-2xl relative z-20 mb-8">
-                <div className="relative flex items-center">
-                    <div className="absolute left-4 md:left-5 text-zinc-500 pointer-events-none z-10">
-                        {isSearchingGeo ? <Loader2 size={20} className="animate-spin" /> : <Search size={20} />}
-                    </div>
-                    
-                    <input 
-                        type="text" 
-                        value={input}
-                        onChange={handleInputChange}
-                        placeholder="Search location..."
-                        className="w-full bg-zinc-900/50 rounded-3xl py-4 md:py-6 pl-12 md:pl-14 pr-16 text-base md:text-xl text-white outline-none focus:bg-zinc-900 transition-colors placeholder:text-zinc-600 font-medium appearance-none touch-manipulation"
-                        autoComplete="off"
-                        style={{ fontSize: '16px' }} 
-                    />
-
+             {/* TABS SWITCHER */}
+             <div className="flex justify-center mb-6">
+                <div className="bg-zinc-900 p-1 rounded-full border border-zinc-800 flex items-center">
                     <button 
-                        onClick={handleCurrentLocation}
-                        className="absolute right-2 p-3 md:p-4 bg-zinc-800 hover:bg-[#DFFF00] hover:text-black text-zinc-400 rounded-2xl transition-colors group touch-manipulation"
-                        title="Use Current Location"
+                        onClick={() => setSearchMode('TEXT')}
+                        className={`flex items-center gap-2 px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${searchMode === 'TEXT' ? 'bg-[#DFFF00] text-black shadow-lg' : 'text-zinc-500 hover:text-white'}`}
                     >
-                        <Crosshair size={20} className="group-hover:rotate-90 transition-transform duration-500" />
+                        <Search size={14} /> Text Search
+                    </button>
+                    <button 
+                        onClick={() => setSearchMode('MAP')}
+                        className={`flex items-center gap-2 px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${searchMode === 'MAP' ? 'bg-[#DFFF00] text-black shadow-lg' : 'text-zinc-500 hover:text-white'}`}
+                    >
+                        <Globe size={14} /> World Map
                     </button>
                 </div>
-
-                {/* SUGGESTIONS */}
-                {showSuggestions && suggestions.length > 0 && (
-                    <div className="absolute top-full left-0 w-full bg-zinc-900 border border-zinc-800 rounded-3xl shadow-xl mt-2 overflow-hidden animate-in fade-in slide-in-from-top-2 p-2 z-50">
-                        {suggestions.map((loc) => (
-                            <button
-                                key={loc.id}
-                                onClick={() => handleLocationSelect(loc)}
-                                className="w-full text-left p-3 md:p-4 hover:bg-zinc-800 rounded-2xl flex items-center justify-between group transition-colors touch-manipulation"
-                            >
-                                <div className="flex flex-col">
-                                    <span className="font-bold text-white group-hover:text-[#DFFF00] transition-colors">{loc.name}</span>
-                                    <span className="text-[10px] md:text-xs text-zinc-500 font-medium uppercase">
-                                        {loc.admin1 ? `${loc.admin1}, ` : ''}{loc.country}
-                                    </span>
-                                </div>
-                                <Navigation size={14} className="text-zinc-600 group-hover:text-[#DFFF00] -rotate-45" />
-                            </button>
-                        ))}
-                    </div>
-                )}
              </div>
+
+             {/* MODE A: TEXT SEARCH WIDGET */}
+             {searchMode === 'TEXT' && (
+                <div className="bg-zinc-950/80 backdrop-blur-lg border border-zinc-800 rounded-[2rem] p-2 shadow-2xl relative z-20 mb-8 animate-in fade-in slide-in-from-left-4">
+                    <div className="relative flex items-center">
+                        <div className="absolute left-4 md:left-5 text-zinc-500 pointer-events-none z-10">
+                            {isSearchingGeo ? <Loader2 size={20} className="animate-spin" /> : <Search size={20} />}
+                        </div>
+                        
+                        <input 
+                            type="text" 
+                            value={input}
+                            onChange={handleInputChange}
+                            placeholder="Enter city name..."
+                            className="w-full bg-zinc-900/50 rounded-3xl py-4 md:py-6 pl-12 md:pl-14 pr-16 text-base md:text-xl text-white outline-none focus:bg-zinc-900 transition-colors placeholder:text-zinc-600 font-medium appearance-none touch-manipulation"
+                            autoComplete="off"
+                            style={{ fontSize: '16px' }} 
+                        />
+
+                        <button 
+                            onClick={handleCurrentLocation}
+                            className="absolute right-2 p-3 md:p-4 bg-zinc-800 hover:bg-[#DFFF00] hover:text-black text-zinc-400 rounded-2xl transition-colors group touch-manipulation"
+                            title="Use Current Location"
+                        >
+                            <Crosshair size={20} className="group-hover:rotate-90 transition-transform duration-500" />
+                        </button>
+                    </div>
+
+                    {/* SUGGESTIONS */}
+                    {showSuggestions && suggestions.length > 0 && (
+                        <div className="absolute top-full left-0 w-full bg-zinc-900 border border-zinc-800 rounded-3xl shadow-xl mt-2 overflow-hidden animate-in fade-in slide-in-from-top-2 p-2 z-50">
+                            {suggestions.map((loc) => (
+                                <button
+                                    key={loc.id}
+                                    onClick={() => handleLocationSelect(loc)}
+                                    className="w-full text-left p-3 md:p-4 hover:bg-zinc-800 rounded-2xl flex items-center justify-between group transition-colors touch-manipulation"
+                                >
+                                    <div className="flex flex-col">
+                                        <span className="font-bold text-white group-hover:text-[#DFFF00] transition-colors">{loc.name}</span>
+                                        <span className="text-[10px] md:text-xs text-zinc-500 font-medium uppercase">
+                                            {loc.admin1 ? `${loc.admin1}, ` : ''}{loc.country}
+                                        </span>
+                                    </div>
+                                    <Navigation size={14} className="text-zinc-600 group-hover:text-[#DFFF00] -rotate-45" />
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+             )}
+
+             {/* MODE B: MAP PICKER */}
+             {searchMode === 'MAP' && (
+                 <div className="animate-in fade-in slide-in-from-right-4 mb-8">
+                     <WeatherMapPicker onSelectLocation={handleMapSelection} />
+                 </div>
+             )}
 
              {/* RECENT SEARCHES */}
              {recentSearches.length > 0 && (
