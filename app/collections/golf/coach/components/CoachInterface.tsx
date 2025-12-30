@@ -1,14 +1,16 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { SYMPTOMS, DIAGNOSTIC_NODES, PRESCRIPTIONS, Drill, Handedness } from '../data';
 import { 
   Target, ChevronRight, RefreshCw, CheckCircle2, Play, 
   BrainCircuit, Activity, Save, Settings, Timer, 
-  ArrowLeft, Check, AlertTriangle, Lightbulb, Zap 
+  ArrowLeft, Check, AlertTriangle, Lightbulb, Zap,
+  Wind, Navigation, Lock, Unlock, Gauge, ArrowUp, MapPin
 } from 'lucide-react';
 
-type ViewState = 'SETUP' | 'SELECT_SYMPTOM' | 'DIAGNOSIS' | 'ANALYZING' | 'PRESCRIPTION' | 'DRILL_MODE';
+type ViewState = 'SETUP' | 'SELECT_SYMPTOM' | 'DIAGNOSIS' | 'ANALYZING' | 'PRESCRIPTION' | 'DRILL_MODE' | 'WIND_GAUGE';
+type UnitSystem = 'IMPERIAL' | 'METRIC';
 
 export default function CoachInterface() {
   // --- STATE ---
@@ -21,15 +23,19 @@ export default function CoachInterface() {
   const [saved, setSaved] = useState(false);
   const [cueMode, setCueMode] = useState<'TECHNICAL' | 'FEEL'>('TECHNICAL');
 
+  // --- WIND GAUGE STATE ---
+  const [weather, setWeather] = useState({ temp: 0, windSpeed: 0, windDirection: 0, loaded: false });
+  const [deviceHeading, setDeviceHeading] = useState<number>(0);
+  const [lockedHeading, setLockedHeading] = useState<number | null>(null);
+  const [compassActive, setCompassActive] = useState(false);
+  const [targetDistance, setTargetDistance] = useState<string>('');
+  const [windUnit, setWindUnit] = useState<UnitSystem>('IMPERIAL');
+
   // --- HELPER: TEXT PARSER ---
-  // Swaps terminology based on Left/Right handedness
   const parseText = (text: string) => {
     const leadSide = handedness === 'RIGHT' ? 'Left' : 'Right';
     const trailSide = handedness === 'RIGHT' ? 'Right' : 'Left';
-    
-    return text
-      .replace(/{LEAD_SIDE}/g, leadSide)
-      .replace(/{TRAIL_SIDE}/g, trailSide);
+    return text.replace(/{LEAD_SIDE}/g, leadSide).replace(/{TRAIL_SIDE}/g, trailSide);
   };
 
   // --- ACTIONS ---
@@ -65,6 +71,108 @@ export default function CoachInterface() {
     setActiveDrill(null);
   };
 
+  // --- WIND GAUGE LOGIC ---
+  const initWeather = async () => {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+            try {
+                const { latitude, longitude } = pos.coords;
+                const res = await fetch(
+                    `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,wind_speed_10m,wind_direction_10m`
+                );
+                const data = await res.json();
+                setWeather({
+                    temp: data.current.temperature_2m,
+                    windSpeed: data.current.wind_speed_10m,
+                    windDirection: data.current.wind_direction_10m,
+                    loaded: true
+                });
+            } catch (error) { console.error("Weather fetch failed", error); }
+        });
+    }
+  };
+
+  const handleOrientation = useCallback((event: any) => {
+    let heading: number | null = null;
+    if (event.webkitCompassHeading) heading = event.webkitCompassHeading;
+    else if (event.alpha !== null) heading = 360 - event.alpha;
+    if (heading !== null) setDeviceHeading(heading);
+  }, []);
+
+  const toggleCompass = async () => {
+      if (compassActive) {
+          window.removeEventListener('deviceorientation', handleOrientation);
+          // @ts-ignore
+          window.removeEventListener('deviceorientationabsolute', handleOrientation);
+          setCompassActive(false);
+          return;
+      }
+      
+      const startListening = () => {
+          setCompassActive(true);
+          // @ts-ignore
+          if ('ondeviceorientationabsolute' in (window as any)) {
+               // @ts-ignore
+               (window as any).addEventListener('deviceorientationabsolute', handleOrientation);
+          } else {
+               window.addEventListener('deviceorientation', handleOrientation);
+          }
+      };
+
+      // @ts-ignore
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+          try {
+              // @ts-ignore
+              const permission = await DeviceOrientationEvent.requestPermission();
+              if (permission === 'granted') startListening();
+              else alert("Compass permission required for wind vectoring.");
+          } catch (error) { console.error(error); }
+      } else {
+          startListening();
+      }
+  };
+
+  // Calculate Plays Like
+  const calculateBallistics = () => {
+      if (!weather.loaded) return null;
+      
+      const heading = lockedHeading !== null ? lockedHeading : deviceHeading;
+      const dist = parseInt(targetDistance) || 0;
+      
+      // Calculate wind relative to shot line
+      // relAngle 0 = Headwind (Wind coming from North, Shot heading North)
+      // relAngle 180 = Tailwind
+      const relAngle = (weather.windDirection - heading + 360) % 360;
+      const windSpeedMph = weather.windSpeed * 0.621371;
+      
+      // Cosine gives 1 for 0deg (Headwind), -1 for 180deg (Tailwind)
+      // Standard approximation: 1mph headwind = +1 yard. 1mph tailwind = -0.5 yard.
+      // We will use a slightly simplified model consistent with the scorecard: +/- based on cosine
+      const windEffectYards = Math.cos((relAngle * Math.PI) / 180) * windSpeedMph;
+      
+      // Apply effect
+      const playsLike = dist + windEffectYards;
+      
+      // Determine label
+      let label = "CALM";
+      if (windSpeedMph > 3) {
+          if (relAngle >= 315 || relAngle < 45) label = "HEADWIND";
+          else if (relAngle >= 45 && relAngle < 135) label = "L → R CROSS";
+          else if (relAngle >= 135 && relAngle < 225) label = "TAILWIND";
+          else label = "R → L CROSS";
+      }
+
+      return {
+          playsLike: Math.round(playsLike),
+          effect: Math.round(windEffectYards),
+          label,
+          speed: Math.round(windSpeedMph),
+          relAngle
+      };
+  };
+
+  const ballistics = calculateBallistics();
+
   // --- EFFECT: ANALYSIS SIMULATION ---
   useEffect(() => {
     if (view === 'ANALYZING') {
@@ -74,6 +182,20 @@ export default function CoachInterface() {
       return () => clearTimeout(timer);
     }
   }, [view]);
+
+  // Init weather when entering wind gauge
+  useEffect(() => {
+      if (view === 'WIND_GAUGE') initWeather();
+  }, [view]);
+
+  // Cleanup compass on unmount
+  useEffect(() => {
+      return () => {
+          window.removeEventListener('deviceorientation', handleOrientation);
+          // @ts-ignore
+          window.removeEventListener('deviceorientationabsolute', handleOrientation);
+      };
+  }, []);
 
   return (
     <div className="w-full max-w-6xl mx-auto min-h-[600px] relative">
@@ -86,14 +208,23 @@ export default function CoachInterface() {
       {view !== 'SETUP' && (
          <div className="flex justify-between items-center mb-8 border-b border-zinc-800 pb-4">
              <div className="flex items-center gap-4">
-                 {view !== 'SELECT_SYMPTOM' && (
+                 {view !== 'SELECT_SYMPTOM' && view !== 'WIND_GAUGE' && (
                      <button onClick={() => setView('SELECT_SYMPTOM')} className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-white transition-colors">
                          <ArrowLeft size={16} />
                      </button>
                  )}
+                 {view === 'WIND_GAUGE' && (
+                     <button onClick={() => setView('SETUP')} className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-white transition-colors">
+                         <ArrowLeft size={16} />
+                     </button>
+                 )}
                  <div className="flex flex-col">
-                    <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Active Operative</span>
-                    <span className="text-xs font-bold text-white uppercase">{handedness} HANDED</span>
+                    <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+                        {view === 'WIND_GAUGE' ? 'Ballistics Module' : 'Active Operative'}
+                    </span>
+                    <span className="text-xs font-bold text-white uppercase">
+                        {view === 'WIND_GAUGE' ? 'Atmospheric Sensor' : `${handedness} HANDED`}
+                    </span>
                  </div>
              </div>
              <button onClick={() => setView('SETUP')} className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-white hover:border-zinc-600 transition-all">
@@ -102,32 +233,205 @@ export default function CoachInterface() {
          </div>
       )}
 
-      {/* --- VIEW: SETUP (Handedness) --- */}
+      {/* --- VIEW: SETUP (Handedness + Tools) --- */}
       {view === 'SETUP' && (
         <div className="flex flex-col items-center justify-center min-h-[400px] animate-in fade-in zoom-in-95 duration-500">
            <Activity size={48} className="text-[#DFFF00] mb-6 animate-pulse" />
            <h2 className="text-4xl font-black uppercase tracking-tighter mb-2 text-center">System Initialization</h2>
            <p className="text-zinc-500 font-mono text-sm mb-10 text-center max-w-md">
-               Calibrating physics engine for operative dexterity.
+               Select dexterity profile or access standalone tactical modules.
            </p>
            
-           <div className="grid grid-cols-2 gap-6 w-full max-w-md">
+           <div className="flex flex-col gap-4 w-full max-w-md">
+               <div className="grid grid-cols-2 gap-4">
+                   <button 
+                    onClick={() => { setHandedness('RIGHT'); setView('SELECT_SYMPTOM'); }}
+                    className="group relative h-32 bg-zinc-900 border-2 border-zinc-800 hover:border-[#DFFF00] rounded-2xl flex flex-col items-center justify-center gap-4 transition-all hover:shadow-[0_0_30px_rgba(223,255,0,0.15)]"
+                   >
+                       <span className="text-3xl font-black text-zinc-700 group-hover:text-white transition-colors">R</span>
+                       <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest group-hover:text-[#DFFF00]">Right Handed</span>
+                   </button>
+                   <button 
+                    onClick={() => { setHandedness('LEFT'); setView('SELECT_SYMPTOM'); }}
+                    className="group relative h-32 bg-zinc-900 border-2 border-zinc-800 hover:border-[#DFFF00] rounded-2xl flex flex-col items-center justify-center gap-4 transition-all hover:shadow-[0_0_30px_rgba(223,255,0,0.15)]"
+                   >
+                       <span className="text-3xl font-black text-zinc-700 group-hover:text-white transition-colors">L</span>
+                       <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest group-hover:text-[#DFFF00]">Left Handed</span>
+                   </button>
+               </div>
+               
                <button 
-                onClick={() => { setHandedness('RIGHT'); setView('SELECT_SYMPTOM'); }}
-                className="group relative h-40 bg-zinc-900 border-2 border-zinc-800 hover:border-[#DFFF00] rounded-2xl flex flex-col items-center justify-center gap-4 transition-all hover:shadow-[0_0_30px_rgba(223,255,0,0.15)]"
+                onClick={() => setView('WIND_GAUGE')}
+                className="group relative h-20 bg-zinc-950 border border-zinc-800 hover:border-zinc-600 rounded-2xl flex items-center justify-between px-8 transition-all"
                >
-                   <span className="text-4xl font-black text-zinc-700 group-hover:text-white transition-colors">R</span>
-                   <span className="text-xs font-mono font-bold text-zinc-500 uppercase tracking-widest group-hover:text-[#DFFF00]">Right Handed</span>
-               </button>
-               <button 
-                onClick={() => { setHandedness('LEFT'); setView('SELECT_SYMPTOM'); }}
-                className="group relative h-40 bg-zinc-900 border-2 border-zinc-800 hover:border-[#DFFF00] rounded-2xl flex flex-col items-center justify-center gap-4 transition-all hover:shadow-[0_0_30px_rgba(223,255,0,0.15)]"
-               >
-                   <span className="text-4xl font-black text-zinc-700 group-hover:text-white transition-colors">L</span>
-                   <span className="text-xs font-mono font-bold text-zinc-500 uppercase tracking-widest group-hover:text-[#DFFF00]">Left Handed</span>
+                    <div className="flex items-center gap-4">
+                        <div className="p-2 bg-zinc-900 rounded-lg text-[#DFFF00] group-hover:bg-[#DFFF00] group-hover:text-black transition-colors">
+                            <Wind size={20} />
+                        </div>
+                        <div className="flex flex-col items-start">
+                            <span className="text-sm font-black text-white uppercase tracking-wide">Ballistics Gauge</span>
+                            <span className="text-[10px] text-zinc-500 font-mono uppercase">Wind / Elevation / Plays-Like</span>
+                        </div>
+                    </div>
+                    <ChevronRight className="text-zinc-600 group-hover:text-white" />
                </button>
            </div>
         </div>
+      )}
+
+      {/* --- VIEW: WIND GAUGE --- */}
+      {view === 'WIND_GAUGE' && (
+          <div className="max-w-md mx-auto animate-in fade-in slide-in-from-bottom-8 duration-500">
+              
+              {/* STATUS BAR */}
+              <div className="flex justify-between items-center mb-6 px-2">
+                  <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${weather.loaded ? 'bg-[#DFFF00] animate-pulse' : 'bg-red-500'}`} />
+                      <span className="text-[10px] font-mono uppercase text-zinc-500">
+                          {weather.loaded ? 'LIVE METEO DATA' : 'SEARCHING SATELLITE...'}
+                      </span>
+                  </div>
+                  <button 
+                    onClick={() => setWindUnit(windUnit === 'IMPERIAL' ? 'METRIC' : 'IMPERIAL')}
+                    className="text-[10px] font-bold bg-zinc-900 px-2 py-1 rounded border border-zinc-800 hover:text-white transition-colors"
+                  >
+                      {windUnit}
+                  </button>
+              </div>
+
+              {/* MAIN GAUGE CARD */}
+              <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 relative overflow-hidden shadow-2xl mb-4">
+                  
+                  {/* COMPASS RING */}
+                  <div className="relative aspect-square max-w-[280px] mx-auto mb-8">
+                      {/* Static Rings */}
+                      <div className="absolute inset-0 rounded-full border border-zinc-800" />
+                      <div className="absolute inset-4 rounded-full border border-zinc-800 border-dashed opacity-50" />
+                      
+                      {/* Live Rotating Ring */}
+                      <div 
+                        className="absolute inset-0 transition-transform duration-300 ease-out"
+                        style={{ transform: `rotate(-${lockedHeading !== null ? lockedHeading : deviceHeading}deg)` }}
+                      >
+                           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 text-[#DFFF00] font-black text-xs">N</div>
+                           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-2 text-zinc-600 font-bold text-[10px]">S</div>
+                           <div className="absolute right-0 top-1/2 translate-x-2 -translate-y-1/2 text-zinc-600 font-bold text-[10px]">E</div>
+                           <div className="absolute left-0 top-1/2 -translate-x-2 -translate-y-1/2 text-zinc-600 font-bold text-[10px]">W</div>
+                           
+                           {/* Wind Arrow (Relative to Earth) */}
+                           {weather.loaded && (
+                               <div 
+                                style={{ transform: `rotate(${weather.windDirection}deg)` }}
+                                className="absolute inset-0 pointer-events-none"
+                               >
+                                   <div className="absolute top-8 left-1/2 -translate-x-1/2 flex flex-col items-center">
+                                       <ArrowUp size={32} className="text-cyan-400 rotate-180 drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]" />
+                                       <span className="text-[10px] font-black text-cyan-400 bg-black/50 px-1 rounded backdrop-blur">WIND</span>
+                                   </div>
+                               </div>
+                           )}
+                      </div>
+
+                      {/* Locked Vector Indicator */}
+                      {lockedHeading !== null && (
+                          <div className="absolute inset-0 pointer-events-none">
+                               <div className="absolute -top-4 left-1/2 -translate-x-1/2 flex flex-col items-center">
+                                    <Lock size={16} className="text-[#DFFF00] mb-1" />
+                                    <div className="h-8 w-0.5 bg-[#DFFF00]" />
+                               </div>
+                          </div>
+                      )}
+
+                      {/* Center Hub */}
+                      <div className="absolute inset-0 m-auto w-20 h-20 bg-zinc-950 rounded-full border-2 border-zinc-700 flex flex-col items-center justify-center z-10 shadow-xl">
+                          <span className="text-[10px] font-mono text-zinc-500 uppercase">HDG</span>
+                          <span className="text-xl font-black text-white tabular-nums">
+                              {Math.round(lockedHeading !== null ? lockedHeading : deviceHeading)}°
+                          </span>
+                      </div>
+                  </div>
+
+                  {/* CONTROLS */}
+                  <div className="grid grid-cols-2 gap-3 mb-2">
+                      <button 
+                        onClick={toggleCompass}
+                        className={`flex items-center justify-center gap-2 py-3 rounded-xl border text-[10px] font-bold uppercase tracking-widest transition-all ${
+                            compassActive 
+                            ? 'bg-zinc-800 text-white border-zinc-700' 
+                            : 'bg-[#DFFF00] text-black border-[#DFFF00] hover:bg-white'
+                        }`}
+                      >
+                         <Navigation size={14} className={compassActive ? "animate-pulse" : ""} />
+                         {compassActive ? 'Compass On' : 'Start Compass'}
+                      </button>
+
+                      {lockedHeading === null ? (
+                          <button 
+                            onClick={() => setLockedHeading(deviceHeading)}
+                            disabled={!compassActive}
+                            className="flex items-center justify-center gap-2 py-3 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-600 disabled:opacity-50 text-[10px] font-bold uppercase tracking-widest transition-all"
+                          >
+                             <Lock size={14} /> Lock Pin
+                          </button>
+                      ) : (
+                        <button 
+                            onClick={() => setLockedHeading(null)}
+                            className="flex items-center justify-center gap-2 py-3 rounded-xl bg-red-950/30 border border-red-900/50 text-red-500 hover:bg-red-950/50 text-[10px] font-bold uppercase tracking-widest transition-all"
+                        >
+                            <Unlock size={14} /> Unlock
+                        </button>
+                      )}
+                  </div>
+              </div>
+
+              {/* CALCULATION CARD */}
+              <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl">
+                   <div className="flex gap-4 mb-8">
+                       <div className="flex-1">
+                           <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 block">Distance to Pin</label>
+                           <div className="relative">
+                               <input 
+                                    type="number" 
+                                    value={targetDistance}
+                                    onChange={(e) => setTargetDistance(e.target.value)}
+                                    placeholder="0"
+                                    className="w-full bg-black border border-zinc-800 rounded-xl px-4 py-3 text-2xl font-black text-white focus:border-[#DFFF00] outline-none transition-colors"
+                               />
+                               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-zinc-600">{windUnit === 'IMPERIAL' ? 'YDS' : 'M'}</span>
+                           </div>
+                       </div>
+                       <div className="flex-1 bg-zinc-950 rounded-xl border border-zinc-800 p-3 flex flex-col justify-center">
+                           <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Wind Speed</span>
+                           <div className="flex items-baseline gap-1">
+                                <span className="text-2xl font-black text-cyan-400">
+                                    {weather.loaded ? Math.round(weather.windSpeed * (windUnit === 'IMPERIAL' ? 0.62 : 1)) : '--'}
+                                </span>
+                                <span className="text-[10px] font-bold text-zinc-600">{windUnit === 'IMPERIAL' ? 'MPH' : 'KPH'}</span>
+                           </div>
+                       </div>
+                   </div>
+
+                   <div className="border-t border-zinc-800 pt-6">
+                       <div className="flex items-center justify-between mb-2">
+                           <span className="text-xs font-mono font-bold text-[#DFFF00] uppercase tracking-widest">
+                               {ballistics?.label || 'READY TO CALCULATE'}
+                           </span>
+                           {ballistics && (
+                               <span className="text-[10px] font-mono text-zinc-500 uppercase">
+                                   Effect: {ballistics.effect > 0 ? '+' : ''}{ballistics.effect} {windUnit === 'IMPERIAL' ? 'Yds' : 'm'}
+                               </span>
+                           )}
+                       </div>
+                       
+                       <div className="flex items-baseline justify-between">
+                            <span className="text-sm font-bold text-zinc-400 uppercase">Plays Like</span>
+                            <div className="text-6xl font-black text-white tracking-tighter tabular-nums">
+                                {ballistics?.playsLike || '--'}
+                            </div>
+                       </div>
+                   </div>
+              </div>
+          </div>
       )}
 
       {/* --- VIEW: SYMPTOM SELECTION --- */}
