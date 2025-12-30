@@ -43,10 +43,10 @@ export default function GolfPage() {
                 
                 <div className="flex items-center gap-4 text-xs font-mono text-zinc-400">
                      <div className="px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-full flex items-center gap-2">
-                        <span>WIND: 4 MPH NE</span>
+                        <span>PAR: 72</span>
                      </div>
                      <div className="px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-full flex items-center gap-2">
-                        <span>TEMP: 72°F</span>
+                        <span>HCP: +15</span>
                      </div>
                 </div>
             </div>
