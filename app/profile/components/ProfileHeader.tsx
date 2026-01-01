@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { User, Calendar, Coins, ShieldCheck } from 'lucide-react';
+import Link from 'next/link';
+import { User, Calendar, Coins, ShieldCheck, Home } from 'lucide-react';
 
 interface ProfileHeaderProps {
     profile: any;
@@ -26,9 +27,29 @@ export const ProfileHeader = ({ profile, inventoryCount }: ProfileHeaderProps) =
                     </div>
                     
                     <div className="text-center md:text-left flex flex-col items-center md:items-start">
-                        <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tight mb-2 break-all">
-                            {profile?.username || 'Unknown Operator'}
-                        </h1>
+                        
+                        {/* NAME + HOME BUTTON ROW */}
+                        <div className="flex items-center gap-3 mb-2">
+                            <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tight break-all">
+                                {profile?.username || 'Unknown Operator'}
+                            </h1>
+                            
+                            {/* Residence Shortcut Button */}
+                            <Link 
+                                href="/residence"
+                                className="group/btn relative flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-full bg-zinc-900 border border-zinc-800 hover:border-[#DFFF00] transition-all hover:scale-105"
+                                title="Access Primary Residence"
+                            >
+                                <Home 
+                                    size={16} 
+                                    className="text-zinc-500 group-hover/btn:text-[#DFFF00] transition-colors" 
+                                />
+                                <span className="absolute -top-8 scale-0 group-hover/btn:scale-100 transition-all bg-[#DFFF00] text-black text-[9px] font-black px-2 py-1 rounded uppercase tracking-widest whitespace-nowrap shadow-lg pointer-events-none">
+                                    Go Home
+                                </span>
+                            </Link>
+                        </div>
+
                         <div className="flex flex-wrap justify-center md:justify-start gap-x-4 gap-y-2 text-xs font-mono text-zinc-500">
                             <div className="flex items-center gap-1.5 whitespace-nowrap">
                                 <Calendar size={12} /> 

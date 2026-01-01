@@ -8,8 +8,159 @@ import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { 
   ArrowRight, Trophy, Gamepad2, Package, 
   Activity, CloudHail, Zap, Terminal, ChevronRight,
-  PlayCircle, Layers, TrendingUp, ShieldCheck, Cpu
+  PlayCircle, Layers, TrendingUp, ShieldCheck, Cpu,
+  Info, Navigation, Coins, X
 } from 'lucide-react';
+
+// --- INTRO SEQUENCE COMPONENT ---
+const introSteps = [
+  {
+    id: 'init',
+    title: "SYSTEM INITIALIZED",
+    subtitle: "Welcome to ZINC Engineering",
+    description: "You have accessed a comprehensive digital ecosystem. This platform unifies real-time sports telemetry, a simulated underground economy, and competitive arcade modules into a single interface.",
+    icon: <Cpu size={48} className="text-[#DFFF00]" />,
+    color: "from-zinc-900 to-zinc-800"
+  },
+  {
+    id: 'nav',
+    title: "COMMAND CENTER",
+    subtitle: "Global Navigation",
+    description: "The Header Bar is your primary controller. Access the Weather Station, Arcade, Market Exchange, and Archives from anywhere in the network. Use the 'Zinc' logo to return to this dashboard.",
+    icon: <Navigation size={48} className="text-blue-400" />,
+    color: "from-blue-950/50 to-zinc-900"
+  },
+  {
+    id: 'eco',
+    title: "LIVE ECONOMY",
+    subtitle: "Credits & Assets",
+    description: "Participate in the Black Market. Open packs, trade serialized assets, and gamble in the Arcade. Your portfolio value is tracked in real-time across the entire ecosystem.",
+    icon: <Coins size={48} className="text-amber-400" />,
+    color: "from-amber-950/50 to-zinc-900"
+  },
+  {
+    id: 'start',
+    title: "READY TO LAUNCH",
+    subtitle: "Awaiting Input",
+    description: "System optimal. Data streams active. Explore the modules below or check the System Logs for the latest kernel updates.",
+    icon: <Activity size={48} className="text-emerald-400" />,
+    color: "from-emerald-950/50 to-zinc-900"
+  }
+];
+
+const IntroOverlay = ({ onClose }: { onClose: () => void }) => {
+  const [step, setStep] = useState(0);
+  const currentData = introSteps[step];
+  const isLast = step === introSteps.length - 1;
+
+  const handleNext = () => {
+    if (isLast) {
+      onClose();
+    } else {
+      setStep(prev => prev + 1);
+    }
+  };
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-xl p-4"
+    >
+      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay pointer-events-none" />
+      
+      {/* CARD CONTAINER */}
+      <motion.div 
+        layout
+        className="relative w-full max-w-2xl bg-zinc-950 border border-white/10 rounded-[2rem] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.8)]"
+      >
+        {/* Background Gradient Mesh */}
+        <motion.div 
+          animate={{ rotate: 360, scale: [1, 1.2, 1] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          className={`absolute -top-1/2 -left-1/2 w-[200%] h-[200%] bg-gradient-to-br ${currentData.color} opacity-20 blur-[100px] pointer-events-none`} 
+        />
+
+        {/* PROGRESS BAR */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-zinc-800 flex">
+          {introSteps.map((_, i) => (
+             <div 
+               key={i} 
+               className={`h-full flex-1 transition-all duration-500 ${i <= step ? 'bg-[#DFFF00]' : 'bg-transparent'}`} 
+             />
+          ))}
+        </div>
+
+        {/* CONTENT */}
+        <div className="relative z-10 p-8 md:p-12 flex flex-col items-center text-center">
+           
+           <AnimatePresence mode="wait">
+             <motion.div 
+               key={currentData.id}
+               initial={{ y: 20, opacity: 0, filter: 'blur(10px)' }}
+               animate={{ y: 0, opacity: 1, filter: 'blur(0px)' }}
+               exit={{ y: -20, opacity: 0, filter: 'blur(10px)' }}
+               transition={{ duration: 0.4 }}
+               className="flex flex-col items-center"
+             >
+                <div className="mb-8 p-6 rounded-full bg-white/5 border border-white/10 shadow-[0_0_30px_rgba(255,255,255,0.05)] backdrop-blur-md">
+                   {currentData.icon}
+                </div>
+                
+                <h2 className="text-xs font-mono font-bold text-[#DFFF00] uppercase tracking-[0.3em] mb-4">
+                  Sequence {step + 1} / {introSteps.length}
+                </h2>
+                
+                <h1 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tighter mb-2">
+                  {currentData.title}
+                </h1>
+                
+                <h3 className="text-xl text-zinc-400 font-medium mb-8">
+                  {currentData.subtitle}
+                </h3>
+                
+                <p className="text-zinc-400 text-sm md:text-base leading-relaxed max-w-lg mb-10 font-mono">
+                  {currentData.description}
+                </p>
+             </motion.div>
+           </AnimatePresence>
+
+           {/* CONTROLS */}
+           <div className="flex items-center gap-4 w-full justify-center">
+              {step > 0 && (
+                <button 
+                  onClick={() => setStep(prev => prev - 1)}
+                  className="px-6 py-3 rounded-xl border border-white/10 text-zinc-500 hover:text-white hover:bg-white/5 transition-colors text-xs font-bold uppercase tracking-widest"
+                >
+                  Back
+                </button>
+              )}
+              
+              <button 
+                onClick={handleNext}
+                className="group relative px-10 py-3 bg-[#DFFF00] hover:bg-white text-black rounded-xl overflow-hidden transition-all shadow-[0_0_20px_rgba(223,255,0,0.2)] hover:shadow-[0_0_30px_rgba(223,255,0,0.4)]"
+              >
+                 <span className="relative z-10 flex items-center gap-2 text-xs font-black uppercase tracking-widest">
+                    {isLast ? "Enter System" : "Next Step"} <ArrowRight size={14} />
+                 </span>
+              </button>
+           </div>
+        </div>
+
+        {/* CLOSE BUTTON */}
+        <button 
+          onClick={onClose}
+          className="absolute top-6 right-6 p-2 text-zinc-600 hover:text-white transition-colors"
+        >
+          <X size={20} />
+        </button>
+
+      </motion.div>
+    </motion.div>
+  );
+};
+
 
 // --- ANIMATION VARIANTS ---
 const containerVar: Variants = {
@@ -39,13 +190,29 @@ export default function Home() {
   const [wordIndex, setWordIndex] = useState(0);
   const words = ["Engineering", "Ecosystem", "Economy", "Everyone", "Everything"];
 
+  // --- INTRO STATE LOGIC ---
+  const [showIntro, setShowIntro] = useState(false);
+
   useEffect(() => {
+    // Check if user has seen the intro before
+    const hasSeen = localStorage.getItem('zinc_intro_v2_6');
+    if (!hasSeen) {
+      // Small delay to let the page load a bit before showing modal
+      const timer = setTimeout(() => setShowIntro(true), 1000);
+      return () => clearTimeout(timer);
+    }
+
     const interval = setInterval(() => {
       setWordIndex((prev) => (prev + 1) % words.length);
     }, 3000); 
 
     return () => clearInterval(interval);
   }, []);
+
+  const handleCloseIntro = () => {
+    setShowIntro(false);
+    localStorage.setItem('zinc_intro_v2_6', 'true');
+  };
 
   const scrollToModules = () => {
     const modulesSection = document.getElementById('modules-grid');
@@ -64,6 +231,10 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-zinc-950 text-white selection:bg-[#DFFF00] selection:text-black pb-20 relative overflow-x-hidden">
       
+      <AnimatePresence>
+        {showIntro && <IntroOverlay onClose={handleCloseIntro} />}
+      </AnimatePresence>
+
       {/* --- CINEMATIC BACKGROUND --- */}
       <div className="fixed inset-0 z-0">
           <div className="absolute inset-0 bg-zinc-950/80 z-10" />
@@ -83,22 +254,27 @@ export default function Home() {
         
         <div className="relative z-20 w-full max-w-[1600px] mx-auto px-6 flex flex-col items-center lg:items-start text-center lg:text-left">
           
-          {/* FLOATING STATUS PILL */}
+          {/* FLOATING STATUS PILL / INTRO TRIGGER */}
           <motion.div 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1 }}
             className="mb-10"
           >
-             <div className="inline-flex items-center gap-3 px-4 py-1.5 bg-zinc-900/60 border border-white/10 backdrop-blur-xl rounded-full shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+             <button 
+                onClick={() => setShowIntro(true)}
+                className="group inline-flex items-center gap-3 px-4 py-1.5 bg-zinc-900/60 border border-white/10 hover:border-[#DFFF00]/50 hover:bg-zinc-900 backdrop-blur-xl rounded-full shadow-[0_0_20px_rgba(0,0,0,0.5)] transition-all cursor-pointer"
+             >
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#DFFF00] opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-[#DFFF00]"></span>
                 </span>
-                <span className="text-[10px] font-mono font-bold text-zinc-300 tracking-[0.2em] uppercase">
+                <span className="text-[10px] font-mono font-bold text-zinc-300 group-hover:text-white tracking-[0.2em] uppercase transition-colors">
                   System Online v2.6
                 </span>
-             </div>
+                <div className="w-px h-3 bg-white/10" />
+                <Info size={12} className="text-zinc-500 group-hover:text-[#DFFF00] transition-colors" />
+             </button>
           </motion.div>
 
           {/* MASSIVE BRANDING */}

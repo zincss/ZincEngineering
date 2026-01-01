@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
-import { Package, Gavel, ArrowLeftRight, Wallet, Activity, TrendingUp } from 'lucide-react';
+import { Package, Gavel, ArrowLeftRight, Wallet, Activity, TrendingUp, CarFront } from 'lucide-react';
 import { AssetPreloader, animationStyles } from './components/shared';
 
 // IMPORTS: Ensure these files are located in app/market/components/
@@ -10,20 +10,18 @@ import { PackOpeningView } from './components/PackOpeningView';
 import { AuctionHouseView } from './components/AuctionHouseView';
 import { TradingLobbyView } from './components/TradingLobbyView';
 import { StockMarketView } from './components/StockMarketView';
+import { CarDealershipView } from './components/CarDealershipView';
 
 export default function MarketHubPage() {
   const { user, profile, loading: authLoading, refreshProfile } = useAuth();
-  const [activeTab, setActiveTab] = useState<'EXCHANGE' | 'PACKS' | 'AUCTION' | 'TRADING'>('EXCHANGE');
+  const [activeTab, setActiveTab] = useState<'EXCHANGE' | 'PACKS' | 'AUCTION' | 'TRADING' | 'DEALERSHIP'>('EXCHANGE');
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white selection:bg-[#DFFF00] selection:text-black flex flex-col relative overflow-hidden">
       <AssetPreloader />
       <style dangerouslySetInnerHTML={{ __html: animationStyles }} />
       
-      {/* Navigation Helper */}
-
       {/* HEADER SECTION - Optimized for Mobile */}
-      {/* FIX: Reduced top padding from pt-24 to pt-20 on mobile */}
       <div className="pt-20 pb-4 px-4 md:pt-32 md:pb-8 md:px-6 max-w-[1800px] mx-auto border-b border-zinc-800 w-full">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-6 md:mb-8">
             <div>
@@ -31,12 +29,12 @@ export default function MarketHubPage() {
                     <Activity size={16} />
                     <span>ZINC_ECONOMY_PROTOCOL // {activeTab}</span>
                 </div>
-                {/* FIX: Adjusted responsive font sizes for title */}
                 <h1 className="text-3xl sm:text-4xl md:text-7xl font-black uppercase tracking-tighter">
                     {activeTab === 'EXCHANGE' && <>Zinc <span className="text-zinc-700">Exchange</span></>}
                     {activeTab === 'PACKS' && <>Black <span className="text-zinc-700">Market</span></>}
                     {activeTab === 'AUCTION' && <>Auction <span className="text-zinc-700">House</span></>}
                     {activeTab === 'TRADING' && <>P2P <span className="text-zinc-700">Network</span></>}
+                    {activeTab === 'DEALERSHIP' && <>Prestige <span className="text-zinc-700">Imports</span></>}
                 </h1>
             </div>
 
@@ -63,6 +61,12 @@ export default function MarketHubPage() {
                 icon={<Package size={14} />} 
                 label="Acquisitions" 
             />
+             <TabButton 
+                active={activeTab === 'DEALERSHIP'} 
+                onClick={() => setActiveTab('DEALERSHIP')} 
+                icon={<CarFront size={14} />} 
+                label="Dealership" 
+            />
             <TabButton 
                 active={activeTab === 'AUCTION'} 
                 onClick={() => setActiveTab('AUCTION')} 
@@ -82,6 +86,7 @@ export default function MarketHubPage() {
       <div className="flex-1 w-full relative z-20 bg-zinc-950/50">
           {activeTab === 'EXCHANGE' && <StockMarketView user={user} profile={profile} refreshProfile={refreshProfile} />}
           {activeTab === 'PACKS' && <PackOpeningView user={user} profile={profile} authLoading={authLoading} refreshProfile={refreshProfile} />}
+          {activeTab === 'DEALERSHIP' && <CarDealershipView user={user} profile={profile} refreshProfile={refreshProfile} />}
           {activeTab === 'AUCTION' && <AuctionHouseView user={user} profile={profile} refreshProfile={refreshProfile} />}
           {activeTab === 'TRADING' && <TradingLobbyView user={user} />}
       </div>
