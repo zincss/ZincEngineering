@@ -7,18 +7,21 @@ import { useAuth } from '@/app/context/AuthContext';
 import { 
   Trophy, CloudHail, Circle, Menu, X, FolderOpen, Coins,
   LogIn, LogOut, Shield, Gamepad2, Package, Activity,
-  ChevronDown, ChevronRight
+  ChevronDown, ChevronRight, Orbit
 } from 'lucide-react';
 import Link from 'next/link';
 
 // --- NAVIGATION CONFIGURATION ---
 const NAV_CONFIG = [
   {
-    id: 'weather',
-    label: 'WEATHER',
-    href: '/collections/weather',
-    icon: <CloudHail size={14} />,
-    subItems: []
+    id: 'astro',
+    label: 'ASTRO',
+    href: '/collections/weather', // Default landing for the category
+    icon: <Orbit size={14} />,
+    subItems: [
+        { label: 'Weather Station', href: '/collections/weather' },
+        { label: 'Planetarium', href: '/collections/planetarium' },
+    ]
   },
   {
     id: 'play',
@@ -78,10 +81,10 @@ export default function Header() {
   // Logic to determine active state based on complex paths
   const getActiveState = (id: string) => {
       switch(id) {
-          case 'weather': return pathname?.startsWith('/collections/weather');
+          case 'astro': return pathname?.startsWith('/collections/weather') || pathname?.startsWith('/collections/planetarium');
           case 'play': return pathname?.startsWith('/play') && !pathname?.startsWith('/play/poker');
           case 'market': return pathname?.startsWith('/market');
-          case 'archive': return (pathname?.startsWith('/collections') && !pathname?.startsWith('/collections/weather')) || pathname?.startsWith('/gaming') || pathname?.startsWith('/automotive');
+          case 'archive': return (pathname?.startsWith('/collections') && !pathname?.startsWith('/collections/weather') && !pathname?.startsWith('/collections/planetarium')) || pathname?.startsWith('/gaming') || pathname?.startsWith('/automotive');
           case 'sports': return pathname?.startsWith('/sports');
           default: return false;
       }
