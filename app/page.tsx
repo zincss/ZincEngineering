@@ -1,50 +1,90 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, MouseEvent } from 'react';
 import GlobalTicker from './components/GlobalTicker';
 import PersonalLogs from './components/PersonalLogs';
 import Link from 'next/link';
-import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { 
-  ArrowRight, Trophy, Gamepad2, Package, 
-  Activity, CloudHail, Zap, Terminal, ChevronRight,
-  PlayCircle, Layers, TrendingUp, ShieldCheck, Cpu,
-  Info, Navigation, Coins, X
+  motion, AnimatePresence, useScroll, useTransform, 
+  useMotionTemplate, useMotionValue 
+} from 'framer-motion';
+import { 
+  ArrowRight, Trophy, Gamepad2, 
+  Activity, CloudHail, Terminal,
+  Layers, TrendingUp, ShieldCheck, Cpu,
+  Info, Navigation, Coins, X, MoveRight
 } from 'lucide-react';
 
-// --- INTRO SEQUENCE COMPONENT ---
+// --- UTILITY: MOUSE-FOLLOW SPOTLIGHT ---
+function SpotlightCard({ 
+  children, 
+  className = "", 
+  spotlightColor = "rgba(223, 255, 0, 0.15)" 
+}: { 
+  children: React.ReactNode; 
+  className?: string;
+  spotlightColor?: string;
+}) {
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  function handleMouseMove({ currentTarget, clientX, clientY }: MouseEvent) {
+    const { left, top } = currentTarget.getBoundingClientRect();
+    mouseX.set(clientX - left);
+    mouseY.set(clientY - top);
+  }
+
+  return (
+    <div 
+      className={`group relative border border-white/10 bg-zinc-900/40 overflow-hidden ${className}`}
+      onMouseMove={handleMouseMove}
+    >
+      <motion.div
+        className="pointer-events-none absolute -inset-px opacity-0 transition duration-300 group-hover:opacity-100 z-10"
+        style={{
+          background: useMotionTemplate`
+            radial-gradient(
+              600px circle at ${mouseX}px ${mouseY}px,
+              ${spotlightColor},
+              transparent 80%
+            )
+          `,
+        }}
+      />
+      <div className="relative h-full z-20">{children}</div>
+    </div>
+  );
+}
+
+// --- COMPONENT: INTRO OVERLAY ---
 const introSteps = [
   {
     id: 'init',
     title: "SYSTEM INITIALIZED",
     subtitle: "Welcome to ZINC Engineering",
-    description: "You have accessed a comprehensive digital ecosystem. This platform unifies real-time sports telemetry, a simulated underground economy, and competitive arcade modules into a single interface.",
+    description: "You have accessed a comprehensive digital ecosystem. This platform unifies real-time sports telemetry, a simulated underground economy, and competitive arcade modules.",
     icon: <Cpu size={48} className="text-[#DFFF00]" />,
-    color: "from-zinc-900 to-zinc-800"
   },
   {
     id: 'nav',
     title: "COMMAND CENTER",
     subtitle: "Global Navigation",
-    description: "The Header Bar is your primary controller. Access the Weather Station, Arcade, Market Exchange, and Archives from anywhere in the network. Use the 'Zinc' logo to return to this dashboard.",
+    description: "The Header Bar is your primary controller. Access the Weather Station, Arcade, Market Exchange, and Archives from anywhere in the network.",
     icon: <Navigation size={48} className="text-blue-400" />,
-    color: "from-blue-950/50 to-zinc-900"
   },
   {
     id: 'eco',
     title: "LIVE ECONOMY",
     subtitle: "Credits & Assets",
-    description: "Participate in the Black Market. Open packs, trade serialized assets, and gamble in the Arcade. Your portfolio value is tracked in real-time across the entire ecosystem.",
+    description: "Participate in the Black Market. Open packs, trade serialized assets, and gamble in the Arcade. Your portfolio value is tracked in real-time.",
     icon: <Coins size={48} className="text-amber-400" />,
-    color: "from-amber-950/50 to-zinc-900"
   },
   {
     id: 'start',
     title: "READY TO LAUNCH",
     subtitle: "Awaiting Input",
-    description: "System optimal. Data streams active. Explore the modules below or check the System Logs for the latest kernel updates.",
+    description: "System optimal. Data streams active. Explore the modules below or check the System Logs for updates.",
     icon: <Activity size={48} className="text-emerald-400" />,
-    color: "from-emerald-950/50 to-zinc-900"
   }
 ];
 
@@ -53,180 +93,101 @@ const IntroOverlay = ({ onClose }: { onClose: () => void }) => {
   const currentData = introSteps[step];
   const isLast = step === introSteps.length - 1;
 
-  const handleNext = () => {
-    if (isLast) {
-      onClose();
-    } else {
-      setStep(prev => prev + 1);
-    }
-  };
-
   return (
     <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-xl p-4"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-2xl p-4"
     >
       <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay pointer-events-none" />
       
-      {/* CARD CONTAINER */}
       <motion.div 
         layout
-        className="relative w-full max-w-2xl bg-zinc-950 border border-white/10 rounded-[2rem] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.8)]"
+        className="relative w-full max-w-2xl bg-zinc-950 border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl"
       >
-        {/* Background Gradient Mesh */}
-        <motion.div 
-          animate={{ rotate: 360, scale: [1, 1.2, 1] }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className={`absolute -top-1/2 -left-1/2 w-[200%] h-[200%] bg-gradient-to-br ${currentData.color} opacity-20 blur-[100px] pointer-events-none`} 
-        />
-
-        {/* PROGRESS BAR */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-zinc-800 flex">
           {introSteps.map((_, i) => (
-             <div 
-               key={i} 
-               className={`h-full flex-1 transition-all duration-500 ${i <= step ? 'bg-[#DFFF00]' : 'bg-transparent'}`} 
-             />
+             <div key={i} className={`h-full flex-1 transition-all duration-500 ${i <= step ? 'bg-[#DFFF00]' : 'bg-transparent'}`} />
           ))}
         </div>
 
-        {/* CONTENT */}
-        <div className="relative z-10 p-8 md:p-12 flex flex-col items-center text-center">
-           
+        <div className="p-12 flex flex-col items-center text-center">
            <AnimatePresence mode="wait">
              <motion.div 
                key={currentData.id}
                initial={{ y: 20, opacity: 0, filter: 'blur(10px)' }}
                animate={{ y: 0, opacity: 1, filter: 'blur(0px)' }}
                exit={{ y: -20, opacity: 0, filter: 'blur(10px)' }}
-               transition={{ duration: 0.4 }}
                className="flex flex-col items-center"
              >
-                <div className="mb-8 p-6 rounded-full bg-white/5 border border-white/10 shadow-[0_0_30px_rgba(255,255,255,0.05)] backdrop-blur-md">
+                <div className="mb-6 p-6 rounded-3xl bg-white/5 border border-white/10 shadow-lg backdrop-blur-md">
                    {currentData.icon}
                 </div>
-                
-                <h2 className="text-xs font-mono font-bold text-[#DFFF00] uppercase tracking-[0.3em] mb-4">
-                  Sequence {step + 1} / {introSteps.length}
-                </h2>
-                
-                <h1 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tighter mb-2">
+                <h1 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tighter mb-2">
                   {currentData.title}
                 </h1>
-                
-                <h3 className="text-xl text-zinc-400 font-medium mb-8">
-                  {currentData.subtitle}
-                </h3>
-                
-                <p className="text-zinc-400 text-sm md:text-base leading-relaxed max-w-lg mb-10 font-mono">
+                <p className="text-zinc-400 font-mono text-sm leading-relaxed max-w-md mb-8">
                   {currentData.description}
                 </p>
              </motion.div>
            </AnimatePresence>
 
-           {/* CONTROLS */}
            <div className="flex items-center gap-4 w-full justify-center">
               {step > 0 && (
-                <button 
-                  onClick={() => setStep(prev => prev - 1)}
-                  className="px-6 py-3 rounded-xl border border-white/10 text-zinc-500 hover:text-white hover:bg-white/5 transition-colors text-xs font-bold uppercase tracking-widest"
-                >
+                <button onClick={() => setStep(prev => prev - 1)} className="px-6 py-3 rounded-xl border border-white/10 text-zinc-500 hover:text-white hover:bg-white/5 transition-colors text-xs font-bold uppercase tracking-widest">
                   Back
                 </button>
               )}
-              
               <button 
-                onClick={handleNext}
-                className="group relative px-10 py-3 bg-[#DFFF00] hover:bg-white text-black rounded-xl overflow-hidden transition-all shadow-[0_0_20px_rgba(223,255,0,0.2)] hover:shadow-[0_0_30px_rgba(223,255,0,0.4)]"
+                onClick={() => isLast ? onClose() : setStep(prev => prev + 1)}
+                className="px-10 py-3 bg-[#DFFF00] hover:bg-white text-black rounded-xl transition-all font-black text-xs uppercase tracking-widest flex items-center gap-2"
               >
-                 <span className="relative z-10 flex items-center gap-2 text-xs font-black uppercase tracking-widest">
-                    {isLast ? "Enter System" : "Next Step"} <ArrowRight size={14} />
-                 </span>
+                 {isLast ? "Enter System" : "Next Step"} <ArrowRight size={14} />
               </button>
            </div>
         </div>
-
-        {/* CLOSE BUTTON */}
-        <button 
-          onClick={onClose}
-          className="absolute top-6 right-6 p-2 text-zinc-600 hover:text-white transition-colors"
-        >
+        
+        <button onClick={onClose} className="absolute top-6 right-6 p-2 text-zinc-600 hover:text-white transition-colors">
           <X size={20} />
         </button>
-
       </motion.div>
     </motion.div>
   );
 };
 
-
-// --- ANIMATION VARIANTS ---
-const containerVar: Variants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.3
-    }
-  }
-};
-
-const itemVar: Variants = {
-  hidden: { y: 20, opacity: 0 },
-  show: { 
-    y: 0, 
-    opacity: 1, 
-    transition: { 
-      type: "spring", 
-      stiffness: 50 
-    } 
-  }
-};
-
+// --- MAIN PAGE COMPONENT ---
 export default function Home() {
   const [wordIndex, setWordIndex] = useState(0);
-  const words = ["Engineering", "Ecosystem", "Economy", "Everyone", "Everything"];
-
-  // --- INTRO STATE LOGIC ---
+  const words = ["Engineering", "Economy", "Entertainment", "Everything"];
   const [showIntro, setShowIntro] = useState(false);
 
+  // Parallax Logic
+  const { scrollY } = useScroll();
+  const heroY = useTransform(scrollY, [0, 500], [0, 200]);
+  const heroOpacity = useTransform(scrollY, [0, 400], [1, 0]);
+  const videoY = useTransform(scrollY, [0, 1000], [0, -150]);
+
   useEffect(() => {
-    // Check if user has seen the intro before
-    const hasSeen = localStorage.getItem('zinc_intro_v2_6');
+    // Check LocalStorage
+    const hasSeen = localStorage.getItem('zinc_intro_v3_0'); 
     if (!hasSeen) {
-      // Small delay to let the page load a bit before showing modal
       const timer = setTimeout(() => setShowIntro(true), 1000);
       return () => clearTimeout(timer);
     }
-
+    
+    // Word Cycler
     const interval = setInterval(() => {
       setWordIndex((prev) => (prev + 1) % words.length);
     }, 3000); 
-
     return () => clearInterval(interval);
   }, []);
 
   const handleCloseIntro = () => {
     setShowIntro(false);
-    localStorage.setItem('zinc_intro_v2_6', 'true');
+    localStorage.setItem('zinc_intro_v3_0', 'true');
   };
 
-  const scrollToModules = () => {
-    const modulesSection = document.getElementById('modules-grid');
-    if (modulesSection) {
-      modulesSection.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
-  const scrollToLogs = () => {
-    const logsSection = document.getElementById('system-logs');
-    if (logsSection) {
-      logsSection.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
+  const scrollToModules = () => document.getElementById('modules-grid')?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToLogs = () => document.getElementById('system-logs')?.scrollIntoView({ behavior: 'smooth' });
 
   return (
     <main className="min-h-screen bg-zinc-950 text-white selection:bg-[#DFFF00] selection:text-black pb-20 relative overflow-x-hidden">
@@ -236,359 +197,351 @@ export default function Home() {
       </AnimatePresence>
 
       {/* --- CINEMATIC BACKGROUND --- */}
-      <div className="fixed inset-0 z-0">
-          <div className="absolute inset-0 bg-zinc-950/80 z-10" />
-          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 z-10 mix-blend-overlay pointer-events-none" />
+      <div className="fixed inset-0 z-0 pointer-events-none">
+          <div className="absolute inset-0 bg-zinc-950/80 z-20" />
+          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-15 z-20 mix-blend-overlay" />
           
-          <video 
-            autoPlay loop muted playsInline
-            poster="https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=2670&auto=format&fit=crop"
-            className="absolute inset-0 w-full h-full object-cover opacity-50 grayscale mix-blend-overlay"
-          >
-            <source src="/rocket.mp4" type="video/mp4" />
-          </video>
+          <motion.div style={{ y: videoY }} className="absolute inset-0 z-10 h-[120%]">
+            <video 
+              autoPlay loop muted playsInline
+              poster="https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=2670&auto=format&fit=crop"
+              className="w-full h-full object-cover opacity-50 grayscale mix-blend-overlay"
+            >
+              <source src="/rocket.mp4" type="video/mp4" />
+            </video>
+          </motion.div>
       </div>
 
       {/* --- HERO SECTION --- */}
-      <section className="relative min-h-[92vh] flex flex-col items-center justify-center overflow-hidden py-20">
-        
-        <div className="relative z-20 w-full max-w-[1600px] mx-auto px-6 flex flex-col items-center lg:items-start text-center lg:text-left">
+      <motion.section 
+        style={{ opacity: heroOpacity, y: heroY }}
+        className="relative z-10 min-h-[92vh] flex flex-col items-center justify-center py-20 px-6"
+      >
+        {/* Subtle Gradient Glow Behind Hero */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/5 blur-[120px] rounded-full pointer-events-none" />
+
+        <div className="relative w-full max-w-[1400px] mx-auto flex flex-col items-center lg:items-center text-center">
           
-          {/* FLOATING STATUS PILL / INTRO TRIGGER */}
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1 }}
-            className="mb-10"
+          {/* Status Chip */}
+          <motion.button 
+            initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1 }}
+            onClick={() => setShowIntro(true)}
+            className="mb-12 group inline-flex items-center gap-3 px-5 py-2 bg-zinc-900/60 border border-white/10 hover:border-[#DFFF00]/50 hover:bg-zinc-900/90 backdrop-blur-2xl rounded-full transition-all cursor-pointer shadow-[0_0_30px_rgba(0,0,0,0.3)]"
           >
-             <button 
-                onClick={() => setShowIntro(true)}
-                className="group inline-flex items-center gap-3 px-4 py-1.5 bg-zinc-900/60 border border-white/10 hover:border-[#DFFF00]/50 hover:bg-zinc-900 backdrop-blur-xl rounded-full shadow-[0_0_20px_rgba(0,0,0,0.5)] transition-all cursor-pointer"
-             >
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#DFFF00] opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[#DFFF00]"></span>
-                </span>
-                <span className="text-[10px] font-mono font-bold text-zinc-300 group-hover:text-white tracking-[0.2em] uppercase transition-colors">
-                  System Online v2.6
-                </span>
-                <div className="w-px h-3 bg-white/10" />
-                <Info size={12} className="text-zinc-500 group-hover:text-[#DFFF00] transition-colors" />
-             </button>
-          </motion.div>
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#DFFF00] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#DFFF00]"></span>
+            </span>
+            <span className="text-[10px] font-mono font-bold text-zinc-300 group-hover:text-white tracking-[0.25em] uppercase transition-colors">
+              System Online v3.0
+            </span>
+            <div className="w-px h-3 bg-white/10 mx-1" />
+            <Info size={12} className="text-zinc-500 group-hover:text-[#DFFF00] transition-colors" />
+          </motion.button>
 
-          {/* MASSIVE BRANDING */}
-          <div className="flex flex-col lg:flex-row items-center gap-8 md:gap-12 select-none max-w-full">
+          {/* Typography & Branding */}
+          <div className="flex flex-col items-center gap-8 select-none w-full max-w-5xl">
              
-             {/* LOGO */}
-             <motion.div 
-               initial={{ scale: 0.8, opacity: 0 }}
-               animate={{ scale: 1, opacity: 1 }}
-               transition={{ duration: 1.2, ease: "circOut" }}
-               className="relative group"
-             >
-                <div className="absolute -inset-10 bg-[#DFFF00] rounded-full blur-[60px] opacity-10 group-hover:opacity-30 transition-opacity duration-700" />
-                <div className="relative bg-[#DFFF00] w-32 h-32 md:w-52 md:h-52 flex items-center justify-center rounded-[2.5rem] shadow-[0_0_40px_rgba(223,255,0,0.15)] shrink-0 overflow-hidden transform transition-transform duration-500 group-hover:scale-105">
-                    <span className="font-black text-[90px] md:text-[160px] text-black leading-none z-10">Z</span>
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-black/5 opacity-50 pointer-events-none" />
-                </div>
-             </motion.div>
+             {/* Logo + Title Lockup */}
+             <div className="flex flex-col md:flex-row items-center gap-6 md:gap-12">
+                 
+                 {/* Emblem (Static, no rotation) */}
+                 <motion.div 
+                   initial={{ scale: 0.8, opacity: 0 }} 
+                   animate={{ scale: 1, opacity: 1 }} 
+                   transition={{ duration: 1.2, ease: "circOut" }}
+                   className="relative group"
+                 >
+                    <div className="absolute -inset-8 bg-[#DFFF00] rounded-[2.5rem] blur-[60px] opacity-10 group-hover:opacity-20 transition-opacity duration-700" />
+                    <div className="relative bg-[#DFFF00] w-24 h-24 md:w-32 md:h-32 flex items-center justify-center rounded-[1.5rem] shadow-2xl shrink-0 overflow-hidden hover:scale-105 transition-transform duration-500">
+                        <span className="font-black text-[70px] md:text-[90px] text-black leading-none z-10">Z</span>
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-black/5 opacity-50" />
+                    </div>
+                 </motion.div>
 
-             {/* TEXT STACK */}
-             <div className="flex flex-col items-center lg:items-start justify-center">
-                <motion.h1 
-                  initial={{ x: -20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ duration: 1, delay: 0.2 }}
-                  className="font-black text-7xl md:text-9xl lg:text-[11rem] leading-[0.8] text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-400 tracking-tighter drop-shadow-2xl"
-                >
-                   ZINC
-                </motion.h1>
-                
-                <div className="h-8 md:h-12 overflow-hidden relative w-full flex justify-center lg:justify-start mt-6">
-                  <AnimatePresence mode="wait">
-                    <motion.div 
-                      key={words[wordIndex]}
-                      initial={{ y: 30, opacity: 0, filter: 'blur(5px)' }}
-                      animate={{ y: 0, opacity: 1, filter: 'blur(0px)' }}
-                      exit={{ y: -30, opacity: 0, filter: 'blur(5px)' }}
-                      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                      className="flex items-center gap-3"
+                 {/* Main Text */}
+                 <div className="flex flex-col items-center md:items-start">
+                    <motion.h1 
+                      initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 1, delay: 0.2 }}
+                      className="text-5xl md:text-7xl lg:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-200 to-zinc-500 tracking-tighter drop-shadow-sm leading-[0.9] text-center md:text-left"
                     >
-                      <div className="w-8 h-[2px] bg-[#DFFF00]" />
-                      <span className="font-mono text-lg md:text-2xl text-zinc-400 tracking-[0.3em] uppercase">
-                        {words[wordIndex]}
-                      </span>
-                    </motion.div>
-                  </AnimatePresence>
-                </div>
+                       ZINC<br/><span className="text-zinc-500">ECOSYSTEMS</span>
+                    </motion.h1>
+                 </div>
+             </div>
+             
+             {/* Divider Line */}
+             <motion.div 
+               initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ delay: 0.5, duration: 1 }}
+               className="h-px w-full max-w-md bg-gradient-to-r from-transparent via-zinc-700 to-transparent my-4" 
+             />
+
+             {/* Rotating Subtext */}
+             <div className="h-6 overflow-hidden relative w-full flex justify-center">
+                <AnimatePresence mode="wait">
+                  <motion.div 
+                    key={words[wordIndex]}
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: -20, opacity: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="flex items-center gap-3"
+                  >
+                    <span className="text-[#DFFF00] font-bold text-xs">///</span>
+                    <span className="font-mono text-sm md:text-base text-zinc-400 tracking-[0.4em] uppercase">
+                      {words[wordIndex]}
+                    </span>
+                    <span className="text-[#DFFF00] font-bold text-xs">///</span>
+                  </motion.div>
+                </AnimatePresence>
              </div>
           </div>
 
-          {/* ACTION BUTTONS */}
+          {/* Action Buttons */}
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 0.8 }}
-            className="mt-16 flex flex-col sm:flex-row items-center gap-6 w-full lg:w-auto"
+            initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8, duration: 0.8 }}
+            className="mt-16 flex flex-col sm:flex-row items-center gap-5 w-full justify-center"
           >
-             
             <button 
               onClick={scrollToModules}
-              className="group relative px-10 py-4 bg-[#DFFF00] text-black font-black text-xs tracking-[0.2em] uppercase rounded-full overflow-hidden transition-transform hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(223,255,0,0.3)] hover:shadow-[0_0_50px_rgba(223,255,0,0.5)]"
+              className="group relative px-10 py-4 bg-[#DFFF00] text-black font-black text-xs tracking-[0.2em] uppercase rounded-full overflow-hidden transition-all hover:scale-[1.02] active:scale-95 shadow-[0_0_40px_rgba(223,255,0,0.15)] hover:shadow-[0_0_60px_rgba(223,255,0,0.3)]"
             >
               <span className="relative z-10 flex items-center gap-3">
                 Initialize System <ArrowRight size={14} />
               </span>
-              <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-50 transition-opacity duration-300" />
+              <div className="absolute inset-0 bg-white/40 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
             </button>
 
-            <div className="flex items-center gap-3">
-                <QuickLink href="/collections/weather" icon={<CloudHail size={14} />} label="Weather" />
-                <button 
-                  onClick={scrollToLogs}
-                  className="flex items-center gap-2 px-5 py-3 rounded-full bg-zinc-900/40 border border-white/10 hover:border-[#DFFF00]/50 hover:bg-zinc-900 transition-all group backdrop-blur-md"
-                >
-                  <span className="text-zinc-500 group-hover:text-[#DFFF00] transition-colors"><Terminal size={14} /></span>
-                  <span className="text-xs font-mono font-bold text-zinc-400 group-hover:text-white uppercase tracking-widest">System Logs</span>
-                </button>
-            </div>
-
+            <button 
+              onClick={scrollToLogs}
+              className="group flex items-center gap-3 px-8 py-4 rounded-full bg-zinc-900/40 border border-white/10 hover:bg-zinc-900 hover:border-white/20 transition-all backdrop-blur-md"
+            >
+              <Terminal size={14} className="text-zinc-500 group-hover:text-[#DFFF00] transition-colors"/>
+              <span className="text-xs font-mono font-bold text-zinc-400 group-hover:text-white uppercase tracking-widest">System Logs</span>
+            </button>
           </motion.div>
-        </div>
-      </section>
 
-      {/* TICKER */}
+        </div>
+      </motion.section>
+
+      {/* --- TICKER --- */}
       <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.5, duration: 1 }}
-        className="sticky top-0 z-40 bg-zinc-950/70 backdrop-blur-xl border-y border-white/5 shadow-2xl"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.5, duration: 1 }}
+        className="sticky top-0 z-40 bg-zinc-950/80 backdrop-blur-xl border-y border-white/5 shadow-2xl"
       >
         <GlobalTicker />
       </motion.div>
 
-      {/* --- MODULES GRID --- */}
-      <section id="modules-grid" className="relative z-10 max-w-[1600px] mx-auto px-4 md:px-6 py-24">
+      {/* --- GRID SYSTEM --- */}
+      <section id="modules-grid" className="relative z-20 max-w-[1600px] mx-auto px-4 md:px-6 py-32">
         
-        <SectionHeader title="Mainframe" icon={<Activity size={16} />} />
+        <SectionHeader title="Active Modules" icon={<Activity size={16} />} />
 
-        {/* BENTO GRID */}
-        <motion.div 
-          variants={containerVar}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: "-100px" }}
-          className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-24"
-        >
+        <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-[280px] gap-6">
           
-          {/* 1. SPORTS */}
-          <motion.div variants={itemVar} className="md:col-span-4 md:row-span-2">
-            <div className="group relative flex flex-col h-full min-h-[500px] rounded-[2.5rem] bg-zinc-900/40 border border-white/5 hover:border-blue-500/50 transition-all duration-500 overflow-hidden hover:shadow-[0_0_40px_rgba(59,130,246,0.15)]">
-               
-               {/* Background links to Main Sports Page */}
-               <Link href="/sports" className="absolute inset-0 z-0">
-                   {/* CHANGED: Video Background */}
-                   <video 
-                     autoPlay loop muted playsInline 
-                     className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:opacity-10 transition-all duration-700 group-hover:scale-110 grayscale"
-                   >
+          {/* 1. SPORTS (Large) */}
+          <SpotlightCard className="md:col-span-8 md:row-span-2 rounded-[2.5rem]">
+            <Link href="/sports" className="relative flex flex-col h-full w-full p-10 group z-30">
+               {/* Video BG */}
+               <div className="absolute inset-0 z-0">
+                   <video autoPlay loop muted playsInline className="w-full h-full object-cover opacity-20 grayscale transition-all duration-700 group-hover:scale-105 group-hover:opacity-30">
                      <source src="/sports-page.mp4" type="video/mp4" />
                    </video>
-                   <div className="absolute inset-0 bg-zinc-950/60" />
-               </Link>
+                   <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent" />
+               </div>
 
-               <div className="relative p-10 flex-1 flex flex-col z-10 pointer-events-none">
-                  <div className="flex justify-between items-start mb-auto">
-                     <div className="p-3 bg-zinc-950/50 backdrop-blur-md rounded-2xl border border-white/10 text-blue-400 group-hover:scale-110 transition-transform">
+               <div className="relative z-10 h-full flex flex-col justify-between">
+                  <div className="flex justify-between items-start">
+                     <div className="p-4 bg-zinc-950/50 backdrop-blur-md rounded-2xl border border-white/10 text-blue-400 group-hover:scale-110 transition-transform">
                         <Trophy size={28} />
                      </div>
-                     <Activity size={20} className="text-blue-500 animate-pulse" />
-                  </div>
-
-                  <h2 className="text-4xl font-black uppercase text-white mb-6 tracking-tighter">Sports<br/>Telemetry</h2>
-                  
-                  {/* Buttons Container */}
-                  <div className="space-y-3 pointer-events-auto">
-                     {[
-                        { label: 'Formula 1', path: '/sports/f1' },
-                        { label: 'NBA Stats', path: '/sports/nba' },
-                        { label: 'NFL Data', path: '/sports/nfl' }
-                     ].map((item, i) => (
-                        <Link 
-                           key={i} 
-                           href={item.path}
-                           className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-blue-500/20 hover:border-blue-500/30 transition-all cursor-pointer group/item backdrop-blur-sm"
-                        >
-                           <span className="text-xs font-mono font-bold text-zinc-400 group-hover/item:text-white uppercase">{item.label}</span>
-                           <ChevronRight size={14} className="text-zinc-600 group-hover/item:text-blue-400" />
-                        </Link>
-                     ))}
-                  </div>
-               </div>
-            </div>
-          </motion.div>
-
-          {/* 2. ARCHIVES / COLLECTIONS */}
-          <motion.div variants={itemVar} className="md:col-span-8">
-            <Link href="/collections" className="group relative flex flex-col h-full min-h-[260px] rounded-[2.5rem] bg-zinc-900/40 border border-white/5 hover:border-purple-500/50 transition-all duration-500 overflow-hidden hover:shadow-[0_0_40px_rgba(168,85,247,0.15)]">
-               {/* CHANGED: Video Background */}
-               <video 
-                 autoPlay loop muted playsInline 
-                 className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:opacity-10 transition-all duration-700 group-hover:scale-110 grayscale"
-               >
-                 <source src="/archive-page.mp4" type="video/mp4" />
-               </video>
-               
-               <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent" />
-
-               <div className="relative p-10 h-full flex flex-col justify-between z-10">
-                  <div className="flex justify-between items-start">
-                    <div className="p-3 bg-zinc-950/50 backdrop-blur-md rounded-2xl border border-white/10 text-purple-400 group-hover:scale-110 transition-transform">
-                        <Layers size={24} />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h2 className="text-3xl font-black uppercase text-white mb-2 tracking-tighter">Archives</h2>
-                    <p className="text-purple-400/80 font-mono text-xs uppercase tracking-widest">Weather // Recipes // Tools</p>
-                  </div>
-               </div>
-            </Link>
-          </motion.div>
-
-          {/* 3. ARCADE */}
-          <motion.div variants={itemVar} className="md:col-span-8">
-            <Link href="/play" className="group relative block h-full min-h-[260px] rounded-[2.5rem] bg-zinc-900/40 border border-white/5 hover:border-[#DFFF00]/50 transition-all duration-500 overflow-hidden hover:shadow-[0_0_40px_rgba(223,255,0,0.1)]">
-               {/* CHANGED: Video Background */}
-               <video 
-                 autoPlay loop muted playsInline 
-                 className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-20 transition-all duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0"
-               >
-                 <source src="/play-page.mp4" type="video/mp4" />
-               </video>
-
-               <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/80 to-transparent" />
-
-               <div className="relative p-10 h-full flex flex-col justify-between z-10">
-                  <div className="flex justify-between items-start">
-                     <div className="p-4 bg-zinc-950/50 backdrop-blur-md rounded-2xl border border-white/10 text-[#DFFF00] shadow-xl group-hover:scale-110 transition-transform duration-500">
-                        <Gamepad2 size={24} />
-                     </div>
-                     <PlayCircle size={40} className="text-white/20 group-hover:text-[#DFFF00] transition-colors duration-500" />
-                  </div>
-                  <div>
-                     <h2 className="text-4xl md:text-5xl font-black uppercase text-white mb-2 tracking-tighter drop-shadow-lg">Arcade</h2>
-                     <div className="inline-flex gap-2 items-center px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
-                        <span className="w-2 h-2 rounded-full bg-[#DFFF00] animate-pulse" />
-                        <span className="text-[10px] font-mono font-bold text-zinc-300 uppercase tracking-widest">Play games & earn/gamble currency</span>
-                     </div>
-                  </div>
-               </div>
-            </Link>
-          </motion.div>
-
-        </motion.div>
-
-{/* --- MARKET SECTION --- */}
-        <SectionHeader title="Underground Exchange" icon={<TrendingUp size={16} />} />
-
-        <motion.div
-           initial={{ opacity: 0, y: 30 }}
-           whileInView={{ opacity: 1, y: 0 }}
-           viewport={{ once: true }}
-           transition={{ duration: 0.8 }}
-           className="mb-24"
-        >
-            <Link href="/market" className="group relative block w-full min-h-[360px] rounded-[2.5rem] bg-zinc-900/40 border border-white/5 hover:border-[#DFFF00]/50 transition-all duration-500 overflow-hidden hover:shadow-[0_0_50px_rgba(223,255,0,0.1)]">
-               
-               {/* CHANGED: Video Background */}
-               <video 
-                 autoPlay loop muted playsInline 
-                 className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-10 transition-all duration-700 group-hover:scale-105 grayscale"
-               >
-                 <source src="/market-page.mp4" type="video/mp4" />
-               </video>
-
-               <div className="absolute inset-0 bg-gradient-to-l from-zinc-950 via-zinc-950/60 to-transparent" />
-
-               <div className="relative p-12 h-full flex flex-col justify-center items-end text-right z-10">
-                  <div className="mb-6 px-4 py-2 bg-[#DFFF00]/10 border border-[#DFFF00]/30 rounded-full backdrop-blur-md">
-                     <span className="flex items-center gap-2 text-xs font-black text-[#DFFF00] uppercase tracking-widest">
-                        <Zap size={14} className="fill-[#DFFF00]" /> Live Economy
+                     <span className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-mono font-bold uppercase tracking-wider animate-pulse">
+                        Live Telemetry
                      </span>
                   </div>
 
-                  <h2 className="text-5xl md:text-7xl font-black uppercase text-white tracking-tighter mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-[#DFFF00] transition-all">
-                     Black Market
-                  </h2>
-                  <p className="text-zinc-400 font-mono text-sm uppercase tracking-widest max-w-xl leading-relaxed">
-                     Trade serialized assets, open packs, and manage your inventory in the secure exchange protocol.
-                  </p>
-                  
-                  <div className="mt-8 flex items-center gap-4">
-                     <div className="h-px w-24 bg-zinc-800 group-hover:bg-[#DFFF00] transition-colors" />
-                     <Package size={24} className="text-zinc-600 group-hover:text-[#DFFF00] transition-colors" />
+                  <div>
+                     <h2 className="text-5xl md:text-7xl font-black uppercase text-white mb-4 tracking-tighter">Sports</h2>
+                     <div className="flex flex-wrap gap-3">
+                        {['Formula 1', 'NBA', 'NFL', 'PGA Tour'].map((item) => (
+                           <span key={item} className="px-4 py-2 rounded-lg bg-white/5 border border-white/5 text-zinc-400 text-xs font-mono font-bold uppercase hover:bg-white/10 hover:text-white transition-colors">
+                              {item}
+                           </span>
+                        ))}
+                     </div>
                   </div>
                </div>
             </Link>
-        </motion.div>
+          </SpotlightCard>
 
-        {/* LOGS SECTION */}
-        <section id="system-logs" className="scroll-mt-24">
-            <SectionHeader title="System Logs" icon={<Terminal size={16} />} />
-            
-            <div className="relative rounded-[3rem] bg-zinc-900/20 border border-white/5 p-2 md:p-8 backdrop-blur-md overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
-            <PersonalLogs />
-            </div>
-        </section>
+          {/* 2. ARCADE (Medium) */}
+          <SpotlightCard className="md:col-span-4 rounded-[2.5rem]" spotlightColor="rgba(223, 255, 0, 0.2)">
+            <Link href="/play" className="relative flex flex-col h-full w-full p-8 group">
+               <div className="absolute inset-0 z-0">
+                  <video autoPlay loop muted playsInline className="w-full h-full object-cover opacity-20 transition-all duration-700 group-hover:scale-110">
+                     <source src="/play-page.mp4" type="video/mp4" />
+                   </video>
+                   <div className="absolute inset-0 bg-gradient-to-br from-zinc-950/80 to-transparent" />
+               </div>
 
+               <div className="relative z-10 flex justify-between items-start mb-auto">
+                  <div className="p-3 bg-zinc-950/50 backdrop-blur-md rounded-2xl border border-white/10 text-[#DFFF00]">
+                     <Gamepad2 size={24} />
+                  </div>
+               </div>
+               
+               <div className="relative z-10">
+                  <h2 className="text-4xl font-black uppercase text-white mb-2 tracking-tighter">Arcade</h2>
+                  <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest group-hover:text-[#DFFF00] transition-colors">
+                     High Stakes Gaming
+                  </p>
+               </div>
+            </Link>
+          </SpotlightCard>
+
+          {/* 3. ARCHIVES (Medium) */}
+          <SpotlightCard className="md:col-span-4 rounded-[2.5rem]" spotlightColor="rgba(168, 85, 247, 0.2)">
+            <Link href="/collections" className="relative flex flex-col h-full w-full p-8 group">
+               <div className="absolute inset-0 bg-gradient-to-br from-purple-950/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+               <div className="absolute inset-0 z-0">
+                   <video autoPlay loop muted playsInline className="w-full h-full object-cover opacity-10 grayscale transition-all duration-700 group-hover:scale-110">
+                     <source src="/archive-page.mp4" type="video/mp4" />
+                   </video>
+               </div>
+               
+               <div className="relative z-10 flex flex-col h-full justify-between">
+                  <Layers size={24} className="text-purple-400" />
+                  <div>
+                    <h2 className="text-3xl font-black uppercase text-white mb-2 tracking-tighter">Archives</h2>
+                    <p className="text-purple-400/80 font-mono text-xs uppercase tracking-widest">
+                       Databases & Tools
+                    </p>
+                  </div>
+               </div>
+            </Link>
+          </SpotlightCard>
+
+          {/* 4. MARKET (Full Width Strip) */}
+          <SpotlightCard className="md:col-span-12 md:row-span-1 rounded-[2.5rem]" spotlightColor="rgba(16, 185, 129, 0.2)">
+             <Link href="/market" className="relative flex items-center justify-between h-full w-full p-10 group overflow-hidden">
+                <div className="absolute inset-0 z-0">
+                   <video autoPlay loop muted playsInline className="w-full h-full object-cover opacity-20 grayscale transition-all duration-700 group-hover:opacity-30 group-hover:scale-105">
+                     <source src="/market-page.mp4" type="video/mp4" />
+                   </video>
+                   <div className="absolute inset-0 bg-zinc-950/60" />
+                </div>
+
+                <div className="relative z-10 flex flex-col justify-center">
+                   <div className="flex items-center gap-3 mb-2">
+                      <TrendingUp size={18} className="text-emerald-500" />
+                      <span className="text-xs font-mono font-bold text-emerald-500 uppercase tracking-widest">
+                         Underground Exchange
+                      </span>
+                   </div>
+                   <h2 className="text-5xl md:text-6xl font-black uppercase text-white tracking-tighter group-hover:text-emerald-400 transition-colors">
+                      Black Market
+                   </h2>
+                </div>
+
+                <div className="relative z-10 hidden md:flex items-center gap-6 pr-10">
+                   <div className="text-right">
+                      <div className="text-zinc-500 font-mono text-[10px] uppercase tracking-widest">Volume</div>
+                      <div className="text-2xl font-black text-white">24h</div>
+                   </div>
+                   <div className="h-10 w-px bg-zinc-800" />
+                   <div className="w-16 h-16 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-black transition-all duration-300">
+                      <MoveRight size={24} />
+                   </div>
+                </div>
+             </Link>
+          </SpotlightCard>
+
+          {/* 5. WEATHER & LOGS QUICK LINK */}
+          <SpotlightCard className="md:col-span-6 rounded-[2.5rem]">
+             <Link href="/collections/weather" className="relative flex items-center p-8 h-full group">
+                <CloudHail size={32} className="text-zinc-400 mr-6 group-hover:text-cyan-400 transition-colors" />
+                <div>
+                   <h3 className="text-2xl font-black text-white uppercase tracking-tight">Weather Station</h3>
+                   <p className="text-zinc-500 font-mono text-xs">Local atmospheric conditions</p>
+                </div>
+                <div className="ml-auto">
+                   <ArrowRight className="text-zinc-600 group-hover:-rotate-45 transition-transform duration-300" />
+                </div>
+             </Link>
+          </SpotlightCard>
+          
+          <SpotlightCard className="md:col-span-6 rounded-[2.5rem]">
+             <button onClick={scrollToLogs} className="relative flex items-center p-8 h-full w-full text-left group">
+                <Terminal size={32} className="text-zinc-400 mr-6 group-hover:text-[#DFFF00] transition-colors" />
+                <div>
+                   <h3 className="text-2xl font-black text-white uppercase tracking-tight">Access Logs</h3>
+                   <p className="text-zinc-500 font-mono text-xs">View system updates & notes</p>
+                </div>
+                <div className="ml-auto">
+                   <ArrowRight className="text-zinc-600 group-hover:translate-x-2 transition-transform duration-300" />
+                </div>
+             </button>
+          </SpotlightCard>
+
+        </div>
+      </section>
+
+      {/* --- LOGS SECTION --- */}
+      <section id="system-logs" className="relative z-20 max-w-[1600px] mx-auto px-4 md:px-6 pb-32">
+        <SectionHeader title="System Terminal" icon={<Terminal size={16} />} />
+        
+        <div className="relative rounded-[3rem] bg-zinc-950 border border-zinc-800 overflow-hidden shadow-2xl">
+           {/* Terminal Bar */}
+           <div className="h-12 bg-zinc-900/50 border-b border-white/5 flex items-center px-6 gap-2 backdrop-blur-md">
+              <div className="flex gap-2">
+                 <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50" />
+                 <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50" />
+                 <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50" />
+              </div>
+              <div className="ml-4 flex items-center gap-2 opacity-30">
+                 <Terminal size={12} />
+                 <span className="text-[10px] font-mono">root/users/public/logs</span>
+              </div>
+           </div>
+           
+           <div className="p-4 md:p-12 bg-zinc-950">
+              <PersonalLogs />
+           </div>
+        </div>
       </section>
 
       {/* --- FOOTER --- */}
-      <footer className="relative z-10 pt-20 pb-12 px-6 text-center border-t border-white/5 bg-zinc-950">
+      <footer className="relative z-20 pt-20 pb-12 px-6 text-center border-t border-white/5 bg-zinc-950">
         <div className="max-w-[1600px] mx-auto flex flex-col items-center gap-8">
             
-            {/* Logo Mark */}
             <div className="w-12 h-12 bg-[#DFFF00] rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(223,255,0,0.2)]">
                 <span className="font-black text-xl text-black">Z</span>
             </div>
 
-            {/* Status Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-12 text-[10px] font-mono uppercase tracking-widest text-zinc-500">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 justify-center">
                     <ShieldCheck size={14} className="text-emerald-500" />
-                    <span>Secure Connection: Est. 2024</span>
+                    <span>Secure Connection</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 justify-center">
                     <Cpu size={14} className="text-blue-500" />
-                    <span>System Status: Optimal</span>
+                    <span>Status: Optimal</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 justify-center">
                     <Activity size={14} className="text-[#DFFF00]" />
-                    <span>Version: 2.6.1</span>
+                    <span>Version: 3.0.0</span>
                 </div>
             </div>
 
-            {/* Divider */}
-            <div className="w-full max-w-xs h-px bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
+            <div className="w-full max-w-xs h-px bg-zinc-900" />
 
-            {/* Copyright Easter Egg */}
             <Link 
               href="/clipflation"
-              className="group relative px-4 py-2 rounded-lg hover:bg-white/5 transition-all duration-500"
+              className="group relative px-4 py-2"
             >
               <p className="text-zinc-600 font-bold text-xs uppercase tracking-wider group-hover:text-zinc-400 transition-colors">
-                Zinc Engineering © 2025 // All Rights Reserved
+                Zinc Engineering © 2026
               </p>
-              
-              {/* Hidden Tooltip Effect on Hover */}
-              <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 pointer-events-none">
-                 <span className="text-[10px] font-mono text-red-500 whitespace-nowrap bg-red-950/30 border border-red-500/20 px-2 py-1 rounded">
-                    ⚠ Unauthorized Access Detected
-                 </span>
-              </div>
             </Link>
         </div>
       </footer>
@@ -597,22 +550,11 @@ export default function Home() {
 }
 
 // --- SUB-COMPONENTS ---
-
-const QuickLink = ({ href, icon, label }: { href: string, icon: React.ReactNode, label: string }) => (
-  <Link 
-    href={href} 
-    className="flex items-center gap-2 px-5 py-3 rounded-full bg-zinc-900/40 border border-white/10 hover:border-[#DFFF00]/50 hover:bg-zinc-900 transition-all group backdrop-blur-md"
-  >
-    <span className="text-zinc-500 group-hover:text-[#DFFF00] transition-colors">{icon}</span>
-    <span className="text-xs font-mono font-bold text-zinc-400 group-hover:text-white uppercase tracking-widest">{label}</span>
-  </Link>
-);
-
 const SectionHeader = ({ title, icon }: { title: string, icon: React.ReactNode }) => (
   <div className="flex items-center gap-4 mb-12 px-4">
       <div className="w-2 h-2 bg-[#DFFF00] rounded-full shadow-[0_0_10px_#DFFF00]" />
       <div className="h-px flex-1 bg-gradient-to-r from-zinc-800 to-transparent" />
-      <div className="flex items-center gap-2 text-zinc-500 bg-zinc-900/50 px-4 py-2 rounded-full border border-white/5 backdrop-blur-md">
+      <div className="flex items-center gap-2 text-zinc-500 bg-zinc-900/50 px-4 py-2 rounded-full border border-white/5 backdrop-blur-md shadow-lg">
            {icon}
            <span className="text-xs font-mono font-bold uppercase tracking-widest">{title}</span>
       </div>
