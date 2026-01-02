@@ -18,11 +18,14 @@ export function DetailPanel({ id, onClose }: { id: string | null, onClose: () =>
                 animate={{ x: 0 }}
                 exit={{ x: '100%' }}
                 transition={{ type: "spring", damping: 20 }}
-                // Added pt-24 to push content down below global header
+                // Mobile: w-full (covers screen), Desktop: w-[400px]
                 className="absolute top-0 right-0 h-full w-full md:w-[400px] bg-black/80 backdrop-blur-xl border-l border-white/10 p-6 md:p-8 pt-24 md:pt-32 z-20 overflow-y-auto"
             >
-                {/* Adjusted button position */}
-                <button onClick={onClose} className="absolute top-24 right-4 md:top-32 md:right-6 p-2 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white transition-colors">
+                {/* Close Button - Fixed to ensure it doesn't scroll away on mobile if content is long */}
+                <button 
+                    onClick={onClose} 
+                    className="fixed top-24 right-4 md:absolute md:top-32 md:right-6 p-2 rounded-full bg-black/50 md:bg-transparent hover:bg-white/10 text-zinc-400 hover:text-white transition-colors z-50 backdrop-blur-sm md:backdrop-blur-none"
+                >
                     <Minimize2 size={20} />
                 </button>
 
@@ -82,10 +85,16 @@ export function SystemFinder({ isOpen, onClose, onSelect }: any) {
     const allMoons = PLANET_DATA.flatMap(p => p.moons || []);
 
     return (
-        // Added pt-20 to clear header
-        <div className="absolute inset-0 z-30 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-4 md:p-8 pt-24 md:pt-32 overflow-y-auto">
-            <button onClick={onClose} className="absolute top-24 right-4 md:top-32 md:right-8 text-zinc-500 hover:text-white"><Minimize2 size={32} /></button>
-            <div className="w-full max-w-5xl">
+        <div className="absolute inset-0 z-30 bg-black/90 backdrop-blur-md flex flex-col items-center justify-start md:justify-center p-4 md:p-8 pt-24 md:pt-32 overflow-y-auto">
+            {/* Fixed Close Button for Mobile Accessibility */}
+            <button 
+                onClick={onClose} 
+                className="fixed top-24 right-4 md:absolute md:top-32 md:right-8 p-2 bg-black/50 md:bg-transparent rounded-full text-zinc-500 hover:text-white z-50 backdrop-blur-md md:backdrop-blur-none"
+            >
+                <Minimize2 size={32} />
+            </button>
+            
+            <div className="w-full max-w-5xl pb-24 md:pb-0">
                 <h2 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tighter mb-8">System <span className="text-[#DFFF00]">Browser</span></h2>
                 <h3 className="text-zinc-500 uppercase tracking-widest font-mono text-sm mb-4">Major Bodies</h3>
                 <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 w-full mb-12">
@@ -185,8 +194,8 @@ export function ZincShuttleApp({ isOpen, onClose, currentId, onRideRequest, onPr
     if (!isOpen) return null;
 
     return (
-        // Changed top-24 to top-32/top-40 to clear header and main buttons
-        <div className="absolute top-44 left-4 right-4 md:left-auto md:right-8 md:w-96 bg-zinc-950/80 backdrop-blur-2xl border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden z-40 font-sans flex flex-col transition-all duration-300">
+        // Mobile Optimized: top-28 to sit higher up, preventing keyboard cover-up. 
+        <div className="absolute top-28 md:top-44 left-4 right-4 md:left-auto md:right-8 md:w-96 bg-zinc-950/80 backdrop-blur-2xl border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden z-40 font-sans flex flex-col transition-all duration-300">
             <div className="bg-black/40 p-4 md:p-5 border-b border-white/5 flex justify-between items-center">
                 <div className="flex items-center gap-3">
                     <div className="bg-[#DFFF00] p-1.5 rounded-lg text-black shadow-[0_0_15px_rgba(223,255,0,0.4)]">
@@ -348,20 +357,22 @@ export function SpeedControls() {
     const { speed, setSpeed, resetTime } = useSimulation();
     
     return (
-        <div className="fixed bottom-8 md:bottom-12 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-black/60 backdrop-blur-md p-2 rounded-full border border-white/10 shadow-[0_0_20px_rgba(0,0,0,0.5)] scale-90 md:scale-100 origin-bottom">
+        // Mobile Optimized: overflow-x-auto, max-width, no scale, centered comfortably
+        <div className="fixed bottom-8 md:bottom-12 left-4 right-4 md:left-1/2 md:right-auto md:-translate-x-1/2 z-50 flex items-center justify-start md:justify-center gap-2 bg-black/60 backdrop-blur-md p-2 rounded-full border border-white/10 shadow-[0_0_20px_rgba(0,0,0,0.5)] overflow-x-auto [&::-webkit-scrollbar]:hidden touch-pan-x">
              <button 
                 onClick={resetTime}
-                className="p-3 rounded-full hover:bg-white/10 text-[#DFFF00] transition-colors"
+                className="p-3 rounded-full hover:bg-white/10 text-[#DFFF00] transition-colors shrink-0"
                 title="Reset to Live Time"
             >
                 <RotateCcw size={18} />
             </button>
-            <div className="w-px h-6 bg-white/10 mx-2" />
+            <div className="w-px h-6 bg-white/10 mx-2 shrink-0" />
             
             {[
                 { v: 1, l: 'LIVE' },
                 { v: 100, l: '100x' },
                 { v: 10000, l: '10kx' },
+                { v: 100000, l: '100kx' },
                 { v: 1000000, l: '1Mx' },
                 { v: 10000000, l: '10Mx' }
             ].map((opt) => (
@@ -369,7 +380,7 @@ export function SpeedControls() {
                     key={opt.v}
                     onClick={() => setSpeed(opt.v)}
                     className={`
-                        px-3 py-1.5 rounded-full text-[10px] font-mono font-bold transition-all
+                        px-3 py-1.5 rounded-full text-[10px] font-mono font-bold transition-all whitespace-nowrap shrink-0
                         ${speed === opt.v ? 'bg-white text-black' : 'text-zinc-400 hover:text-white hover:bg-white/10'}
                     `}
                 >

@@ -138,7 +138,20 @@ export const TOURS: Tour[] = [
                 dampening: 1.5
             },
             { targetId: 'mars', type: 'orbit', duration: 12, distance: 7, height: 0.5, speed: 0.25 },
-            { targetId: 'mars', type: 'eclipse', duration: 8, distance: 15, height: -2, speed: 0.05 },
+
+            // --- PHOBOS SEQUENCE ---
+            { targetId: 'phobos', type: 'travel', duration: 6, distance: 3, height: 0, speed: 0, side: 'lit' },
+            { 
+                targetId: 'phobos', 
+                title: 'PHOBOS', 
+                subtitle: 'THE DOOMED MOON',
+                titleDelay: 1.0, 
+                type: 'orbit', 
+                duration: 12, 
+                distance: 1.5, 
+                height: 0.5, 
+                speed: 0.15 
+            },
 
             // --- JUPITER SEQUENCE ---
             { targetId: 'jupiter', type: 'travel', duration: 14, distance: 60, height: 10, speed: 0, side: 'lit' },
@@ -154,8 +167,32 @@ export const TOURS: Tour[] = [
                 speed: 0.03,
                 dampening: 1.0 
             },
-            { targetId: 'jupiter', type: 'flyby', duration: 15, distance: 50, height: 0, speed: 0.08 },
-            { targetId: 'jupiter', type: 'orbit', duration: 12, distance: 55, height: -30, speed: 0.04 },
+
+            // --- JOVIAN MOONS ---
+            { targetId: 'europa', type: 'travel', duration: 8, distance: 8, height: 0, speed: 0, side: 'lit' },
+            { 
+                targetId: 'europa', 
+                title: 'EUROPA', 
+                subtitle: 'ICE SHELL',
+                titleDelay: 1.0,
+                type: 'orbit', 
+                duration: 12, 
+                distance: 4, 
+                height: 1, 
+                speed: 0.1 
+            },
+            { targetId: 'ganymede', type: 'travel', duration: 8, distance: 10, height: 0, speed: 0, side: 'lit' },
+            { 
+                targetId: 'ganymede', 
+                title: 'GANYMEDE', 
+                subtitle: 'THE GIANT',
+                titleDelay: 1.0,
+                type: 'orbit', 
+                duration: 12, 
+                distance: 6, 
+                height: 2, 
+                speed: 0.08 
+            },
 
             // --- SATURN SEQUENCE ---
             { targetId: 'saturn', type: 'travel', duration: 16, distance: 70, height: 0, speed: 0, side: 'lit' },
@@ -172,7 +209,6 @@ export const TOURS: Tour[] = [
                 dampening: 1.2
             },
             { targetId: 'saturn', type: 'orbit', duration: 15, distance: 45, height: 1, speed: 0.12 },
-            { targetId: 'saturn', type: 'static', duration: 10, distance: 100, height: 80, speed: 0.02 },
 
             // --- URANUS SEQUENCE ---
             { targetId: 'uranus', type: 'travel', duration: 16, distance: 30, height: 0, speed: 0, side: 'lit' },
@@ -187,7 +223,6 @@ export const TOURS: Tour[] = [
                 height: 0,
                 speed: 0.06
             },
-            { targetId: 'uranus', type: 'orbit', duration: 14, distance: 14, height: 10, speed: 0.08 },
 
             // --- NEPTUNE SEQUENCE ---
             { targetId: 'neptune', type: 'travel', duration: 16, distance: 30, height: 0, speed: 0, side: 'lit' },
@@ -202,7 +237,6 @@ export const TOURS: Tour[] = [
                 height: 0,
                 speed: 0.06
             },
-            { targetId: 'neptune', type: 'flyby', duration: 12, distance: 15, height: -5, speed: 0.08 },
 
             // --- PLUTO SEQUENCE ---
             { targetId: 'pluto', type: 'travel', duration: 14, distance: 5, height: 0, speed: 0, side: 'lit' },
@@ -217,7 +251,20 @@ export const TOURS: Tour[] = [
                 height: 0.5,
                 speed: 0.1
             },
-            { targetId: 'pluto', type: 'static', duration: 12, distance: 4, height: 1, speed: 0.02 },
+
+            // --- ERIS SEQUENCE ---
+            { targetId: 'eris', type: 'travel', duration: 14, distance: 6, height: 0, speed: 0, side: 'lit' },
+            {
+                targetId: 'eris',
+                title: 'ERIS',
+                subtitle: 'THE SCATTERED DISC',
+                titleDelay: 1.0,
+                type: 'orbit',
+                duration: 16,
+                distance: 3,
+                height: 1,
+                speed: 0.1
+            },
 
             // --- THE INTERSTELLAR LEAP TO SAGITTARIUS A* ---
             { 

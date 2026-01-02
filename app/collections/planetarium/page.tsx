@@ -60,15 +60,7 @@ function PlanetariumContent() {
     // Explicit Recenter Function
     const handleRecenter = () => {
         setSelectedId(null);
-        // We need to trigger the initial view logic in SystemControls.
-        // Since we are unmounting selectedId, we might need a way to signal "Reset"
-        // But simply setting selectedId to null unlocks the camera. 
-        // To force a fly-back, we can briefly set it to a dummy value or just let the user use the 'Home' feel.
-        // Actually, SystemControls logic for `!targetId` doesn't auto-reset anymore (to allow free roam).
-        // So we might need to pass a "recenterTrigger" prop or similar, or just re-mount controls.
-        // For simplicity: We will just toggle selectedId to 'sun' then null quickly? No that's hacky.
-        // Let's rely on the user manually panning back OR clicking Sun.
-        // Better: Let's make the "Recenter" button just select the 'sun' for a moment.
+        // Toggle sun selection briefly to trigger camera movement if needed, or simply unlock
         setSelectedId('sun');
         setTimeout(() => setSelectedId(null), 1000);
     };
@@ -185,7 +177,7 @@ function PlanetariumContent() {
                         {(!rideStatus || rideStatus === 'idle') && !selectedId && (
                             <div className="flex flex-col gap-2 w-full md:w-auto mt-2 md:mt-0 items-end">
                                 {/* Main Actions */}
-                                <div className="flex gap-2 md:gap-4 pointer-events-auto animate-in fade-in slide-in-from-top-4 duration-500 w-full md:w-auto">
+                                <div className="flex flex-wrap md:flex-nowrap gap-2 md:gap-4 pointer-events-auto animate-in fade-in slide-in-from-top-4 duration-500 w-full md:w-auto justify-end">
                                     <button 
                                         onClick={toggleCinematic}
                                         className="flex-1 md:flex-initial flex items-center justify-center gap-2 px-4 md:px-6 py-3 font-bold uppercase tracking-widest rounded-full transition-all text-xs md:text-sm bg-zinc-800 hover:bg-zinc-700 text-white border border-white/10"

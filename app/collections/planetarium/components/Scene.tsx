@@ -121,9 +121,6 @@ function BlackHole({ data, onClick }: any) {
                     blending={THREE.AdditiveBlending}
                 />
             </mesh>
-            <sprite scale={[data.radius * 8, data.radius * 8, 1]}>
-                <spriteMaterial color="#ff5500" transparent opacity={0.1} blending={THREE.AdditiveBlending} />
-            </sprite>
         </group>
     );
 }
@@ -193,6 +190,11 @@ export function Planet({ data, isSelected, onClick, onSelectRef, isCinematic, sh
     const meshRef = useRef<THREE.Mesh>(null);
     const groupRef = useRef<THREE.Group>(null);
     const { timeRef } = useSimulation();
+
+    // REGISTER REF: Must be done before any early returns!
+    useEffect(() => {
+        if(groupRef.current) onSelectRef(data.id, groupRef.current);
+    }, [data.id, onSelectRef]);
     
     // --- BLACK HOLE RENDERER ---
     if (data.type === 'Black Hole') {
@@ -233,10 +235,6 @@ export function Planet({ data, isSelected, onClick, onSelectRef, isCinematic, sh
             meshRef.current.rotation.y = (hoursSinceJ2000 / data.rotationPeriod) * (Math.PI * 2);
         }
     });
-
-    useEffect(() => {
-        if(groupRef.current) onSelectRef(data.id, groupRef.current);
-    }, [data.id, onSelectRef]);
 
     return (
         <group>
@@ -337,18 +335,24 @@ function Moon({ data, parentRadius, onSelectRef, onClick }: any) {
     if (isStation) {
          return (
              <group ref={meshRef as any} onClick={(e) => { e.stopPropagation(); onClick(); }}>
-                {data.id === 'dreadnaught' ? (
-                    <group>
-                        <mesh rotation={[0, 0, Math.PI/4]}><octahedronGeometry args={[data.radius * 2, 0]} /><meshStandardMaterial color="#332211" roughness={0.8} /></mesh>
-                        <pointLight distance={3} intensity={3} color="orange" />
-                    </group>
-                ) : (
-                    <group>
-                        <mesh><boxGeometry args={[data.radius * 3, data.radius, data.radius]} /><meshStandardMaterial color="#eeeeee" metalness={0.8} roughness={0.2} /></mesh>
-                        <mesh position={[0, 0, 0]} rotation={[0, 0, Math.PI/2]}><cylinderGeometry args={[data.radius * 0.1, data.radius * 0.1, data.radius * 8, 8]} /><meshStandardMaterial color="#2244ff" metalness={0.9} roughness={0.3} /></mesh>
-                        <pointLight distance={2} intensity={2} color="cyan" />
-                    </group>
-                )}
+                <group>
+                    {/* Main Hull */}
+                    <mesh>
+                        <sphereGeometry args={[data.radius, 32, 32]} />
+                        <meshStandardMaterial color={data.color} metalness={0.9} roughness={0.3} />
+                    </mesh>
+                    {/* Equatorial Trench */}
+                    <mesh rotation={[Math.PI/2, 0, 0]}>
+                        <torusGeometry args={[data.radius, data.radius * 0.05, 16, 64]} />
+                        <meshStandardMaterial color="#111111" />
+                    </mesh>
+                    {/* Superlaser Dish */}
+                    <mesh position={[data.radius * 0.7, data.radius * 0.5, 0]} rotation={[0, 0, -Math.PI/4]}>
+                         <cylinderGeometry args={[data.radius * 0.25, data.radius * 0.25, data.radius * 0.05, 32]} />
+                         <meshStandardMaterial color="#222222" />
+                    </mesh>
+                    <pointLight distance={data.radius * 4} intensity={2} color={data.color} />
+                </group>
             </group>
         );
     }
@@ -481,6 +485,10 @@ export function SpaceRoute({ originId, destinationId, isDriving, isPreviewing, s
 export function SystemControls({ targetId, refs, isShuttleActive, previewTarget, isCinematic }: any) {
     const controlsRef = useRef<CameraControls>(null);
     const { timeRef } = useSimulation();
+    
+    // Track previous frame position for delta movement
+    const prevTargetPos = useRef(new THREE.Vector3());
+    const prevTargetId = useRef<string | null>(null);
 
     // 1. Initial Setup: Set position once, but don't lock it constantly
     useEffect(() => {
@@ -547,13 +555,46 @@ export function SystemControls({ targetId, refs, isShuttleActive, previewTarget,
 
     // 3. Lock Logic (Only runs when we have a target)
     useFrame(() => {
-        if (isShuttleActive || isCinematic || !targetId) return; // Don't lock if free roaming
+        if (isShuttleActive || isCinematic || !targetId) {
+            prevTargetId.current = null;
+            return; // Don't lock if free roaming
+        }
         
         if (targetId !== 'sun' && targetId !== 'sagittarius_a' && refs.current[targetId] && controlsRef.current && !previewTarget) {
             const targetObj = refs.current[targetId];
-            const pos = new THREE.Vector3();
-            targetObj.getWorldPosition(pos);
-            controlsRef.current.setTarget(pos.x, pos.y, pos.z, true);
+            const currentTargetPos = new THREE.Vector3();
+            targetObj.getWorldPosition(currentTargetPos);
+
+            // If we are locked on the same target as last frame, move camera by delta
+            if (targetId === prevTargetId.current) {
+                const delta = new THREE.Vector3().subVectors(currentTargetPos, prevTargetPos.current);
+                // Only move if there is significant movement
+                if (delta.lengthSq() > 0.000001) {
+                    const currentCamPos = controlsRef.current.camera.position;
+                    // Move the camera body by the same delta as the planet
+                    controlsRef.current.setPosition(
+                        currentCamPos.x + delta.x, 
+                        currentCamPos.y + delta.y, 
+                        currentCamPos.z + delta.z, 
+                        false // No transition for instant lock
+                    );
+                    // Update the target point to the new planet position
+                    controlsRef.current.setTarget(
+                        currentTargetPos.x, 
+                        currentTargetPos.y, 
+                        currentTargetPos.z, 
+                        false // No transition
+                    );
+                }
+            } else {
+                // Just acquired target, let the useEffect handle the initial jump
+                // but we might want to ensure the target is set correctly in case we drifted
+                controlsRef.current.setTarget(currentTargetPos.x, currentTargetPos.y, currentTargetPos.z, true);
+            }
+
+            // Update refs for next frame
+            prevTargetPos.current.copy(currentTargetPos);
+            prevTargetId.current = targetId;
         }
     });
 

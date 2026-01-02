@@ -186,12 +186,27 @@ export const PLANET_DATA: CelestialBody[] = [
     stats: { temp: "-63°C", day: "25 Hours", year: "687 Days" },
     moons: [
       {
+        id: "phobos",
+        name: "Phobos",
+        type: "Moon",
+        description: "The doomed moon, spiraling inward.",
+        radius: 0.08, 
+        distance: 0.9, 
+        orbitalPeriod: 0.32, 
+        rotationPeriod: 0,
+        meanLongitude: 120,
+        axialTilt: 0,
+        textureUrl: "/textures/phobos.jpg",
+        color: "#BFA393",
+        stats: { temp: "-4°C", day: "8 Hours", year: "-" }
+      },
+      {
         id: "ares_shipyards",
         name: "Ares Shipyards",
         type: "Station",
         description: "Orbital drydocks where the system's heavy cruisers are constructed.",
         radius: 0.05, 
-        distance: 1.2, 
+        distance: 1.5, 
         orbitalPeriod: 1.2,
         rotationPeriod: 0,
         meanLongitude: 270,
@@ -232,6 +247,36 @@ export const PLANET_DATA: CelestialBody[] = [
     color: "#C99039",
     stats: { temp: "-108°C", day: "10 Hours", year: "12 Years" },
     moons: [
+      {
+         id: "europa",
+         name: "Europa",
+         type: "Moon",
+         description: "An icy world with a subsurface ocean.",
+         radius: 0.25,
+         distance: 22, 
+         orbitalPeriod: 3.55, 
+         rotationPeriod: 0,
+         meanLongitude: 45,
+         axialTilt: 0,
+         textureUrl: "/textures/europa.jpg",
+         color: "#C4A88F",
+         stats: { temp: "-160°C", day: "3.5 Days", year: "-" }
+      },
+      {
+         id: "ganymede",
+         name: "Ganymede",
+         type: "Moon",
+         description: "The largest moon in the solar system.",
+         radius: 0.41,
+         distance: 35, 
+         orbitalPeriod: 7.15, 
+         rotationPeriod: 0,
+         meanLongitude: 180,
+         axialTilt: 0,
+         textureUrl: "/textures/ganymede.jpg",
+         color: "#8B7D6E",
+         stats: { temp: "-163°C", day: "7 Days", year: "-" }
+      },
       {
          id: "galileo_hub",
          name: "Galileo Hub",
@@ -377,6 +422,22 @@ export const PLANET_DATA: CelestialBody[] = [
          stats: { temp: "-230°C", day: "-", year: "-" }
       }
     ]
+  },
+  {
+    id: "eris",
+    name: "Eris",
+    type: "Dwarf Planet",
+    description: "Massive dwarf planet in the scattered disc.",
+    radius: 0.18,
+    distance: 8000, 
+    orbitalPeriod: 203600,
+    rotationPeriod: 25.9,
+    meanLongitude: 0,
+    axialTilt: 44, 
+    textureUrl: "/textures/eris.jpg",
+    color: "#DDDDDD",
+    stats: { temp: "-240°C", day: "25.9 Hours", year: "558 Years" },
+    moons: [] 
   },
   {
     id: "sagittarius_a",
