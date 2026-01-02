@@ -485,19 +485,19 @@ function Moon({ data, parentRadius, onSelectRef, onClick }: any) {
          return (
              <group ref={meshRef as any} onClick={(e) => { e.stopPropagation(); onClick(); }}>
                 <group>
-                    {/* Main Hull */}
+                    {/* Main Hull - Increased to 64 segments */}
                     <mesh>
-                        <sphereGeometry args={[data.radius, 32, 32]} />
+                        <sphereGeometry args={[data.radius, 64, 64]} />
                         <meshStandardMaterial color={data.color} metalness={0.9} roughness={0.3} />
                     </mesh>
-                    {/* Equatorial Trench */}
+                    {/* Equatorial Trench - Increased to 64 segments */}
                     <mesh rotation={[Math.PI/2, 0, 0]}>
-                        <torusGeometry args={[data.radius, data.radius * 0.05, 16, 64]} />
+                        <torusGeometry args={[data.radius, data.radius * 0.05, 32, 128]} />
                         <meshStandardMaterial color="#111111" />
                     </mesh>
-                    {/* Superlaser Dish */}
+                    {/* Superlaser Dish - Increased segments */}
                     <mesh position={[data.radius * 0.7, data.radius * 0.5, 0]} rotation={[0, 0, -Math.PI/4]}>
-                         <cylinderGeometry args={[data.radius * 0.25, data.radius * 0.25, data.radius * 0.05, 32]} />
+                         <cylinderGeometry args={[data.radius * 0.25, data.radius * 0.25, data.radius * 0.05, 64]} />
                          <meshStandardMaterial color="#222222" />
                     </mesh>
                     <pointLight distance={data.radius * 4} intensity={2} color={data.color} />
@@ -506,9 +506,10 @@ function Moon({ data, parentRadius, onSelectRef, onClick }: any) {
         );
     }
 
+    // Default Moon Mesh - Increased to 64 segments for smoothness
     return (
         <mesh ref={meshRef} onClick={(e) => { e.stopPropagation(); onClick(); }}>
-            <sphereGeometry args={[data.radius, 16, 16]} />
+            <sphereGeometry args={[data.radius, 64, 64]} />
             <meshStandardMaterial map={texture} color={data.color} />
         </mesh>
     );

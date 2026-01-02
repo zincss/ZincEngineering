@@ -76,67 +76,238 @@ const VOYAGER_FACTS = [
     "FUTURE: Voyager 1 will wander the Milky Way long after our Sun has burned out."
 ];
 
+const JOVIAN_FACTS = [
+    "JUPITER: The largest planet in our solar system, a gas giant with a mass one-thousandth that of the Sun.",
+    "EUROPA: The smoothest object in the solar system, possessing a subsurface ocean of liquid water.",
+    "MAGNETOSPHERE: Jupiter has the strongest magnetic field of any planet, 14 times stronger than Earth's.",
+    "GANYMEDE: The largest moon in the solar system, it is even larger than the planet Mercury.",
+    "RADIATION: The radiation belts around Jupiter are deadly to humans and electronics alike.",
+    "GREAT RED SPOT: A storm that has raged for at least 400 years, large enough to swallow Earth whole.",
+    "CALLISTO: The most heavily cratered object in the solar system, a remnant of the early system.",
+    "IO: The most geologically active body in the solar system, with hundreds of volcanoes.",
+    "TRANSIT: The distance between Europa and Ganymede varies, but averages around 400,000 km.",
+    "GRAVITY: Jupiter's immense gravity acts as a vacuum cleaner, protecting inner planets from comets."
+];
+
 // --- CINEMATIC DATA ---
+// NOTE: "Travel" arrival distance is slightly larger than "Orbit" distance to create a spiral-in effect.
 export const TOURS: Tour[] = [
     {
         id: 'grand_tour',
         name: 'The Grand Tour',
         description: 'A pure celestial journey.',
         shots: [
-            // --- SUN SEQUENCE ---
+            // --- 1. SUN START (Consistent Anchor) ---
             { 
                 targetId: 'sun', 
                 title: 'SOL', 
                 subtitle: 'SYSTEM ORIGIN // CLASS G STAR',
-                titleDelay: 1,
-                type: 'static', 
-                duration: 12, 
-                distance: 160, 
-                height: 0, 
-                speed: 0.02,
-                fov: 60,
+                titleDelay: 3,
+                type: 'orbit', 
+                duration: 25, 
+                distance: 140, // START DISTANCE FOR LOOP
+                height: 20, 
+                speed: 0.03, 
+                fov: 50,
                 dampening: 0.5
             },
-            { targetId: 'mercury', type: 'travel', duration: 7, distance: 8, height: 2, speed: 0, side: 'lit', dampening: 0.8 },
-            { targetId: 'mercury', title: 'MERCURY', subtitle: 'THE LIGHTHOUSE', titleDelay: 1.0, type: 'orbit', duration: 14, distance: 2.5, height: 0.5, speed: 0.08, dampening: 0.5 },
-            { targetId: 'mercury', type: 'orbit', duration: 10, distance: 1.8, height: 0.2, speed: 0.25, fov: 55, dampening: 0.5 },
-            { targetId: 'mercury', type: 'eclipse', duration: 8, distance: 5, height: 0, speed: 0.05, dampening: 0.5 },
-            { targetId: 'venus', type: 'travel', duration: 9, distance: 10, height: 0, speed: 0, side: 'lit', dampening: 0.8 },
-            { targetId: 'venus', title: 'VENUS', subtitle: 'THE MORNING STAR', titleDelay: 1.5, type: 'orbit', duration: 16, distance: 4.0, height: 0, speed: 0.06, dampening: 0.5 },
-            { targetId: 'venus', type: 'orbit', duration: 12, distance: 5.0, height: 4, speed: 0.04, dampening: 0.6 },
-            { targetId: 'venus', type: 'flyby', duration: 8, distance: 6, height: -2, speed: 0.1, dampening: 0.6 },
-            { targetId: 'earth', type: 'travel', duration: 10, distance: 15, height: 5, speed: 0, side: 'lit', dampening: 0.8 },
-            { targetId: 'earth', title: 'EARTH', subtitle: 'TERRA // HOME', titleDelay: 1.0, type: 'orbit', duration: 20, distance: 4.5, height: 1, speed: 0.04, dampening: 0.4 },
-            { targetId: 'earth', type: 'static', duration: 10, distance: 8, height: 4, speed: 0.02, dampening: 0.5 },
-            { targetId: 'moon', type: 'travel', duration: 6, distance: 4, height: 0, speed: 0, side: 'lit', dampening: 0.8 },
-            { targetId: 'moon', title: 'LUNA', subtitle: 'OUR SATELLITE', titleDelay: 1.0, type: 'orbit', duration: 14, distance: 1.5, height: 0, speed: 0.1, dampening: 0.5 },
-            { targetId: 'moon', type: 'orbit', duration: 10, distance: 1.2, height: 0.2, speed: 0.2, dampening: 0.5 },
-            { targetId: 'mars', type: 'travel', duration: 10, distance: 12, height: 0, speed: 0, side: 'lit', dampening: 0.8 },
-            { targetId: 'mars', title: 'MARS', subtitle: 'THE RED PLANET', titleDelay: 1.5, type: 'orbit', duration: 16, distance: 2.5, height: 0.5, speed: 0.1, dampening: 0.5 },
-            { targetId: 'mars', type: 'orbit', duration: 12, distance: 2.0, height: 0.2, speed: 0.25, dampening: 0.5 },
-            { targetId: 'phobos', type: 'travel', duration: 6, distance: 1.5, height: 0, speed: 0, side: 'lit', dampening: 0.8 },
-            { targetId: 'phobos', title: 'PHOBOS', subtitle: 'THE DOOMED MOON', titleDelay: 1.0, type: 'orbit', duration: 12, distance: 0.35, height: 0.1, speed: 0.15, dampening: 0.4 },
-            { targetId: 'jupiter', type: 'travel', duration: 14, distance: 60, height: 10, speed: 0, side: 'lit', dampening: 0.8 },
-            { targetId: 'jupiter', title: 'JUPITER', subtitle: 'KING OF WORLDS', titleDelay: 2.0, type: 'orbit', duration: 22, distance: 45, height: 0, speed: 0.03, dampening: 0.5 },
-            { targetId: 'europa', type: 'travel', duration: 8, distance: 4, height: 0, speed: 0, side: 'lit', dampening: 0.8 },
-            { targetId: 'europa', title: 'EUROPA', subtitle: 'ICE SHELL', titleDelay: 1.0, type: 'orbit', duration: 12, distance: 1.2, height: 0.2, speed: 0.1, dampening: 0.5 },
-            { targetId: 'ganymede', type: 'travel', duration: 8, distance: 5, height: 0, speed: 0, side: 'lit', dampening: 0.8 },
-            { targetId: 'ganymede', title: 'GANYMEDE', subtitle: 'THE GIANT', titleDelay: 1.0, type: 'orbit', duration: 12, distance: 1.8, height: 0.5, speed: 0.08, dampening: 0.5 },
-            { targetId: 'saturn', type: 'travel', duration: 16, distance: 70, height: 0, speed: 0, side: 'lit', dampening: 0.8 },
-            { targetId: 'saturn', title: 'SATURN', subtitle: 'THE CROWN JEWEL', titleDelay: 2.0, type: 'orbit', duration: 20, distance: 55, height: 8, speed: 0.05, dampening: 0.5 },
-            { targetId: 'saturn', type: 'orbit', duration: 15, distance: 40, height: 1, speed: 0.12, dampening: 0.5 },
-            { targetId: 'uranus', type: 'travel', duration: 16, distance: 30, height: 0, speed: 0, side: 'lit', dampening: 0.8 },
-            { targetId: 'uranus', title: 'URANUS', subtitle: 'THE ICE GIANT', titleDelay: 1.5, type: 'orbit', duration: 18, distance: 10, height: 0, speed: 0.06, dampening: 0.5 },
-            { targetId: 'neptune', type: 'travel', duration: 16, distance: 30, height: 0, speed: 0, side: 'lit', dampening: 0.8 },
-            { targetId: 'neptune', title: 'NEPTUNE', subtitle: 'THE DEEP BLUE', titleDelay: 1.5, type: 'orbit', duration: 18, distance: 10, height: 0, speed: 0.06, dampening: 0.5 },
-            { targetId: 'pluto', type: 'travel', duration: 14, distance: 3, height: 0, speed: 0, side: 'lit', dampening: 0.8 },
-            { targetId: 'pluto', title: 'PLUTO', subtitle: 'THE EDGE', titleDelay: 1.0, type: 'orbit', duration: 16, distance: 0.8, height: 0.2, speed: 0.1, dampening: 0.4 },
-            { targetId: 'eris', type: 'travel', duration: 14, distance: 3, height: 0, speed: 0, side: 'lit', dampening: 0.8 },
-            { targetId: 'eris', title: 'ERIS', subtitle: 'NOWHERE...', titleDelay: 1.0, type: 'orbit', duration: 16, distance: 0.8, height: 0.2, speed: 0.1, dampening: 0.4 },
-            { targetId: 'sagittarius_a', type: 'travel', duration: 25, distance: 200, height: 50, speed: 0, dampening: 1.5 },
-            { targetId: 'sagittarius_a', title: 'SAGITTARIUS A*', subtitle: 'GALACTIC CORE // SINGULARITY', titleDelay: 2.0, type: 'orbit', duration: 30, distance: 100, height: 20, speed: 0.03, dampening: 0.5 },
-            { targetId: 'sagittarius_a', type: 'flyby', duration: 15, distance: 60, height: 0, speed: 0.1, fov: 90, dampening: 0.6 },
-            { targetId: 'sun', title: 'SOLAR SYSTEM', subtitle: 'by Zac. // ZINCS', type: 'static', duration: 20, distance: 800, height: 400, speed: 0.05, fov: 70, dampening: 0.4 },
+            
+            // --- MERCURY (Radius 0.38) ---
+            // Travel: 20s. Arrive at 1.5 distance.
+            { targetId: 'mercury', type: 'travel', duration: 20, distance: 1.5, height: 0.2, speed: 0, side: 'lit', dampening: 0.6 },
+            // Orbit: 30s. Spiral in to 1.2.
+            { 
+                targetId: 'mercury', 
+                title: 'MERCURY', 
+                subtitle: 'THE LIGHTHOUSE', 
+                titleDelay: 6.0, 
+                type: 'orbit', 
+                duration: 30, 
+                distance: 1.2, 
+                height: 0.1, 
+                speed: 0.08, 
+                dampening: 0.4 
+            },
+            
+            // --- VENUS (Radius 0.95) ---
+            { targetId: 'venus', type: 'travel', duration: 25, distance: 4.0, height: 0, speed: 0, side: 'lit', dampening: 0.6 },
+            { 
+                targetId: 'venus', 
+                title: 'VENUS', 
+                subtitle: 'THE MORNING STAR', 
+                titleDelay: 6.0, 
+                type: 'orbit', 
+                duration: 35, 
+                distance: 3.0, 
+                height: 0.5, 
+                speed: 0.04, 
+                dampening: 0.4 
+            },
+            
+            // --- EARTH (Radius 1.0) ---
+            { targetId: 'earth', type: 'travel', duration: 25, distance: 5.0, height: 1.0, speed: 0, side: 'lit', dampening: 0.6 },
+            { 
+                targetId: 'earth', 
+                title: 'EARTH', 
+                subtitle: 'TERRA // HOME', 
+                titleDelay: 6.0, 
+                type: 'orbit', 
+                duration: 40, 
+                distance: 3.5, 
+                height: 0.5, 
+                speed: 0.03, 
+                dampening: 0.4 
+            },
+            
+            // --- MOON (Radius 0.27) ---
+            { targetId: 'moon', type: 'travel', duration: 10, distance: 1.5, height: 0, speed: 0, side: 'lit', dampening: 0.6 },
+            { 
+                targetId: 'moon', 
+                title: 'LUNA', 
+                subtitle: 'OUR MOON', 
+                titleDelay: 4.0, 
+                type: 'orbit', 
+                duration: 25, 
+                distance: 0.9, 
+                height: 0.1, 
+                speed: 0.06, 
+                dampening: 0.4 
+            },
+
+            // --- MARS (Radius 0.53) ---
+            { targetId: 'mars', type: 'travel', duration: 25, distance: 2.5, height: 0.2, speed: 0, side: 'lit', dampening: 0.6 },
+            { 
+                targetId: 'mars', 
+                title: 'MARS', 
+                subtitle: 'THE RED PLANET', 
+                titleDelay: 6.0, 
+                type: 'orbit', 
+                duration: 35, 
+                distance: 1.8, 
+                height: 0.2, 
+                speed: 0.08, 
+                dampening: 0.4 
+            },
+            
+            // --- JUPITER (Radius 11) ---
+            { targetId: 'jupiter', type: 'travel', duration: 35, distance: 40, height: 0, speed: 0, side: 'lit', dampening: 0.7 },
+            { 
+                targetId: 'jupiter', 
+                title: 'JUPITER', 
+                subtitle: 'KING OF WORLDS', 
+                titleDelay: 8.0, 
+                type: 'orbit', 
+                duration: 45, 
+                distance: 30, 
+                height: 2, 
+                speed: 0.02, 
+                dampening: 0.4 
+            },
+            
+            // --- SATURN (Radius 9) ---
+            { targetId: 'saturn', type: 'travel', duration: 35, distance: 35, height: 5, speed: 0, side: 'lit', dampening: 0.7 },
+            { 
+                targetId: 'saturn', 
+                title: 'SATURN', 
+                subtitle: 'THE JEWEL', 
+                titleDelay: 8.0, 
+                type: 'orbit', 
+                duration: 45, 
+                distance: 26, 
+                height: 6, 
+                speed: 0.03, 
+                dampening: 0.4 
+            },
+
+            // --- URANUS (Radius 4) ---
+            { targetId: 'uranus', type: 'travel', duration: 30, distance: 16, height: 0, speed: 0, side: 'lit', dampening: 0.6 },
+            { 
+                targetId: 'uranus', 
+                title: 'URANUS', 
+                subtitle: 'THE ICE GIANT', 
+                titleDelay: 6.0, 
+                type: 'orbit', 
+                duration: 35, 
+                distance: 12, 
+                height: 0, 
+                speed: 0.04, 
+                dampening: 0.4 
+            },
+
+            // --- NEPTUNE (Radius 3.8) ---
+            { targetId: 'neptune', type: 'travel', duration: 30, distance: 15, height: 0, speed: 0, side: 'lit', dampening: 0.6 },
+            { 
+                targetId: 'neptune', 
+                title: 'NEPTUNE', 
+                subtitle: 'THE DEEP BLUE', 
+                titleDelay: 6.0, 
+                type: 'orbit', 
+                duration: 35, 
+                distance: 11, 
+                height: 0, 
+                speed: 0.04, 
+                dampening: 0.4 
+            },
+
+            // --- PLUTO (Radius 0.18) ---
+            { targetId: 'pluto', type: 'travel', duration: 30, distance: 1.0, height: 0, speed: 0, side: 'lit', dampening: 0.6 },
+            { 
+                targetId: 'pluto', 
+                title: 'PLUTO', 
+                subtitle: 'THE EDGE', 
+                titleDelay: 6.0, 
+                type: 'orbit', 
+                duration: 35, 
+                distance: 0.6, 
+                height: 0.1, 
+                speed: 0.06, 
+                dampening: 0.4 
+            },
+
+            // --- SAGITTARIUS A* (Radius 30) ---
+            // 1. Approach
+            { targetId: 'sagittarius_a', type: 'travel', duration: 40, distance: 200, height: 20, speed: 0, dampening: 0.8 },
+            // 2. The Final Cinematic Shot (Orbit)
+            { 
+                targetId: 'sagittarius_a', 
+                title: 'SAGITTARIUS A*', 
+                subtitle: 'GALACTIC CORE', 
+                titleDelay: 8.0, 
+                type: 'orbit', 
+                duration: 50, 
+                distance: 80, 
+                height: 10, 
+                speed: 0.02, 
+                dampening: 0.4 
+            },
+            // 3. THE SINGULARITY (Spiral In)
+            { 
+                targetId: 'sagittarius_a', 
+                title: 'EVENT HORIZON',
+                subtitle: 'GRAVITATIONAL SINGULARITY',
+                titleDelay: 0.5,
+                type: 'orbit', // Orbiting while distance shrinks creates a spiral
+                duration: 15, 
+                distance: 0.1, // Radius 0 effectively
+                height: 0, 
+                speed: 2.0, // High speed spin
+                dampening: 0.2 // Loose dampening for chaotic feel
+            },
+            // 4. THE WORMHOLE LOOP (Warp back to Sun)
+            // This shot instantly transports us from the black hole center back to the Sun's start position
+            { 
+                targetId: 'sun', 
+                title: '...RESET',
+                subtitle: 'SIMULATION RESTART.',
+                titleDelay: 0.5,
+                type: 'travel', 
+                duration: 4, // Fast warp
+                distance: 140, // Matches Shot 1 distance
+                height: 20, // Matches Shot 1 height
+                speed: 0, 
+                dampening: 0.1, // Very low dampening for instant response
+                fov: 120 // Wide FOV for warp effect
+            },
         ]
     },
     {
@@ -144,72 +315,140 @@ export const TOURS: Tour[] = [
         name: 'Earth to Mars Transfer',
         description: 'A cinematic 20-minute journey to the Red Planet.',
         shots: [
-            // 1. Earth Orbit - Start EXTREMELY CLOSE (Radius 1.0, so 1.3 is 0.3 altitude)
             { 
                 targetId: 'earth', 
                 title: 'EARTH ORBIT', 
                 subtitle: 'SYSTEM CHECK COMPLETE',
-                titleDelay: 1,
+                titleDelay: 2,
                 type: 'orbit', 
-                duration: 20, 
+                duration: 30, 
                 distance: 1.3, 
                 height: 0, 
-                speed: 0.15,
-                dampening: 0.5 
+                speed: 0.1,
+                dampening: 0.4 
             },
-            // 2. Departure Burn - Pull back from close orbit to distance
             { 
                 targetId: 'earth', 
                 title: 'INJECTION BURN',
                 subtitle: 'ESCAPE VELOCITY ACHIEVED',
-                type: 'static', // Hold relative position while drifting back
-                duration: 15, 
-                distance: 30, // Move further away for dramatic departure
+                type: 'static', 
+                duration: 20, 
+                distance: 30, 
                 height: 5, 
                 speed: 0.0, 
-                dampening: 0.4, // Slow drift
+                dampening: 0.3, 
                 fov: 65 
             },
-            // 3. The Transfer (1135s)
-            // Starts from Earth and moves to Mars (Arrives at 1.4 for close-up)
             { 
                 targetId: 'mars', 
                 type: 'travel', 
                 duration: 1135, 
-                distance: 1.4, // EXTREME CLOSE UP ARRIVAL
-                height: 0.5, 
+                distance: 1.2, 
+                height: 0.3, 
                 speed: 0, 
                 side: 'lit', 
-                dampening: 0.4, 
+                dampening: 0.3, 
                 showFlightComputer: true,
                 originName: 'EARTH',
                 destName: 'MARS',
                 facts: MARS_FACTS,
                 fov: 45
             },
-            // 4. Mars Arrival - Already close from previous shot
             { 
                 targetId: 'mars', 
                 title: 'MARS ARRIVAL', 
                 subtitle: 'ORBITAL INSERTION BURN',
-                titleDelay: 1,
+                titleDelay: 2,
                 type: 'orbit', 
-                duration: 30, 
-                distance: 1.5, // Keep it tight
-                height: 0.2, 
-                speed: 0.2,
-                dampening: 0.6,
+                duration: 40, 
+                distance: 1.3, 
+                height: 0.1, 
+                speed: 0.15,
+                dampening: 0.5,
                 fov: 60
             },
-            // 5. Stable Orbit
             {
                 targetId: 'mars',
                 type: 'orbit',
                 duration: 60,
                 distance: 2.0,
                 height: 0,
+                speed: 0.08,
+                dampening: 0.5
+            }
+        ]
+    },
+    {
+        id: 'jovian_leap',
+        name: 'The Jovian Leap',
+        description: 'A 4-minute transfer from Europa to Ganymede through the giant\'s shadow.',
+        shots: [
+            // 1. Europa Surface - Start close
+            { 
+                targetId: 'europa', 
+                title: 'EUROPA', 
+                subtitle: 'ICE SHELL // DEPARTURE',
+                titleDelay: 2,
+                type: 'orbit', 
+                duration: 40, 
+                distance: 0.6, // Close (Radius 0.25)
+                height: 0.1, 
+                speed: 0.08,
+                dampening: 0.5 
+            },
+            // 2. Pull back to reveal the transit path
+            { 
+                targetId: 'europa', 
+                title: 'ORBITAL INJECTION',
+                subtitle: 'TRANSIT VECTOR ALIGNED',
+                type: 'static', 
+                duration: 25, 
+                distance: 4, 
+                height: 0.5, 
+                speed: 0.02, 
+                dampening: 0.5, 
+                fov: 60 
+            },
+            // 3. THE GIANT (New Sequence)
+            // We focus on Jupiter to show scale while "traveling"
+            { 
+                targetId: 'jupiter', 
+                // No main title to let the viewer soak in the scale, flight computer handles context
+                type: 'orbit', 
+                duration: 60, 
+                distance: 22, // Close enough to fill screen (Radius 11)
+                height: 0, 
+                speed: 0.02, 
+                dampening: 0.5, 
+                showFlightComputer: true,
+                originName: 'EUROPA',
+                destName: 'GANYMEDE',
+                facts: JOVIAN_FACTS,
+                fov: 55
+            },
+            // 4. Ganymede Approach
+            { 
+                targetId: 'ganymede', 
+                type: 'travel', 
+                duration: 45, 
+                distance: 2.0, // Arrive for spiral
+                height: 0.2, 
+                speed: 0, 
+                side: 'lit', 
+                dampening: 0.5, 
+            },
+            // 5. Arrival
+            { 
+                targetId: 'ganymede', 
+                title: 'GANYMEDE', 
+                subtitle: 'ARRIVAL CONFIRMED',
+                titleDelay: 4,
+                type: 'orbit', 
+                duration: 40, 
+                distance: 1.5, 
+                height: 0.1, 
                 speed: 0.1,
-                dampening: 0.6
+                dampening: 0.4
             }
         ]
     },
@@ -218,23 +457,22 @@ export const TOURS: Tour[] = [
         name: 'Voyager 1: The Grand Tour',
         description: 'Relive the 45-year journey in 1 hour.',
         shots: [
-            // --- 1. EARTH LAUNCH (1977) ---
             {
                 targetId: 'earth',
                 title: 'VOYAGER 1',
                 subtitle: 'LAUNCH: SEPT 5, 1977',
-                titleDelay: 1,
-                type: 'orbit',
+                titleDelay: 2,
+                type: 'orbit', 
                 duration: 60,
                 distance: 5,
                 height: 1,
-                speed: 0.15,
+                speed: 0.1,
                 dampening: 0.6
             },
             {
                 targetId: 'earth',
                 title: 'DEPARTURE',
-                subtitle: 'By ZAC. A VOYAGERS JOURNEY.',
+                subtitle: 'A VOYAGERS JOURNEY, BY ZAC.',
                 type: 'flyby',
                 duration: 60,
                 distance: 20,
@@ -243,11 +481,10 @@ export const TOURS: Tour[] = [
                 dampening: 0.6,
                 fov: 80
             },
-            // --- 2. CRUISE TO JUPITER ---
             {
                 targetId: 'jupiter',
                 type: 'travel',
-                duration: 600, // 10 mins
+                duration: 600, 
                 distance: 50,
                 height: 5,
                 speed: 0,
@@ -257,25 +494,23 @@ export const TOURS: Tour[] = [
                 destName: 'JUPITER',
                 facts: VOYAGER_FACTS
             },
-            // --- 3. JUPITER FLYBY (1979) ---
             {
                 targetId: 'jupiter',
                 title: 'JUPITER ENCOUNTER',
                 subtitle: 'MARCH 1979 // GRAVITY ASSIST',
-                titleDelay: 1,
+                titleDelay: 2,
                 type: 'flyby',
-                duration: 180, // 3 mins
+                duration: 180, 
                 distance: 35,
                 height: 0,
-                speed: 0.2,
+                speed: 0.15,
                 dampening: 0.8,
                 fov: 65
             },
-             // --- 4. CRUISE TO SATURN ---
              {
                 targetId: 'saturn',
                 type: 'travel',
-                duration: 600, // 10 mins
+                duration: 600, 
                 distance: 50,
                 height: 5,
                 speed: 0,
@@ -285,31 +520,29 @@ export const TOURS: Tour[] = [
                 destName: 'SATURN',
                 facts: VOYAGER_FACTS
             },
-            // --- 5. SATURN FLYBY (1980) ---
             {
                 targetId: 'saturn',
                 title: 'SATURN ENCOUNTER',
                 subtitle: 'NOV 1980 // TITAN FLYBY',
-                titleDelay: 1,
+                titleDelay: 2,
                 type: 'flyby',
-                duration: 180, // 3 mins
+                duration: 180, 
                 distance: 40,
-                height: 10, // Higher angle for rings
-                speed: 0.15,
+                height: 10, 
+                speed: 0.1,
                 dampening: 0.8,
                 fov: 65
             },
-            // --- 6. INTERSTELLAR MISSION ---
             {
-                targetId: 'sun', // Fly away from sun
+                targetId: 'sun',
                 title: 'INTERSTELLAR MISSION',
                 subtitle: 'HELIOPAUSE CROSSING // 2012',
                 type: 'travel',
-                duration: 1920, // ~32 mins remainder
-                distance: 5000, // Massive distance
-                height: 500, // Off-plane trajectory
+                duration: 1920, 
+                distance: 5000, 
+                height: 500, 
                 speed: 0,
-                dampening: 0.2, // Extremely slow drift feel
+                dampening: 0.2, 
                 showFlightComputer: true,
                 originName: 'SATURN',
                 destName: 'DEEP SPACE',
@@ -321,7 +554,9 @@ export const TOURS: Tour[] = [
 ];
 
 // --- MATH HELPERS ---
-const easeInOutCubic = (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+// Use Sine for smoother, less aggressive transitions than Cubic
+const easeInOutSine = (x: number): number => -(Math.cos(Math.PI * x) - 1) / 2;
+const easeOutSine = (x: number): number => Math.sin((x * Math.PI) / 2);
 
 // --- COMPONENT: TITLE OVERLAY ---
 export function CinematicOverlay({ data }: { data: OverlayData }) {
@@ -372,11 +607,8 @@ export function CinematicOverlay({ data }: { data: OverlayData }) {
 export function FlightComputer({ data }: { data: FlightData }) {
     const [elapsed, setElapsed] = useState(0);
     const [factIndex, setFactIndex] = useState(0);
-    
-    // Determine which facts to show
     const currentFacts = data.facts || MARS_FACTS;
 
-    // Timer Logic
     useEffect(() => {
         if (!data.active || !data.startTime) return;
         const interval = setInterval(() => {
@@ -385,15 +617,12 @@ export function FlightComputer({ data }: { data: FlightData }) {
         return () => clearInterval(interval);
     }, [data.active, data.startTime]);
 
-    // Fact Rotator
     useEffect(() => {
         if (!data.active) return;
-        // Reset index when activation changes
         setFactIndex(0);
-        
         const interval = setInterval(() => {
             setFactIndex(prev => (prev + 1) % currentFacts.length);
-        }, 30000); // New fact every 30s
+        }, 30000); 
         return () => clearInterval(interval);
     }, [data.active, currentFacts.length]);
 
@@ -402,7 +631,6 @@ export function FlightComputer({ data }: { data: FlightData }) {
     const remaining = Math.max(0, data.duration * 1000 - elapsed);
     const progress = Math.min(1, elapsed / (data.duration * 1000));
     
-    // Formatting Helpers
     const formatTime = (ms: number) => {
         const totalSeconds = Math.floor(ms / 1000);
         const h = Math.floor(totalSeconds / 3600);
@@ -411,7 +639,6 @@ export function FlightComputer({ data }: { data: FlightData }) {
         return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
-    // Calculate approximate distance (Simulation)
     const totalDistance = 225000000; 
     const currentDist = Math.floor(totalDistance * progress);
     const remainingDist = totalDistance - currentDist;
@@ -419,7 +646,6 @@ export function FlightComputer({ data }: { data: FlightData }) {
 
     return (
         <div className="absolute inset-0 pointer-events-none z-40 p-4 md:p-8 flex flex-col justify-between pt-safe-top">
-            {/* TOP BAR */}
             <div className="flex justify-between items-start animate-in fade-in slide-in-from-top duration-1000">
                 <div className="bg-black/60 backdrop-blur-md p-4 rounded-br-2xl border-l-4 border-l-[#DFFF00] border-y border-r border-white/10">
                     <div className="text-[#DFFF00] font-mono text-xs uppercase tracking-[0.2em] mb-1">Flight Computer</div>
@@ -431,21 +657,20 @@ export function FlightComputer({ data }: { data: FlightData }) {
                 </div>
             </div>
 
-            {/* CENTER FACTS */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl text-center px-4">
-                 <div key={factIndex} className="animate-in fade-in zoom-in duration-1000">
-                    <div className="inline-block bg-black/40 backdrop-blur-md px-6 py-3 rounded-full border border-white/5 mb-4">
-                        <span className="text-[#DFFF00] font-mono text-xs uppercase tracking-widest mr-2">Mission Log</span>
-                    </div>
-                    <h2 className="text-xl md:text-3xl font-light text-white leading-relaxed drop-shadow-xl">
-                        "{currentFacts[factIndex]}"
-                    </h2>
-                 </div>
-            </div>
-
-            {/* BOTTOM BAR */}
             <div className="flex justify-between items-end animate-in fade-in slide-in-from-bottom duration-1000 pb-safe-bottom">
-                <div className="bg-black/60 backdrop-blur-md p-6 rounded-tr-2xl border-l-4 border-l-[#DFFF00] border-y border-r border-white/10 w-full max-w-md hidden md:block">
+                <div className="bg-black/60 backdrop-blur-md p-6 rounded-tr-2xl border-l-4 border-l-[#DFFF00] border-y border-r border-white/10 w-full max-w-lg hidden md:block">
+                    <div key={factIndex} className="mb-6 animate-in fade-in zoom-in duration-500">
+                        <div className="text-[#DFFF00] font-mono text-[10px] uppercase tracking-widest mb-1 flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 bg-[#DFFF00] rounded-full animate-pulse"></span>
+                            Mission Log
+                        </div>
+                        <h2 className="text-sm md:text-base font-light text-white leading-relaxed opacity-90">
+                            "{currentFacts[factIndex]}"
+                        </h2>
+                    </div>
+
+                    <div className="h-[1px] w-full bg-white/10 mb-4"></div>
+
                     <div className="flex justify-between text-xs font-mono uppercase tracking-widest mb-2">
                         <span className="text-zinc-400">Progress</span>
                         <span className="text-[#DFFF00]">{(progress * 100).toFixed(1)}%</span>
@@ -453,6 +678,7 @@ export function FlightComputer({ data }: { data: FlightData }) {
                     <div className="h-1 bg-zinc-800 w-full mb-4 overflow-hidden rounded-full">
                         <div className="h-full bg-[#DFFF00] transition-all duration-300" style={{ width: `${progress * 100}%` }} />
                     </div>
+                    
                     <div className="grid grid-cols-2 gap-8">
                         <div>
                             <div className="text-zinc-500 text-[10px] uppercase tracking-wider mb-1">Distance Rem.</div>
@@ -500,7 +726,8 @@ export function CinematicDirector({
     const transitionState = useRef({
         pos: new THREE.Vector3(),
         lookAt: new THREE.Vector3(),
-        orbitAngle: 0
+        orbitAngle: 0,
+        entryDistance: 0 
     });
     const currentPos = useRef(new THREE.Vector3());
     const currentLookAt = useRef(new THREE.Vector3());
@@ -544,24 +771,26 @@ export function CinematicDirector({
         transitionState.current.pos.copy(currentPos.current);
         transitionState.current.lookAt.copy(currentLookAt.current);
         
+        let targetPos = new THREE.Vector3();
         if (shot.targetId && refs.current[shot.targetId]) {
-            const targetPos = new THREE.Vector3();
             refs.current[shot.targetId].getWorldPosition(targetPos);
             const dx = currentPos.current.x - targetPos.x;
             const dz = currentPos.current.z - targetPos.z;
             transitionState.current.orbitAngle = Math.atan2(dz, dx);
+            // Capture entry distance to smoothly blend into the shot's desired radius
+            transitionState.current.entryDistance = currentPos.current.distanceTo(targetPos);
         }
 
         // Overlay logic
         if (shot.showFlightComputer) {
-            onOverlayUpdate({ show: false }); // Hide title cards
+            onOverlayUpdate({ show: false }); 
             onFlightUpdate({ 
                 active: true, 
                 startTime: Date.now(), 
                 duration: shot.duration,
                 origin: shot.originName,
                 destination: shot.destName,
-                facts: shot.facts // Pass the facts
+                facts: shot.facts 
             });
         } else {
             onFlightUpdate({ active: false });
@@ -576,7 +805,7 @@ export function CinematicDirector({
                 }, delay);
                 hideTimer = setTimeout(() => {
                     onOverlayUpdate({ title: shot.title, subtitle: shot.subtitle, show: false });
-                }, delay + 4000); // Hold for 4s then fade
+                }, delay + 6000); 
             } 
             return () => { clearTimeout(showTimer); clearTimeout(hideTimer); };
         }
@@ -591,12 +820,11 @@ export function CinematicDirector({
         if (!tour) return;
 
         const shot = tour.shots[shotIndex];
-        // SAFETY CHECK: Prevents undefined error when switching between tours of different lengths
         if (!shot) return; 
 
         const elapsed = (Date.now() - shotStartTime) / 1000;
         const progress = Math.min(1, elapsed / shot.duration);
-        const smoothProgress = easeInOutCubic(progress);
+        const smoothProgress = easeInOutSine(progress); // Using Sine for gentler feel
 
         if (elapsed > shot.duration) {
             const nextIndex = (shotIndex + 1) % tour.shots.length;
@@ -624,9 +852,8 @@ export function CinematicDirector({
                 arrivalOffset.copy(toSun).multiplyScalar(shot.distance);
                 arrivalOffset.y = shot.height;
             } else if (shot.side === 'dark') {
-                // Fly away into darkness
                 const sunPos = new THREE.Vector3(0,0,0);
-                const fromSun = new THREE.Vector3().subVectors(targetCenter, sunPos).normalize().negate(); // Away vector
+                const fromSun = new THREE.Vector3().subVectors(targetCenter, sunPos).normalize().negate(); 
                 arrivalOffset.copy(fromSun).multiplyScalar(shot.distance);
                 arrivalOffset.y = shot.height;
             }
@@ -635,12 +862,12 @@ export function CinematicDirector({
             const mid = new THREE.Vector3().lerpVectors(pStart, pEnd, 0.5);
             const dist = pStart.distanceTo(pEnd);
             
-            // --- COLLISION AVOIDANCE ---
+            // Reduced Y-offset for smoother, less "bumpy" flight path
             const sunDist = mid.distanceTo(new THREE.Vector3(0,0,0));
             if (sunDist < 50) {
                  mid.y += 100;
             } else {
-                 mid.y += Math.min(60, dist * 0.25); 
+                 mid.y += Math.min(40, dist * 0.15); 
             }
 
             const t = smoothProgress;
@@ -648,32 +875,48 @@ export function CinematicDirector({
             idealPos.y = (1-t)*(1-t)*pStart.y + 2*(1-t)*t*mid.y + t*t*pEnd.y;
             idealPos.z = (1-t)*(1-t)*pStart.z + 2*(1-t)*t*mid.z + t*t*pEnd.z;
 
-            idealLookAt.lerpVectors(transitionState.current.lookAt, targetCenter, t);
+            // SMOOTH LOOK-AT: Blend over 60% of the shot for a lazy, cinematic turn
+            // Using smoothstep to remove any harsh start/stop to the rotation
+            const rawLookProgress = Math.min(1, progress * 1.5); 
+            const lookProgress = THREE.MathUtils.smoothstep(rawLookProgress, 0, 1);
+            idealLookAt.lerpVectors(transitionState.current.lookAt, targetCenter, lookProgress);
         }
         else if (shot.type === 'orbit') {
             const angle = transitionState.current.orbitAngle + (elapsed * shot.speed);
-            idealPos.x = targetCenter.x + Math.cos(angle) * shot.distance;
-            idealPos.z = targetCenter.z + Math.sin(angle) * shot.distance;
-            idealPos.y = targetCenter.y + shot.height + (Math.sin(elapsed * 0.5) * 2);
+            
+            // SPIRAL-IN BLENDING:
+            // Smoothly blend from entry distance (e.g. 1.5) to orbit distance (e.g. 1.2)
+            // over a longer period (8s) using easeOutSine for a very gentle deceleration
+            const blendDuration = 8.0; 
+            const blendFactor = Math.min(1, elapsed / blendDuration);
+            const currentDistance = THREE.MathUtils.lerp(
+                transitionState.current.entryDistance, 
+                shot.distance, 
+                easeOutSine(blendFactor)
+            );
+
+            idealPos.x = targetCenter.x + Math.cos(angle) * currentDistance;
+            idealPos.z = targetCenter.z + Math.sin(angle) * currentDistance;
+            idealPos.y = targetCenter.y + shot.height + (Math.sin(elapsed * 0.2) * 1); // Slower vertical drift
             idealLookAt.copy(targetCenter);
         }
         else if (shot.type === 'flyby') {
             const startOffset = new THREE.Vector3(-shot.distance, shot.height, -shot.distance * 0.5);
             const endOffset = new THREE.Vector3(shot.distance, shot.height, shot.distance * 0.5);
-            const currentOffset = new THREE.Vector3().lerpVectors(startOffset, endOffset, progress);
+            const currentOffset = new THREE.Vector3().lerpVectors(startOffset, endOffset, smoothProgress);
             idealPos.copy(targetCenter).add(currentOffset);
             idealLookAt.copy(targetCenter);
         }
         else if (shot.type === 'eclipse') {
             const sunPos = new THREE.Vector3(0,0,0);
             const dirFromSun = new THREE.Vector3().subVectors(targetCenter, sunPos).normalize();
-            const verticalDrift = Math.sin(elapsed * 0.2) * 5;
+            const verticalDrift = Math.sin(elapsed * 0.1) * 5;
             idealPos.copy(targetCenter).add(dirFromSun.multiplyScalar(shot.distance));
             idealPos.y += shot.height + verticalDrift;
             idealLookAt.copy(targetCenter);
         }
         else if (shot.type === 'static') {
-            const driftFactor = 1 + (elapsed * 0.01);
+            const driftFactor = 1 + (elapsed * 0.005); // Very subtle drift
             const angle = transitionState.current.orbitAngle;
             idealPos.x = targetCenter.x + Math.cos(angle) * (shot.distance * driftFactor);
             idealPos.z = targetCenter.z + Math.sin(angle) * (shot.distance * driftFactor);
@@ -681,19 +924,23 @@ export function CinematicDirector({
             idealLookAt.copy(targetCenter);
         }
 
-        // SMOOTHER TRANSITIONS
-        const damp = shot.dampening || 0.8; 
+        // WEIGHTY PHYSICS:
+        // Use lower dampening (0.6 - 0.8) to simulate a heavy camera rig.
+        // It lags slightly behind the ideal position, smoothing out any math jitters.
+        const damp = shot.dampening || 0.6; 
         currentPos.current.lerp(idealPos, delta * damp);
-        currentLookAt.current.lerp(idealLookAt, delta * (damp * 1.5));
+        
+        // Slower lookAt dampening for that "delayed operator" feel
+        currentLookAt.current.lerp(idealLookAt, delta * (damp * 0.5));
 
         camera.position.copy(currentPos.current);
         camera.lookAt(currentLookAt.current);
         
         if (shot.fov && camera instanceof THREE.PerspectiveCamera) {
-            camera.fov = THREE.MathUtils.lerp(camera.fov, shot.fov, delta);
+            camera.fov = THREE.MathUtils.lerp(camera.fov, shot.fov, delta * 0.5);
             camera.updateProjectionMatrix();
         } else if (camera instanceof THREE.PerspectiveCamera && camera.fov !== 45) {
-             camera.fov = THREE.MathUtils.lerp(camera.fov, 45, delta);
+             camera.fov = THREE.MathUtils.lerp(camera.fov, 45, delta * 0.5);
              camera.updateProjectionMatrix();
         }
     });

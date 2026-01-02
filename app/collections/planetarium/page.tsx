@@ -43,6 +43,7 @@ function PlanetariumContent() {
 
     // Cinematic State
     const [isCinematic, setIsCinematic] = useState(false);
+    const [cinematicKey, setCinematicKey] = useState(0); // Forces remount of director
     const [cinematicOverlay, setCinematicOverlay] = useState<OverlayData>({ show: false });
     const [flightData, setFlightData] = useState<FlightData>({ active: false });
     const [currentTourId, setCurrentTourId] = useState('grand_tour');
@@ -57,7 +58,6 @@ function PlanetariumContent() {
 
     const handleBackgroundClick = useCallback(() => {
         if (rideStatus === 'driving' || isCinematic) return;
-        // Don't deselect immediately on click if panning, but for now simple deselection
         setSelectedId(null);
         setFinderOpen(false);
     }, [rideStatus, isCinematic]);
@@ -94,6 +94,7 @@ function PlanetariumContent() {
 
     const startCinematic = (tourId: string) => {
         setCurrentTourId(tourId);
+        setCinematicKey(k => k + 1); // Increment to force reset
         setSelectedId(null);
         setFinderOpen(false);
         setShuttleOpen(false);
@@ -130,6 +131,7 @@ function PlanetariumContent() {
                     />
 
                     <CinematicDirector 
+                        key={cinematicKey} // KEY PROP FORCES RESET ON RESTART
                         active={isCinematic} 
                         tourId={currentTourId}
                         refs={planetRefs} 
@@ -179,10 +181,7 @@ function PlanetariumContent() {
 
             {!isCinematic && (
                 <>
-                    {/* Replaced Header: Positioned at very top, optimized for mobile */}
                     <div className="absolute top-0 left-0 w-full z-10 pointer-events-none p-4 md:p-6 pt-safe-top md:pt-6 flex flex-col md:flex-row justify-between items-start gap-4">
-                        
-                        {/* Title Block */}
                         <div className="pointer-events-auto flex items-start justify-between w-full md:w-auto md:block">
                             <div>
                                 <Link href="/collections" className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors text-[10px] md:text-xs font-mono uppercase tracking-widest mb-1 md:mb-2">
@@ -194,7 +193,6 @@ function PlanetariumContent() {
                                 <TimeDisplay />
                             </div>
                             
-                            {/* Mobile-only View Controls in top right for space saving */}
                              <div className="md:hidden flex gap-2">
                                     <button 
                                         onClick={() => setShowLabels(!showLabels)}
@@ -213,8 +211,6 @@ function PlanetariumContent() {
                         
                         {(!rideStatus || rideStatus === 'idle') && !selectedId && (
                             <div className="flex flex-col gap-2 w-full md:w-auto items-end">
-                                {/* Main Actions */}
-                                {/* REMOVED overflow-x-auto to prevent menu clipping, ADDED flex-wrap */}
                                 <div className="flex flex-wrap md:flex-nowrap gap-2 md:gap-3 pointer-events-auto w-full md:w-auto">
                                     <CinematicMenu onSelectTour={startCinematic} />
 
@@ -232,7 +228,6 @@ function PlanetariumContent() {
                                     </button>
                                 </div>
 
-                                {/* Desktop View Controls */}
                                 <div className="hidden md:flex gap-2 pointer-events-auto">
                                      <button 
                                         onClick={() => setShowOrbits(!showOrbits)}
