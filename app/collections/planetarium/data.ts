@@ -3,13 +3,13 @@
 export interface CelestialBody {
   id: string;
   name: string;
-  type: 'Star' | 'Planet' | 'Dwarf Planet' | 'Moon' | 'Station';
+  type: 'Star' | 'Planet' | 'Dwarf Planet' | 'Moon' | 'Station' | 'Black Hole';
   description: string;
   radius: number; 
   distance: number; 
-  orbitalPeriod: number; // In Earth Days
-  rotationPeriod: number; // In Earth Hours
-  meanLongitude: number; // J2000.0 Mean Longitude (Degrees)
+  orbitalPeriod: number; 
+  rotationPeriod: number; 
+  meanLongitude: number; 
   axialTilt: number;
   textureUrl: string;
   cloudTextureUrl?: string; 
@@ -60,7 +60,7 @@ export const PLANET_DATA: CelestialBody[] = [
         name: "Sunforge Array",
         type: "Station",
         description: "A massive solar collector array shielding a research habitat.",
-        radius: 0.04, // Reduced from 0.12
+        radius: 0.04, 
         distance: 0.8, 
         orbitalPeriod: 3, 
         rotationPeriod: 0,
@@ -94,7 +94,7 @@ export const PLANET_DATA: CelestialBody[] = [
         name: "Vesper Sky City",
         type: "Station",
         description: "A floating aerostat colony drifting high in the upper atmosphere.",
-        radius: 0.06, // Reduced from 0.25
+        radius: 0.06, 
         distance: 1.8, 
         orbitalPeriod: 5, 
         rotationPeriod: 0,
@@ -143,7 +143,7 @@ export const PLANET_DATA: CelestialBody[] = [
         name: "Zinc Orbital",
         type: "Station",
         description: "The primary transit hub for the Zinc Shuttle network.",
-        radius: 0.03, // Reduced from 0.1
+        radius: 0.03, 
         distance: 1.8, 
         orbitalPeriod: 0.15, 
         rotationPeriod: 0,
@@ -158,7 +158,7 @@ export const PLANET_DATA: CelestialBody[] = [
         name: "ISS",
         type: "Station",
         description: "International Space Station",
-        radius: 0.015, // Reduced significantly from 0.05
+        radius: 0.015, 
         distance: 1.3, 
         orbitalPeriod: 0.0645, 
         rotationPeriod: 0,
@@ -190,7 +190,7 @@ export const PLANET_DATA: CelestialBody[] = [
         name: "Ares Shipyards",
         type: "Station",
         description: "Orbital drydocks where the system's heavy cruisers are constructed.",
-        radius: 0.05, // Reduced from 0.15
+        radius: 0.05, 
         distance: 1.2, 
         orbitalPeriod: 1.2,
         rotationPeriod: 0,
@@ -207,7 +207,7 @@ export const PLANET_DATA: CelestialBody[] = [
     name: "Kuva Fortress",
     type: "Station",
     description: "A moving Grineer fortress hidden in the asteroid belt.",
-    radius: 0.4, // Reduced from 0.8
+    radius: 0.4, 
     distance: 450, 
     orbitalPeriod: 1500, 
     rotationPeriod: 48, 
@@ -237,7 +237,7 @@ export const PLANET_DATA: CelestialBody[] = [
          name: "Galileo Hub",
          type: "Station",
          description: "A massive research ring station monitoring the Great Red Spot.",
-         radius: 0.15, // Reduced from 0.8
+         radius: 0.15, 
          distance: 16, 
          orbitalPeriod: 6, 
          rotationPeriod: 0,
@@ -270,7 +270,7 @@ export const PLANET_DATA: CelestialBody[] = [
           name: "The Dreadnaught",
           type: "Station",
           description: "Oryx's flagship, parked within the rings of Saturn.",
-          radius: 0.12, // Reduced from 0.6
+          radius: 0.12, 
           distance: 15, 
           orbitalPeriod: 10, 
           rotationPeriod: 0,
@@ -302,7 +302,7 @@ export const PLANET_DATA: CelestialBody[] = [
          name: "Titania Outpost",
          type: "Station",
          description: "A deeply secluded ice-mining and cryo-storage facility.",
-         radius: 0.08, // Reduced from 0.4
+         radius: 0.08, 
          distance: 6, 
          orbitalPeriod: 6,
          rotationPeriod: 0,
@@ -334,7 +334,7 @@ export const PLANET_DATA: CelestialBody[] = [
          name: "Trident Relay",
          type: "Station",
          description: "The furthest major communication buoy in the system.",
-         radius: 0.08, // Reduced from 0.4
+         radius: 0.08, 
          distance: 6,
          orbitalPeriod: 5.5,
          rotationPeriod: 0,
@@ -366,7 +366,7 @@ export const PLANET_DATA: CelestialBody[] = [
          name: "Terminus Gate",
          type: "Station",
          description: "The final fueling stop before the void.",
-         radius: 0.02, // Reduced from 0.06
+         radius: 0.02, 
          distance: 0.4, 
          orbitalPeriod: 3,
          rotationPeriod: 0,
@@ -377,5 +377,21 @@ export const PLANET_DATA: CelestialBody[] = [
          stats: { temp: "-230°C", day: "-", year: "-" }
       }
     ]
+  },
+  {
+    id: "sagittarius_a",
+    name: "Sagittarius A*",
+    type: "Black Hole",
+    description: "The supermassive black hole at the center of the galaxy.",
+    radius: 30, // Event Horizon
+    distance: 15000, 
+    orbitalPeriod: 0,
+    rotationPeriod: 0,
+    meanLongitude: 180,
+    axialTilt: 60,
+    textureUrl: "",
+    color: "#000000",
+    stats: { temp: "∞", day: "Singularity", year: "Eternal" },
+    moons: []
   }
 ];

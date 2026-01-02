@@ -219,6 +219,38 @@ export const TOURS: Tour[] = [
             },
             { targetId: 'pluto', type: 'static', duration: 12, distance: 4, height: 1, speed: 0.02 },
 
+            // --- THE INTERSTELLAR LEAP TO SAGITTARIUS A* ---
+            { 
+                targetId: 'sagittarius_a', 
+                type: 'travel', 
+                duration: 25, // Long travel for the sense of scale
+                distance: 200, 
+                height: 50, 
+                speed: 0, 
+                dampening: 3.0 // Stable flight
+            },
+            {
+                targetId: 'sagittarius_a',
+                title: 'SAGITTARIUS A*',
+                subtitle: 'GALACTIC CORE // SINGULARITY',
+                titleDelay: 2.0,
+                type: 'orbit',
+                duration: 30,
+                distance: 120,
+                height: 30,
+                speed: 0.03, // Majestic slow rotation
+                dampening: 1.0
+            },
+            {
+                targetId: 'sagittarius_a',
+                type: 'flyby', // Dive into the accretion disk
+                duration: 15,
+                distance: 80,
+                height: 0, 
+                speed: 0.1,
+                fov: 90 // Warp speed feel
+            },
+
              // --- OUTRO ---
              { targetId: 'sun', title: 'SOLAR SYSTEM', subtitle: 'SIMULATION PAUSED', type: 'static', duration: 20, distance: 1000, height: 500, speed: 0.05, fov: 70 },
         ]
@@ -409,7 +441,7 @@ export function CinematicDirector({
             const dist = pStart.distanceTo(pEnd);
             
             // --- COLLISION AVOIDANCE ---
-            // 1. Check if midpoint is dangerously close to the Sun (0,0,0)
+            // If midpoint is dangerously close to the Sun (0,0,0)
             const sunDist = mid.distanceTo(new THREE.Vector3(0,0,0));
             if (sunDist < 50) {
                  // Push path UP significantly to fly "over" the solar system plane

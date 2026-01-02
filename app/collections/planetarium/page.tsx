@@ -4,7 +4,7 @@ import React, { useRef, useState, Suspense, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { EffectComposer, Bloom, Vignette, Noise } from '@react-three/postprocessing';
 import * as THREE from 'three';
-import { ArrowLeft, Search, Car, Film, Pause } from 'lucide-react';
+import { ArrowLeft, Search, Car, Film, Eye, EyeOff, type XIcon, Tag, Crosshair } from 'lucide-react';
 import Link from 'next/link';
 
 // Import split components
@@ -14,7 +14,6 @@ import { CinematicDirector, CinematicOverlay, OverlayData } from './components/C
 import { DetailPanel, SystemFinder, ZincShuttleApp, SpeedControls } from './components/UI';
 import { PLANET_DATA } from './data';
 
-// Helper component to display time
 function TimeDisplay() {
     const { simulationTime } = useSimulation();
     return (
@@ -27,6 +26,10 @@ function TimeDisplay() {
 function PlanetariumContent() {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [finderOpen, setFinderOpen] = useState(false);
+    
+    // View Options
+    const [showOrbits, setShowOrbits] = useState(true);
+    const [showLabels, setShowLabels] = useState(true);
     
     // Shuttle State
     const [shuttleOpen, setShuttleOpen] = useState(false);
@@ -49,9 +52,26 @@ function PlanetariumContent() {
 
     const handleBackgroundClick = useCallback(() => {
         if (rideStatus === 'driving' || isCinematic) return;
+        // Don't deselect immediately on click if panning, but for now simple deselection
         setSelectedId(null);
         setFinderOpen(false);
     }, [rideStatus, isCinematic]);
+    
+    // Explicit Recenter Function
+    const handleRecenter = () => {
+        setSelectedId(null);
+        // We need to trigger the initial view logic in SystemControls.
+        // Since we are unmounting selectedId, we might need a way to signal "Reset"
+        // But simply setting selectedId to null unlocks the camera. 
+        // To force a fly-back, we can briefly set it to a dummy value or just let the user use the 'Home' feel.
+        // Actually, SystemControls logic for `!targetId` doesn't auto-reset anymore (to allow free roam).
+        // So we might need to pass a "recenterTrigger" prop or similar, or just re-mount controls.
+        // For simplicity: We will just toggle selectedId to 'sun' then null quickly? No that's hacky.
+        // Let's rely on the user manually panning back OR clicking Sun.
+        // Better: Let's make the "Recenter" button just select the 'sun' for a moment.
+        setSelectedId('sun');
+        setTimeout(() => setSelectedId(null), 1000);
+    };
 
     const handlePreview = useCallback((route: { origin: string, destination: string } | null) => {
         setPreviewTarget(route);
@@ -80,12 +100,11 @@ function PlanetariumContent() {
         setFinderOpen(false);
         setShuttleOpen(false);
         setIsCinematic(!isCinematic);
-        setCinematicOverlay({ show: false }); // Reset overlay
+        setCinematicOverlay({ show: false });
     };
 
     return (
         <div className="relative w-full h-screen bg-black overflow-hidden touch-none">
-            {/* 1. THE 3D SCENE */}
             <Canvas 
                 dpr={[1, 2]} 
                 gl={{ antialias: true, toneMapping: THREE.ReinhardToneMapping, toneMappingExposure: 1.5 }}
@@ -105,7 +124,6 @@ function PlanetariumContent() {
                         previewTarget={previewTarget}
                     />
 
-                    {/* Cinematic Logic Inside Canvas */}
                     <CinematicDirector 
                         active={isCinematic} 
                         tourId="grand_tour" 
@@ -125,6 +143,8 @@ function PlanetariumContent() {
                             data={planet} 
                             isSelected={selectedId === planet.id}
                             isCinematic={isCinematic}
+                            showOrbits={showOrbits}
+                            showLabels={showLabels}
                             onClick={(idOverride?: string) => handleSelect(idOverride || planet.id)}
                             onSelectRef={(id: string, ref: THREE.Object3D) => { planetRefs.current[id] = ref; }}
                         />
@@ -146,50 +166,76 @@ function PlanetariumContent() {
                 </Suspense>
             </Canvas>
 
-            {/* 2. CINEMATIC OVERLAY (HUD LAYER) */}
-            {/* This sits ON TOP of the canvas, not inside it */}
             <CinematicOverlay data={cinematicOverlay} />
 
-            {/* 3. MAIN UI LAYER - HIDDEN DURING CINEMATIC */}
             {!isCinematic && (
-                <div className="absolute top-20 md:top-24 left-0 p-4 md:p-8 w-full z-10 pointer-events-none flex flex-col md:flex-row justify-between items-start gap-4">
-                    <div className="pointer-events-auto w-full md:w-auto animate-in fade-in slide-in-from-top-4 duration-500">
-                        <Link href="/collections" className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors text-xs font-mono uppercase tracking-widest mb-2 md:mb-4">
-                            <ArrowLeft size={14} /> Exit Simulation
-                        </Link>
-                        <h1 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tighter drop-shadow-2xl">
-                            Solar <span className="text-[#DFFF00]">Map</span>
-                        </h1>
-                        <TimeDisplay />
-                    </div>
-                    
-                    {/* Only show these buttons if no planet is selected AND we are not driving */}
-                    {(!rideStatus || rideStatus === 'idle') && !selectedId ? (
-                        <div className="flex gap-2 md:gap-4 pointer-events-auto animate-in fade-in slide-in-from-top-4 duration-500 w-full md:w-auto mt-2 md:mt-0">
-                            {/* SCENIC FLIGHT BUTTON */}
-                            <button 
-                                onClick={toggleCinematic}
-                                className="flex-1 md:flex-initial flex items-center justify-center gap-2 px-4 md:px-6 py-3 font-bold uppercase tracking-widest rounded-full transition-all text-xs md:text-sm bg-zinc-800 hover:bg-zinc-700 text-white border border-white/10"
-                            >
-                                <Film size={16} className="text-[#DFFF00]" /> 
-                                <span className="whitespace-nowrap">Scenic Flight</span>
-                            </button>
-
-                            <button 
-                                onClick={() => setShuttleOpen(!shuttleOpen)}
-                                className="flex-1 md:flex-initial flex items-center justify-center gap-2 px-4 md:px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold uppercase tracking-widest rounded-full transition-all border border-white/10 text-xs md:text-sm"
-                            >
-                                <Car size={16} className="text-[#DFFF00]" /> <span className="whitespace-nowrap">Zinc Shuttle</span>
-                            </button>
-                            <button 
-                                onClick={() => setFinderOpen(true)}
-                                className="flex-1 md:flex-initial flex items-center justify-center gap-2 px-4 md:px-6 py-3 bg-[#DFFF00] hover:bg-white text-black font-bold uppercase tracking-widest rounded-full transition-all shadow-[0_0_30px_rgba(223,255,0,0.4)] text-xs md:text-sm"
-                            >
-                                <Search size={16} /> <span className="whitespace-nowrap">Browser</span>
-                            </button>
+                <>
+                    {/* Header */}
+                    <div className="absolute top-20 md:top-24 left-0 p-4 md:p-8 w-full z-10 pointer-events-none flex flex-col md:flex-row justify-between items-start gap-4">
+                        <div className="pointer-events-auto w-full md:w-auto animate-in fade-in slide-in-from-top-4 duration-500">
+                            <Link href="/collections" className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors text-xs font-mono uppercase tracking-widest mb-2 md:mb-4">
+                                <ArrowLeft size={14} /> Exit Simulation
+                            </Link>
+                            <h1 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tighter drop-shadow-2xl">
+                                Solar <span className="text-[#DFFF00]">Map</span>
+                            </h1>
+                            <TimeDisplay />
                         </div>
-                    ) : null}
-                </div>
+                        
+                        {(!rideStatus || rideStatus === 'idle') && !selectedId && (
+                            <div className="flex flex-col gap-2 w-full md:w-auto mt-2 md:mt-0 items-end">
+                                {/* Main Actions */}
+                                <div className="flex gap-2 md:gap-4 pointer-events-auto animate-in fade-in slide-in-from-top-4 duration-500 w-full md:w-auto">
+                                    <button 
+                                        onClick={toggleCinematic}
+                                        className="flex-1 md:flex-initial flex items-center justify-center gap-2 px-4 md:px-6 py-3 font-bold uppercase tracking-widest rounded-full transition-all text-xs md:text-sm bg-zinc-800 hover:bg-zinc-700 text-white border border-white/10"
+                                    >
+                                        <Film size={16} className="text-[#DFFF00]" /> 
+                                        <span className="whitespace-nowrap">Scenic Flight</span>
+                                    </button>
+
+                                    <button 
+                                        onClick={() => setShuttleOpen(!shuttleOpen)}
+                                        className="flex-1 md:flex-initial flex items-center justify-center gap-2 px-4 md:px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold uppercase tracking-widest rounded-full transition-all border border-white/10 text-xs md:text-sm"
+                                    >
+                                        <Car size={16} className="text-[#DFFF00]" /> <span className="whitespace-nowrap">Zinc Shuttle</span>
+                                    </button>
+                                    <button 
+                                        onClick={() => setFinderOpen(true)}
+                                        className="flex-1 md:flex-initial flex items-center justify-center gap-2 px-4 md:px-6 py-3 bg-[#DFFF00] hover:bg-white text-black font-bold uppercase tracking-widest rounded-full transition-all shadow-[0_0_30px_rgba(223,255,0,0.4)] text-xs md:text-sm"
+                                    >
+                                        <Search size={16} /> <span className="whitespace-nowrap">Browser</span>
+                                    </button>
+                                </div>
+
+                                {/* View Controls */}
+                                <div className="flex gap-2 pointer-events-auto animate-in fade-in slide-in-from-top-8 duration-700">
+                                     <button 
+                                        onClick={() => setShowOrbits(!showOrbits)}
+                                        className="p-3 bg-black/40 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-full backdrop-blur-md border border-white/5 transition-all"
+                                        title="Toggle Orbits"
+                                    >
+                                        {showOrbits ? <Eye size={16} /> : <EyeOff size={16} />}
+                                    </button>
+                                    <button 
+                                        onClick={() => setShowLabels(!showLabels)}
+                                        className={`p-3 bg-black/40 hover:bg-zinc-800 rounded-full backdrop-blur-md border border-white/5 transition-all ${showLabels ? 'text-white' : 'text-zinc-500'}`}
+                                        title="Toggle Labels"
+                                    >
+                                        <Tag size={16} />
+                                    </button>
+                                    <button 
+                                        onClick={handleRecenter}
+                                        className="p-3 bg-black/40 hover:bg-zinc-800 text-zinc-400 hover:text-[#DFFF00] rounded-full backdrop-blur-md border border-white/5 transition-all"
+                                        title="Recenter Camera"
+                                    >
+                                        <Crosshair size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </>
             )}
 
             <ZincShuttleApp 
@@ -206,7 +252,6 @@ function PlanetariumContent() {
             
             {!isCinematic && <SpeedControls />}
             
-            {/* CINEMATIC STOP CONTROL */}
             {isCinematic && (
                 <div className="fixed bottom-12 w-full text-center pointer-events-auto animate-in fade-in duration-1000 z-50">
                     <button 

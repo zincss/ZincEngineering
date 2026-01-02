@@ -1,55 +1,158 @@
 'use client';
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { useFrame, useLoader, useThree } from '@react-three/fiber';
-import { Html, CameraControls } from '@react-three/drei';
+import { Html, CameraControls, Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { useSimulation, J2000_EPOCH, MILLISECONDS_PER_DAY, getBodyPosition, findBodyById } from '../context';
 
-// --- STAR BACKGROUND ---
+// --- STAR BACKGROUND (TEXTURE + PARTICLES) ---
 export function StarBackground() {
     const texture = useLoader(THREE.TextureLoader, '/textures/8k_stars.jpg') as THREE.Texture;
+    
     return (
-        <mesh>
-            <sphereGeometry args={[100000, 64, 64]} />
-            <meshBasicMaterial map={texture} side={THREE.BackSide} color="#111111" />
-        </mesh>
+        <group>
+            {/* 1. The Deep Field Texture (Base Layer) */}
+            <mesh>
+                <sphereGeometry args={[100000, 64, 64]} />
+                <meshBasicMaterial map={texture} side={THREE.BackSide} color="#050505" />
+            </mesh>
+
+            {/* 2. Subtle 3D Depth Stars */}
+            <Stars 
+                radius={300} 
+                depth={500}  
+                count={2000} 
+                factor={4}   
+                saturation={0} 
+                fade 
+                speed={0.5} 
+            />
+        </group>
     );
 }
 
-// --- NEW CINEMATIC SUN ---
+// --- BLACK HOLE SHADER MATERIAL ---
+const AccretionDiskShader = {
+    uniforms: {
+        time: { value: 0 },
+        colorInner: { value: new THREE.Color("#ffaa00") },
+        colorOuter: { value: new THREE.Color("#cc4400") },
+    },
+    vertexShader: `
+        varying vec2 vUv;
+        varying vec3 vPos;
+        void main() {
+            vUv = uv;
+            vPos = position;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        uniform float time;
+        uniform vec3 colorInner;
+        uniform vec3 colorOuter;
+        varying vec2 vUv;
+        varying vec3 vPos;
+
+        // Simple noise function
+        float random (in vec2 _st) { return fract(sin(dot(_st.xy, vec2(12.9898,78.233)))* 43758.5453123); }
+        float noise (in vec2 _st) {
+            vec2 i = floor(_st);
+            vec2 f = fract(_st);
+            float a = random(i);
+            float b = random(i + vec2(1.0, 0.0));
+            float c = random(i + vec2(0.0, 1.0));
+            float d = random(i + vec2(1.0, 1.0));
+            vec2 u = f * f * (3.0 - 2.0 * f);
+            return mix(a, b, u.x) + (c - a)* u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+        }
+
+        void main() {
+            // Polar coordinates for the disk
+            vec2 center = vec2(0.5);
+            vec2 toCenter = vUv - center;
+            float dist = length(toCenter) * 2.0; // 0 at center, 1 at edge
+            float angle = atan(toCenter.y, toCenter.x);
+
+            // Create swirl effect
+            float swirl = noise(vec2(dist * 10.0 - time * 2.0, angle * 4.0 + time));
+            
+            // Soft inner and outer edges
+            float alpha = smoothstep(0.3, 0.45, dist) * smoothstep(0.9, 0.5, dist);
+            
+            // Color gradient
+            vec3 finalColor = mix(colorInner, colorOuter, dist);
+            
+            // Add noise detail/swirl brightness
+            finalColor += swirl * 0.4;
+            
+            // Boost brightness for HDR bloom
+            gl_FragColor = vec4(finalColor * 2.5, alpha * 0.9);
+        }
+    `
+};
+
+function BlackHole({ data, onClick }: any) {
+    const meshRef = useRef<THREE.Mesh>(null);
+    const diskRef = useRef<THREE.Mesh>(null);
+    const materialRef = useRef<THREE.ShaderMaterial>(null);
+
+    useFrame(({ clock }) => {
+        const t = clock.getElapsedTime();
+        if (diskRef.current) diskRef.current.rotation.z = t * 0.1;
+        if (materialRef.current) materialRef.current.uniforms.time.value = t;
+    });
+
+    return (
+        <group onClick={(e) => { e.stopPropagation(); onClick(); }}>
+            <mesh ref={meshRef}>
+                <sphereGeometry args={[data.radius, 64, 64]} />
+                <meshBasicMaterial color="#000000" />
+            </mesh>
+            <mesh ref={diskRef} rotation={[Math.PI/2, 0, 0]}>
+                <ringGeometry args={[data.radius * 1.5, data.radius * 4, 128]} />
+                <shaderMaterial 
+                    ref={materialRef} 
+                    args={[AccretionDiskShader]} 
+                    side={THREE.DoubleSide} 
+                    transparent 
+                    depthWrite={false}
+                    blending={THREE.AdditiveBlending}
+                />
+            </mesh>
+            <sprite scale={[data.radius * 8, data.radius * 8, 1]}>
+                <spriteMaterial color="#ff5500" transparent opacity={0.1} blending={THREE.AdditiveBlending} />
+            </sprite>
+        </group>
+    );
+}
+
 export function Sun({ onClick }: { onClick: () => void }) {
     const meshRef = useRef<THREE.Mesh>(null);
     const glowRef = useRef<THREE.Sprite>(null);
-    
-    // Try to load the texture, fallback handled gracefully by Three.js usually (pink/black)
-    // Ensure you have 'public/textures/8k_sun.jpg'
     const sunTexture = useLoader(THREE.TextureLoader, '/textures/8k_sun.jpg');
 
     useFrame(({ clock }) => {
         const elapsed = clock.getElapsedTime();
-        if (meshRef.current) {
-            meshRef.current.rotation.y = elapsed * 0.05; // Slow rotation
-        }
-        // Pulse the glow slightly
+        if (meshRef.current) meshRef.current.rotation.y = elapsed * 0.02;
         if (glowRef.current) {
             const scale = 120 + Math.sin(elapsed * 0.5) * 5;
             glowRef.current.scale.set(scale, scale, 1);
         }
     });
 
-    // Create a simple glow texture programmatically so you don't need to download another file
-    const glowTexture = React.useMemo(() => {
+    const glowTexture = useMemo(() => {
         const canvas = document.createElement('canvas');
         canvas.width = 128;
         canvas.height = 128;
         const context = canvas.getContext('2d');
         if (context) {
             const gradient = context.createRadialGradient(64, 64, 0, 64, 64, 64);
-            gradient.addColorStop(0, 'rgba(255, 200, 100, 1)'); // Inner Core (White/Orange)
-            gradient.addColorStop(0.2, 'rgba(255, 140, 0, 0.8)'); // Mid (Orange)
-            gradient.addColorStop(0.5, 'rgba(200, 50, 0, 0.2)'); // Outer (Reddish)
-            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)'); // Fade to transparent
+            gradient.addColorStop(0, 'rgba(255, 200, 100, 1)'); 
+            gradient.addColorStop(0.2, 'rgba(255, 140, 0, 0.8)'); 
+            gradient.addColorStop(0.5, 'rgba(200, 50, 0, 0.2)'); 
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)'); 
             context.fillStyle = gradient;
             context.fillRect(0, 0, 128, 128);
         }
@@ -58,18 +161,13 @@ export function Sun({ onClick }: { onClick: () => void }) {
 
     return (
         <group onClick={(e) => { e.stopPropagation(); onClick(); }}>
-            {/* The Actual Sun Sphere */}
             <mesh ref={meshRef}>
                 <sphereGeometry args={[25, 64, 64]} />
-                <meshBasicMaterial map={sunTexture} color="#ffffff" /> 
+                <meshBasicMaterial map={sunTexture} color="#ffffff" toneMapped={false} /> 
             </mesh>
-            
-            {/* The Glow Sprite (Always faces camera) */}
             <sprite ref={glowRef} scale={[120, 120, 1]}>
                 <spriteMaterial map={glowTexture} color="#ffaa00" blending={THREE.AdditiveBlending} depthWrite={false} />
             </sprite>
-
-            {/* Light Source */}
             <pointLight intensity={3} decay={0} distance={0} color="#fff8e7" />
         </group>
     );
@@ -79,13 +177,9 @@ function PlanetClouds({ textureUrl, radius }: { textureUrl: string, radius: numb
     const cloudsRef = useRef<THREE.Mesh>(null);
     const cloudMap = useLoader(THREE.TextureLoader, textureUrl) as THREE.Texture;
     const { speedRef } = useSimulation();
-
     useFrame((state, delta) => {
-        if (cloudsRef.current && speedRef.current < 1000) {
-            cloudsRef.current.rotation.y += (delta * 0.05); 
-        }
+        if (cloudsRef.current && speedRef.current < 1000) cloudsRef.current.rotation.y += (delta * 0.05); 
     });
-
     return (
         <mesh ref={cloudsRef} scale={[1.01, 1.01, 1.01]}>
             <sphereGeometry args={[radius, 64, 64]} />
@@ -94,11 +188,30 @@ function PlanetClouds({ textureUrl, radius }: { textureUrl: string, radius: numb
     );
 }
 
-export function Planet({ data, isSelected, onClick, onSelectRef, isCinematic }: any) {
+// Updated Planet Component with Show/Hide props
+export function Planet({ data, isSelected, onClick, onSelectRef, isCinematic, showOrbits, showLabels }: any) {
     const meshRef = useRef<THREE.Mesh>(null);
     const groupRef = useRef<THREE.Group>(null);
     const { timeRef } = useSimulation();
     
+    // --- BLACK HOLE RENDERER ---
+    if (data.type === 'Black Hole') {
+        return (
+             <group ref={groupRef} position={[data.distance, 1000, 0]}> 
+                <group rotation={[THREE.MathUtils.degToRad(60), THREE.MathUtils.degToRad(30), 0]}>
+                    <BlackHole data={data} onClick={onClick} />
+                </group>
+                {!isSelected && !isCinematic && showLabels && (
+                    <Html position={[0, data.radius * 4, 0]} distanceFactor={10000}>
+                        <div className="text-white text-xs font-mono opacity-50 tracking-widest uppercase bg-black/40 px-2 rounded backdrop-blur-sm pointer-events-none whitespace-nowrap">
+                            {data.name}
+                        </div>
+                    </Html>
+                )}
+             </group>
+        );
+    }
+
     const isStation = data.type === 'Station';
     const colorMap = !isStation ? useLoader(THREE.TextureLoader, data.textureUrl) as THREE.Texture : null;
     const ringMap = data.ringTextureUrl ? useLoader(THREE.TextureLoader, data.ringTextureUrl) as THREE.Texture : null;
@@ -127,7 +240,8 @@ export function Planet({ data, isSelected, onClick, onSelectRef, isCinematic }: 
 
     return (
         <group>
-            {!isCinematic && (
+            {/* ORBIT RINGS (Togglable) */}
+            {!isCinematic && showOrbits && (
                 <mesh rotation={[-Math.PI/2, 0, 0]}>
                     <ringGeometry args={[data.distance - 0.2, data.distance + 0.2, 256]} />
                     <meshBasicMaterial color="#ffffff" opacity={0.05} transparent side={THREE.DoubleSide} />
@@ -149,9 +263,10 @@ export function Planet({ data, isSelected, onClick, onSelectRef, isCinematic }: 
                         <meshBasicMaterial color="#DFFF00" transparent opacity={0.5} side={THREE.DoubleSide} />
                     </mesh>
                 )}
-                {!isSelected && !isCinematic && (
+                {/* LABELS (Togglable) */}
+                {!isSelected && !isCinematic && showLabels && (
                     <Html position={[0, data.radius + 2, 0]} distanceFactor={150}>
-                        <div className="text-white text-xs font-mono opacity-50 tracking-widest uppercase bg-black/40 px-2 rounded backdrop-blur-sm pointer-events-none">
+                        <div className="text-white text-xs font-mono opacity-50 tracking-widest uppercase bg-black/40 px-2 rounded backdrop-blur-sm pointer-events-none whitespace-nowrap">
                             {data.name}
                         </div>
                     </Html>
@@ -219,6 +334,25 @@ function Moon({ data, parentRadius, onSelectRef, onClick }: any) {
         if(meshRef.current) onSelectRef(data.id, meshRef.current);
     }, [data.id, onSelectRef]);
     
+    if (isStation) {
+         return (
+             <group ref={meshRef as any} onClick={(e) => { e.stopPropagation(); onClick(); }}>
+                {data.id === 'dreadnaught' ? (
+                    <group>
+                        <mesh rotation={[0, 0, Math.PI/4]}><octahedronGeometry args={[data.radius * 2, 0]} /><meshStandardMaterial color="#332211" roughness={0.8} /></mesh>
+                        <pointLight distance={3} intensity={3} color="orange" />
+                    </group>
+                ) : (
+                    <group>
+                        <mesh><boxGeometry args={[data.radius * 3, data.radius, data.radius]} /><meshStandardMaterial color="#eeeeee" metalness={0.8} roughness={0.2} /></mesh>
+                        <mesh position={[0, 0, 0]} rotation={[0, 0, Math.PI/2]}><cylinderGeometry args={[data.radius * 0.1, data.radius * 0.1, data.radius * 8, 8]} /><meshStandardMaterial color="#2244ff" metalness={0.9} roughness={0.3} /></mesh>
+                        <pointLight distance={2} intensity={2} color="cyan" />
+                    </group>
+                )}
+            </group>
+        );
+    }
+
     return (
         <mesh ref={meshRef} onClick={(e) => { e.stopPropagation(); onClick(); }}>
             <sphereGeometry args={[data.radius, 16, 16]} />
@@ -227,6 +361,7 @@ function Moon({ data, parentRadius, onSelectRef, onClick }: any) {
     );
 }
 
+// Updated SpaceRoute (No Changes Needed)
 export function SpaceRoute({ originId, destinationId, isDriving, isPreviewing, setArrived }: any) {
     const { timeRef } = useSimulation();
     const [progress, setProgress] = useState(0);
@@ -342,13 +477,27 @@ export function SpaceRoute({ originId, destinationId, isDriving, isPreviewing, s
     )
 }
 
+// Updated SystemControls to allow free movement & Sag A focusing
 export function SystemControls({ targetId, refs, isShuttleActive, previewTarget, isCinematic }: any) {
     const controlsRef = useRef<CameraControls>(null);
     const { timeRef } = useSimulation();
 
+    // 1. Initial Setup: Set position once, but don't lock it constantly
+    useEffect(() => {
+        if (controlsRef.current && !targetId && !isCinematic && !isShuttleActive) {
+            // Default "Overview" position
+            controlsRef.current.setLookAt(0, 600, 800, 0, 0, 0, true);
+        }
+    }, []); // Run only on mount
+
+    // 2. Focus Logic
     useEffect(() => {
         if(!controlsRef.current) return;
-        if (previewTarget && previewTarget.origin && previewTarget.destination && !isShuttleActive) {
+        
+        if (isShuttleActive || isCinematic) return;
+
+        // Preview Route Focus
+        if (previewTarget && previewTarget.origin && previewTarget.destination) {
             const destObj = refs.current[previewTarget.destination];
             if(destObj) {
                 const p1 = getBodyPosition(previewTarget.origin, timeRef.current);
@@ -356,28 +505,51 @@ export function SystemControls({ targetId, refs, isShuttleActive, previewTarget,
                 const dist = p1.distanceTo(p2);
                 controlsRef.current.fitToBox(destObj, true, { paddingLeft: dist/3, paddingRight: dist/3, paddingTop: dist/3, paddingBottom: dist/3 });
             }
-        }
-    }, [previewTarget, isShuttleActive]);
-
-    useEffect(() => {
-        if (!controlsRef.current || isShuttleActive || previewTarget || isCinematic) return;
-        if (targetId === 'sun') {
-            controlsRef.current.setLookAt(0, 100, 250, 0, 0, 0, true);
             return;
         }
-        if (targetId && refs.current[targetId]) {
-            const targetObj = refs.current[targetId];
-            const data = findBodyById(targetId) || { radius: 25 };
-            const viewDistance = data.radius < 1 ? data.radius * 12 : data.radius * 4; 
-            controlsRef.current.fitToBox(targetObj, true, { paddingTop: viewDistance, paddingBottom: viewDistance, paddingLeft: viewDistance, paddingRight: viewDistance });
-        } else if (!targetId) {
-            controlsRef.current.setLookAt(0, 600, 800, 0, 0, 0, true);
-        }
+
+        // Target Focus
+        if (targetId) {
+             // Handle Sun explicitly
+            if (targetId === 'sun') {
+                controlsRef.current.setLookAt(0, 100, 250, 0, 0, 0, true);
+                return;
+            }
+            // Handle Sagittarius A explicitly (Far distance)
+            if (targetId === 'sagittarius_a' && refs.current['sagittarius_a']) {
+                 const bhGroup = refs.current['sagittarius_a'];
+                 // Get world position of the group
+                 const pos = new THREE.Vector3();
+                 bhGroup.getWorldPosition(pos);
+                 // Fly to it, keeping some distance
+                 controlsRef.current.setLookAt(
+                     pos.x + 150, pos.y + 50, pos.z + 150, // Eye
+                     pos.x, pos.y, pos.z,                  // Target
+                     true
+                 );
+                 return;
+            }
+
+            // Handle Planets/Stations
+            if (refs.current[targetId]) {
+                const targetObj = refs.current[targetId];
+                const data = findBodyById(targetId) || { radius: 25 };
+                const viewDistance = data.radius < 1 ? data.radius * 12 : data.radius * 4; 
+                controlsRef.current.fitToBox(targetObj, true, { paddingTop: viewDistance, paddingBottom: viewDistance, paddingLeft: viewDistance, paddingRight: viewDistance });
+            }
+        } 
+        
+        // Note: We removed the "else" block that forced the camera back to center
+        // whenever targetId was null. This allows free panning.
+        // Recenter logic will be handled by a button calling handleRecenter.
+
     }, [targetId, refs, isShuttleActive, previewTarget, isCinematic]);
 
+    // 3. Lock Logic (Only runs when we have a target)
     useFrame(() => {
-        if (isShuttleActive || isCinematic) return;
-        if (targetId && targetId !== 'sun' && refs.current[targetId] && controlsRef.current && !previewTarget) {
+        if (isShuttleActive || isCinematic || !targetId) return; // Don't lock if free roaming
+        
+        if (targetId !== 'sun' && targetId !== 'sagittarius_a' && refs.current[targetId] && controlsRef.current && !previewTarget) {
             const targetObj = refs.current[targetId];
             const pos = new THREE.Vector3();
             targetObj.getWorldPosition(pos);
