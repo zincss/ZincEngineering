@@ -9,7 +9,7 @@ import Link from 'next/link';
 
 // Import split components
 import { SimulationProvider, useSimulation, TimeKeeper } from './context';
-import { StarBackground, Sun, Planet, SpaceRoute, SystemControls } from './components/Scene';
+import { StarBackground, Sun, Planet, SpaceRoute, SystemControls, SpaceDust, AsteroidBelt } from './components/Scene';
 
 import { CinematicDirector, CinematicOverlay, FlightComputer } from './components/Cinematic';
 import type { OverlayData, FlightData } from './components/Cinematic';
@@ -139,6 +139,8 @@ function PlanetariumContent() {
                     />
                     
                     <StarBackground />
+                    <SpaceDust />
+                    <AsteroidBelt />
                     
                     <Sun onClick={() => handleSelect('sun')} />
                     <group ref={(ref) => { if(ref) planetRefs.current['sun'] = ref }} />

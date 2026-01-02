@@ -1,10 +1,148 @@
 'use client';
 
-import React, { useRef, useState, useEffect, useMemo } from 'react';
+import React, { useRef, useState, useEffect, useMemo, useLayoutEffect } from 'react';
 import { useFrame, useLoader, useThree } from '@react-three/fiber';
 import { Html, CameraControls, Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { useSimulation, J2000_EPOCH, MILLISECONDS_PER_DAY, getBodyPosition, findBodyById } from '../context';
+
+// --- SPACE DUST (Infinite Particle Field for Motion) ---
+const DustShader = {
+    uniforms: {
+        uColor: { value: new THREE.Color('#ffffff') },
+        uCameraPos: { value: new THREE.Vector3() }
+    },
+    vertexShader: `
+      uniform vec3 uCameraPos;
+      varying float vAlpha;
+      
+      void main() {
+        vec3 pos = position;
+        
+        // Wrap logic: Modulo based on camera position creates infinite field
+        float boxSize = 400.0; // Size of the particle box
+        vec3 offset = mod(pos - uCameraPos, boxSize) - boxSize * 0.5;
+        vec3 finalPos = uCameraPos + offset;
+        
+        vec4 mvPosition = modelViewMatrix * vec4(finalPos, 1.0);
+        gl_Position = projectionMatrix * mvPosition;
+        
+        // Size attenuation
+        gl_PointSize = (1.5 / -mvPosition.z) * 100.0;
+        
+        // Fade out at edges of box to prevent popping
+        float dist = length(offset);
+        vAlpha = 1.0 - smoothstep(boxSize * 0.35, boxSize * 0.5, dist);
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 uColor;
+      varying float vAlpha;
+      void main() {
+        // Circular particle
+        if (length(gl_PointCoord - vec2(0.5)) > 0.5) discard;
+        gl_FragColor = vec4(uColor, vAlpha * 0.4);
+      }
+    `
+};
+
+export function SpaceDust() {
+    const pointsRef = useRef<THREE.Points>(null);
+    const materialRef = useRef<THREE.ShaderMaterial>(null);
+    const { camera } = useThree();
+    
+    // Generate 3000 random static positions in a box
+    const particles = useMemo(() => {
+        const count = 3000;
+        const data = new Float32Array(count * 3);
+        const boxSize = 400;
+        for(let i=0; i<count*3; i++) {
+            data[i] = (Math.random() - 0.5) * boxSize; 
+        }
+        return data;
+    }, []);
+
+    useFrame(() => {
+        if (materialRef.current) {
+            // Pass current camera position to shader to handle wrapping
+            materialRef.current.uniforms.uCameraPos.value.copy(camera.position);
+        }
+    });
+
+    return (
+        <points ref={pointsRef} frustumCulled={false}>
+            <bufferGeometry>
+                <bufferAttribute attach="attributes-position" count={particles.length / 3} array={particles} itemSize={3} />
+            </bufferGeometry>
+            <shaderMaterial 
+                ref={materialRef} 
+                args={[DustShader]} 
+                transparent 
+                depthWrite={false} 
+                blending={THREE.AdditiveBlending} 
+            />
+        </points>
+    );
+}
+
+// --- ASTEROID BELT ---
+export function AsteroidBelt() {
+    const meshRef = useRef<THREE.InstancedMesh>(null);
+    const count = 4000; 
+    
+    useLayoutEffect(() => {
+        if(!meshRef.current) return;
+        
+        const tempObj = new THREE.Object3D();
+        const color = new THREE.Color();
+        
+        for(let i=0; i<count; i++) {
+           // Random placement in a ring between Mars (230) and Jupiter (780)
+           const angle = Math.random() * Math.PI * 2;
+           const radius = 300 + Math.random() * 300; // Wider belt
+           
+           const x = Math.cos(angle) * radius;
+           const z = Math.sin(angle) * radius;
+           // Slight vertical spread
+           const y = (Math.random() - 0.5) * 60; 
+           
+           tempObj.position.set(x, y, z);
+           
+           // Random Rotation
+           tempObj.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+           
+           // Random Scale - Small but visible
+           const scale = Math.random() * 0.4 + 0.05; 
+           tempObj.scale.set(scale, scale, scale);
+           
+           tempObj.updateMatrix();
+           meshRef.current.setMatrixAt(i, tempObj.matrix);
+           
+           // BRIGHTER COLOR LOGIC (Updated)
+           // HSL: Lightness between 0.4 and 0.9 for much better visibility
+           color.setHSL(0.08, 0.3, Math.random() * 0.5 + 0.4); 
+           meshRef.current.setColorAt(i, color);
+        }
+        
+        meshRef.current.instanceMatrix.needsUpdate = true;
+        if (meshRef.current.instanceColor) meshRef.current.instanceColor.needsUpdate = true;
+    }, []);
+  
+    useFrame(({ clock }) => {
+       if(meshRef.current) {
+           // Rotate the entire belt slowly
+           meshRef.current.rotation.y = clock.getElapsedTime() * 0.003;
+       }
+    });
+  
+    return (
+        <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
+           <dodecahedronGeometry args={[1, 0]} /> {/* Low poly rock shape */}
+           {/* Pure White base color for maximum brightness potential */}
+           <meshStandardMaterial color="#FFFFFF" roughness={0.8} metalness={0.2} flatShading />
+        </instancedMesh>
+    )
+}
 
 // --- STAR BACKGROUND (TEXTURE + PARTICLES) ---
 export function StarBackground() {
@@ -269,8 +407,19 @@ export function Planet({ data, isSelected, onClick, onSelectRef, isCinematic, sh
                         </div>
                     </Html>
                 )}
+                
+                {/* MOONS & STATIONS */}
                 {data.moons && data.moons.map((moon: any, idx: number) => (
-                    <Moon key={idx} data={moon} parentRadius={data.radius} onSelectRef={onSelectRef} onClick={() => onClick(moon.id)} />
+                    <React.Fragment key={idx}>
+                        {/* Cinematic Orbit Ring for Moons/Stations - Respects Toggle & Cinematic Mode */}
+                        {!isCinematic && showOrbits && (
+                            <mesh rotation={[-Math.PI/2, 0, 0]}>
+                                <ringGeometry args={[data.radius + moon.distance - 0.05, data.radius + moon.distance + 0.05, 128]} />
+                                <meshBasicMaterial color="#ffffff" opacity={0.08} transparent side={THREE.DoubleSide} depthWrite={false} />
+                            </mesh>
+                        )}
+                        <Moon data={moon} parentRadius={data.radius} onSelectRef={onSelectRef} onClick={() => onClick(moon.id)} />
+                    </React.Fragment>
                 ))}
             </group>
         </group>
@@ -542,14 +691,12 @@ export function SystemControls({ targetId, refs, isShuttleActive, previewTarget,
             if (refs.current[targetId]) {
                 const targetObj = refs.current[targetId];
                 const data = findBodyById(targetId) || { radius: 25 };
-                const viewDistance = data.radius < 1 ? data.radius * 12 : data.radius * 4; 
+                // Calculate view distance
+                // Allows extremely close up views for stations
+                const viewDistance = data.radius < 1 ? data.radius * 6 : data.radius * 4; 
                 controlsRef.current.fitToBox(targetObj, true, { paddingTop: viewDistance, paddingBottom: viewDistance, paddingLeft: viewDistance, paddingRight: viewDistance });
             }
         } 
-        
-        // Note: We removed the "else" block that forced the camera back to center
-        // whenever targetId was null. This allows free panning.
-        // Recenter logic will be handled by a button calling handleRecenter.
 
     }, [targetId, refs, isShuttleActive, previewTarget, isCinematic]);
 
@@ -598,5 +745,6 @@ export function SystemControls({ targetId, refs, isShuttleActive, previewTarget,
         }
     });
 
-    return <CameraControls ref={controlsRef} maxDistance={50000} minDistance={0.1} smoothTime={1.2} enabled={!isShuttleActive && !isCinematic} />;
+    // Reduced minDistance to allow extreme close-ups on tiny stations
+    return <CameraControls ref={controlsRef} maxDistance={50000} minDistance={0.001} smoothTime={1.2} enabled={!isShuttleActive && !isCinematic} />;
 }
