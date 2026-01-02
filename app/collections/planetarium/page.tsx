@@ -4,20 +4,23 @@ import React, { useRef, useState, Suspense, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { EffectComposer, Bloom, Vignette, Noise } from '@react-three/postprocessing';
 import * as THREE from 'three';
-import { ArrowLeft, Search, Car, Film, Eye, EyeOff, type XIcon, Tag, Crosshair } from 'lucide-react';
+import { ArrowLeft, Search, Car, Eye, EyeOff, Tag, Crosshair } from 'lucide-react';
 import Link from 'next/link';
 
 // Import split components
 import { SimulationProvider, useSimulation, TimeKeeper } from './context';
 import { StarBackground, Sun, Planet, SpaceRoute, SystemControls } from './components/Scene';
-import { CinematicDirector, CinematicOverlay, OverlayData } from './components/Cinematic';
-import { DetailPanel, SystemFinder, ZincShuttleApp, SpeedControls } from './components/UI';
+
+import { CinematicDirector, CinematicOverlay, FlightComputer } from './components/Cinematic';
+import type { OverlayData, FlightData } from './components/Cinematic';
+
+import { DetailPanel, SystemFinder, ZincShuttleApp, SpeedControls, CinematicMenu } from './components/UI';
 import { PLANET_DATA } from './data';
 
 function TimeDisplay() {
     const { simulationTime } = useSimulation();
     return (
-        <div className="mt-2 text-zinc-500 font-mono text-xs" suppressHydrationWarning>
+        <div className="mt-1 md:mt-2 text-zinc-500 font-mono text-[10px] md:text-xs" suppressHydrationWarning>
             {new Date(simulationTime).toLocaleDateString()} {new Date(simulationTime).toLocaleTimeString()}
         </div>
     );
@@ -41,6 +44,8 @@ function PlanetariumContent() {
     // Cinematic State
     const [isCinematic, setIsCinematic] = useState(false);
     const [cinematicOverlay, setCinematicOverlay] = useState<OverlayData>({ show: false });
+    const [flightData, setFlightData] = useState<FlightData>({ active: false });
+    const [currentTourId, setCurrentTourId] = useState('grand_tour');
 
     const planetRefs = useRef<Record<string, THREE.Object3D>>({});
 
@@ -87,12 +92,20 @@ function PlanetariumContent() {
         setShuttleOrigin(null);
     }, []);
 
-    const toggleCinematic = () => {
+    const startCinematic = (tourId: string) => {
+        setCurrentTourId(tourId);
         setSelectedId(null);
         setFinderOpen(false);
         setShuttleOpen(false);
-        setIsCinematic(!isCinematic);
+        setIsCinematic(true);
         setCinematicOverlay({ show: false });
+        setFlightData({ active: false });
+    };
+
+    const stopCinematic = () => {
+        setIsCinematic(false);
+        setCinematicOverlay({ show: false });
+        setFlightData({ active: false });
     };
 
     return (
@@ -118,10 +131,11 @@ function PlanetariumContent() {
 
                     <CinematicDirector 
                         active={isCinematic} 
-                        tourId="grand_tour" 
+                        tourId={currentTourId}
                         refs={planetRefs} 
-                        onStop={() => setIsCinematic(false)}
+                        onStop={stopCinematic}
                         onOverlayUpdate={setCinematicOverlay}
+                        onFlightUpdate={setFlightData}
                     />
                     
                     <StarBackground />
@@ -159,49 +173,65 @@ function PlanetariumContent() {
             </Canvas>
 
             <CinematicOverlay data={cinematicOverlay} />
+            <FlightComputer data={flightData} />
 
             {!isCinematic && (
                 <>
-                    {/* Header */}
-                    <div className="absolute top-20 md:top-24 left-0 p-4 md:p-8 w-full z-10 pointer-events-none flex flex-col md:flex-row justify-between items-start gap-4">
-                        <div className="pointer-events-auto w-full md:w-auto animate-in fade-in slide-in-from-top-4 duration-500">
-                            <Link href="/collections" className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors text-xs font-mono uppercase tracking-widest mb-2 md:mb-4">
-                                <ArrowLeft size={14} /> Exit Simulation
-                            </Link>
-                            <h1 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tighter drop-shadow-2xl">
-                                Solar <span className="text-[#DFFF00]">Map</span>
-                            </h1>
-                            <TimeDisplay />
+                    {/* Replaced Header: Positioned at very top, optimized for mobile */}
+                    <div className="absolute top-0 left-0 w-full z-10 pointer-events-none p-4 md:p-6 pt-safe-top md:pt-6 flex flex-col md:flex-row justify-between items-start gap-4">
+                        
+                        {/* Title Block */}
+                        <div className="pointer-events-auto flex items-start justify-between w-full md:w-auto md:block">
+                            <div>
+                                <Link href="/collections" className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors text-[10px] md:text-xs font-mono uppercase tracking-widest mb-1 md:mb-2">
+                                    <ArrowLeft size={12} /> Exit Simulation
+                                </Link>
+                                <h1 className="text-3xl md:text-5xl font-black text-white uppercase tracking-tighter drop-shadow-2xl leading-none">
+                                    Solar <span className="text-[#DFFF00]">Map</span>
+                                </h1>
+                                <TimeDisplay />
+                            </div>
+                            
+                            {/* Mobile-only View Controls in top right for space saving */}
+                             <div className="md:hidden flex gap-2">
+                                    <button 
+                                        onClick={() => setShowLabels(!showLabels)}
+                                        className={`p-2 bg-black/40 rounded-full backdrop-blur-md border border-white/5 ${showLabels ? 'text-white' : 'text-zinc-600'}`}
+                                    >
+                                        <Tag size={16} />
+                                    </button>
+                                    <button 
+                                        onClick={handleRecenter}
+                                        className="p-2 bg-black/40 text-zinc-400 rounded-full backdrop-blur-md border border-white/5"
+                                    >
+                                        <Crosshair size={16} />
+                                    </button>
+                             </div>
                         </div>
                         
                         {(!rideStatus || rideStatus === 'idle') && !selectedId && (
-                            <div className="flex flex-col gap-2 w-full md:w-auto mt-2 md:mt-0 items-end">
+                            <div className="flex flex-col gap-2 w-full md:w-auto items-end">
                                 {/* Main Actions */}
-                                <div className="flex flex-wrap md:flex-nowrap gap-2 md:gap-4 pointer-events-auto animate-in fade-in slide-in-from-top-4 duration-500 w-full md:w-auto justify-end">
-                                    <button 
-                                        onClick={toggleCinematic}
-                                        className="flex-1 md:flex-initial flex items-center justify-center gap-2 px-4 md:px-6 py-3 font-bold uppercase tracking-widest rounded-full transition-all text-xs md:text-sm bg-zinc-800 hover:bg-zinc-700 text-white border border-white/10"
-                                    >
-                                        <Film size={16} className="text-[#DFFF00]" /> 
-                                        <span className="whitespace-nowrap">Scenic Flight</span>
-                                    </button>
+                                {/* REMOVED overflow-x-auto to prevent menu clipping, ADDED flex-wrap */}
+                                <div className="flex flex-wrap md:flex-nowrap gap-2 md:gap-3 pointer-events-auto w-full md:w-auto">
+                                    <CinematicMenu onSelectTour={startCinematic} />
 
                                     <button 
                                         onClick={() => setShuttleOpen(!shuttleOpen)}
-                                        className="flex-1 md:flex-initial flex items-center justify-center gap-2 px-4 md:px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold uppercase tracking-widest rounded-full transition-all border border-white/10 text-xs md:text-sm"
+                                        className="flex-1 md:flex-initial min-w-[120px] flex items-center justify-center gap-2 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold uppercase tracking-widest rounded-full transition-all border border-white/10 text-[10px] md:text-xs"
                                     >
-                                        <Car size={16} className="text-[#DFFF00]" /> <span className="whitespace-nowrap">Zinc Shuttle</span>
+                                        <Car size={14} className="text-[#DFFF00]" /> <span className="whitespace-nowrap">Shuttle</span>
                                     </button>
                                     <button 
                                         onClick={() => setFinderOpen(true)}
-                                        className="flex-1 md:flex-initial flex items-center justify-center gap-2 px-4 md:px-6 py-3 bg-[#DFFF00] hover:bg-white text-black font-bold uppercase tracking-widest rounded-full transition-all shadow-[0_0_30px_rgba(223,255,0,0.4)] text-xs md:text-sm"
+                                        className="flex-1 md:flex-initial min-w-[120px] flex items-center justify-center gap-2 px-4 py-3 bg-[#DFFF00] hover:bg-white text-black font-bold uppercase tracking-widest rounded-full transition-all shadow-[0_0_20px_rgba(223,255,0,0.3)] text-[10px] md:text-xs"
                                     >
-                                        <Search size={16} /> <span className="whitespace-nowrap">Browser</span>
+                                        <Search size={14} /> <span className="whitespace-nowrap">Browser</span>
                                     </button>
                                 </div>
 
-                                {/* View Controls */}
-                                <div className="flex gap-2 pointer-events-auto animate-in fade-in slide-in-from-top-8 duration-700">
+                                {/* Desktop View Controls */}
+                                <div className="hidden md:flex gap-2 pointer-events-auto">
                                      <button 
                                         onClick={() => setShowOrbits(!showOrbits)}
                                         className="p-3 bg-black/40 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-full backdrop-blur-md border border-white/5 transition-all"
@@ -245,16 +275,16 @@ function PlanetariumContent() {
             {!isCinematic && <SpeedControls />}
             
             {isCinematic && (
-                <div className="fixed bottom-12 w-full text-center pointer-events-auto animate-in fade-in duration-1000 z-50">
+                <div className="fixed bottom-8 md:bottom-12 w-full text-center pointer-events-auto animate-in fade-in duration-1000 z-50 px-4">
                     <button 
-                        onClick={toggleCinematic}
-                        className="group inline-block bg-black/40 hover:bg-black/80 backdrop-blur-md px-6 py-3 rounded-full border border-white/10 transition-all cursor-pointer"
+                        onClick={stopCinematic}
+                        className="group inline-block w-full md:w-auto bg-black/40 hover:bg-black/80 backdrop-blur-md px-6 py-3 rounded-full border border-white/10 transition-all cursor-pointer"
                     >
-                         <div className="flex items-center gap-3">
+                         <div className="flex items-center justify-center gap-3">
                             <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                             <div className="flex flex-col items-start">
                                 <span className="text-white font-mono text-xs uppercase tracking-[0.2em] group-hover:text-red-400 transition-colors">Auto-Pilot Engaged</span>
-                                <span className="text-[10px] text-zinc-500 font-mono uppercase tracking-widest">Click or ESC to Stop</span>
+                                <span className="text-[10px] text-zinc-500 font-mono uppercase tracking-widest hidden md:inline">Click or ESC to Stop</span>
                             </div>
                          </div>
                     </button>

@@ -1,11 +1,10 @@
-// app/components/Header.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
 import { 
-  Trophy, CloudHail, Circle, Menu, X, FolderOpen, Coins,
+  Trophy, Circle, Menu, X, FolderOpen, Coins,
   LogIn, LogOut, Shield, Gamepad2, Package, Activity,
   ChevronDown, ChevronRight, Orbit
 } from 'lucide-react';
@@ -16,7 +15,7 @@ const NAV_CONFIG = [
   {
     id: 'astro',
     label: 'ASTRO',
-    href: '/collections/weather', // Default landing for the category
+    href: '/collections/weather', 
     icon: <Orbit size={14} />,
     subItems: [
         { label: 'Weather Station', href: '/collections/weather' },
@@ -42,7 +41,7 @@ const NAV_CONFIG = [
     label: 'MARKET',
     href: '/market',
     icon: <Package size={14} />,
-    subItems: [] // Market handles its own tabs internally
+    subItems: [] 
   },
   {
     id: 'archive',
@@ -78,7 +77,7 @@ export default function Header() {
   const pathname = usePathname();
   const { user, profile, signOut, isAdmin } = useAuth();
   
-  // Logic to determine active state based on complex paths
+  // Logic to determine active state
   const getActiveState = (id: string) => {
       switch(id) {
           case 'astro': return pathname?.startsWith('/collections/weather') || pathname?.startsWith('/collections/planetarium');
@@ -91,9 +90,10 @@ export default function Header() {
   };
 
   const isPoker = pathname === '/play/poker';
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  // Also hide header on Planetarium for immersive view
+  const isPlanetarium = pathname === '/collections/planetarium';
   
-  // --- ROBUST SCROLL LOGIC ---
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
 
   // Close mobile menu when route changes
@@ -110,26 +110,17 @@ export default function Header() {
         setIsVisible(true);
         return;
       }
-
       const currentScrollY = window.scrollY;
-
       if (currentScrollY <= 0) {
         setIsVisible(true);
         lastScrollY = 0;
         return;
       }
-
       const isScrollingDown = currentScrollY > lastScrollY;
       const scrollDifference = Math.abs(currentScrollY - lastScrollY);
-
       if (scrollDifference > 5) {
-        if (isScrollingDown && currentScrollY > 50) {
-          setIsVisible(false);
-        } else {
-          setIsVisible(true);
-        }
+        setIsVisible(!(isScrollingDown && currentScrollY > 50));
       }
-
       lastScrollY = currentScrollY;
     };
 
@@ -139,7 +130,8 @@ export default function Header() {
 
   const closeMenu = () => setIsMobileMenuOpen(false);
 
-  if (isPoker) return null;
+  // Return null if Poker OR Planetarium
+  if (isPoker || isPlanetarium) return null;
 
   return (
     <>
@@ -334,7 +326,6 @@ const NavLink = ({ href, active, icon, children, subItems }: { href: string, act
         {subItems && subItems.length > 0 && (
             <div className="absolute top-full left-1/2 -translate-x-1/2 pt-4 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 pointer-events-none group-hover:pointer-events-auto">
                  <div className="bg-zinc-950/90 backdrop-blur-xl border border-zinc-800 rounded-xl p-2 shadow-[0_20px_40px_rgba(0,0,0,0.5)] flex flex-col gap-1 ring-1 ring-white/5">
-                    {/* Tiny arrow pointing up */}
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[5px] w-2 h-2 bg-zinc-800 rotate-45 border-t border-l border-zinc-700"></div>
                     
                     {subItems.map((item: any) => (
@@ -357,7 +348,6 @@ const NavLink = ({ href, active, icon, children, subItems }: { href: string, act
 const MobileLink = ({ href, active, icon, label, onClick, subItems }: any) => {
     const [isOpen, setIsOpen] = useState(false);
     
-    // If no sub-items, render simple link
     if (!subItems || subItems.length === 0) {
         return (
             <Link 
@@ -377,7 +367,6 @@ const MobileLink = ({ href, active, icon, label, onClick, subItems }: any) => {
         );
     }
 
-    // Render collapsible group
     return (
         <div className="flex flex-col gap-2">
             <div className={`
@@ -404,7 +393,6 @@ const MobileLink = ({ href, active, icon, label, onClick, subItems }: any) => {
                  </button>
             </div>
 
-            {/* Sub Items Accordion */}
             <div className={`grid transition-all duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                 <div className="overflow-hidden flex flex-col gap-2 pl-4 border-l-2 border-zinc-800 ml-4">
                     {subItems.map((item: any) => (
