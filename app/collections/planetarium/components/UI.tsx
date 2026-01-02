@@ -18,17 +18,19 @@ export function DetailPanel({ id, onClose }: { id: string | null, onClose: () =>
                 animate={{ x: 0 }}
                 exit={{ x: '100%' }}
                 transition={{ type: "spring", damping: 20 }}
-                className="absolute top-0 right-0 h-full w-full md:w-[400px] bg-black/80 backdrop-blur-xl border-l border-white/10 p-8 z-20 overflow-y-auto"
+                // Added pt-24 to push content down below global header
+                className="absolute top-0 right-0 h-full w-full md:w-[400px] bg-black/80 backdrop-blur-xl border-l border-white/10 p-6 md:p-8 pt-24 md:pt-32 z-20 overflow-y-auto"
             >
-                <button onClick={onClose} className="absolute top-6 right-6 p-2 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white transition-colors">
+                {/* Adjusted button position */}
+                <button onClick={onClose} className="absolute top-24 right-4 md:top-32 md:right-6 p-2 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white transition-colors">
                     <Minimize2 size={20} />
                 </button>
 
-                <div className="mt-12">
+                <div className="mt-8">
                     <span className="text-[#DFFF00] text-xs font-mono uppercase tracking-widest border border-[#DFFF00]/20 bg-[#DFFF00]/5 px-2 py-1 rounded">
                         {data.type}
                     </span>
-                    <h1 className="text-5xl font-black text-white mt-4 mb-2 uppercase tracking-tighter">{data.name}</h1>
+                    <h1 className="text-4xl md:text-5xl font-black text-white mt-4 mb-2 uppercase tracking-tighter">{data.name}</h1>
                     <div className="h-1 w-20 bg-[#DFFF00] mb-6" />
                     <p className="text-zinc-300 leading-relaxed text-sm font-light">
                         {data.description}
@@ -80,23 +82,24 @@ export function SystemFinder({ isOpen, onClose, onSelect }: any) {
     const allMoons = PLANET_DATA.flatMap(p => p.moons || []);
 
     return (
-        <div className="absolute inset-0 z-30 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-8 overflow-y-auto">
-            <button onClick={onClose} className="absolute top-8 right-8 text-zinc-500 hover:text-white"><Minimize2 size={32} /></button>
+        // Added pt-20 to clear header
+        <div className="absolute inset-0 z-30 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-4 md:p-8 pt-24 md:pt-32 overflow-y-auto">
+            <button onClick={onClose} className="absolute top-24 right-4 md:top-32 md:right-8 text-zinc-500 hover:text-white"><Minimize2 size={32} /></button>
             <div className="w-full max-w-5xl">
-                <h2 className="text-4xl font-black text-white uppercase tracking-tighter mb-8">System <span className="text-[#DFFF00]">Browser</span></h2>
+                <h2 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tighter mb-8">System <span className="text-[#DFFF00]">Browser</span></h2>
                 <h3 className="text-zinc-500 uppercase tracking-widest font-mono text-sm mb-4">Major Bodies</h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 w-full mb-12">
+                <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 w-full mb-12">
                     {PLANET_DATA.map((p) => (
                         <button 
                             key={p.id}
                             onClick={() => onSelect(p.id)}
-                            className="group relative overflow-hidden bg-zinc-900 border border-white/10 hover:border-[#DFFF00] transition-all p-6 rounded-xl text-left"
+                            className="group relative overflow-hidden bg-zinc-900 border border-white/10 hover:border-[#DFFF00] transition-all p-4 md:p-6 rounded-xl text-left"
                         >
                             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                                 <Orbit size={40} />
                             </div>
                             <div className="text-[#DFFF00] text-[10px] font-mono uppercase mb-2">{p.type}</div>
-                            <div className="text-2xl font-bold text-white uppercase tracking-wider">{p.name}</div>
+                            <div className="text-xl md:text-2xl font-bold text-white uppercase tracking-wider">{p.name}</div>
                             <div className="text-zinc-500 text-xs mt-1">{p.distance === 0 ? 'System Center' : `${p.distance} AU Distance`}</div>
                         </button>
                     ))}
@@ -104,18 +107,18 @@ export function SystemFinder({ isOpen, onClose, onSelect }: any) {
                 {allMoons.length > 0 && (
                     <>
                         <h3 className="text-zinc-500 uppercase tracking-widest font-mono text-sm mb-4">Satellites & Stations</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 w-full mb-12">
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4 w-full mb-12">
                             {allMoons.map((m) => (
                                 <button 
                                     key={m.id}
                                     onClick={() => onSelect(m.id)}
-                                    className="group relative overflow-hidden bg-zinc-900 border border-white/10 hover:border-cyan-400 transition-all p-4 rounded-xl text-left"
+                                    className="group relative overflow-hidden bg-zinc-900 border border-white/10 hover:border-cyan-400 transition-all p-3 md:p-4 rounded-xl text-left"
                                 >
                                     <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
                                         <Satellite size={24} />
                                     </div>
                                     <div className="text-cyan-400 text-[9px] font-mono uppercase mb-1">{m.type}</div>
-                                    <div className="text-lg font-bold text-white uppercase tracking-wider">{m.name}</div>
+                                    <div className="text-sm md:text-lg font-bold text-white uppercase tracking-wider">{m.name}</div>
                                 </button>
                             ))}
                         </div>
@@ -146,7 +149,6 @@ export function ZincShuttleApp({ isOpen, onClose, currentId, onRideRequest, onPr
     
     const [driver, setDriver] = useState(drivers[0]);
 
-    // Update pickup if currentId changes (and user hasn't manually set it yet, or to sync)
     useEffect(() => {
         if(currentId) setPickup(currentId);
     }, [currentId]);
@@ -156,15 +158,12 @@ export function ZincShuttleApp({ isOpen, onClose, currentId, onRideRequest, onPr
 
         if (destination && pickup) {
             setSearchState('searching');
-            // Inform parent to show the preview route
             onPreviewRoute({ origin: pickup, destination }); 
             
-            // Calculate distance
             const p1 = getBodyPosition(pickup, simulationTime);
             const p2 = getBodyPosition(destination, simulationTime);
             const dist = p1.distanceTo(p2);
             
-            // Just for UI display, not actual travel time
             const price = Math.floor(dist * 0.5 + 25).toFixed(2); 
             const time = Math.ceil(Math.max(15, dist / 20)).toString(); 
 
@@ -181,13 +180,14 @@ export function ZincShuttleApp({ isOpen, onClose, currentId, onRideRequest, onPr
 
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [destination, pickup, onPreviewRoute]); // Removed simulationTime to avoid re-triggering constantly
+    }, [destination, pickup, onPreviewRoute]); 
 
     if (!isOpen) return null;
 
     return (
-        <div className="absolute top-24 right-8 w-96 bg-zinc-950/80 backdrop-blur-2xl border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden z-40 font-sans flex flex-col transition-all duration-300">
-            <div className="bg-black/40 p-5 border-b border-white/5 flex justify-between items-center">
+        // Changed top-24 to top-32/top-40 to clear header and main buttons
+        <div className="absolute top-44 left-4 right-4 md:left-auto md:right-8 md:w-96 bg-zinc-950/80 backdrop-blur-2xl border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden z-40 font-sans flex flex-col transition-all duration-300">
+            <div className="bg-black/40 p-4 md:p-5 border-b border-white/5 flex justify-between items-center">
                 <div className="flex items-center gap-3">
                     <div className="bg-[#DFFF00] p-1.5 rounded-lg text-black shadow-[0_0_15px_rgba(223,255,0,0.4)]">
                         <Navigation size={20} fill="black" />
@@ -199,7 +199,7 @@ export function ZincShuttleApp({ isOpen, onClose, currentId, onRideRequest, onPr
                 </div>
                 <button onClick={onClose}><Minimize2 size={18} className="text-zinc-500 hover:text-white transition-colors" /></button>
             </div>
-            <div className="p-6 space-y-6 flex-1">
+            <div className="p-4 md:p-6 space-y-6 flex-1 max-h-[50vh] md:max-h-none overflow-y-auto">
                 <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-gradient-to-b before:from-zinc-600 before:to-[#DFFF00] before:opacity-30 before:rounded-full">
                     {/* PICKUP */}
                     <div className="relative group">
@@ -209,7 +209,7 @@ export function ZincShuttleApp({ isOpen, onClose, currentId, onRideRequest, onPr
                         <label className="text-[10px] uppercase text-zinc-500 font-bold tracking-widest mb-1 block">Pickup</label>
                          <div className="relative">
                             <select 
-                                className="w-full bg-transparent text-white text-lg font-medium focus:outline-none border-b border-white/10 pb-2 mt-1 cursor-pointer hover:border-white/30 transition-colors appearance-none"
+                                className="w-full bg-transparent text-white text-base md:text-lg font-medium focus:outline-none border-b border-white/10 pb-2 mt-1 cursor-pointer hover:border-white/30 transition-colors appearance-none"
                                 onChange={(e) => setPickup(e.target.value)}
                                 value={pickup}
                                 disabled={rideStatus === 'driving'}
@@ -229,7 +229,7 @@ export function ZincShuttleApp({ isOpen, onClose, currentId, onRideRequest, onPr
                         <label className="text-[10px] uppercase text-zinc-500 font-bold tracking-widest mb-1 block">Dropoff</label>
                         <div className="relative">
                             <select 
-                                className="w-full bg-transparent text-white text-lg font-medium focus:outline-none border-b border-white/10 pb-2 mt-1 cursor-pointer hover:border-white/30 transition-colors appearance-none"
+                                className="w-full bg-transparent text-white text-base md:text-lg font-medium focus:outline-none border-b border-white/10 pb-2 mt-1 cursor-pointer hover:border-white/30 transition-colors appearance-none"
                                 onChange={(e) => setDestination(e.target.value)}
                                 value={destination}
                                 disabled={rideStatus === 'driving'}
@@ -306,7 +306,7 @@ export function ZincShuttleApp({ isOpen, onClose, currentId, onRideRequest, onPr
                     </motion.div>
                 )}
                 {rideStatus === 'driving' && (
-                    <div className="bg-cyan-500/5 border border-cyan-500/20 rounded-2xl p-8 text-center space-y-4">
+                    <div className="bg-cyan-500/5 border border-cyan-500/20 rounded-2xl p-6 md:p-8 text-center space-y-4">
                         <div className="relative w-16 h-16 mx-auto flex items-center justify-center">
                             <div className="absolute inset-0 bg-cyan-500/20 rounded-full animate-ping" />
                             <div className="absolute inset-0 bg-cyan-500/10 rounded-full animate-pulse delay-75" />
@@ -323,12 +323,12 @@ export function ZincShuttleApp({ isOpen, onClose, currentId, onRideRequest, onPr
                 )}
             </div>
             {rideStatus !== 'driving' && (
-                <div className="p-6 bg-black/40 border-t border-white/5 backdrop-blur-md">
+                <div className="p-4 md:p-6 bg-black/40 border-t border-white/5 backdrop-blur-md">
                     <button 
                         disabled={searchState !== 'found'}
                         onClick={() => onRideRequest({ origin: pickup, destination })}
                         className={`
-                            w-full py-4 rounded-xl font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all duration-300
+                            w-full py-3 md:py-4 rounded-xl font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all duration-300
                             ${searchState !== 'found'
                                 ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed border border-white/5' 
                                 : 'bg-[#DFFF00] text-black hover:bg-white hover:scale-[1.02] shadow-[0_0_30px_rgba(223,255,0,0.3)]'}
@@ -348,7 +348,7 @@ export function SpeedControls() {
     const { speed, setSpeed, resetTime } = useSimulation();
     
     return (
-        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-black/60 backdrop-blur-md p-2 rounded-full border border-white/10 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+        <div className="fixed bottom-8 md:bottom-12 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-black/60 backdrop-blur-md p-2 rounded-full border border-white/10 shadow-[0_0_20px_rgba(0,0,0,0.5)] scale-90 md:scale-100 origin-bottom">
              <button 
                 onClick={resetTime}
                 className="p-3 rounded-full hover:bg-white/10 text-[#DFFF00] transition-colors"
