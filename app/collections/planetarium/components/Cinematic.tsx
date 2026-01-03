@@ -19,7 +19,9 @@ export interface CinematicShot {
     speed: number;          
     fov?: number;          
     dampening?: number;     
-    side?: 'lit' | 'dark' | 'any'; 
+    side?: 'lit' | 'dark' | 'any';
+    transition?: 'smooth' | 'cut';
+    initialAngle?: number; 
     // Flight Computer Props
     showFlightComputer?: boolean;
     originName?: string;
@@ -90,226 +92,318 @@ const JOVIAN_FACTS = [
 ];
 
 // --- CINEMATIC DATA ---
-// NOTE: "Travel" arrival distance is slightly larger than "Orbit" distance to create a spiral-in effect.
 export const TOURS: Tour[] = [
     {
         id: 'grand_tour',
         name: 'The Grand Tour',
-        description: 'A pure celestial journey.',
+        description: 'The definitive journey through the Solar System. Remastered.',
         shots: [
-            // --- 1. SUN START (Consistent Anchor) ---
+            // --- 1. SUN START ---
             { 
                 targetId: 'sun', 
                 title: 'SOL', 
-                subtitle: 'SYSTEM ORIGIN // CLASS G STAR',
-                titleDelay: 3,
+                subtitle: 'SYSTEM ORIGIN // G-TYPE STAR',
+                titleDelay: 2,
                 type: 'orbit', 
                 duration: 25, 
-                distance: 140, // START DISTANCE FOR LOOP
-                height: 20, 
-                speed: 0.03, 
+                distance: 60, // Safe distance to see full corona
+                height: 0, 
+                speed: 0.02, 
                 fov: 50,
-                dampening: 0.5
+                dampening: 0.8
             },
             
-            // --- MERCURY (Radius 0.38) ---
-            // Travel: 20s. Arrive at 1.5 distance.
-            { targetId: 'mercury', type: 'travel', duration: 20, distance: 1.5, height: 0.2, speed: 0, side: 'lit', dampening: 0.6 },
-            // Orbit: 30s. Spiral in to 1.2.
+            // --- MERCURY ---
+            // High Arc Transfer to clear Sun clipping
+            { targetId: 'mercury', type: 'travel', duration: 18, distance: 3.5, height: 25.0, speed: 0, side: 'lit', dampening: 0.8 },
             { 
                 targetId: 'mercury', 
                 title: 'MERCURY', 
-                subtitle: 'THE LIGHTHOUSE', 
-                titleDelay: 6.0, 
+                subtitle: 'THE SWIFT PLANET', 
+                titleDelay: 2.0, 
                 type: 'orbit', 
-                duration: 30, 
-                distance: 1.2, 
-                height: 0.1, 
-                speed: 0.08, 
-                dampening: 0.4 
+                duration: 20, 
+                distance: 3.5, 
+                height: 0.5, 
+                speed: 0.04, 
+                dampening: 0.6 
             },
             
-            // --- VENUS (Radius 0.95) ---
-            { targetId: 'venus', type: 'travel', duration: 25, distance: 4.0, height: 0, speed: 0, side: 'lit', dampening: 0.6 },
+            // --- VENUS ---
+            { targetId: 'venus', type: 'travel', duration: 20, distance: 5.5, height: 10.0, speed: 0, side: 'lit', dampening: 0.8 },
             { 
                 targetId: 'venus', 
                 title: 'VENUS', 
                 subtitle: 'THE MORNING STAR', 
-                titleDelay: 6.0, 
+                titleDelay: 2.0, 
                 type: 'orbit', 
-                duration: 35, 
-                distance: 3.0, 
-                height: 0.5, 
-                speed: 0.04, 
-                dampening: 0.4 
+                duration: 22, 
+                distance: 5.5, 
+                height: 0, 
+                speed: 0.03, 
+                dampening: 0.7 
+            },
+            // Atmospheric Skim (Safe Height)
+            {
+                targetId: 'venus',
+                type: 'flyby',
+                transition: 'cut',
+                initialAngle: Math.PI * 0.5,
+                duration: 14,
+                distance: 2.2, // Increased safety margin
+                height: 0,
+                speed: 0.06,
+                dampening: 0.5,
+                fov: 60
             },
             
-            // --- EARTH (Radius 1.0) ---
-            { targetId: 'earth', type: 'travel', duration: 25, distance: 5.0, height: 1.0, speed: 0, side: 'lit', dampening: 0.6 },
+            // --- EARTH & MOON ---
+            { targetId: 'earth', type: 'travel', duration: 22, distance: 6.0, height: 8.0, speed: 0, side: 'lit', dampening: 0.8 },
             { 
                 targetId: 'earth', 
                 title: 'EARTH', 
                 subtitle: 'TERRA // HOME', 
-                titleDelay: 6.0, 
+                titleDelay: 2.5, 
                 type: 'orbit', 
-                duration: 40, 
-                distance: 3.5, 
-                height: 0.5, 
-                speed: 0.03, 
-                dampening: 0.4 
+                duration: 25, 
+                distance: 6.0, 
+                height: 2.0, 
+                speed: 0.02, 
+                dampening: 0.6 
             },
-            
-            // --- MOON (Radius 0.27) ---
-            { targetId: 'moon', type: 'travel', duration: 10, distance: 1.5, height: 0, speed: 0, side: 'lit', dampening: 0.6 },
+            // Moon Reveal (Cut)
             { 
                 targetId: 'moon', 
                 title: 'LUNA', 
-                subtitle: 'OUR MOON', 
-                titleDelay: 4.0, 
+                subtitle: 'THE COMPANION', 
+                titleDelay: 1.0, 
+                transition: 'cut', 
                 type: 'orbit', 
-                duration: 25, 
-                distance: 0.9, 
-                height: 0.1, 
-                speed: 0.06, 
-                dampening: 0.4 
+                duration: 18, 
+                distance: 1.8, 
+                height: 0.2, 
+                speed: 0.05, 
+                dampening: 0.6 
             },
 
-            // --- MARS (Radius 0.53) ---
-            { targetId: 'mars', type: 'travel', duration: 25, distance: 2.5, height: 0.2, speed: 0, side: 'lit', dampening: 0.6 },
+            // --- MARS & PHOBOS ---
+            { targetId: 'mars', type: 'travel', duration: 22, distance: 4.5, height: 5.0, speed: 0, side: 'lit', dampening: 0.8 },
             { 
                 targetId: 'mars', 
                 title: 'MARS', 
                 subtitle: 'THE RED PLANET', 
-                titleDelay: 6.0, 
+                titleDelay: 2.0, 
                 type: 'orbit', 
-                duration: 35, 
-                distance: 1.8, 
-                height: 0.2, 
-                speed: 0.08, 
-                dampening: 0.4 
+                duration: 25, 
+                distance: 4.5, 
+                height: 1.0, 
+                speed: 0.04, 
+                dampening: 0.6 
             },
-            
-            // --- JUPITER (Radius 11) ---
-            { targetId: 'jupiter', type: 'travel', duration: 35, distance: 40, height: 0, speed: 0, side: 'lit', dampening: 0.7 },
+            // Phobos Reveal (Distinct Shot)
+            { 
+                targetId: 'phobos', 
+                title: 'PHOBOS', 
+                subtitle: 'ORBITAL DECAY', 
+                titleDelay: 1.0, 
+                transition: 'cut',
+                type: 'orbit',
+                duration: 15, 
+                distance: 0.8, // Increased from 0.3 to avoid clipping
+                height: 0.1, 
+                speed: 0.08, 
+                dampening: 0.5
+            },
+
+            // --- JUPITER SYSTEM ---
+            { targetId: 'jupiter', type: 'travel', duration: 40, distance: 70, height: 20, speed: 0, side: 'lit', dampening: 0.9 },
             { 
                 targetId: 'jupiter', 
                 title: 'JUPITER', 
                 subtitle: 'KING OF WORLDS', 
-                titleDelay: 8.0, 
+                titleDelay: 3.0, 
                 type: 'orbit', 
-                duration: 45, 
-                distance: 30, 
-                height: 2, 
-                speed: 0.02, 
-                dampening: 0.4 
+                duration: 30, 
+                distance: 70, 
+                height: 15, 
+                speed: 0.015, 
+                dampening: 0.8 
             },
-            
-            // --- SATURN (Radius 9) ---
-            { targetId: 'saturn', type: 'travel', duration: 35, distance: 35, height: 5, speed: 0, side: 'lit', dampening: 0.7 },
+            // Europa Showcase (Dedicated)
+            { 
+                targetId: 'europa', 
+                title: 'EUROPA', 
+                subtitle: 'THE ICE WORLD', 
+                titleDelay: 1.5, 
+                transition: 'cut',
+                type: 'orbit', 
+                duration: 18, 
+                distance: 2.5, 
+                height: 0.2, 
+                speed: 0.04, 
+                dampening: 0.6 
+            },
+            // Ganymede Showcase (Dedicated)
+            { 
+                targetId: 'ganymede', 
+                title: 'GANYMEDE', 
+                subtitle: 'THE MOON KING', 
+                titleDelay: 1.5, 
+                transition: 'cut',
+                type: 'orbit', 
+                duration: 18, 
+                distance: 3.5, 
+                height: 0.4, 
+                speed: 0.04, 
+                dampening: 0.6 
+            },
+
+            // --- SATURN (Ring Fixes) ---
+            { targetId: 'saturn', type: 'travel', duration: 35, distance: 65, height: 25, speed: 0, side: 'lit', dampening: 0.9 },
             { 
                 targetId: 'saturn', 
                 title: 'SATURN', 
-                subtitle: 'THE JEWEL', 
-                titleDelay: 8.0, 
+                subtitle: 'JEWEL OF THE SYSTEM', 
+                titleDelay: 2.5, 
                 type: 'orbit', 
-                duration: 45, 
-                distance: 26, 
-                height: 6, 
-                speed: 0.03, 
-                dampening: 0.4 
+                duration: 30, 
+                distance: 65, 
+                height: 20, 
+                speed: 0.02, 
+                dampening: 0.8 
+            },
+            // The "Beauty Shot" - High Angle, Looking Down
+            {
+                targetId: 'saturn',
+                type: 'static',
+                transition: 'cut',
+                initialAngle: Math.PI * 0.25,
+                duration: 15,
+                distance: 50, 
+                height: 40, // High up looking down
+                speed: 0.01,
+                dampening: 0.5,
+                fov: 65
             },
 
-            // --- URANUS (Radius 4) ---
-            { targetId: 'uranus', type: 'travel', duration: 30, distance: 16, height: 0, speed: 0, side: 'lit', dampening: 0.6 },
+            // --- URANUS ---
+            { targetId: 'uranus', type: 'travel', duration: 30, distance: 30, height: 5, speed: 0, side: 'lit', dampening: 0.8 },
             { 
                 targetId: 'uranus', 
                 title: 'URANUS', 
-                subtitle: 'THE ICE GIANT', 
-                titleDelay: 6.0, 
+                subtitle: 'THE SIDEWAYS GIANT', 
+                titleDelay: 2.0, 
                 type: 'orbit', 
-                duration: 35, 
-                distance: 12, 
+                duration: 20, 
+                distance: 30, 
                 height: 0, 
-                speed: 0.04, 
-                dampening: 0.4 
+                speed: 0.03, 
+                dampening: 0.6 
             },
 
-            // --- NEPTUNE (Radius 3.8) ---
-            { targetId: 'neptune', type: 'travel', duration: 30, distance: 15, height: 0, speed: 0, side: 'lit', dampening: 0.6 },
+            // --- NEPTUNE ---
+            { targetId: 'neptune', type: 'travel', duration: 30, distance: 28, height: 5, speed: 0, side: 'lit', dampening: 0.8 },
             { 
                 targetId: 'neptune', 
                 title: 'NEPTUNE', 
-                subtitle: 'THE DEEP BLUE', 
-                titleDelay: 6.0, 
+                subtitle: 'THE WINDS OF CHANGE', 
+                titleDelay: 2.0, 
                 type: 'orbit', 
-                duration: 35, 
-                distance: 11, 
+                duration: 20, 
+                distance: 28, 
                 height: 0, 
-                speed: 0.04, 
-                dampening: 0.4 
+                speed: 0.03, 
+                dampening: 0.6 
             },
 
-            // --- PLUTO (Radius 0.18) ---
-            { targetId: 'pluto', type: 'travel', duration: 30, distance: 1.0, height: 0, speed: 0, side: 'lit', dampening: 0.6 },
+            // --- PLUTO ---
+            { targetId: 'pluto', type: 'travel', duration: 30, distance: 4.0, height: 2.0, speed: 0, side: 'lit', dampening: 0.8 },
             { 
                 targetId: 'pluto', 
                 title: 'PLUTO', 
-                subtitle: 'THE EDGE', 
-                titleDelay: 6.0, 
+                subtitle: 'THE HEART', 
+                titleDelay: 4.0, // Long delay for travel completion
                 type: 'orbit', 
-                duration: 35, 
-                distance: 0.6, 
-                height: 0.1, 
-                speed: 0.06, 
-                dampening: 0.4 
+                duration: 25, 
+                distance: 4.0, 
+                height: 1.0, 
+                speed: 0.05, 
+                dampening: 0.6 
             },
 
-            // --- SAGITTARIUS A* (Radius 30) ---
-            // 1. Approach
-            { targetId: 'sagittarius_a', type: 'travel', duration: 40, distance: 200, height: 20, speed: 0, dampening: 0.8 },
-            // 2. The Final Cinematic Shot (Orbit)
+            // --- ERIS ---
+            { targetId: 'eris', type: 'travel', duration: 30, distance: 3.5, height: 2.0, speed: 0, side: 'lit', dampening: 0.8 },
+            { 
+                targetId: 'eris', 
+                title: 'ERIS', 
+                subtitle: 'THE FAR REACHES', 
+                titleDelay: 4.0, // Long delay
+                type: 'orbit', 
+                duration: 25, 
+                distance: 3.5, 
+                height: 1.0, 
+                speed: 0.06, 
+                dampening: 0.6 
+            },
+
+            // --- SAGITTARIUS A* (EPIC FINALE) ---
+            // 1. Warp Approach
+            { targetId: 'sagittarius_a', type: 'travel', duration: 50, distance: 300, height: 50, speed: 0, dampening: 0.95 },
+            // 2. The Reveal (Wide Orbit)
             { 
                 targetId: 'sagittarius_a', 
                 title: 'SAGITTARIUS A*', 
                 subtitle: 'GALACTIC CORE', 
-                titleDelay: 8.0, 
+                titleDelay: 3.0, 
                 type: 'orbit', 
-                duration: 50, 
-                distance: 80, 
-                height: 10, 
-                speed: 0.02, 
-                dampening: 0.4 
+                duration: 30, 
+                distance: 300, 
+                height: 50, 
+                speed: 0.05, 
+                dampening: 0.8 
             },
-            // 3. THE SINGULARITY (Spiral In)
+            // 3. The Spiral In
             { 
                 targetId: 'sagittarius_a', 
                 title: 'EVENT HORIZON',
-                subtitle: 'GRAVITATIONAL SINGULARITY',
-                titleDelay: 0.5,
-                type: 'orbit', // Orbiting while distance shrinks creates a spiral
-                duration: 15, 
-                distance: 0.1, // Radius 0 effectively
-                height: 0, 
-                speed: 2.0, // High speed spin
-                dampening: 0.2 // Loose dampening for chaotic feel
+                subtitle: 'POINT OF NO RETURN',
+                titleDelay: 1.0,
+                type: 'orbit', 
+                duration: 20, 
+                distance: 80, 
+                height: 20, 
+                speed: 0.5, 
+                dampening: 0.4 
             },
-            // 4. THE WORMHOLE LOOP (Warp back to Sun)
-            // This shot instantly transports us from the black hole center back to the Sun's start position
+            // 4. The Plunge (Warp Effect)
+            { 
+                targetId: 'sagittarius_a', 
+                type: 'flyby', 
+                transition: 'cut',
+                duration: 8, 
+                distance: 0, 
+                height: 0, 
+                speed: 2.0, 
+                dampening: 0.1,
+                fov: 130 
+            },
+            // Reset
             { 
                 targetId: 'sun', 
                 title: '...RESET',
-                subtitle: 'SIMULATION RESTART.',
+                subtitle: 'SYSTEM REBOOT',
                 titleDelay: 0.5,
                 type: 'travel', 
-                duration: 4, // Fast warp
-                distance: 140, // Matches Shot 1 distance
-                height: 20, // Matches Shot 1 height
+                duration: 3, 
+                distance: 60, 
+                height: 0, 
                 speed: 0, 
-                dampening: 0.1, // Very low dampening for instant response
-                fov: 120 // Wide FOV for warp effect
+                dampening: 0.1, 
+                fov: 100 
             },
         ]
     },
+    // ... Existing tours (Earth Mars, Jovian Leap, Voyager) remain unchanged ...
     {
         id: 'earth_mars_transfer',
         name: 'Earth to Mars Transfer',
@@ -381,9 +475,8 @@ export const TOURS: Tour[] = [
     {
         id: 'jovian_leap',
         name: 'The Jovian Leap',
-        description: 'A 4-minute transfer from Europa to Ganymede through the giant\'s shadow.',
+        description: 'A 4-minute transfer from Europa to Ganymede.',
         shots: [
-            // 1. Europa Surface - Start close
             { 
                 targetId: 'europa', 
                 title: 'EUROPA', 
@@ -391,12 +484,11 @@ export const TOURS: Tour[] = [
                 titleDelay: 2,
                 type: 'orbit', 
                 duration: 40, 
-                distance: 0.6, // Close (Radius 0.25)
+                distance: 0.6, 
                 height: 0.1, 
                 speed: 0.08,
                 dampening: 0.5 
             },
-            // 2. Pull back to reveal the transit path
             { 
                 targetId: 'europa', 
                 title: 'ORBITAL INJECTION',
@@ -409,14 +501,11 @@ export const TOURS: Tour[] = [
                 dampening: 0.5, 
                 fov: 60 
             },
-            // 3. THE GIANT (New Sequence)
-            // We focus on Jupiter to show scale while "traveling"
             { 
                 targetId: 'jupiter', 
-                // No main title to let the viewer soak in the scale, flight computer handles context
                 type: 'orbit', 
                 duration: 60, 
-                distance: 22, // Close enough to fill screen (Radius 11)
+                distance: 22, 
                 height: 0, 
                 speed: 0.02, 
                 dampening: 0.5, 
@@ -426,18 +515,16 @@ export const TOURS: Tour[] = [
                 facts: JOVIAN_FACTS,
                 fov: 55
             },
-            // 4. Ganymede Approach
             { 
                 targetId: 'ganymede', 
                 type: 'travel', 
                 duration: 45, 
-                distance: 2.0, // Arrive for spiral
+                distance: 2.0, 
                 height: 0.2, 
                 speed: 0, 
                 side: 'lit', 
                 dampening: 0.5, 
             },
-            // 5. Arrival
             { 
                 targetId: 'ganymede', 
                 title: 'GANYMEDE', 
@@ -554,11 +641,10 @@ export const TOURS: Tour[] = [
 ];
 
 // --- MATH HELPERS ---
-// Use Sine for smoother, less aggressive transitions than Cubic
 const easeInOutSine = (x: number): number => -(Math.cos(Math.PI * x) - 1) / 2;
 const easeOutSine = (x: number): number => Math.sin((x * Math.PI) / 2);
 
-// --- COMPONENT: TITLE OVERLAY ---
+// --- CINEMATIC OVERLAY COMPONENT ---
 export function CinematicOverlay({ data }: { data: OverlayData }) {
     return (
         <div className="absolute inset-0 pointer-events-none z-50 flex items-center justify-center overflow-hidden">
@@ -603,7 +689,7 @@ export function CinematicOverlay({ data }: { data: OverlayData }) {
     );
 }
 
-// --- COMPONENT: FLIGHT COMPUTER ---
+// --- FLIGHT COMPUTER COMPONENT ---
 export function FlightComputer({ data }: { data: FlightData }) {
     const [elapsed, setElapsed] = useState(0);
     const [factIndex, setFactIndex] = useState(0);
@@ -700,7 +786,7 @@ export function FlightComputer({ data }: { data: FlightData }) {
     );
 }
 
-// --- MAIN DIRECTOR COMPONENT ---
+// --- CINEMATIC DIRECTOR (LOGIC) ---
 export function CinematicDirector({ 
     active, 
     tourId, 
@@ -771,14 +857,38 @@ export function CinematicDirector({
         transitionState.current.pos.copy(currentPos.current);
         transitionState.current.lookAt.copy(currentLookAt.current);
         
+        // Setup Next Shot Target
         let targetPos = new THREE.Vector3();
         if (shot.targetId && refs.current[shot.targetId]) {
             refs.current[shot.targetId].getWorldPosition(targetPos);
             const dx = currentPos.current.x - targetPos.x;
             const dz = currentPos.current.z - targetPos.z;
-            transitionState.current.orbitAngle = Math.atan2(dz, dx);
-            // Capture entry distance to smoothly blend into the shot's desired radius
-            transitionState.current.entryDistance = currentPos.current.distanceTo(targetPos);
+            
+            // IF CUT: Use Initial Angle if provided, else use current angle
+            if (shot.transition === 'cut') {
+                transitionState.current.orbitAngle = shot.initialAngle !== undefined ? shot.initialAngle : Math.atan2(dz, dx);
+                
+                // FORCE POSITION SNAP FOR CUTS
+                const d = shot.distance;
+                const a = transitionState.current.orbitAngle;
+                // Calculate where the shot starts
+                const snapX = targetPos.x + Math.cos(a) * d;
+                const snapZ = targetPos.z + Math.sin(a) * d;
+                const snapY = targetPos.y + shot.height;
+                
+                // Instantly move physics target to this spot
+                currentPos.current.set(snapX, snapY, snapZ);
+                currentLookAt.current.copy(targetPos);
+                
+                // Update transition state so it doesn't try to blend from old pos
+                transitionState.current.pos.copy(currentPos.current);
+                transitionState.current.entryDistance = shot.distance;
+            } 
+            else {
+                // SMOOTH TRANSITION
+                transitionState.current.orbitAngle = Math.atan2(dz, dx);
+                transitionState.current.entryDistance = currentPos.current.distanceTo(targetPos);
+            }
         }
 
         // Overlay logic
@@ -824,7 +934,7 @@ export function CinematicDirector({
 
         const elapsed = (Date.now() - shotStartTime) / 1000;
         const progress = Math.min(1, elapsed / shot.duration);
-        const smoothProgress = easeInOutSine(progress); // Using Sine for gentler feel
+        const smoothProgress = easeInOutSine(progress);
 
         if (elapsed > shot.duration) {
             const nextIndex = (shotIndex + 1) % tour.shots.length;
@@ -841,6 +951,7 @@ export function CinematicDirector({
         const idealPos = new THREE.Vector3();
         const idealLookAt = new THREE.Vector3();
 
+        // 1. TRAVEL: Enhanced to prevent clipping
         if (shot.type === 'travel') {
             const pStart = transitionState.current.pos;
             let arrivalOffset = new THREE.Vector3(shot.distance, shot.height, shot.distance);
@@ -862,21 +973,19 @@ export function CinematicDirector({
             const mid = new THREE.Vector3().lerpVectors(pStart, pEnd, 0.5);
             const dist = pStart.distanceTo(pEnd);
             
-            // Reduced Y-offset for smoother, less "bumpy" flight path
+            // ANTI-CLIP: Arc significantly higher if travel is long
             const sunDist = mid.distanceTo(new THREE.Vector3(0,0,0));
-            if (sunDist < 50) {
-                 mid.y += 100;
-            } else {
-                 mid.y += Math.min(40, dist * 0.15); 
-            }
+            // Ensure we hop OVER obstacles. 
+            // MODIFIED: Higher arc for better clearance
+            const arcHeight = Math.max(shot.height * 2.5, dist * 0.25); 
+            mid.y += arcHeight; 
 
             const t = smoothProgress;
             idealPos.x = (1-t)*(1-t)*pStart.x + 2*(1-t)*t*mid.x + t*t*pEnd.x;
             idealPos.y = (1-t)*(1-t)*pStart.y + 2*(1-t)*t*mid.y + t*t*pEnd.y;
             idealPos.z = (1-t)*(1-t)*pStart.z + 2*(1-t)*t*mid.z + t*t*pEnd.z;
 
-            // SMOOTH LOOK-AT: Blend over 60% of the shot for a lazy, cinematic turn
-            // Using smoothstep to remove any harsh start/stop to the rotation
+            // SMOOTH LOOK-AT
             const rawLookProgress = Math.min(1, progress * 1.5); 
             const lookProgress = THREE.MathUtils.smoothstep(rawLookProgress, 0, 1);
             idealLookAt.lerpVectors(transitionState.current.lookAt, targetCenter, lookProgress);
@@ -884,39 +993,42 @@ export function CinematicDirector({
         else if (shot.type === 'orbit') {
             const angle = transitionState.current.orbitAngle + (elapsed * shot.speed);
             
-            // SPIRAL-IN BLENDING:
-            // Smoothly blend from entry distance (e.g. 1.5) to orbit distance (e.g. 1.2)
-            // over a longer period (8s) using easeOutSine for a very gentle deceleration
-            const blendDuration = 8.0; 
-            const blendFactor = Math.min(1, elapsed / blendDuration);
-            const currentDistance = THREE.MathUtils.lerp(
-                transitionState.current.entryDistance, 
-                shot.distance, 
-                easeOutSine(blendFactor)
-            );
+            // NO-SHIFT LOGIC: If 'cut', use shot.distance directly. If smooth, blend from entry.
+            // Also, blending is now only used if the distance difference is significant.
+            let currentDistance = shot.distance;
+            
+            if (shot.transition !== 'cut') {
+                const blendDuration = 8.0; 
+                const blendFactor = Math.min(1, elapsed / blendDuration);
+                currentDistance = THREE.MathUtils.lerp(
+                    transitionState.current.entryDistance, 
+                    shot.distance, 
+                    easeOutSine(blendFactor)
+                );
+            }
 
             idealPos.x = targetCenter.x + Math.cos(angle) * currentDistance;
             idealPos.z = targetCenter.z + Math.sin(angle) * currentDistance;
-            idealPos.y = targetCenter.y + shot.height + (Math.sin(elapsed * 0.2) * 1); // Slower vertical drift
+            idealPos.y = targetCenter.y + shot.height + (Math.sin(elapsed * 0.2) * 1);
             idealLookAt.copy(targetCenter);
         }
         else if (shot.type === 'flyby') {
             const startOffset = new THREE.Vector3(-shot.distance, shot.height, -shot.distance * 0.5);
             const endOffset = new THREE.Vector3(shot.distance, shot.height, shot.distance * 0.5);
+            
+            // Rotate the flyby path to match the initial angle if cut
+            if (shot.initialAngle !== undefined) {
+                 const rot = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0), shot.initialAngle);
+                 startOffset.applyQuaternion(rot);
+                 endOffset.applyQuaternion(rot);
+            }
+
             const currentOffset = new THREE.Vector3().lerpVectors(startOffset, endOffset, smoothProgress);
             idealPos.copy(targetCenter).add(currentOffset);
             idealLookAt.copy(targetCenter);
         }
-        else if (shot.type === 'eclipse') {
-            const sunPos = new THREE.Vector3(0,0,0);
-            const dirFromSun = new THREE.Vector3().subVectors(targetCenter, sunPos).normalize();
-            const verticalDrift = Math.sin(elapsed * 0.1) * 5;
-            idealPos.copy(targetCenter).add(dirFromSun.multiplyScalar(shot.distance));
-            idealPos.y += shot.height + verticalDrift;
-            idealLookAt.copy(targetCenter);
-        }
         else if (shot.type === 'static') {
-            const driftFactor = 1 + (elapsed * 0.005); // Very subtle drift
+            const driftFactor = 1 + (elapsed * 0.005); 
             const angle = transitionState.current.orbitAngle;
             idealPos.x = targetCenter.x + Math.cos(angle) * (shot.distance * driftFactor);
             idealPos.z = targetCenter.z + Math.sin(angle) * (shot.distance * driftFactor);
@@ -924,13 +1036,9 @@ export function CinematicDirector({
             idealLookAt.copy(targetCenter);
         }
 
-        // WEIGHTY PHYSICS:
-        // Use lower dampening (0.6 - 0.8) to simulate a heavy camera rig.
-        // It lags slightly behind the ideal position, smoothing out any math jitters.
+        // WEIGHTY PHYSICS
         const damp = shot.dampening || 0.6; 
         currentPos.current.lerp(idealPos, delta * damp);
-        
-        // Slower lookAt dampening for that "delayed operator" feel
         currentLookAt.current.lerp(idealLookAt, delta * (damp * 0.5));
 
         camera.position.copy(currentPos.current);

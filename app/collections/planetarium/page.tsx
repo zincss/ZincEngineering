@@ -8,8 +8,8 @@ import { ArrowLeft, Search, Car, Eye, EyeOff, Tag, Crosshair } from 'lucide-reac
 import Link from 'next/link';
 
 // Import split components
-import { SimulationProvider, useSimulation, TimeKeeper } from './context';
-import { StarBackground, Sun, Planet, SpaceRoute, SystemControls, SpaceDust, AsteroidBelt } from './components/Scene';
+import { SimulationProvider, useSimulation, TimeKeeper, J2000_EPOCH } from './context';
+import { StarBackground, Sun, Planet, SpaceRoute, SystemControls, SpaceDust, AsteroidBelt, SolarWind } from './components/Scene';
 
 import { CinematicDirector, CinematicOverlay, FlightComputer } from './components/Cinematic';
 import type { OverlayData, FlightData } from './components/Cinematic';
@@ -29,10 +29,12 @@ function TimeDisplay() {
 function PlanetariumContent() {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [finderOpen, setFinderOpen] = useState(false);
+    const { setTime, setSpeed } = useSimulation(); // Destructure new setTime function
     
     // View Options
     const [showOrbits, setShowOrbits] = useState(true);
     const [showLabels, setShowLabels] = useState(true);
+    const [showSolarWind, setShowSolarWind] = useState(false);
     
     // Shuttle State
     const [shuttleOpen, setShuttleOpen] = useState(false);
@@ -93,6 +95,14 @@ function PlanetariumContent() {
     }, []);
 
     const startCinematic = (tourId: string) => {
+        // --- NEW CONSISTENCY LOGIC ---
+        // If it's the Grand Tour, force the universe to a known state (J2000 Epoch)
+        // so the camera path is always perfectly aligned with the planets.
+        if (tourId === 'grand_tour') {
+            setTime(J2000_EPOCH);
+            setSpeed(0.5); // Slow, majestic rotation during tour
+        }
+        
         setCurrentTourId(tourId);
         setCinematicKey(k => k + 1); // Increment to force reset
         setSelectedId(null);
@@ -143,6 +153,7 @@ function PlanetariumContent() {
                     <StarBackground />
                     <SpaceDust />
                     <AsteroidBelt />
+                    {showSolarWind && <SolarWind />}
                     
                     <Sun onClick={() => handleSelect('sun')} />
                     <group ref={(ref) => { if(ref) planetRefs.current['sun'] = ref }} />
@@ -181,6 +192,7 @@ function PlanetariumContent() {
 
             {!isCinematic && (
                 <>
+                    {/* Top Bar - Simplified */}
                     <div className="absolute top-0 left-0 w-full z-10 pointer-events-none p-4 md:p-6 pt-safe-top md:pt-6 flex flex-col md:flex-row justify-between items-start gap-4">
                         <div className="pointer-events-auto flex items-start justify-between w-full md:w-auto md:block">
                             <div>
@@ -192,23 +204,9 @@ function PlanetariumContent() {
                                 </h1>
                                 <TimeDisplay />
                             </div>
-                            
-                             <div className="md:hidden flex gap-2">
-                                    <button 
-                                        onClick={() => setShowLabels(!showLabels)}
-                                        className={`p-2 bg-black/40 rounded-full backdrop-blur-md border border-white/5 ${showLabels ? 'text-white' : 'text-zinc-600'}`}
-                                    >
-                                        <Tag size={16} />
-                                    </button>
-                                    <button 
-                                        onClick={handleRecenter}
-                                        className="p-2 bg-black/40 text-zinc-400 rounded-full backdrop-blur-md border border-white/5"
-                                    >
-                                        <Crosshair size={16} />
-                                    </button>
-                             </div>
                         </div>
                         
+                        {/* Right Side Buttons (Browser, Shuttle, Scenic) */}
                         {(!rideStatus || rideStatus === 'idle') && !selectedId && (
                             <div className="flex flex-col gap-2 w-full md:w-auto items-end">
                                 <div className="flex flex-wrap md:flex-nowrap gap-2 md:gap-3 pointer-events-auto w-full md:w-auto">
@@ -227,33 +225,19 @@ function PlanetariumContent() {
                                         <Search size={14} /> <span className="whitespace-nowrap">Browser</span>
                                     </button>
                                 </div>
-
-                                <div className="hidden md:flex gap-2 pointer-events-auto">
-                                     <button 
-                                        onClick={() => setShowOrbits(!showOrbits)}
-                                        className="p-3 bg-black/40 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-full backdrop-blur-md border border-white/5 transition-all"
-                                        title="Toggle Orbits"
-                                    >
-                                        {showOrbits ? <Eye size={16} /> : <EyeOff size={16} />}
-                                    </button>
-                                    <button 
-                                        onClick={() => setShowLabels(!showLabels)}
-                                        className={`p-3 bg-black/40 hover:bg-zinc-800 rounded-full backdrop-blur-md border border-white/5 transition-all ${showLabels ? 'text-white' : 'text-zinc-500'}`}
-                                        title="Toggle Labels"
-                                    >
-                                        <Tag size={16} />
-                                    </button>
-                                    <button 
-                                        onClick={handleRecenter}
-                                        className="p-3 bg-black/40 hover:bg-zinc-800 text-zinc-400 hover:text-[#DFFF00] rounded-full backdrop-blur-md border border-white/5 transition-all"
-                                        title="Recenter Camera"
-                                    >
-                                        <Crosshair size={16} />
-                                    </button>
-                                </div>
                             </div>
                         )}
                     </div>
+
+                    <SpeedControls 
+                        showOrbits={showOrbits}
+                        setShowOrbits={setShowOrbits}
+                        showLabels={showLabels}
+                        setShowLabels={setShowLabels}
+                        showSolarWind={showSolarWind}
+                        setShowSolarWind={setShowSolarWind}
+                        handleRecenter={handleRecenter}
+                    />
                 </>
             )}
 
@@ -268,8 +252,6 @@ function PlanetariumContent() {
 
             <DetailPanel id={selectedId} onClose={() => setSelectedId(null)} />
             <SystemFinder isOpen={finderOpen} onClose={() => setFinderOpen(false)} onSelect={handleSelect} />
-            
-            {!isCinematic && <SpeedControls />}
             
             {isCinematic && (
                 <div className="fixed bottom-8 md:bottom-12 w-full text-center pointer-events-auto animate-in fade-in duration-1000 z-50 px-4">

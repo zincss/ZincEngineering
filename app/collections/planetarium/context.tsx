@@ -17,6 +17,7 @@ interface SimulationContextType {
     setSpeed: (s: number) => void;
     speed: number;
     resetTime: () => void;
+    setTime: (t: number) => void; // NEW: Allows forcing the simulation to a specific time
 }
 
 const SimulationContext = createContext<SimulationContextType | null>(null);
@@ -94,6 +95,12 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
         setSpeed(1);
     };
 
+    // NEW FUNCTION
+    const setTime = (t: number) => {
+        timeRef.current = t;
+        setSimTimeState(t);
+    };
+
     return (
         <SimulationContext.Provider value={{ 
             timeRef, 
@@ -101,7 +108,8 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
             simulationTime: simTimeState,
             speed,
             setSpeed,
-            resetTime
+            resetTime,
+            setTime 
         }}>
             {children}
         </SimulationContext.Provider>

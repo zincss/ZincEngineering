@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PLANET_DATA } from '../data';
 import { useSimulation, getBodyPosition, findBodyById } from '../context';
-import { ArrowLeft, Thermometer, Clock, Calendar, Minimize2, Search, Orbit, Satellite, RotateCcw, Car, MapPin, Navigation, User, Star, Film, Play } from 'lucide-react';
+import { ArrowLeft, Thermometer, Clock, Calendar, Minimize2, Search, Orbit, Satellite, RotateCcw, Car, MapPin, Navigation, User, Star, Film, Play, Eye, EyeOff, Tag, Crosshair, Waves } from 'lucide-react';
 
 // --- NEW COMPONENT: CINEMATIC MENU ---
 export function CinematicMenu({ onSelectTour }: { onSelectTour: (id: string) => void }) {
@@ -60,6 +60,7 @@ export function CinematicMenu({ onSelectTour }: { onSelectTour: (id: string) => 
     );
 }
 
+// Updated DetailPanel: Floating Glass Card
 export function DetailPanel({ id, onClose }: { id: string | null, onClose: () => void }) {
     if (!id) return null;
     const data = findBodyById(id);
@@ -68,67 +69,72 @@ export function DetailPanel({ id, onClose }: { id: string | null, onClose: () =>
     return (
         <AnimatePresence>
             <motion.div 
-                initial={{ x: '100%' }}
-                animate={{ x: 0 }}
-                exit={{ x: '100%' }}
-                transition={{ type: "spring", damping: 20 }}
-                // Mobile: w-full (covers screen), Desktop: w-[400px]
-                className="absolute top-0 right-0 h-full w-full md:w-[400px] bg-black/80 backdrop-blur-xl border-l border-white/10 p-6 md:p-8 pt-24 md:pt-32 z-20 overflow-y-auto"
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                // Floating Card Style
+                className="absolute top-24 right-4 w-full max-w-sm bg-black/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6 z-30 shadow-2xl overflow-hidden max-h-[75vh] overflow-y-auto"
             >
-                {/* Close Button - Fixed to ensure it doesn't scroll away on mobile if content is long */}
-                <button 
-                    onClick={onClose} 
-                    className="fixed top-24 right-4 md:absolute md:top-32 md:right-6 p-2 rounded-full bg-black/50 md:bg-transparent hover:bg-white/10 text-zinc-400 hover:text-white transition-colors z-50 backdrop-blur-sm md:backdrop-blur-none"
-                >
-                    <Minimize2 size={20} />
-                </button>
+                {/* Header */}
+                <div className="flex justify-between items-start mb-4">
+                    <div>
+                         <span className="text-[#DFFF00] text-[10px] font-mono uppercase tracking-widest border border-[#DFFF00]/20 bg-[#DFFF00]/5 px-2 py-0.5 rounded mb-2 inline-block">
+                            {data.type}
+                        </span>
+                        <h1 className="text-3xl font-black text-white uppercase tracking-tighter leading-none">{data.name}</h1>
+                    </div>
+                    <button 
+                        onClick={onClose} 
+                        className="p-2 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+                    >
+                        <Minimize2 size={18} />
+                    </button>
+                </div>
 
-                <div className="mt-8">
-                    <span className="text-[#DFFF00] text-xs font-mono uppercase tracking-widest border border-[#DFFF00]/20 bg-[#DFFF00]/5 px-2 py-1 rounded">
-                        {data.type}
-                    </span>
-                    <h1 className="text-4xl md:text-5xl font-black text-white mt-4 mb-2 uppercase tracking-tighter">{data.name}</h1>
-                    <div className="h-1 w-20 bg-[#DFFF00] mb-6" />
-                    <p className="text-zinc-300 leading-relaxed text-sm font-light">
-                        {data.description}
-                    </p>
-                    <div className="grid grid-cols-1 gap-4 mt-8">
-                        <div className="bg-zinc-900/50 p-4 rounded-lg border border-white/5 flex items-center gap-4">
-                            <div className="p-3 bg-blue-500/10 rounded-full text-blue-400"><Thermometer size={18} /></div>
-                            <div>
-                                <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Surface Temp</div>
-                                <div className="text-xl font-mono text-white">{data.stats.temp}</div>
-                            </div>
-                        </div>
-                        <div className="bg-zinc-900/50 p-4 rounded-lg border border-white/5 flex items-center gap-4">
-                            <div className="p-3 bg-purple-500/10 rounded-full text-purple-400"><Clock size={18} /></div>
-                            <div>
-                                <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Day Length</div>
-                                <div className="text-xl font-mono text-white">{data.stats.day}</div>
-                            </div>
-                        </div>
-                        <div className="bg-zinc-900/50 p-4 rounded-lg border border-white/5 flex items-center gap-4">
-                            <div className="p-3 bg-green-500/10 rounded-full text-green-400"><Calendar size={18} /></div>
-                            <div>
-                                <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Orbital Period</div>
-                                <div className="text-xl font-mono text-white">{data.stats.year}</div>
-                            </div>
+                <div className="h-0.5 w-16 bg-[#DFFF00] mb-4" />
+                
+                <p className="text-zinc-300 leading-relaxed text-sm font-light mb-6">
+                    {data.description}
+                </p>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-1 gap-3">
+                    <div className="bg-white/5 p-3 rounded-xl border border-white/5 flex items-center gap-3">
+                        <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400"><Thermometer size={16} /></div>
+                        <div>
+                            <div className="text-[9px] text-zinc-500 uppercase tracking-wider">Surface Temp</div>
+                            <div className="text-sm font-mono text-white font-bold">{data.stats.temp}</div>
                         </div>
                     </div>
-
-                    {data.moons && (
-                        <div className="mt-8">
-                            <h3 className="text-white text-xs font-bold uppercase tracking-widest mb-4">Known Moons</h3>
-                            <div className="flex flex-wrap gap-2">
-                                {data.moons.map((m, i) => (
-                                    <span key={i} className="px-3 py-1 bg-zinc-800 rounded-full text-xs text-zinc-400 border border-white/5">
-                                        {m.name}
-                                    </span>
-                                ))}
-                            </div>
+                    <div className="bg-white/5 p-3 rounded-xl border border-white/5 flex items-center gap-3">
+                        <div className="p-2 bg-purple-500/10 rounded-lg text-purple-400"><Clock size={16} /></div>
+                        <div>
+                            <div className="text-[9px] text-zinc-500 uppercase tracking-wider">Day Length</div>
+                            <div className="text-sm font-mono text-white font-bold">{data.stats.day}</div>
                         </div>
-                    )}
+                    </div>
+                    <div className="bg-white/5 p-3 rounded-xl border border-white/5 flex items-center gap-3">
+                        <div className="p-2 bg-green-500/10 rounded-lg text-green-400"><Calendar size={16} /></div>
+                        <div>
+                            <div className="text-[9px] text-zinc-500 uppercase tracking-wider">Orbital Period</div>
+                            <div className="text-sm font-mono text-white font-bold">{data.stats.year}</div>
+                        </div>
+                    </div>
                 </div>
+
+                {data.moons && (
+                    <div className="mt-6 pt-4 border-t border-white/10">
+                        <h3 className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-3">Satellites</h3>
+                        <div className="flex flex-wrap gap-1.5">
+                            {data.moons.map((m, i) => (
+                                <span key={i} className="px-2.5 py-1 bg-white/5 hover:bg-white/10 transition-colors rounded-lg text-[10px] text-zinc-300 border border-white/5 cursor-help">
+                                    {m.name}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </motion.div>
         </AnimatePresence>
     );
@@ -407,40 +413,86 @@ export function ZincShuttleApp({ isOpen, onClose, currentId, onRideRequest, onPr
     );
 }
 
-export function SpeedControls() {
+// Updated controls to include View Toggles directly in the bar
+export function SpeedControls({ 
+    showOrbits, setShowOrbits, 
+    showLabels, setShowLabels, 
+    showSolarWind, setShowSolarWind, 
+    handleRecenter 
+}: any) {
     const { speed, setSpeed, resetTime } = useSimulation();
     
     return (
-        // Mobile Optimized: overflow-x-auto, max-width, no scale, centered comfortably
-        <div className="fixed bottom-8 md:bottom-12 left-4 right-4 md:left-1/2 md:right-auto md:-translate-x-1/2 z-50 flex items-center justify-start md:justify-center gap-2 bg-black/60 backdrop-blur-md p-2 rounded-full border border-white/10 shadow-[0_0_20px_rgba(0,0,0,0.5)] overflow-x-auto [&::-webkit-scrollbar]:hidden touch-pan-x">
-             <button 
-                onClick={resetTime}
-                className="p-3 rounded-full hover:bg-white/10 text-[#DFFF00] transition-colors shrink-0"
-                title="Reset to Live Time"
-            >
-                <RotateCcw size={18} />
-            </button>
-            <div className="w-px h-6 bg-white/10 mx-2 shrink-0" />
-            
-            {[
-                { v: 1, l: 'LIVE' },
-                { v: 100, l: '100x' },
-                { v: 10000, l: '10kx' },
-                { v: 100000, l: '100kx' },
-                { v: 1000000, l: '1Mx' },
-                { v: 10000000, l: '10Mx' }
-            ].map((opt) => (
-                <button
-                    key={opt.v}
-                    onClick={() => setSpeed(opt.v)}
-                    className={`
-                        px-3 py-1.5 rounded-full text-[10px] font-mono font-bold transition-all whitespace-nowrap shrink-0
-                        ${speed === opt.v ? 'bg-white text-black' : 'text-zinc-400 hover:text-white hover:bg-white/10'}
-                    `}
-                >
-                    {opt.l}
-                </button>
-            ))}
+        <div className="fixed bottom-8 md:bottom-12 left-4 right-4 md:left-1/2 md:right-auto md:-translate-x-1/2 z-50 flex items-center justify-center pointer-events-none">
+            {/* Unified Bar */}
+            <div className="pointer-events-auto flex items-center gap-2 bg-black/70 backdrop-blur-xl p-1.5 rounded-full border border-white/10 shadow-[0_0_20px_rgba(0,0,0,0.5)] overflow-x-auto [&::-webkit-scrollbar]:hidden touch-pan-x">
+                
+                {/* View Controls Group */}
+                <div className="flex items-center gap-1 pr-1">
+                    <button 
+                        onClick={() => setShowOrbits(!showOrbits)}
+                        className={`p-3 rounded-full transition-all ${showOrbits ? 'bg-white text-black' : 'text-zinc-400 hover:text-white hover:bg-white/10'}`}
+                        title="Toggle Orbits"
+                    >
+                        {showOrbits ? <Eye size={18} /> : <EyeOff size={18} />}
+                    </button>
+                    <button 
+                        onClick={() => setShowLabels(!showLabels)}
+                        className={`p-3 rounded-full transition-all ${showLabels ? 'bg-white text-black' : 'text-zinc-400 hover:text-white hover:bg-white/10'}`}
+                        title="Toggle Labels"
+                    >
+                        <Tag size={18} />
+                    </button>
+                    <button 
+                        onClick={() => setShowSolarWind(!showSolarWind)}
+                        className={`p-3 rounded-full transition-all ${showSolarWind ? 'bg-[#DFFF00] text-black shadow-[0_0_15px_rgba(223,255,0,0.5)]' : 'text-zinc-400 hover:text-[#DFFF00] hover:bg-white/10'}`}
+                        title="Toggle Solar Wind"
+                    >
+                        <Waves size={18} />
+                    </button>
+                    <button 
+                        onClick={handleRecenter}
+                        className="p-3 text-zinc-400 hover:text-white hover:bg-white/10 rounded-full transition-all"
+                        title="Recenter Camera"
+                    >
+                        <Crosshair size={18} />
+                    </button>
+                </div>
+
+                {/* Divider */}
+                <div className="w-px h-8 bg-white/20 mx-1" />
+
+                {/* Time Controls Group */}
+                <div className="flex items-center gap-2 pl-1">
+                    <button 
+                        onClick={resetTime}
+                        className="p-3 rounded-full hover:bg-white/10 text-[#DFFF00] transition-colors shrink-0"
+                        title="Reset to Live Time"
+                    >
+                        <RotateCcw size={18} />
+                    </button>
+                    
+                    {[
+                        { v: 1, l: 'LIVE' },
+                        { v: 100, l: '100x' },
+                        { v: 10000, l: '10kx' },
+                        { v: 100000, l: '100kx' },
+                        { v: 1000000, l: '1Mx' },
+                        { v: 10000000, l: '10Mx' }
+                    ].map((opt) => (
+                        <button
+                            key={opt.v}
+                            onClick={() => setSpeed(opt.v)}
+                            className={`
+                                px-3 py-1.5 rounded-full text-[10px] font-mono font-bold transition-all whitespace-nowrap shrink-0
+                                ${speed === opt.v ? 'bg-white text-black' : 'text-zinc-400 hover:text-white hover:bg-white/10'}
+                            `}
+                        >
+                            {opt.l}
+                        </button>
+                    ))}
+                </div>
+            </div>
         </div>
     );
 }
