@@ -96,11 +96,18 @@ function PlanetariumContent() {
 
     const startCinematic = (tourId: string) => {
         // --- NEW CONSISTENCY LOGIC ---
-        // If it's the Grand Tour, force the universe to a known state (J2000 Epoch)
-        // so the camera path is always perfectly aligned with the planets.
+        // Force the universe to a known state so camera paths align with planets.
+        
         if (tourId === 'grand_tour') {
             setTime(J2000_EPOCH);
             setSpeed(0.5); // Slow, majestic rotation during tour
+        }
+        
+        if (tourId === 'oumuamua_visit') {
+             // Set to Oumuamua Perihelion (Sept 2017)
+             // This ensures Earth is in the correct position for the outbound shot
+             setTime(1504915200000);
+             setSpeed(0.2); 
         }
         
         setCurrentTourId(tourId);
