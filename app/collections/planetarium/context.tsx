@@ -1,9 +1,10 @@
 'use client';
 
-import React, { createContext, useContext, useRef, useState, useEffect } from 'react';
+import React, { createContext, useContext, useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { PLANET_DATA, CelestialBody } from './data';
+import { FANTASY_DATA } from './fantasy_data';
 
 // --- CONSTANTS ---
 export const J2000_EPOCH = 946728000000;
@@ -13,11 +14,16 @@ export const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
 interface SimulationContextType {
     timeRef: React.MutableRefObject<number>;
     speedRef: React.MutableRefObject<number>;
-    simulationTime: number; // For UI updates (1hz)
+    simulationTime: number; 
     setSpeed: (s: number) => void;
     speed: number;
     resetTime: () => void;
-    setTime: (t: number) => void; // NEW: Allows forcing the simulation to a specific time
+    setTime: (t: number) => void;
+    // New Multi-System Support
+    activeSystem: 'solar' | 'fantasy';
+    setActiveSystem: (s: 'solar' | 'fantasy') => void;
+    currentData: CelestialBody[];
+    findBody: (id: string | null) => CelestialBody | undefined;
 }
 
 const SimulationContext = createContext<SimulationContextType | null>(null);
@@ -28,21 +34,81 @@ export function useSimulation() {
     return context;
 }
 
-// --- MATH HELPERS ---
-export const findBodyById = (id: string | null): CelestialBody | undefined => {
-    if (!id) return undefined;
-    for (const planet of PLANET_DATA) {
-        if (planet.id === id) return planet;
-        if (planet.moons) {
-            const moon = planet.moons.find(m => m.id === id);
-            if (moon) return moon;
-        }
-    }
-    return undefined;
-};
+// --- PROVIDER ---
+export function SimulationProvider({ children }: { children: React.ReactNode }) {
+    const [speed, setSpeed] = useState(1);
+    const [simTimeState, setSimTimeState] = useState(Date.now());
+    const [activeSystem, setActiveSystem] = useState<'solar' | 'fantasy'>('solar');
+    
+    const timeRef = useRef(Date.now());
+    const speedRef = useRef(1);
 
-export const getBodyPosition = (bodyId: string, time: number): THREE.Vector3 => {
-    const body = findBodyById(bodyId);
+    useEffect(() => {
+        speedRef.current = speed;
+    }, [speed]);
+
+    // UI Clock Tick
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setSimTimeState(timeRef.current);
+        }, 1000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const resetTime = useCallback(() => {
+        timeRef.current = Date.now();
+        setSpeed(1);
+    }, []);
+
+    const setTime = useCallback((t: number) => {
+        timeRef.current = t;
+        setSimTimeState(t);
+    }, []);
+
+    // Dynamic Data Source
+    const currentData = useMemo(() => {
+        return activeSystem === 'fantasy' ? FANTASY_DATA : PLANET_DATA;
+    }, [activeSystem]);
+
+    // Scoped Find Function - Memoized to prevent unnecessary effect triggers
+    const findBody = useCallback((id: string | null): CelestialBody | undefined => {
+        if (!id) return undefined;
+        // Search current data first
+        for (const body of currentData) {
+            if (body.id === id) return body;
+            if (body.moons) {
+                const moon = body.moons.find(m => m.id === id);
+                if (moon) return moon;
+            }
+        }
+        return undefined;
+    }, [currentData]);
+
+    // Memoize the context value to prevent consumers from re-rendering on every clock tick
+    // unless they specifically use simulationTime
+    const value = useMemo(() => ({ 
+        timeRef, 
+        speedRef, 
+        simulationTime: simTimeState,
+        speed,
+        setSpeed,
+        resetTime,
+        setTime,
+        activeSystem,
+        setActiveSystem,
+        currentData,
+        findBody
+    }), [speed, simTimeState, activeSystem, currentData, findBody, resetTime, setTime]);
+
+    return (
+        <SimulationContext.Provider value={value}>
+            {children}
+        </SimulationContext.Provider>
+    );
+}
+
+// Math Helper: Needs to be available globally but doesn't need context if we pass data
+export const getBodyPosition = (body: CelestialBody | undefined, time: number, allData: CelestialBody[]): THREE.Vector3 => {
     if (!body) return new THREE.Vector3(0, 0, 0);
 
     const daysSinceJ2000 = (time - J2000_EPOCH) / MILLISECONDS_PER_DAY;
@@ -62,7 +128,8 @@ export const getBodyPosition = (bodyId: string, time: number): THREE.Vector3 => 
 
     let pos = calculateLocalPos(body);
 
-    const parent = PLANET_DATA.find(p => p.moons?.some(m => m.id === bodyId));
+    // Find parent in the provided dataset
+    const parent = allData.find(p => p.moons?.some(m => m.id === body.id));
     if (parent) {
         const parentPos = calculateLocalPos(parent);
         pos.add(parentPos);
@@ -71,52 +138,6 @@ export const getBodyPosition = (bodyId: string, time: number): THREE.Vector3 => 
     return pos;
 };
 
-// --- PROVIDER ---
-export function SimulationProvider({ children }: { children: React.ReactNode }) {
-    const [speed, setSpeed] = useState(1);
-    const [simTimeState, setSimTimeState] = useState(Date.now());
-    const timeRef = useRef(Date.now());
-    const speedRef = useRef(1);
-
-    useEffect(() => {
-        speedRef.current = speed;
-    }, [speed]);
-
-    // UI Clock Tick (1 second interval)
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setSimTimeState(timeRef.current);
-        }, 1000);
-        return () => clearInterval(interval);
-    }, []);
-
-    const resetTime = () => {
-        timeRef.current = Date.now();
-        setSpeed(1);
-    };
-
-    // NEW FUNCTION
-    const setTime = (t: number) => {
-        timeRef.current = t;
-        setSimTimeState(t);
-    };
-
-    return (
-        <SimulationContext.Provider value={{ 
-            timeRef, 
-            speedRef, 
-            simulationTime: simTimeState,
-            speed,
-            setSpeed,
-            resetTime,
-            setTime 
-        }}>
-            {children}
-        </SimulationContext.Provider>
-    );
-}
-
-// Component to run the loop inside Canvas
 export function TimeKeeper() {
     const { timeRef, speedRef } = useSimulation();
     useFrame((_, delta) => {
