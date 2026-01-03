@@ -154,9 +154,11 @@ export const OUMUAMUA_FACTS = [
     "DISCOVERY: Oct 19, 2017. The first interstellar object detected.",
     "NAME: Hawaiian for 'scout' or 'messenger from afar'.",
     "ORIGIN: Vega (Lyra Constellation).",
-    "SPEED: 87.7 km/s at perihelion.",
+    "SPEED: 87.7 km/s at perihelion (Maximum Velocity).",
     "SHAPE: Highly elongated, cigar-shaped.",
-    "ANOMALY: Showed non-gravitational acceleration."
+    "ANOMALY: Showed non-gravitational acceleration leaving the solar system.",
+    "COMPOSITION: Likely nitrogen ice or rock; reddish hue.",
+    "TRAJECTORY: Hyperbolic orbit, meaning it will never return."
 ];
 
 export const COMMERCIAL_FACTS = [
@@ -193,6 +195,73 @@ export const SCALE_SHOTS: CinematicShot[] = [
         showFlightComputer: true, originName: 'SOL', destName: 'PLUTO', facts: PLUTO_FACTS,
         keyframes: [{ targetId: 'sun', offset: [-60, 0, 60], roll: 0, fov: 60 }, { targetId: 'saturn', offset: [40, 20, 40], roll: -10, fov: 60 }, { targetId: 'mars', offset: [20, 10, 20], roll: 10, fov: 55 }, { targetId: 'pluto', offset: [4, 1, 4], roll: 0, fov: 45 }],
         lookAtKeyframes: [{ targetId: 'sun', offset: [0, 0, 0] }, { targetId: 'jupiter', offset: [0, 0, 0] }, { targetId: 'earth', offset: [0, 0, 0] }, { targetId: 'pluto', offset: [0, 0, 0] }]
+    }
+];
+
+export const OUMUAMUA_VISIT_SHOTS: CinematicShot[] = [
+    // 1. INBOUND FROM VEGA (Deep Space -> Inner System)
+    {
+        title: 'OUMUAMUA', subtitle: 'MESSENGER FROM AFAR', titleDelay: 3.0, 
+        type: 'spline', transition: 'cut', duration: 45, distance: 0, height: 0, speed: 0, dampening: 0.9,
+        showFlightComputer: true, originName: 'VEGA (LYRA)', destName: 'SOL', facts: OUMUAMUA_FACTS,
+        keyframes: [
+            { targetId: 'sun', offset: [500, 200, 1000], roll: 0, fov: 40 }, // Far out
+            { targetId: 'sun', offset: [200, 50, 400], roll: 10, fov: 45 },  // Approaching
+            { targetId: 'mercury', offset: [50, 20, 50], roll: 20, fov: 50 } // Passing Mercury orbit
+        ],
+        lookAtKeyframes: [
+            { targetId: 'sun', offset: [0, 0, 0] },
+            { targetId: 'sun', offset: [0, 0, 0] },
+            { targetId: 'sun', offset: [0, 0, 0] }
+        ]
+    },
+    // 2. PERIHELION (The Slingshot)
+    {
+        title: 'PERIHELION', subtitle: 'MAX VELOCITY: 87.7 KM/S', titleDelay: 2.0,
+        type: 'spline', transition: 'smooth', duration: 40, distance: 0, height: 0, speed: 0, dampening: 0.94,
+        showFlightComputer: true, originName: 'SOL', destName: 'INTERSTELLAR SPACE', facts: OUMUAMUA_FACTS,
+        keyframes: [
+            { targetId: 'sun', offset: [50, 20, 50], roll: 20, fov: 50 },
+            { targetId: 'sun', offset: [0, 10, 20], roll: 45, fov: 70 },   // Close skim
+            { targetId: 'sun', offset: [-40, -10, -40], roll: 20, fov: 55 } // Exit
+        ],
+        lookAtKeyframes: [
+            { targetId: 'sun', offset: [0, 0, 0] },
+            { targetId: 'sun', offset: [0, 0, 0] },
+            { targetId: 'sun', offset: [0, 0, 0] }
+        ]
+    },
+    // 3. EARTH FLYBY (The Mystery)
+    {
+        title: 'ANOMALY DETECTED', subtitle: 'NON-GRAVITATIONAL ACCELERATION', titleDelay: 1.0,
+        type: 'spline', transition: 'smooth', duration: 45, distance: 0, height: 0, speed: 0, dampening: 0.9,
+        showFlightComputer: true, originName: 'SOL', destName: 'PEGASUS', facts: OUMUAMUA_FACTS,
+        keyframes: [
+            { targetId: 'sun', offset: [-40, -10, -40], roll: 20, fov: 55 },
+            { targetId: 'earth', offset: [20, 10, 20], roll: 0, fov: 45 }, // Passing Earth
+            { targetId: 'earth', offset: [-10, 5, -10], roll: -10, fov: 50 }
+        ],
+        lookAtKeyframes: [
+            { targetId: 'sun', offset: [0, 0, 0] },
+            { targetId: 'earth', offset: [0, 0, 0] },
+            { targetId: 'earth', offset: [0, 0, 0] }
+        ]
+    },
+    // 4. DEPARTURE (To Pegasus)
+    {
+        title: 'DEPARTURE', subtitle: 'INTO THE VOID', titleDelay: 3.0,
+        type: 'spline', transition: 'smooth', duration: 60, distance: 0, height: 0, speed: 0, dampening: 0.95,
+        showFlightComputer: true, originName: 'SOLAR SYSTEM', destName: 'DEEP SPACE', facts: OUMUAMUA_FACTS,
+        keyframes: [
+            { targetId: 'earth', offset: [-10, 5, -10], roll: -10, fov: 50 },
+            { targetId: 'jupiter', offset: [300, 100, 300], roll: 0, fov: 40 }, // Distant Jupiter view
+            { targetId: 'sun', offset: [1000, 500, 1000], roll: 0, fov: 35 }    // Fading sun
+        ],
+        lookAtKeyframes: [
+            { targetId: 'earth', offset: [0, 0, 0] },
+            { targetId: 'jupiter', offset: [0, 0, 0] },
+            { targetId: 'sun', offset: [0, 0, 0] }
+        ]
     }
 ];
 
@@ -615,17 +684,12 @@ export const TOURS: Tour[] = [
         ]
     },
 
-    // --- 5. OUMUAMUA VISIT ---
+    // --- 5. OUMUAMUA VISIT (UPDATED) ---
     {
         id: 'oumuamua_visit',
         name: 'Oumuamua',
-        description: 'The first interstellar visitor.',
-        shots: [
-            {
-                title: 'OUMUAMUA', subtitle: 'THE SCOUT', titleDelay: 1.0, type: 'flyby', transition: 'cut', duration: 120, distance: 50, height: 10, speed: 1.5,
-                showFlightComputer: true, originName: 'VEGA', destName: 'PEGASUS', facts: OUMUAMUA_FACTS
-            }
-        ]
+        description: 'The first interstellar visitor. A 3-minute cinematic recreation.',
+        shots: OUMUAMUA_VISIT_SHOTS
     },
 
     // --- 6. COSMIC SCALE ---
@@ -637,7 +701,6 @@ export const TOURS: Tour[] = [
     }
 ];
 
-// --- HELPER: ADD TOUR ---
 export function addTour(tour: Tour) {
     const idx = TOURS.findIndex(t => t.id === tour.id);
     if (idx >= 0) {
