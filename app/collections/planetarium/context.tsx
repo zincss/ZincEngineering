@@ -1,3 +1,5 @@
+// app/collections/planetarium/context.tsx
+
 'use client';
 
 import React, { createContext, useContext, useRef, useState, useEffect, useMemo, useCallback } from 'react';
@@ -6,9 +8,68 @@ import * as THREE from 'three';
 import { PLANET_DATA, CelestialBody } from './data';
 import { FANTASY_DATA } from './fantasy_data';
 
-// --- CONSTANTS ---
 export const J2000_EPOCH = 946728000000;
 export const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
+
+// --- MATH HELPERS ---
+const solveKepler = (M: number, e: number): number => {
+    let E = M;
+    // Increased iterations from 5 to 8 for better precision on highly eccentric orbits (like Eris)
+    for (let i = 0; i < 8; i++) {
+        E = E - (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
+    }
+    return E;
+};
+
+const calculateOrbitalVector = (body: CelestialBody, E_rad: number): THREE.Vector3 => {
+    const e = body.eccentricity || 0;
+    const a = body.distance; 
+    
+    const P = a * (Math.cos(E_rad) - e);
+    const Q = a * Math.sqrt(1 - e * e) * Math.sin(E_rad);
+
+    const i = THREE.MathUtils.degToRad(body.inclination || 0);
+    const om = THREE.MathUtils.degToRad(body.periapsis || 0);      
+    const Om = THREE.MathUtils.degToRad(body.ascendingNode || 0);  
+
+    const cosOm = Math.cos(Om);
+    const sinOm = Math.sin(Om);
+    const cosom = Math.cos(om);
+    const sinom = Math.sin(om);
+    const cosi = Math.cos(i);
+    const sini = Math.sin(i);
+
+    const x = P * (cosOm * cosom - sinOm * sinom * cosi) - Q * (cosOm * sinom + sinOm * cosom * cosi);
+    const z = P * (sinOm * cosom + cosOm * sinom * cosi) - Q * (sinOm * sinom - cosOm * cosom * cosi);
+    const y = P * (sinom * sini) + Q * (cosom * sini);
+
+    return new THREE.Vector3(x, y, z);
+};
+
+export const getOrbitalPosition = (body: CelestialBody, time: number): THREE.Vector3 => {
+    if (body.distance === 0) return new THREE.Vector3(0, 0, 0);
+
+    const daysSinceJ2000 = (time - J2000_EPOCH) / MILLISECONDS_PER_DAY;
+    const n = 360 / (body.orbitalPeriod || 1); 
+    
+    const M_deg = (body.meanLongitude || 0) + (n * daysSinceJ2000);
+    const M_rad = THREE.MathUtils.degToRad(M_deg);
+    const e = body.eccentricity || 0;
+    const E_rad = solveKepler(M_rad, e);
+
+    return calculateOrbitalVector(body, E_rad);
+};
+
+export const getOrbitPoints = (body: CelestialBody, segments: number = 128): THREE.Vector3[] => {
+    const points: THREE.Vector3[] = [];
+    if (body.distance === 0) return points;
+
+    for (let i = 0; i <= segments; i++) {
+        const E = (i / segments) * Math.PI * 2;
+        points.push(calculateOrbitalVector(body, E));
+    }
+    return points;
+};
 
 // --- CONTEXT ---
 interface SimulationContextType {
@@ -19,11 +80,12 @@ interface SimulationContextType {
     speed: number;
     resetTime: () => void;
     setTime: (t: number) => void;
-    // New Multi-System Support
     activeSystem: 'solar' | 'fantasy';
     setActiveSystem: (s: 'solar' | 'fantasy') => void;
     currentData: CelestialBody[];
     findBody: (id: string | null) => CelestialBody | undefined;
+    getOrbitalPosition: (body: CelestialBody, time: number) => THREE.Vector3;
+    getOrbitPoints: (body: CelestialBody, segments?: number) => THREE.Vector3[];
 }
 
 const SimulationContext = createContext<SimulationContextType | null>(null);
@@ -47,7 +109,6 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
         speedRef.current = speed;
     }, [speed]);
 
-    // UI Clock Tick
     useEffect(() => {
         const interval = setInterval(() => {
             setSimTimeState(timeRef.current);
@@ -65,15 +126,12 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
         setSimTimeState(t);
     }, []);
 
-    // Dynamic Data Source
     const currentData = useMemo(() => {
         return activeSystem === 'fantasy' ? FANTASY_DATA : PLANET_DATA;
     }, [activeSystem]);
 
-    // Scoped Find Function - Memoized to prevent unnecessary effect triggers
     const findBody = useCallback((id: string | null): CelestialBody | undefined => {
         if (!id) return undefined;
-        // Search current data first
         for (const body of currentData) {
             if (body.id === id) return body;
             if (body.moons) {
@@ -84,8 +142,6 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
         return undefined;
     }, [currentData]);
 
-    // Memoize the context value to prevent consumers from re-rendering on every clock tick
-    // unless they specifically use simulationTime
     const value = useMemo(() => ({ 
         timeRef, 
         speedRef, 
@@ -97,7 +153,9 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
         activeSystem,
         setActiveSystem,
         currentData,
-        findBody
+        findBody,
+        getOrbitalPosition,
+        getOrbitPoints 
     }), [speed, simTimeState, activeSystem, currentData, findBody, resetTime, setTime]);
 
     return (
@@ -107,31 +165,14 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
     );
 }
 
-// Math Helper: Needs to be available globally but doesn't need context if we pass data
 export const getBodyPosition = (body: CelestialBody | undefined, time: number, allData: CelestialBody[]): THREE.Vector3 => {
     if (!body) return new THREE.Vector3(0, 0, 0);
 
-    const daysSinceJ2000 = (time - J2000_EPOCH) / MILLISECONDS_PER_DAY;
-    
-    const calculateLocalPos = (b: CelestialBody) => {
-        if (b.distance === 0) return new THREE.Vector3(0, 0, 0); 
-        const n = 360 / (b.orbitalPeriod || 1);
-        const L0 = b.meanLongitude || 0;
-        const currentAngleDeg = L0 + (n * daysSinceJ2000);
-        const currentAngleRad = THREE.MathUtils.degToRad(currentAngleDeg);
-        return new THREE.Vector3(
-            Math.cos(currentAngleRad) * b.distance,
-            0,
-            Math.sin(currentAngleRad) * b.distance
-        );
-    };
+    let pos = getOrbitalPosition(body, time);
 
-    let pos = calculateLocalPos(body);
-
-    // Find parent in the provided dataset
     const parent = allData.find(p => p.moons?.some(m => m.id === body.id));
     if (parent) {
-        const parentPos = calculateLocalPos(parent);
+        const parentPos = getOrbitalPosition(parent, time);
         pos.add(parentPos);
     }
 

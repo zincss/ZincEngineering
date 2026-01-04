@@ -1,3 +1,5 @@
+// app/collections/planetarium/components/Scene.tsx
+
 'use client';
 
 import React, { useRef, useState, useEffect, useMemo, useLayoutEffect } from 'react';
@@ -5,29 +7,112 @@ import { useFrame, useLoader, useThree } from '@react-three/fiber';
 import { Html, Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { useSimulation, J2000_EPOCH, MILLISECONDS_PER_DAY } from '../context';
+import { CelestialBody } from '../data';
 
-// --- HELPERS FOR VISUALS ---
+// --- ATMOSPHERE SHADER ---
+const AtmosphereShader = {
+    uniforms: {
+        uSunPosition: { value: new THREE.Vector3(0, 0, 0) },
+        uViewVector: { value: new THREE.Vector3(0, 0, 1) },
+        uColor: { value: new THREE.Color(0x3366ff) },
+        uSunset: { value: new THREE.Color(0xff4400) }
+    },
+    vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        void main() {
+            vNormal = normalize(normalMatrix * normal);
+            vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        uniform vec3 uSunPosition;
+        uniform vec3 uColor;
+        uniform vec3 uSunset;
+        varying vec3 vNormal;
+        varying vec3 vPosition;
 
-function OrbitRing({ radius, type = 'planet', color = '#FFFFFF' }: { radius: number, type?: 'planet' | 'moon', color?: string }) {
-    const isMoon = type === 'moon';
-    let width = isMoon ? 0.05 : 0.25; 
-    if (!isMoon && radius > 1000) width = 0.8; 
-    
-    const opacity = isMoon ? 0.1 : 0.15; 
-    const segments = isMoon ? 128 : 360;
-    
+        void main() {
+            vec3 viewDir = normalize(-vPosition);
+            vec3 normal = normalize(vNormal);
+
+            float viewDot = dot(viewDir, normal);
+            float rim = pow(0.6 - viewDot, 4.0); 
+
+            vec3 sunDir = normalize(uSunPosition); 
+            float sunDot = max(0.0, dot(normal, sunDir));
+            
+            float terminator = 1.0 - abs(sunDot);
+            terminator = pow(terminator, 4.0); 
+            
+            vec3 finalColor = mix(uColor, uSunset, terminator * 0.5);
+            float intensity = rim * (0.4 + 0.6 * sunDot); 
+            
+            gl_FragColor = vec4(finalColor, intensity * 1.5);
+        }
+    `
+};
+
+function RealisticAtmosphere({ radius, color, sunPosition }: { radius: number, color: string, sunPosition: THREE.Vector3 }) {
+    const meshRef = useRef<THREE.Mesh>(null);
+    const materialRef = useRef<THREE.ShaderMaterial>(null);
+    const { camera } = useThree();
+
+    useFrame(() => {
+        if (!materialRef.current || !meshRef.current) return;
+        
+        const worldPos = new THREE.Vector3();
+        meshRef.current.getWorldPosition(worldPos);
+        const sunDirWorld = new THREE.Vector3().subVectors(new THREE.Vector3(0,0,0), worldPos).normalize();
+        const sunDirView = sunDirWorld.clone().transformDirection(camera.matrixWorldInverse);
+        
+        materialRef.current.uniforms.uSunPosition.value.copy(sunDirView);
+    });
+
     return (
-        <mesh rotation={[-Math.PI / 2, 0, 0]}>
-            <ringGeometry args={[radius - width / 2, radius + width / 2, segments]} />
-            <meshBasicMaterial 
+        <mesh ref={meshRef} scale={[1.2, 1.2, 1.2]}>
+            <sphereGeometry args={[radius, 64, 64]} />
+            <shaderMaterial 
+                ref={materialRef}
+                args={[AtmosphereShader]}
+                uniforms-uColor-value={new THREE.Color(color)}
+                uniforms-uSunset-value={new THREE.Color('#ff5500')}
+                transparent
+                depthWrite={false}
+                side={THREE.BackSide}
+                blending={THREE.AdditiveBlending}
+            />
+        </mesh>
+    );
+}
+
+// --- ELLIPTICAL ORBIT LINE ---
+function EllipticalOrbit({ body, type = 'planet', isSelected = false }: { body: CelestialBody, type?: 'planet' | 'moon', isSelected?: boolean }) {
+    const { getOrbitPoints } = useSimulation();
+    
+    // 2048 segments for high precision smooth lines
+    const points = useMemo(() => {
+        return getOrbitPoints(body, 2048); 
+    }, [body, getOrbitPoints]);
+
+    const geometry = useMemo(() => {
+        return new THREE.BufferGeometry().setFromPoints(points);
+    }, [points]);
+
+    const opacity = isSelected ? 0.5 : 0.08;
+    const color = isSelected ? '#FFFFFF' : '#555555';
+
+    return (
+        <lineLoop geometry={geometry}>
+            <lineBasicMaterial 
                 color={color} 
                 opacity={opacity} 
                 transparent 
-                side={THREE.DoubleSide} 
                 depthWrite={false} 
-                blending={THREE.AdditiveBlending} 
+                linewidth={1} 
             />
-        </mesh>
+        </lineLoop>
     );
 }
 
@@ -44,40 +129,42 @@ function SmartLabel({
     visible: boolean,
     offset?: number 
 }) {
-    // --- SMART SCALING LOGIC ---
     const { camera } = useThree();
     const scalerRef = useRef<HTMLDivElement>(null);
     
-    // Determine base factor (Distance at which scale is 1:1)
-    const isMajor = ['Star', 'Planet', 'Black Hole', 'Dwarf Planet'].includes(type);
-    const isStation = type === 'Station';
-    const baseFactor = isMajor ? 150 : 80;
+    const isStar = type === 'Star' || type === 'Black Hole';
+    const isPlanet = type === 'Planet' || type === 'Dwarf Planet';
+    const isMoon = type === 'Moon' || type === 'Station';
+
+    const baseFactor = isStar ? 200 : isPlanet ? 120 : 60; 
 
     useFrame(() => {
         if (!scalerRef.current || !visible) return;
-        
-        // 1. Calculate distance from camera to label
         const labelPos = new THREE.Vector3(position[0], position[1] + offset, position[2]);
         const dist = camera.position.distanceTo(labelPos);
-
-        // 2. Smart Clamp Logic
-        // The <Html> component automatically scales by (baseFactor / dist).
-        // If dist < baseFactor, this scale becomes > 1 (Huge).
-        // We counter-scale to ensure the visual size never exceeds native UI size (scale 1).
-        // This effectively creates a "Fixed Screen Size" behavior when close, 
-        // while preserving "Perspective Shrink" when far.
-        const clampScale = Math.min(1, dist / baseFactor);
         
-        // Apply the correction
-        scalerRef.current.style.transform = `scale(${clampScale})`;
+        let scale = 1;
+        if (dist > baseFactor * 2) scale = 0.6;
+        if (dist > baseFactor * 10) scale = 0.4;
         
-        // Optional: Fade out slightly if extremely close to avoid blocking surface view
-        const opacity = dist < (baseFactor * 0.1) ? Math.max(0.3, dist / (baseFactor * 0.1)) : 1;
+        scalerRef.current.style.transform = `scale(${scale})`;
+        
+        const fadeThreshold = baseFactor * (isMoon ? 15 : 50);
+        let opacity = 1;
+        if (dist > fadeThreshold) {
+            opacity = Math.max(0, 1 - (dist - fadeThreshold) / (baseFactor * 10));
+        }
+        
         scalerRef.current.style.opacity = opacity.toString();
+        scalerRef.current.style.display = opacity < 0.05 ? 'none' : 'block';
     });
 
     if (!visible) return null;
-    
+
+    const textSizeClass = isStar ? 'text-[10px] md:text-xs font-bold' :
+                          isPlanet ? 'text-[8px] md:text-[10px] font-semibold' :
+                          'text-[6px] md:text-[8px] font-medium opacity-80';
+
     return (
         <Html 
             position={[position[0], position[1] + offset, position[2]]} 
@@ -86,28 +173,23 @@ function SmartLabel({
             zIndexRange={[0, 10]}
             style={{ pointerEvents: 'none' }}
         >
-            {/* Wrapper for Smart Scaling */}
-            <div ref={scalerRef} className="origin-center transition-opacity duration-200">
+            <div ref={scalerRef} className="origin-center transition-all duration-200 will-change-transform">
                 <div className={`
-                    flex flex-col items-center transition-all duration-300 ease-out origin-center
-                    ${visible ? 'opacity-100 blur-0 transform scale-100' : 'opacity-0 blur-md transform scale-50'}
+                    flex items-center gap-1.5 px-1.5 py-0.5 rounded-full border backdrop-blur-sm shadow-sm
+                    transition-colors duration-200
+                    ${isStar ? 'bg-black/60 border-white/30' : 
+                      isPlanet ? 'bg-black/40 border-white/20' : 
+                      'bg-black/20 border-white/10'}
                 `}>
-                    <div className={`
-                        flex items-center gap-2 px-2 py-1 rounded-full border backdrop-blur-md shadow-lg
-                        ${isMajor 
-                            ? 'bg-black/40 border-white/20' 
-                            : 'bg-black/30 border-white/10 scale-90'}
+                    {type === 'Station' && (
+                        <div className="w-1 h-1 rounded-full bg-[#DFFF00] animate-pulse shadow-[0_0_4px_#DFFF00]" />
+                    )}
+                    <span className={`
+                        font-mono uppercase tracking-widest whitespace-nowrap text-white leading-none
+                        ${textSizeClass}
                     `}>
-                        {isStation && (
-                            <div className="w-1.5 h-1.5 rounded-full bg-[#DFFF00] animate-pulse shadow-[0_0_5px_#DFFF00]" />
-                        )}
-                        <span className={`
-                            font-mono uppercase tracking-widest whitespace-nowrap text-white leading-none
-                            ${isMajor ? 'text-[10px] md:text-xs font-bold' : 'text-[8px] md:text-[10px] text-zinc-300'}
-                        `}>
-                            {text}
-                        </span>
-                    </div>
+                        {text}
+                    </span>
                 </div>
             </div>
         </Html>
@@ -127,7 +209,6 @@ const SolarWindShader = {
       attribute float aSpeed;
       varying float vAlpha;
       varying float vDist;
-      
       void main() {
         vec3 pos = position;
         vec3 dir = normalize(pos);
@@ -142,8 +223,7 @@ const SolarWindShader = {
         float alphaIn = smoothstep(minDist, minDist + 150.0, newDist);
         float alphaOut = 1.0 - smoothstep(maxDist - 300.0, maxDist, newDist);
         vAlpha = alphaIn * alphaOut;
-        vec4 mvPosition = modelViewMatrix * vec4(finalPos, 1.0);
-        gl_Position = projectionMatrix * mvPosition;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(finalPos, 1.0);
       }
     `,
     fragmentShader: `
@@ -219,9 +299,8 @@ const DustShader = {
         float boxSize = 400.0;
         vec3 offset = mod(pos - uCameraPos, boxSize) - boxSize * 0.5;
         vec3 finalPos = uCameraPos + offset;
-        vec4 mvPosition = modelViewMatrix * vec4(finalPos, 1.0);
-        gl_Position = projectionMatrix * mvPosition;
-        gl_PointSize = (1.5 / -mvPosition.z) * 100.0;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(finalPos, 1.0);
+        gl_PointSize = (1.5 / -gl_Position.z) * 100.0;
         float dist = length(offset);
         vAlpha = 1.0 - smoothstep(boxSize * 0.35, boxSize * 0.5, dist);
       }
@@ -303,19 +382,15 @@ export function AsteroidBelt() {
     )
 }
 
-// --- STAR BACKGROUND (UPDATED) ---
+// --- STAR BACKGROUND ---
 export function StarBackground() {
     const texture = useLoader(THREE.TextureLoader, '/textures/8k_stars.jpg') as THREE.Texture;
     return (
         <group>
-            {/* The Infinite Background Sphere */}
             <mesh>
                 <sphereGeometry args={[100000, 64, 64]} />
                 <meshBasicMaterial map={texture} side={THREE.BackSide} color="#050505" />
             </mesh>
-            {/* Volumetric Stars: Increased Range for Galactic Scale */}
-            {/* Radius 100 ensures they don't clip inside the Sun */}
-            {/* Depth 30000 ensures they extend past Sagittarius A* (15000) */}
             <Stars radius={100} depth={30000} count={12000} factor={4} saturation={0} fade speed={0.5} />
         </group>
     );
@@ -331,14 +406,9 @@ const AccretionDiskShader = {
     },
     vertexShader: `
         varying vec2 vUv;
-        varying vec3 vPos;
-        varying vec3 vViewPosition;
         void main() {
             vUv = uv;
-            vPos = position;
-            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-            vViewPosition = -mvPosition.xyz;
-            gl_Position = projectionMatrix * mvPosition;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
     `,
     fragmentShader: `
@@ -347,7 +417,6 @@ const AccretionDiskShader = {
         uniform vec3 colorMid;
         uniform vec3 colorOuter;
         varying vec2 vUv;
-        varying vec3 vPos;
         float random (in vec2 _st) { return fract(sin(dot(_st.xy, vec2(12.9898,78.233)))* 43758.5453123); }
         float noise (in vec2 _st) {
             vec2 i = floor(_st);
@@ -529,19 +598,18 @@ const SunAtmosphereShader = {
         varying vec3 vNormal;
         varying vec3 vPos;
         uniform float uTime;
-        vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-        vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-        vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
-        vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
-        float snoise(vec3 v){ const vec2 C = vec2(1.0/6.0, 1.0/3.0); const vec4 D = vec4(0.0, 0.5, 1.0, 2.0); vec3 i = floor(v + dot(v, C.yyy)); vec3 x0 = v - i + dot(i, C.xxx); vec3 g = step(x0.yzx, x0.xyz); vec3 l = 1.0 - g; vec3 i1 = min(g.xyz, l.zxy); vec3 i2 = max(g.xyz, l.zxy); vec3 x1 = x0 - i1 + C.xxx; vec3 x2 = x0 - i2 + C.yyy; vec3 x3 = x0 - D.yyy; i = mod289(i); vec4 p = permute(permute(permute(i.z + vec4(0.0, i1.z, i2.z, 1.0)) + i.y + vec4(0.0, i1.y, i2.y, 1.0)) + i.x + vec4(0.0, i1.x, i2.x, 1.0)); float n_ = 0.142857142857; vec3 ns = n_ * D.wyz - D.xzx; vec4 j = p - 49.0 * floor(p * ns.z * ns.z); vec4 x_ = floor(j * ns.z); vec4 y_ = floor(j - 7.0 * x_); vec4 x = x_ * ns.x + ns.yyyy; vec4 y = y_ * ns.x + ns.yyyy; vec4 h = 1.0 - abs(x) - abs(y); vec4 b0 = vec4(x.xy, y.xy); vec4 b1 = vec4(x.zw, y.zw); vec4 s0 = floor(b0) * 2.0 + 1.0; vec4 s1 = floor(b1) * 2.0 + 1.0; vec4 sh = -step(h, vec4(0.0)); vec4 a0 = b0.xzyw + s0.xzyw * sh.xxyy; vec4 a1 = b1.xzyw + s1.xzyw * sh.zzww; vec3 p0 = vec3(a0.xy, h.x); vec3 p1 = vec3(a0.zw, h.y); vec3 p2 = vec3(a1.xy, h.z); vec3 p3 = vec3(a1.zw, h.w); vec4 norm = taylorInvSqrt(vec4(dot(p0, p0), dot(p1, p1), dot(p2, p2), dot(p3, p3))); p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w; vec4 m = max(0.6 - vec4(dot(x0, x0), dot(x1, x1), dot(x2, x2), dot(x3, x3)), 0.0); m = m * m; return 42.0 * dot(m * m, vec4(dot(p0, x0), dot(p1, x1), dot(p2, x2), dot(p3, x3))); }
-
         void main() {
-            float noise = snoise(vPos * 0.04 - uTime * 0.1);
-            float fresnel = pow(1.0 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
-            float alpha = smoothstep(0.2, 0.6, noise) * fresnel;
-            vec3 color = mix(uColor, vec3(1.0, 0.8, 0.4), noise);
-            if (alpha < 0.05) discard;
-            gl_FragColor = vec4(color, alpha * 0.25);
+            vNormal = normal;
+            vPos = position;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        uniform vec3 uColor;
+        varying vec3 vNormal;
+        void main() {
+            float intensity = pow(0.6 - dot(vNormal, vec3(0, 0, 1.0)), 4.0);
+            gl_FragColor = vec4(uColor, intensity * 0.8);
         }
     `
 };
@@ -563,12 +631,11 @@ export function Sun({ onClick }: { onClick: () => void }) {
         if (coronaRef.current) {
              coronaRef.current.rotation.y = -elapsed * 0.01; 
              coronaRef.current.rotation.z = elapsed * 0.005; 
-             // PULSE EFFECT
-             const scale = 1.15 + Math.sin(elapsed * 2.0) * 0.02; 
+             const scale = 1.04 + Math.sin(elapsed * 2.0) * 0.005; 
              coronaRef.current.scale.set(scale, scale, scale);
         }
         if (glowRef.current) {
-            const scale = 90 + Math.sin(elapsed * 0.5) * 5; // Reduced scale from 120 -> 90
+            const scale = 90 + Math.sin(elapsed * 0.5) * 5; 
             glowRef.current.scale.set(scale, scale, 1);
         }
     });
@@ -601,7 +668,7 @@ export function Sun({ onClick }: { onClick: () => void }) {
                 <sphereGeometry args={[25, 128, 128]} /> 
                 <shaderMaterial ref={surfaceMat} args={[SunSurfaceShader]} />
             </mesh>
-            <mesh ref={coronaRef} scale={[1.15, 1.15, 1.15]} raycast={() => null}>
+            <mesh ref={coronaRef} scale={[1.04, 1.04, 1.04]} raycast={() => null}>
                 <sphereGeometry args={[25, 64, 64]} />
                 <shaderMaterial ref={coronaMat} args={[SunAtmosphereShader]} transparent side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} />
             </mesh>
@@ -691,10 +758,10 @@ function SaturnRings({ innerRadius, outerRadius }: { innerRadius: number, outerR
     );
 }
 
-export function Planet({ data, isSelected, onClick, onSelectRef, isCinematic, showOrbits, showLabels, scalePosition, isScaleAlignment }: any) {
+export function Planet({ data, isSelected, selectedId, onClick, onSelectRef, isCinematic, showOrbits, showLabels, scalePosition, isScaleAlignment, allScalePositions }: any) {
     const meshRef = useRef<THREE.Mesh>(null);
     const groupRef = useRef<THREE.Group>(null);
-    const { timeRef } = useSimulation();
+    const { timeRef, getOrbitalPosition } = useSimulation();
 
     useEffect(() => {
         if(groupRef.current) onSelectRef(data.id, groupRef.current);
@@ -721,29 +788,25 @@ export function Planet({ data, isSelected, onClick, onSelectRef, isCinematic, sh
     const useTextureRing = data.ringTextureUrl && data.id !== 'saturn';
     const ringMap = useTextureRing ? useLoader(THREE.TextureLoader, data.ringTextureUrl) as THREE.Texture : null;
     const tiltRadians = THREE.MathUtils.degToRad(data.axialTilt || 0);
-    const n = 360 / data.orbitalPeriod; 
-    const L0 = data.meanLongitude; 
 
     useFrame((state, delta) => {
-        // SCALE ALIGNMENT OVERRIDE
         if (isScaleAlignment && scalePosition && groupRef.current) {
-            groupRef.current.position.lerp(scalePosition, 0.05); // Smooth fly-in
+            // INSTANT SNAP for sorting mode to prevent "racing"
+            groupRef.current.position.copy(scalePosition);
             
-            // Nice Rotation Override
             if (meshRef.current) {
-                meshRef.current.rotation.y += delta * 0.1; // Consistent smooth spin
+                meshRef.current.rotation.y += delta * 0.1; 
             }
             return;
         }
 
-        const daysSinceJ2000 = (timeRef.current - J2000_EPOCH) / MILLISECONDS_PER_DAY;
         if (groupRef.current && data.distance > 0) {
-            const currentAngleDeg = L0 + (n * daysSinceJ2000);
-            const currentAngleRad = THREE.MathUtils.degToRad(currentAngleDeg);
-            groupRef.current.position.x = Math.cos(currentAngleRad) * data.distance;
-            groupRef.current.position.z = Math.sin(currentAngleRad) * data.distance;
+            const pos = getOrbitalPosition(data, timeRef.current);
+            groupRef.current.position.copy(pos);
         }
+        
         if (meshRef.current && data.rotationPeriod !== 0) {
+            const daysSinceJ2000 = (timeRef.current - J2000_EPOCH) / MILLISECONDS_PER_DAY;
             const hoursSinceJ2000 = daysSinceJ2000 * 24;
             meshRef.current.rotation.y = (hoursSinceJ2000 / data.rotationPeriod) * (Math.PI * 2);
         }
@@ -751,9 +814,8 @@ export function Planet({ data, isSelected, onClick, onSelectRef, isCinematic, sh
 
     return (
         <group>
-            {/* PLANET ORBIT */}
             {!isCinematic && showOrbits && !isScaleAlignment && (
-                <OrbitRing radius={data.distance} type="planet" />
+                <EllipticalOrbit body={data} type="planet" isSelected={isSelected} />
             )}
             
             <group ref={groupRef}>
@@ -783,22 +845,30 @@ export function Planet({ data, isSelected, onClick, onSelectRef, isCinematic, sh
                     visible={!isSelected && !isCinematic && showLabels} 
                 />
 
-                {data.moons && data.moons.map((moon: any, idx: number) => (
-                    <React.Fragment key={idx}>
-                        {/* MOON ORBIT (Relative to Planet) */}
-                        {!isCinematic && showOrbits && !isScaleAlignment && (
-                            <OrbitRing radius={data.radius + moon.distance} type="moon" />
-                        )}
-                        <Moon 
-                            data={moon} 
-                            parentRadius={data.radius} 
-                            onSelectRef={onSelectRef} 
-                            onClick={() => onClick(moon.id)} 
-                            showLabels={showLabels}
-                            isCinematic={isCinematic}
-                        />
-                    </React.Fragment>
-                ))}
+                {data.moons && data.moons.map((moon: any, idx: number) => {
+                    const isMoonSelected = selectedId === moon.id;
+                    const moonScalePos = isScaleAlignment && allScalePositions ? allScalePositions[moon.id] : undefined;
+                    
+                    return (
+                        <React.Fragment key={idx}>
+                            {!isCinematic && showOrbits && !isScaleAlignment && (
+                                <EllipticalOrbit body={moon} type="moon" isSelected={isMoonSelected} />
+                            )}
+                            <Moon 
+                                data={moon} 
+                                parentRadius={data.radius} 
+                                onSelectRef={onSelectRef} 
+                                onClick={() => onClick(moon.id)} 
+                                showLabels={showLabels}
+                                isCinematic={isCinematic}
+                                // Pass specific scale position to moon
+                                scalePosition={moonScalePos}
+                                parentScalePosition={scalePosition}
+                                isScaleAlignment={isScaleAlignment}
+                            />
+                        </React.Fragment>
+                    );
+                })}
             </group>
         </group>
     );
@@ -823,15 +893,10 @@ function PlanetBody({ data, meshRef, colorMap, onClick }: any) {
                 <mesh rotation={[Math.PI/4, 0, 0]}><torusGeometry args={[data.radius * 1.5, 0.1, 8, 32]} /><meshStandardMaterial color="#550000" /></mesh>
                 <mesh rotation={[-Math.PI/4, 0, 0]}><torusGeometry args={[data.radius * 1.8, 0.1, 8, 32]} /><meshStandardMaterial color="#330000" /></mesh>
                 <pointLight distance={5} intensity={5} color="red" />
-                {hovered && (
-                     <mesh scale={[1.02, 1.02, 1.02]} raycast={() => null}>
-                        <dodecahedronGeometry args={[data.radius, 0]} />
-                        <meshBasicMaterial color="#DFFF00" transparent opacity={0.3} side={THREE.BackSide} depthWrite={false} />
-                    </mesh>
-                )}
             </group>
         )
     }
+    
     return (
         <group>
             <mesh 
@@ -844,13 +909,17 @@ function PlanetBody({ data, meshRef, colorMap, onClick }: any) {
                 <sphereGeometry args={[data.radius, 64, 64]} />
                 <meshStandardMaterial map={colorMap} roughness={0.7} metalness={0.1} color={!colorMap ? data.color : undefined} />
             </mesh>
+            
             {data.cloudTextureUrl && <PlanetClouds textureUrl={data.cloudTextureUrl} radius={data.radius} />}
+            
             {data.atmosphere && !data.cloudTextureUrl && (
-                <mesh scale={[1.01, 1.01, 1.01]} raycast={() => null}>
-                    <sphereGeometry args={[data.radius, 64, 64]} />
-                    <meshStandardMaterial color="#ffffff" transparent opacity={0.3} depthWrite={false} side={THREE.DoubleSide} />
-                </mesh>
+                <RealisticAtmosphere 
+                    radius={data.radius} 
+                    color={data.id === 'mars' ? '#E27B58' : '#3366ff'} 
+                    sunPosition={new THREE.Vector3(0,0,0)} 
+                />
             )}
+            
              {hovered && (
                  <mesh scale={[1.015, 1.015, 1.015]} raycast={() => null}>
                     <sphereGeometry args={[data.radius, 64, 64]} />
@@ -861,33 +930,44 @@ function PlanetBody({ data, meshRef, colorMap, onClick }: any) {
     );
 }
 
-function Moon({ data, parentRadius, onSelectRef, onClick, showLabels, isCinematic }: any) {
+function Moon({ data, parentRadius, onSelectRef, onClick, showLabels, isCinematic, scalePosition, parentScalePosition, isScaleAlignment }: any) {
     const meshRef = useRef<THREE.Mesh>(null);
     const groupRef = useRef<THREE.Group>(null);
     const isStation = data.type === 'Station';
     const texture = !isStation ? useLoader(THREE.TextureLoader, data.textureUrl) as THREE.Texture : null;
-    const { timeRef } = useSimulation();
+    const { timeRef, getOrbitalPosition } = useSimulation();
     const [hovered, setHover] = useState(false);
     
-    const n = 360 / data.orbitalPeriod; 
-    const L0 = data.meanLongitude || 0; 
-
     useFrame(() => {
-        const daysSinceJ2000 = (timeRef.current - J2000_EPOCH) / MILLISECONDS_PER_DAY;
         if (groupRef.current) {
-            const currentAngleDeg = L0 + (n * daysSinceJ2000);
-            const currentAngleRad = THREE.MathUtils.degToRad(currentAngleDeg);
-            const r = parentRadius + data.distance;
-            groupRef.current.position.x = Math.cos(currentAngleRad) * r;
-            groupRef.current.position.z = Math.sin(currentAngleRad) * r;
+            // DETACH MOON FROM PARENT IN SCALE MODE
+            if (isScaleAlignment && scalePosition && parentScalePosition) {
+                // Determine Local Position required to place Moon in its specific World Slot
+                const localPos = scalePosition.clone().sub(parentScalePosition);
+                groupRef.current.position.copy(localPos);
+                
+                if (meshRef.current) {
+                    meshRef.current.rotation.y += 0.01;
+                }
+                return;
+            }
+
+            const pos = getOrbitalPosition(data, timeRef.current);
+            const oldStyleDist = parentRadius + data.distance;
+            const scaleFactor = oldStyleDist / (data.distance || 1); 
+            pos.multiplyScalar(scaleFactor); 
+            
+            groupRef.current.position.copy(pos);
             
             if (data.id === 'iss') groupRef.current.lookAt(0, 0, 0); 
             else if (data.rotationPeriod && meshRef.current) {
-                const hoursSinceJ2000 = daysSinceJ2000 * 24;
-                meshRef.current.rotation.y = (hoursSinceJ2000 / data.rotationPeriod) * (Math.PI * 2);
+                const days = (timeRef.current - J2000_EPOCH) / MILLISECONDS_PER_DAY;
+                const hours = days * 24;
+                meshRef.current.rotation.y = (hours / data.rotationPeriod) * (Math.PI * 2);
             }
         }
     });
+
     useEffect(() => {
         if(groupRef.current) onSelectRef(data.id, groupRef.current);
     }, [data.id, onSelectRef]);
@@ -961,7 +1041,7 @@ function Moon({ data, parentRadius, onSelectRef, onClick, showLabels, isCinemati
                 text={data.name} 
                 type={data.type} 
                 position={[0, data.radius, 0]} 
-                offset={data.radius + 0.5} 
+                offset={data.radius + 0.3} 
                 visible={!isCinematic && showLabels} 
             />
         </group>

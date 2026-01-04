@@ -1,3 +1,5 @@
+// app/collections/planetarium/page.tsx
+
 'use client';
 
 import React, { useRef, useState, Suspense, useCallback, useEffect } from 'react';
@@ -7,7 +9,6 @@ import * as THREE from 'three';
 import { ArrowLeft, Search } from 'lucide-react';
 import Link from 'next/link';
 
-// Import split components
 import { SimulationProvider, useSimulation, TimeKeeper, J2000_EPOCH } from './context';
 import { StarBackground, Sun, Planet, SpaceDust, AsteroidBelt, SolarWind } from './components/Scene';
 import { SystemControls } from './components/Controls'; 
@@ -33,12 +34,10 @@ function PlanetariumContent() {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [finderOpen, setFinderOpen] = useState(false);
     
-    // View Options
     const [showOrbits, setShowOrbits] = useState(true);
     const [showLabels, setShowLabels] = useState(true);
     const [showSolarWind, setShowSolarWind] = useState(false);
     
-    // Cinematic State
     const [isCinematic, setIsCinematic] = useState(false);
     const [cinematicKey, setCinematicKey] = useState(0); 
     const [cinematicOverlay, setCinematicOverlay] = useState<OverlayData>({ show: false });
@@ -47,7 +46,6 @@ function PlanetariumContent() {
 
     const planetRefs = useRef<Record<string, THREE.Object3D>>({});
 
-    // Reset selection when switching systems
     useEffect(() => {
         setSelectedId(null);
         setFinderOpen(false);
@@ -74,11 +72,10 @@ function PlanetariumContent() {
     const startCinematic = (tourId: string) => {
         if (activeSystem !== 'solar') return; 
         
-        // Handle Random Flight Generation
         if (tourId === 'random') {
             const randomId = generateCommercialFlight();
             setCurrentTourId(randomId);
-            setSpeed(1); // Real-time feel for launch
+            setSpeed(1);
         } else {
             setCurrentTourId(tourId);
             if (tourId === 'grand_tour') {
@@ -105,38 +102,39 @@ function PlanetariumContent() {
         setFlightData({ active: false });
     };
 
-    // Calculate Scale Positions
+    // --- SCALE POSITIONS ---
     const scalePositions = React.useMemo(() => {
         if (currentTourId !== 'scale_comparison') return {};
         
-        // ORDERED BY RADIUS: Pluto -> Mercury -> Mars -> Venus -> Earth -> Neptune -> Uranus -> Saturn -> Jupiter -> Sun
-        // Removed Black Hole
-        const desiredOrder = ['pluto', 'mercury', 'mars', 'venus', 'earth', 'neptune', 'uranus', 'saturn', 'jupiter', 'sun'];
-        
+        const allBodies = [
+            ...currentData, 
+            ...currentData.flatMap(p => p.moons || [])
+        ].filter(b => b.type !== 'Star' && b.type !== 'Black Hole');
+
+        allBodies.sort((a, b) => a.radius - b.radius);
+
         const posMap: Record<string, THREE.Vector3> = {};
         let currentX = 0;
 
-        desiredOrder.forEach((id, index) => {
-             const body = currentData.find(b => b.id === id);
-             if (!body) return;
-             
+        allBodies.forEach((body, index) => {
              if (index > 0) {
-                 const prevId = desiredOrder[index - 1];
-                 const prevBody = currentData.find(b => b.id === prevId);
-                 if (prevBody) {
-                     // INCREASED SPACING for better Cinematic Camera movement
-                     const gap = (prevBody.radius + body.radius) * 1.5 + Math.max(50, prevBody.radius * 3.0); 
-                     currentX += gap;
-                 }
+                 const prevBody = allBodies[index - 1];
+                 const gap = (prevBody.radius + body.radius) * 1.2 + Math.max(2, prevBody.radius * 2.0); 
+                 currentX += gap;
              }
-             posMap[id] = new THREE.Vector3(currentX, 0, 0);
+             posMap[body.id] = new THREE.Vector3(currentX, 0, 0);
         });
+        
+        const lastBody = allBodies[allBodies.length - 1];
+        if (lastBody) {
+            const sunGap = lastBody.radius + 25 + 50; 
+            posMap['sun'] = new THREE.Vector3(currentX + sunGap, 0, 0);
+        }
+
         return posMap;
     }, [currentData, currentTourId]);
 
     const isScaleMode = isCinematic && currentTourId === 'scale_comparison';
-
-    // Helper for Sun Position
     const sunScalePos = isScaleMode && scalePositions['sun'] ? scalePositions['sun'] : new THREE.Vector3(0,0,0);
 
     return (
@@ -151,15 +149,8 @@ function PlanetariumContent() {
                 
                 <Suspense fallback={null}>
                     <TimeKeeper />
-                    
-                    {/* Controls & Camera */}
-                    <SystemControls 
-                        targetId={selectedId} 
-                        refs={planetRefs} 
-                        isCinematic={isCinematic}
-                    />
+                    <SystemControls targetId={selectedId} refs={planetRefs} isCinematic={isCinematic} />
 
-                    {/* === SCENE CONTENT SWITCHER === */}
                     {activeSystem === 'fantasy' ? (
                         <FantasyContent 
                             handleSelect={handleSelect} 
@@ -169,7 +160,6 @@ function PlanetariumContent() {
                         />
                     ) : (
                         <>
-                            {/* Standard Solar System */}
                             <CinematicDirector 
                                 key={cinematicKey} 
                                 active={isCinematic} 
@@ -185,15 +175,10 @@ function PlanetariumContent() {
                             {!isScaleMode && <AsteroidBelt />}
                             {!isScaleMode && showSolarWind && <SolarWind />}
                             
-                            {/* SUN WRAPPER FOR MOVEMENT */}
                             <group position={sunScalePos}>
                                  <Sun onClick={() => handleSelect('sun')} />
                             </group>
-                            {/* The Ref group must also move so camera tracks it correctly */}
-                            <group 
-                                ref={(ref) => { if(ref) planetRefs.current['sun'] = ref }} 
-                                position={sunScalePos}
-                            />
+                            <group ref={(ref) => { if(ref) planetRefs.current['sun'] = ref }} position={sunScalePos} />
 
                             {currentData.filter(p => p.id !== 'sun').map((planet) => (
                                 <Planet 
@@ -203,10 +188,9 @@ function PlanetariumContent() {
                                     isCinematic={isCinematic}
                                     showOrbits={showOrbits}
                                     showLabels={showLabels}
-                                    // PASS SCALE PROPS
                                     scalePosition={scalePositions[planet.id]}
                                     isScaleAlignment={isScaleMode}
-                                    
+                                    allScalePositions={scalePositions} // PASS FULL MAP
                                     onClick={(idOverride?: string) => handleSelect(idOverride || planet.id)}
                                     onSelectRef={(id: string, ref: THREE.Object3D) => { planetRefs.current[id] = ref; }}
                                 />
@@ -227,7 +211,6 @@ function PlanetariumContent() {
 
             {!isCinematic && (
                 <>
-                    {/* Top Bar */}
                     <div className="absolute top-0 left-0 w-full z-10 pointer-events-none p-4 md:p-6 pt-safe-top md:pt-6 flex flex-col md:flex-row justify-between items-start gap-4">
                         <div className="pointer-events-auto flex items-start justify-between w-full md:w-auto md:block">
                             <div>
@@ -244,10 +227,7 @@ function PlanetariumContent() {
                         {!selectedId && (
                             <div className="flex flex-col gap-2 w-full md:w-auto items-end mt-12 md:mt-0">
                                 <div className="flex flex-wrap md:flex-nowrap gap-2 md:gap-3 pointer-events-auto w-full md:w-auto">
-                                    {/* Cinematic Menu */}
                                     {activeSystem === 'solar' && <CinematicMenu onSelectTour={startCinematic} />}
-
-                                    {/* System Browser Button */}
                                     <button 
                                         onClick={() => setFinderOpen(true)}
                                         className="flex-1 md:flex-initial min-w-[120px] flex items-center justify-center gap-2 px-4 py-3 bg-[#DFFF00] hover:bg-white text-black font-bold uppercase tracking-widest rounded-full transition-all shadow-[0_0_20px_rgba(223,255,0,0.3)] text-[10px] md:text-xs"
@@ -260,18 +240,14 @@ function PlanetariumContent() {
                     </div>
 
                     <SpeedControls 
-                        showOrbits={showOrbits}
-                        setShowOrbits={setShowOrbits}
-                        showLabels={showLabels}
-                        setShowLabels={setShowLabels}
-                        showSolarWind={showSolarWind}
-                        setShowSolarWind={setShowSolarWind}
+                        showOrbits={showOrbits} setShowOrbits={setShowOrbits}
+                        showLabels={showLabels} setShowLabels={setShowLabels}
+                        showSolarWind={showSolarWind} setShowSolarWind={setShowSolarWind}
                         handleRecenter={handleRecenter}
                     />
                 </>
             )}
 
-            {/* SHARED Detail Panel - renders data based on current system context */}
             <DetailPanel id={selectedId} onClose={() => setSelectedId(null)} />
             <SystemFinder isOpen={finderOpen} onClose={() => setFinderOpen(false)} onSelect={handleSelect} />
             

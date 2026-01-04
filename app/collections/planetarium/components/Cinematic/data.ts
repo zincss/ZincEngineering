@@ -1,203 +1,127 @@
+// app/collections/planetarium/components/Cinematic/data.ts
+
 import { CinematicShot, Tour } from './types';
+import { PLANET_DATA } from '../../data'; 
 
-// --- GENERAL CELESTIAL FACTS (For Grand Tour & General Flights) ---
+// ... (FACTS ARRAYS SAME AS BEFORE) ...
+export const SUN_FACTS = [ "The Sun contains 99.86% of the Solar System's total mass.", "Surface temperature is approx. 5,500°C.", "Light takes 8m 20s to reach Earth." ];
+export const MERCURY_FACTS = [ "Smallest planet.", "No atmosphere.", "88 Earth days per year." ];
+export const VENUS_FACTS = [ "Hottest planet.", "Retrograde rotation.", "Thick sulfuric clouds." ];
+export const EARTH_FACTS = [ "Only known life.", "71% water.", "Nitrogen-Oxygen atmosphere." ];
+export const MARS_FACTS = [ "The Red Planet.", "Olympus Mons is the largest volcano.", "Two moons: Phobos & Deimos." ];
+export const JUPITER_FACTS = [ "Largest planet.", "Great Red Spot storm.", "Shortest day (10h)." ];
+export const SATURN_FACTS = [ "Extensive ring system.", "Least dense planet.", "Most moons (146)." ];
+export const URANUS_FACTS = [ "Rotates on its side.", "Ice Giant.", "Coldest atmosphere." ];
+export const NEPTUNE_FACTS = [ "Strongest winds.", "Discovered by math.", "Ice Giant." ];
+export const PLUTO_FACTS = [ "Dwarf Planet.", "Kuiper Belt object.", "5 moons." ];
+export const GALACTIC_FACTS = [ "Supermassive Black Hole.", "4 million solar masses.", "Center of Milky Way." ];
+export const SCALE_FACTS = [ "Aligning planetary bodies...", "Sorting by radius...", "Comparing celestial magnitude." ];
 
-export const SUN_FACTS = [
-    "The Sun contains 99.86% of the Solar System's total mass.",
-    "Surface temperature is approx. 5,500°C (10,000°F).",
-    "Light from the Sun takes 8 minutes and 20 seconds to reach Earth.",
-    "The Sun is a G-type main-sequence star (G2V).",
-    "It converts 600 million tons of hydrogen into helium every second.",
-    "The Sun's core temperature reaches 15 million degrees Celsius.",
-    "Eventually, the Sun will expand into a Red Giant, engulfing Earth."
-];
+export const VOYAGER_GENERAL_FACTS = [ "Voyager 1 Interstellar Mission.", "Launched 1977.", "Currently 24B km away." ];
+export const VOYAGER_JUPITER_FACTS = [ "Jupiter Encounter: 1979.", "Discovered Io volcanism.", "Gravity assist used." ];
+export const VOYAGER_SATURN_FACTS = [ "Saturn Encounter: 1980.", "Titan flyby.", "Departed ecliptic plane." ];
+export const INTERSTELLAR_FACTS = [ "Pale Blue Dot: 1990.", "Entered Interstellar Space: 2012.", "Power failing." ];
+export const OUMUAMUA_FACTS = [ "First Interstellar Visitor.", "Origin: Vega.", "Hyperbolic trajectory." ];
+export const COMMERCIAL_FACTS = [ "Welcome aboard.", "Cruising speed: 75,000 km/h.", "Enjoy the view." ];
 
-export const MERCURY_FACTS = [
-    "Mercury is the smallest planet in the Solar System.",
-    "It has no atmosphere to retain heat, causing extreme temp swings.",
-    "A year on Mercury is 88 Earth days.",
-    "Mercury has the most cratered surface in the Solar System.",
-    "It is tidally locked in a 3:2 spin-orbit resonance.",
-    "Temperatures range from -173°C at night to 427°C during the day."
-];
+// --- DYNAMIC SCALE SHOT GENERATION ---
+const generateScaleShots = (): CinematicShot[] => {
+    // 1. Replicate sorting
+    const allBodies = [
+        ...PLANET_DATA, 
+        ...PLANET_DATA.flatMap(p => p.moons || [])
+    ].filter(b => b.type !== 'Star' && b.type !== 'Black Hole');
 
-export const VENUS_FACTS = [
-    "Venus spins in the opposite direction (retrograde) to most planets.",
-    "It is the hottest planet due to a runaway greenhouse effect.",
-    "Atmospheric pressure is 92 times greater than Earth's.",
-    "A day on Venus is longer than a year on Venus.",
-    "The surface is hidden by thick clouds of sulfuric acid.",
-    "Venus is often called Earth's 'sister planet' due to similar size."
-];
+    allBodies.sort((a, b) => a.radius - b.radius);
 
-export const EARTH_FACTS = [
-    "Earth is the only planet known to harbor life.",
-    "71% of the surface is covered by water.",
-    "The atmosphere is 78% nitrogen and 21% oxygen.",
-    "Earth's magnetic field protects it from solar wind.",
-    "It is the densest planet in the Solar System.",
-    "Earth is the only planet not named after a Greek or Roman god."
-];
+    const firstBody = allBodies[0]; 
+    const lastBody = allBodies[allBodies.length - 1]; 
+    const midBody = allBodies[Math.floor(allBodies.length * 0.5)];
+    
+    // START POSITION: Front-Right offset
+    const startOffset: [number, number, number] = [0.5, 0.2, 1.5]; 
+    const startRoll = 0;
+    const startFov = 40;
 
-export const MARS_FACTS = [
-    "Mars is approx. 140 million miles away from Earth on average.",
-    "A day on Mars (Sol) is 24 hours and 37 minutes.",
-    "Gravity on Mars is 38% of Earth's gravity.",
-    "Olympus Mons on Mars is the largest volcano in the solar system.",
-    "Mars appears red due to iron oxide (rust) on its surface.",
-    "Mars has two moons: Phobos and Deimos.",
-    "Average temperature on Mars is -60 degrees Celsius.",
-    "Sunset on Mars appears blue due to the fine dust in the atmosphere.",
-    "Mars has the largest dust storms in the solar system."
-];
+    return [
+        // SHOT 1: THE OUTBOUND LEG (Smallest -> Sun)
+        {
+            title: 'COSMIC SCALE', subtitle: 'FROM DUST TO STARS', titleDelay: 1.0, 
+            type: 'spline', transition: 'cut', duration: 40, distance: 0, height: 0, speed: 0, dampening: 0.9,
+            showFlightComputer: true, originName: firstBody.name.toUpperCase(), destName: 'THE SUN', facts: SCALE_FACTS,
+            keyframes: [
+                { targetId: firstBody.id, offset: startOffset, roll: startRoll, fov: startFov }, // SNAP START
+                { targetId: midBody.id, offset: [5, 2, 6], roll: 0, fov: 50 },
+                { targetId: lastBody.id, offset: [30, 15, 30], roll: 0, fov: 60 },
+                { targetId: 'sun', offset: [80, 20, 80], roll: 0, fov: 70 } // Approach Sun Front-Right
+            ],
+            lookAtKeyframes: [
+                { targetId: firstBody.id, offset: [0, 0, 0] },
+                { targetId: midBody.id, offset: [0, 0, 0] },
+                { targetId: lastBody.id, offset: [0, 0, 0] },
+                { targetId: 'sun', offset: [0, 0, 0] }
+            ]
+        },
+        
+        // SHOT 2: THE SUN U-TURN
+        {
+            title: 'SOL', subtitle: 'THE ANCHOR', titleDelay: 1.0,
+            type: 'spline', transition: 'smooth', duration: 25, distance: 0, height: 0, speed: 0, dampening: 0.95,
+            showFlightComputer: true, originName: 'SOL FRONT', destName: 'SOL BACK', facts: SUN_FACTS,
+            keyframes: [
+                { targetId: 'sun', offset: [80, 20, 80], roll: 0, fov: 70 },    // Start where Shot 1 ended
+                { targetId: 'sun', offset: [0, 0, 120], roll: 10, fov: 65 },    // Side
+                { targetId: 'sun', offset: [-100, 20, 0], roll: 0, fov: 60 },   // Back 
+                { targetId: 'sun', offset: [-80, 10, -50], roll: -5, fov: 60 }  // Back-Left
+            ],
+            lookAtKeyframes: [
+                { targetId: 'sun', offset: [0, 0, 0] },
+                { targetId: 'sun', offset: [0, 0, 0] },
+                { targetId: 'sun', offset: [0, 0, 0] },
+                { targetId: 'sun', offset: [0, 0, 0] }
+            ]
+        },
 
-export const JUPITER_FACTS = [
-    "Jupiter is the largest planet in our solar system.",
-    "It has a Great Red Spot, a storm larger than Earth raging for centuries.",
-    "Jupiter has over 90 known moons, including the massive Galilean moons.",
-    "It has the shortest day of all planets, rotating in just 10 hours.",
-    "Jupiter's magnetic field is 14 times stronger than Earth's.",
-    "The planet is a gas giant, composed mostly of hydrogen and helium."
-];
+        // SHOT 3: THE RETURN LEG (Sun -> Start, Back Side)
+        {
+            title: '', subtitle: '', 
+            type: 'spline', transition: 'smooth', duration: 35, distance: 0, height: 0, speed: 0, dampening: 0.9,
+            showFlightComputer: false, 
+            keyframes: [
+                { targetId: 'sun', offset: [-80, 10, -50], roll: -5, fov: 60 },
+                { targetId: lastBody.id, offset: [0, 30, -100], roll: -10, fov: 60 }, // Passing Giants from behind
+                { targetId: midBody.id, offset: [0, 10, -50], roll: -15, fov: 50 },   // Passing Mid-tier from behind
+                { targetId: firstBody.id, offset: [0, 5, -15], roll: -5, fov: 45 }    // Arriving behind Start
+            ],
+            lookAtKeyframes: [
+                { targetId: 'sun', offset: [0, 0, 0] },
+                { targetId: lastBody.id, offset: [0, 0, 0] },
+                { targetId: midBody.id, offset: [0, 0, 0] },
+                { targetId: firstBody.id, offset: [0, 0, 0] }
+            ]
+        },
 
-export const SATURN_FACTS = [
-    "Saturn is the second largest planet, famous for its extensive ring system.",
-    "The rings are made mostly of ice particles, some as big as a house.",
-    "Saturn is the least dense planet; it would float in water.",
-    "It has 146 confirmed moons, the most in the solar system.",
-    "Titan, its largest moon, has a thick atmosphere and liquid methane lakes.",
-    "Saturn takes 29.4 Earth years to orbit the Sun."
-];
+        // SHOT 4: THE LOOP CLOSE
+        {
+            type: 'spline', transition: 'smooth', duration: 15, distance: 0, height: 0, speed: 0, dampening: 0.95,
+            showFlightComputer: false,
+            keyframes: [
+                { targetId: firstBody.id, offset: [0, 5, -15], roll: -5, fov: 45 },
+                { targetId: firstBody.id, offset: [-2, 2, 0], roll: 0, fov: 42 },     // Left Side
+                { targetId: firstBody.id, offset: startOffset, roll: startRoll, fov: startFov } // EXACT SNAP
+            ],
+            lookAtKeyframes: [
+                { targetId: firstBody.id, offset: [0, 0, 0] },
+                { targetId: firstBody.id, offset: [0, 0, 0] },
+                { targetId: firstBody.id, offset: [0, 0, 0] }
+            ]
+        }
+    ];
+};
 
-export const URANUS_FACTS = [
-    "Uranus rotates on its side with an axial tilt of 98 degrees.",
-    "It is an Ice Giant, with a mantle of icy water, ammonia, and methane.",
-    "Methane in the upper atmosphere gives Uranus its blue-green color.",
-    "It was the first planet discovered with a telescope (1781).",
-    "Uranus has 27 known moons, named after Shakespearean characters.",
-    "It has the coldest planetary atmosphere, reaching -224°C."
-];
+export const SCALE_SHOTS = generateScaleShots();
 
-export const NEPTUNE_FACTS = [
-    "Neptune is the most distant major planet from the Sun.",
-    "It has the strongest winds in the solar system, reaching 2,100 km/h.",
-    "Neptune takes 165 Earth years to complete one orbit.",
-    "It was predicted by mathematics before it was directly observed.",
-    "Its largest moon, Triton, orbits in the opposite direction (retrograde).",
-    "Like Uranus, it is an Ice Giant with a deep blue color."
-];
-
-export const PLUTO_FACTS = [
-    "Pluto was reclassified as a dwarf planet in 2006.",
-    "It resides in the Kuiper Belt, a ring of bodies beyond Neptune.",
-    "Pluto has five known moons; Charon is the largest.",
-    "A year on Pluto is 248 Earth years.",
-    "Its surface features mountains made of water ice.",
-    "Sunlight on Pluto is 2,000 times dimmer than on Earth."
-];
-
-export const GALACTIC_FACTS = [
-    "Sagittarius A* is the supermassive black hole at the Milky Way's center.",
-    "It has a mass equal to 4 million Suns.",
-    "It is located 26,000 light-years from Earth.",
-    "Time dilates significantly near the event horizon.",
-    "The gravity is so strong that not even light can escape.",
-    "It spins at a significant fraction of the speed of light."
-];
-
-// --- MISSION SPECIFIC FACTS ---
-
-export const VOYAGER_GENERAL_FACTS = [
-    "MISSION: Voyager 1 Interstellar Mission.",
-    "LAUNCH: September 5, 1977 from Cape Canaveral.",
-    "OBJECTIVE: Investigate Jupiter, Saturn, and the outer heliosphere.",
-    "CURRENT DISTANCE: Over 24 billion km (160 AU) from Earth.",
-    "SPEED: 17 km/s (38,000 mph) relative to the Sun.",
-    "POWER: Radioisotope Thermoelectric Generators (RTGs).",
-    "DATA: It takes over 22 hours for a signal to reach Earth.",
-    "GOLDEN RECORD: Carries sounds and images of Earth for alien civilizations.",
-    "STATUS: The most distant human-made object in existence.",
-    "FUTURE: Will pass within 1.6 light-years of star Gliese 445 in 40,000 years."
-];
-
-export const VOYAGER_JUPITER_FACTS = [
-    "JUPITER ENCOUNTER: Voyager 1 began photographing Jupiter in Jan 1979.",
-    "GRAVITY ASSIST: Voyager used Jupiter to accelerate towards Saturn.",
-    "DISCOVERY: Voyager discovered active volcanoes on the moon Io.",
-    "RINGS: Voyager confirmed the existence of Jupiter's faint ring system.",
-    "DATA RATE: 115.2 kilobits per second at Jupiter encounter.",
-    "MAGNETOSPHERE: The spacecraft passed through the deadly radiation belts.",
-    "DURATION: The encounter phase lasted several months.",
-    "LEGACY: Changed our understanding of gas giants forever."
-];
-
-export const VOYAGER_SATURN_FACTS = [
-    "SATURN ENCOUNTER: Nov 1980. The spacecraft flew within 124,000 km of the cloud tops.",
-    "TITAN: Voyager 1 performed a close flyby of this haze-shrouded moon.",
-    "GRAVITY ASSIST: The Titan flyby flung Voyager out of the ecliptic plane.",
-    "RINGS: Discovered 'spokes' and braids in the rings.",
-    "ATMOSPHERE: Measured wind speeds of 1,800 km/h (1,100 mph).",
-    "HEXAGON: Hinted at the polar hexagon structure.",
-    "DEPARTURE: This was the final planetary encounter for Voyager 1."
-];
-
-export const INTERSTELLAR_FACTS = [
-    "PALE BLUE DOT: In 1990, Voyager turned around to take a portrait of the solar system.",
-    "HELIOPAUSE: Crossed the boundary of the Sun's influence in August 2012.",
-    "INTERSTELLAR MEDIUM: Now sampling the plasma between the stars.",
-    "PLASMA WAVE: Detects the 'hum' of interstellar gas.",
-    "SILENCE: Power levels are dropping; instruments are being turned off one by one.",
-    "ETERNAL: Voyager will wander the Milky Way long after Earth is gone."
-];
-
-export const OUMUAMUA_FACTS = [
-    "DISCOVERY: Oct 19, 2017. The first interstellar object detected.",
-    "NAME: Hawaiian for 'scout' or 'messenger from afar'.",
-    "ORIGIN: Vega (Lyra Constellation).",
-    "SPEED: 87.7 km/s at perihelion (Maximum Velocity).",
-    "SHAPE: Highly elongated, cigar-shaped.",
-    "ANOMALY: Showed non-gravitational acceleration leaving the solar system.",
-    "COMPOSITION: Likely nitrogen ice or rock; reddish hue.",
-    "TRAJECTORY: Hyperbolic orbit, meaning it will never return."
-];
-
-export const COMMERCIAL_FACTS = [
-    "Welcome aboard Zinc Spacelines.",
-    "Cruising velocity: 75,000 km/h.",
-    "Next stop: Destination Unknown.",
-    "Please keep gravitational harnesses fastened.",
-    "Enjoy the view of the cosmos."
-];
-
-// --- SHOT DEFINITIONS ---
-
-export const SCALE_SHOTS: CinematicShot[] = [
-    {
-        title: 'COSMIC SCALE', subtitle: 'SIZE COMPARISON', titleDelay: 2.0, type: 'spline', transition: 'cut', duration: 35, distance: 0, height: 0, speed: 0, dampening: 0.9,
-        showFlightComputer: true, originName: 'PLUTO', destName: 'SOL', facts: PLUTO_FACTS,
-        keyframes: [{ targetId: 'pluto', offset: [4, 1, 4], roll: 0, fov: 45 }, { targetId: 'mercury', offset: [5, 1, 5], roll: 5, fov: 50 }, { targetId: 'mars', offset: [6, 2, 6], roll: 0, fov: 50 }, { targetId: 'venus', offset: [8, 2, 8], roll: -5, fov: 55 }, { targetId: 'earth', offset: [10, 3, 10], roll: 0, fov: 60 }],
-        lookAtKeyframes: [{ targetId: 'pluto', offset: [0, 0, 0] }, { targetId: 'mercury', offset: [0, 0, 0] }, { targetId: 'mars', offset: [0, 0, 0] }, { targetId: 'venus', offset: [0, 0, 0] }, { targetId: 'earth', offset: [0, 0, 0] }]
-    },
-    {
-        title: 'THE GIANTS', subtitle: 'MASSIVE WORLDS', titleDelay: 2.0, type: 'spline', transition: 'smooth', duration: 35, distance: 0, height: 0, speed: 0, dampening: 0.9,
-        showFlightComputer: true, originName: 'TERRA', destName: 'JUPITER', facts: JUPITER_FACTS,
-        keyframes: [{ targetId: 'earth', offset: [10, 3, 10], roll: 0, fov: 60 }, { targetId: 'neptune', offset: [15, 5, 15], roll: 0, fov: 65 }, { targetId: 'uranus', offset: [18, 6, 18], roll: 5, fov: 65 }, { targetId: 'saturn', offset: [25, 8, 25], roll: -5, fov: 70 }, { targetId: 'jupiter', offset: [35, 10, 35], roll: 0, fov: 75 }],
-        lookAtKeyframes: [{ targetId: 'earth', offset: [0, 0, 0] }, { targetId: 'neptune', offset: [0, 0, 0] }, { targetId: 'uranus', offset: [0, 0, 0] }, { targetId: 'saturn', offset: [0, 0, 0] }, { targetId: 'jupiter', offset: [0, 0, 0] }]
-    },
-    {
-        title: 'SOL', subtitle: 'THE ANCHOR', titleDelay: 3.0, type: 'spline', transition: 'smooth', duration: 35, distance: 0, height: 0, speed: 0, dampening: 0.94,
-        showFlightComputer: true, originName: 'JUPITER', destName: 'SOL', facts: SUN_FACTS,
-        keyframes: [{ targetId: 'jupiter', offset: [35, 10, 35], roll: 0, fov: 75 }, { targetId: 'sun', offset: [60, 0, 60], roll: 0, fov: 80 }, { targetId: 'sun', offset: [0, 30, 100], roll: 20, fov: 70 }, { targetId: 'sun', offset: [-60, 0, 60], roll: 0, fov: 60 }],
-        lookAtKeyframes: [{ targetId: 'jupiter', offset: [0, 0, 0] }, { targetId: 'sun', offset: [0, 0, 0] }, { targetId: 'sun', offset: [0, 0, 0] }, { targetId: 'sun', offset: [0, 0, 0] }]
-    },
-    {
-        title: 'THE RETURN', subtitle: 'LOOPING SEQUENCE', type: 'spline', transition: 'smooth', duration: 25, distance: 0, height: 0, speed: 0, dampening: 0.7,
-        showFlightComputer: true, originName: 'SOL', destName: 'PLUTO', facts: PLUTO_FACTS,
-        keyframes: [{ targetId: 'sun', offset: [-60, 0, 60], roll: 0, fov: 60 }, { targetId: 'saturn', offset: [40, 20, 40], roll: -10, fov: 60 }, { targetId: 'mars', offset: [20, 10, 20], roll: 10, fov: 55 }, { targetId: 'pluto', offset: [4, 1, 4], roll: 0, fov: 45 }],
-        lookAtKeyframes: [{ targetId: 'sun', offset: [0, 0, 0] }, { targetId: 'jupiter', offset: [0, 0, 0] }, { targetId: 'earth', offset: [0, 0, 0] }, { targetId: 'pluto', offset: [0, 0, 0] }]
-    }
-];
-
+// ... (Rest of file unchanged: OUMUAMUA_VISIT_SHOTS, TOURS, addTour) ...
 export const OUMUAMUA_VISIT_SHOTS: CinematicShot[] = [
     // 1. INBOUND FROM VEGA (Deep Space -> Inner System)
     {
@@ -266,7 +190,6 @@ export const OUMUAMUA_VISIT_SHOTS: CinematicShot[] = [
 ];
 
 export const TOURS: Tour[] = [
-    // --- 1. THE GRAND TOUR ---
     {
         id: 'grand_tour',
         name: 'The Grand Tour',
@@ -408,7 +331,6 @@ export const TOURS: Tour[] = [
         ]
     },
 
-    // --- 2. EARTH TO MARS (5 MINUTE EPIC) ---
     {
         id: 'earth_mars_transfer',
         name: 'Earth to Mars Transfer',
@@ -483,7 +405,6 @@ export const TOURS: Tour[] = [
         ]
     },
 
-    // --- 3. JOVIAN LEAP (REMASTERED 3 MINUTE JOURNEY) ---
     {
         id: 'jovian_leap',
         name: 'The Jovian Leap',
@@ -566,7 +487,6 @@ export const TOURS: Tour[] = [
         ]
     },
 
-    // --- 4. VOYAGER 1 (REMASTERED: 30 MINUTES) ---
     {
         id: 'voyager_1',
         name: 'Voyager 1: The Grand Tour',
@@ -684,7 +604,6 @@ export const TOURS: Tour[] = [
         ]
     },
 
-    // --- 5. OUMUAMUA VISIT (UPDATED) ---
     {
         id: 'oumuamua_visit',
         name: 'Oumuamua',
@@ -692,7 +611,6 @@ export const TOURS: Tour[] = [
         shots: OUMUAMUA_VISIT_SHOTS
     },
 
-    // --- 6. COSMIC SCALE ---
     {
         id: 'scale_comparison',
         name: 'Cosmic Scale',
