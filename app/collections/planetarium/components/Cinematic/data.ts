@@ -3,7 +3,7 @@
 import { CinematicShot, Tour } from './types';
 import { PLANET_DATA } from '../../data'; 
 
-// ... (FACTS ARRAYS SAME AS BEFORE) ...
+// --- FACTS ARRAYS ---
 export const SUN_FACTS = [ "The Sun contains 99.86% of the Solar System's total mass.", "Surface temperature is approx. 5,500°C.", "Light takes 8m 20s to reach Earth." ];
 export const MERCURY_FACTS = [ "Smallest planet.", "No atmosphere.", "88 Earth days per year." ];
 export const VENUS_FACTS = [ "Hottest planet.", "Retrograde rotation.", "Thick sulfuric clouds." ];
@@ -26,7 +26,7 @@ export const COMMERCIAL_FACTS = [ "Welcome aboard.", "Cruising speed: 75,000 km/
 
 // --- DYNAMIC SCALE SHOT GENERATION ---
 const generateScaleShots = (): CinematicShot[] => {
-    // 1. Replicate sorting
+    // 1. Replicate sorting (Smallest -> Largest)
     const allBodies = [
         ...PLANET_DATA, 
         ...PLANET_DATA.flatMap(p => p.moons || [])
@@ -34,86 +34,94 @@ const generateScaleShots = (): CinematicShot[] => {
 
     allBodies.sort((a, b) => a.radius - b.radius);
 
-    const firstBody = allBodies[0]; 
-    const lastBody = allBodies[allBodies.length - 1]; 
-    const midBody = allBodies[Math.floor(allBodies.length * 0.5)];
-    
-    // START POSITION: Front-Right offset
-    const startOffset: [number, number, number] = [0.5, 0.2, 1.5]; 
+    const smallest = allBodies[0];
+    const largestPlanet = allBodies[allBodies.length - 1]; // Jupiter typically
+    const midPoint = allBodies[Math.floor(allBodies.length * 0.4)];
+    const giantsStart = allBodies.find(b => b.radius > 3) || midPoint; // Find first "big" one
+
+    // Preset Start Configuration (Closer & tighter for impact)
+    const startOffset: [number, number, number] = [0.8, 0.2, 0.8]; 
+    const startLookAt: [number, number, number] = [0, 0, 0];
     const startRoll = 0;
-    const startFov = 40;
+    const startFov = 45;
 
     return [
-        // SHOT 1: THE OUTBOUND LEG (Smallest -> Sun)
+        // SHOT 1: THE HEAVY PARADE (Slow, Close, Impactful)
         {
-            title: 'COSMIC SCALE', subtitle: 'FROM DUST TO STARS', titleDelay: 1.0, 
-            type: 'spline', transition: 'cut', duration: 40, distance: 0, height: 0, speed: 0, dampening: 0.9,
-            showFlightComputer: true, originName: firstBody.name.toUpperCase(), destName: 'THE SUN', facts: SCALE_FACTS,
+            title: 'COSMIC SCALE', 
+            subtitle: 'MAGNITUDE COMPARISON', 
+            titleDelay: 1.0, 
+            type: 'spline', 
+            transition: 'cut', 
+            duration: 90, // Slower duration for "heavier" feel
+            distance: 0, 
+            height: 0, 
+            speed: 0, 
+            dampening: 0.98, // High dampening for heavy camera feel
+            showFlightComputer: true, 
+            originName: 'MICRO', 
+            destName: 'MACRO', 
+            facts: SCALE_FACTS,
             keyframes: [
-                { targetId: firstBody.id, offset: startOffset, roll: startRoll, fov: startFov }, // SNAP START
-                { targetId: midBody.id, offset: [5, 2, 6], roll: 0, fov: 50 },
-                { targetId: lastBody.id, offset: [30, 15, 30], roll: 0, fov: 60 },
-                { targetId: 'sun', offset: [80, 20, 80], roll: 0, fov: 70 } // Approach Sun Front-Right
+                // 1. Start: Very close to the smallest body
+                { targetId: smallest.id, offset: startOffset, roll: startRoll, fov: startFov },
+                
+                // 2. Small Bodies: Skimming right past them
+                { targetId: allBodies[3].id, offset: [2, 0.5, 2], roll: 5, fov: 50 },
+                
+                // 3. Mid-Point: Pulling back slightly but staying low
+                { targetId: midPoint.id, offset: [8, 2, 8], roll: 0, fov: 55 },
+                
+                // 4. The Rise: Approaching giants, looking up from below to emphasize scale
+                { targetId: giantsStart.id, offset: [15, -5, 15], roll: -5, fov: 60 },
+                
+                // 5. The Titans: Passing Jupiter/Saturn closely
+                { targetId: largestPlanet.id, offset: [50, 0, 40], roll: 0, fov: 65 },
+                
+                // 6. Arrival: The Sun (Massive scale reveal)
+                { targetId: 'sun', offset: [180, 20, 100], roll: 5, fov: 50 }
             ],
             lookAtKeyframes: [
-                { targetId: firstBody.id, offset: [0, 0, 0] },
-                { targetId: midBody.id, offset: [0, 0, 0] },
-                { targetId: lastBody.id, offset: [0, 0, 0] },
-                { targetId: 'sun', offset: [0, 0, 0] }
-            ]
-        },
-        
-        // SHOT 2: THE SUN U-TURN
-        {
-            title: 'SOL', subtitle: 'THE ANCHOR', titleDelay: 1.0,
-            type: 'spline', transition: 'smooth', duration: 25, distance: 0, height: 0, speed: 0, dampening: 0.95,
-            showFlightComputer: true, originName: 'SOL FRONT', destName: 'SOL BACK', facts: SUN_FACTS,
-            keyframes: [
-                { targetId: 'sun', offset: [80, 20, 80], roll: 0, fov: 70 },    // Start where Shot 1 ended
-                { targetId: 'sun', offset: [0, 0, 120], roll: 10, fov: 65 },    // Side
-                { targetId: 'sun', offset: [-100, 20, 0], roll: 0, fov: 60 },   // Back 
-                { targetId: 'sun', offset: [-80, 10, -50], roll: -5, fov: 60 }  // Back-Left
-            ],
-            lookAtKeyframes: [
-                { targetId: 'sun', offset: [0, 0, 0] },
-                { targetId: 'sun', offset: [0, 0, 0] },
-                { targetId: 'sun', offset: [0, 0, 0] },
+                { targetId: smallest.id, offset: [0, 0, 0] },
+                { targetId: midPoint.id, offset: [0, 0, 0] },
+                { targetId: largestPlanet.id, offset: [0, 5, 0] }, // Look slightly up at giant
                 { targetId: 'sun', offset: [0, 0, 0] }
             ]
         },
 
-        // SHOT 3: THE RETURN LEG (Sun -> Start, Back Side)
+        // SHOT 2: THE SMOOTH RETURN (Seamless Loop)
         {
-            title: '', subtitle: '', 
-            type: 'spline', transition: 'smooth', duration: 35, distance: 0, height: 0, speed: 0, dampening: 0.9,
+            title: 'RESET', 
+            subtitle: 'LOOPING SIMULATION', 
+            titleDelay: 2.0,
+            type: 'spline', 
+            transition: 'smooth', 
+            duration: 30, // Gentle return flight
+            distance: 0, 
+            height: 0, 
+            speed: 0, 
+            dampening: 0.94,
             showFlightComputer: false, 
             keyframes: [
-                { targetId: 'sun', offset: [-80, 10, -50], roll: -5, fov: 60 },
-                { targetId: lastBody.id, offset: [0, 30, -100], roll: -10, fov: 60 }, // Passing Giants from behind
-                { targetId: midBody.id, offset: [0, 10, -50], roll: -15, fov: 50 },   // Passing Mid-tier from behind
-                { targetId: firstBody.id, offset: [0, 5, -15], roll: -5, fov: 45 }    // Arriving behind Start
+                // Start from Shot 1 End
+                { targetId: 'sun', offset: [180, 20, 100], roll: 5, fov: 50 },
+                
+                // Pull wide and high to see the whole line
+                { targetId: largestPlanet.id, offset: [0, 150, 100], roll: 0, fov: 60 },
+                
+                // Glide back towards the small end
+                { targetId: midPoint.id, offset: [0, 80, 40], roll: 5, fov: 55 },
+                
+                // Dive in...
+                { targetId: smallest.id, offset: [5, 10, 5], roll: 0, fov: 50 },
+                
+                // SNAP: Perfect loop to start
+                { targetId: smallest.id, offset: startOffset, roll: startRoll, fov: startFov }
             ],
             lookAtKeyframes: [
                 { targetId: 'sun', offset: [0, 0, 0] },
-                { targetId: lastBody.id, offset: [0, 0, 0] },
-                { targetId: midBody.id, offset: [0, 0, 0] },
-                { targetId: firstBody.id, offset: [0, 0, 0] }
-            ]
-        },
-
-        // SHOT 4: THE LOOP CLOSE
-        {
-            type: 'spline', transition: 'smooth', duration: 15, distance: 0, height: 0, speed: 0, dampening: 0.95,
-            showFlightComputer: false,
-            keyframes: [
-                { targetId: firstBody.id, offset: [0, 5, -15], roll: -5, fov: 45 },
-                { targetId: firstBody.id, offset: [-2, 2, 0], roll: 0, fov: 42 },     // Left Side
-                { targetId: firstBody.id, offset: startOffset, roll: startRoll, fov: startFov } // EXACT SNAP
-            ],
-            lookAtKeyframes: [
-                { targetId: firstBody.id, offset: [0, 0, 0] },
-                { targetId: firstBody.id, offset: [0, 0, 0] },
-                { targetId: firstBody.id, offset: [0, 0, 0] }
+                { targetId: midPoint.id, offset: [0, 0, 0] },
+                { targetId: smallest.id, offset: startLookAt }
             ]
         }
     ];
@@ -121,7 +129,6 @@ const generateScaleShots = (): CinematicShot[] => {
 
 export const SCALE_SHOTS = generateScaleShots();
 
-// ... (Rest of file unchanged: OUMUAMUA_VISIT_SHOTS, TOURS, addTour) ...
 export const OUMUAMUA_VISIT_SHOTS: CinematicShot[] = [
     // 1. INBOUND FROM VEGA (Deep Space -> Inner System)
     {
