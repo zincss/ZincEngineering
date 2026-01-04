@@ -8,8 +8,8 @@ import { ArrowLeft, Search } from 'lucide-react';
 import Link from 'next/link';
 
 import { SimulationProvider, useSimulation, TimeKeeper, J2000_EPOCH } from './context';
-import { StarBackground, Sun, Planet, SpaceDust, AsteroidBelt, SolarWind } from './components/Scene';
-import { SpaceshipController, SpaceshipHUD } from './components/Scene/Spaceship'; // UPDATED IMPORT
+import { StarBackground, Sun, Planet, SpaceDust, AsteroidBelt, SolarWind } from './components/Scene'; 
+import { SpaceshipController, SpaceshipHUD } from './components/Scene/Spaceship';
 import { SystemControls } from './components/Controls'; 
 import { FantasyContent } from './components/FantasyScene';
 

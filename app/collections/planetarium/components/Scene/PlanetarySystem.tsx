@@ -23,16 +23,18 @@ function PlanetClouds({ textureUrl, radius }: { textureUrl: string, radius: numb
     );
 }
 
-// --- SATURN RINGS ---
+// --- SATURN RINGS (TWEAKED) ---
 function SaturnRings({ innerRadius, outerRadius }: { innerRadius: number, outerRadius: number }) {
     const meshRef = useRef<THREE.InstancedMesh>(null);
-    const count = 8000; 
+    // Increased density slightly for a fuller look
+    const count = 9000; 
 
     useLayoutEffect(() => {
         if (!meshRef.current) return;
         const tempObj = new THREE.Object3D();
         const color = new THREE.Color();
-        const colors = ['#D4BC8C', '#8B7D6E', '#AFAFAF', '#5A5A5A']; 
+        // Updated Palette: More rocky/dusty tones
+        const colors = ['#E0CDA7', '#C4A88F', '#8B7D6E', '#A0A0A0']; 
 
         for (let i = 0; i < count; i++) {
             const angle = Math.random() * Math.PI * 2;
@@ -40,28 +42,42 @@ function SaturnRings({ innerRadius, outerRadius }: { innerRadius: number, outerR
             const seed = Math.random();
             const ringB_Width = 5.5; 
             const ringA_Width = 4.5;
-            if (seed > 0.4) {
+            
+            // 55% Inner Ring (B), 45% Outer Ring (A)
+            if (seed > 0.45) {
                  r = innerRadius + Math.random() * ringB_Width;
             } else {
                  r = (innerRadius + ringB_Width + 2.0) + Math.random() * ringA_Width;
             }
+
             const x = Math.cos(angle) * r;
             const z = Math.sin(angle) * r;
-            const y = (Math.random() - 0.5) * 0.2; 
+            // Flatter vertical spread for a sharper ring plane
+            const y = (Math.random() - 0.5) * 0.15; 
+            
             tempObj.position.set(x, y, z);
             tempObj.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-            const scaleBase = r < 18 ? 0.12 : 0.08;
-            const s = Math.random() * scaleBase + 0.02;
-            tempObj.scale.set(s, s, s);
+            
+            // TWEAK: Irregular Scales
+            // Instead of perfect cubes, we stretch them slightly to look like debris
+            const scaleBase = r < 18 ? 0.12 : 0.09;
+            const s = Math.random() * scaleBase + 0.03;
+            tempObj.scale.set(s, s * (0.6 + Math.random() * 0.4), s * (0.6 + Math.random() * 0.4));
+            
             tempObj.updateMatrix();
             meshRef.current.setMatrixAt(i, tempObj.matrix);
+            
+            // TWEAK: Color Gradient
             const colIndex = Math.floor(Math.random() * colors.length);
             color.set(colors[colIndex]);
+            
+            // Inner rings warmer/denser, Outer rings icier/faded
             if (r < 18) {
-                color.offsetHSL(0, 0.05, 0); 
+                color.offsetHSL(0.02, 0.05, -0.05); 
             } else {
-                color.offsetHSL(0, -0.05, -0.1);
+                color.offsetHSL(0, -0.1, 0.1);
             }
+            
             color.multiplyScalar(0.8 + Math.random() * 0.4);
             meshRef.current.setColorAt(i, color);
         }
@@ -74,9 +90,10 @@ function SaturnRings({ innerRadius, outerRadius }: { innerRadius: number, outerR
     });
 
     return (
-        <instancedMesh ref={meshRef} args={[undefined, undefined, count]} rotation={[0,0,0]}>
+        // Added castShadow and receiveShadow for self-shadowing depth
+        <instancedMesh ref={meshRef} args={[undefined, undefined, count]} rotation={[0,0,0]} castShadow receiveShadow>
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial roughness={0.8} metalness={0.2} />
+            <meshStandardMaterial roughness={0.7} metalness={0.3} />
         </instancedMesh>
     );
 }

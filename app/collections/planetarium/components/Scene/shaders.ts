@@ -289,3 +289,52 @@ export const SunAtmosphereShader = {
         }
     `
 };
+
+// --- PROCEDURAL RING SHADER ---
+export const RingShader = {
+  uniforms: {
+    uColor: { value: new THREE.Color('#C99039') }, // Saturn gold default
+    uInnerRadius: { value: 0.0 },
+    uOuterRadius: { value: 0.0 },
+    uOpacity: { value: 0.8 }
+  },
+  vertexShader: `
+    varying vec3 vPos;
+    varying vec2 vUv;
+    void main() {
+      vPos = position;
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform vec3 uColor;
+    uniform float uInnerRadius;
+    uniform float uOuterRadius;
+    uniform float uOpacity;
+    varying vec3 vPos;
+    
+    void main() {
+      // Calculate radius from center (0,0) in local space
+      float r = length(vPos.xy);
+      
+      // 1. Soft Edges
+      float smoothEdge = smoothstep(uInnerRadius, uInnerRadius + 0.5, r) * (1.0 - smoothstep(uOuterRadius - 0.5, uOuterRadius, r));
+      
+      // 2. Banding Effect (Sine waves based on radius)
+      float bands = 0.5 + 0.5 * sin(r * 2.0); 
+      float detail = 0.8 + 0.2 * sin(r * 15.0);
+      
+      // 3. Darker "Gap" (Cassini Division approximation)
+      float gapPos = uInnerRadius + (uOuterRadius - uInnerRadius) * 0.7;
+      float gap = 1.0 - (smoothstep(gapPos - 0.5, gapPos, r) * (1.0 - smoothstep(gapPos, gapPos + 0.5, r))) * 0.8;
+      
+      float alpha = uOpacity * smoothEdge * bands * detail * gap;
+      
+      if (alpha < 0.05) discard;
+      
+      vec3 finalColor = uColor * (0.8 + 0.4 * detail);
+      gl_FragColor = vec4(finalColor, alpha);
+    }
+  `
+};
