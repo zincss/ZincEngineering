@@ -16,6 +16,7 @@ export interface CelestialBody {
   ascendingNode?: number;    
   periapsis?: number;        
   textureUrl: string;
+  // removed normalMapUrl
   cloudTextureUrl?: string; 
   ringTextureUrl?: string; 
   atmosphere?: boolean; 

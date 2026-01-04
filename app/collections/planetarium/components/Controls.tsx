@@ -5,21 +5,31 @@ import { useFrame } from '@react-three/fiber';
 import { CameraControls } from '@react-three/drei';
 import * as THREE from 'three';
 
-export function SystemControls({ targetId, refs, isCinematic }: { targetId: string | null, refs: any, isCinematic: boolean }) {
+export function SystemControls({ 
+    targetId, 
+    refs, 
+    isCinematic, 
+    isSpaceshipMode 
+}: { 
+    targetId: string | null, 
+    refs: any, 
+    isCinematic: boolean, 
+    isSpaceshipMode?: boolean 
+}) {
     const controlsRef = useRef<CameraControls>(null);
     const prevTargetPos = useRef(new THREE.Vector3());
     const prevTargetId = useRef<string | null>(null);
 
     // 1. Initial Setup
     useEffect(() => {
-        if (controlsRef.current && !targetId && !isCinematic) {
+        if (controlsRef.current && !targetId && !isCinematic && !isSpaceshipMode) {
             controlsRef.current.setLookAt(0, 600, 800, 0, 0, 0, true);
         }
     }, []);
 
     // 2. Focus Logic
     useEffect(() => {
-        if (!controlsRef.current || isCinematic) return;
+        if (!controlsRef.current || isCinematic || isSpaceshipMode) return;
 
         // Target Focus
         if (targetId) {
@@ -41,15 +51,14 @@ export function SystemControls({ targetId, refs, isCinematic }: { targetId: stri
 
             if (refs.current[targetId]) {
                 const targetObj = refs.current[targetId];
-                // Simple box fitting - can be tweaked based on preference
                 controlsRef.current.fitToBox(targetObj, true, { paddingLeft: 4, paddingRight: 4, paddingTop: 4, paddingBottom: 4 });
             }
         } 
-    }, [targetId, refs, isCinematic]);
+    }, [targetId, refs, isCinematic, isSpaceshipMode]);
 
-    // 3. Lock Logic: Moves the camera AND the look-at point by the planet's delta
+    // 3. Lock Logic
     useFrame(() => {
-        if (isCinematic || !targetId) {
+        if (isCinematic || isSpaceshipMode || !targetId) {
             prevTargetId.current = null;
             return; 
         }
@@ -63,11 +72,9 @@ export function SystemControls({ targetId, refs, isCinematic }: { targetId: stri
                 const delta = new THREE.Vector3().subVectors(currentTargetPos, prevTargetPos.current);
                 if (delta.lengthSq() > 0.000001) {
                     const currentCamPos = controlsRef.current.camera.position;
-                    // Get the CURRENT look-at target point
                     const currentLookAt = new THREE.Vector3();
                     controlsRef.current.getTarget(currentLookAt);
 
-                    // Apply delta to BOTH to maintain relative position (orbiting) while moving
                     controlsRef.current.setPosition(
                         currentCamPos.x + delta.x, 
                         currentCamPos.y + delta.y, 
@@ -94,7 +101,7 @@ export function SystemControls({ targetId, refs, isCinematic }: { targetId: stri
             maxDistance={50000} 
             minDistance={0.001} 
             smoothTime={1.2} 
-            enabled={!isCinematic} 
+            enabled={!isCinematic && !isSpaceshipMode} 
         />
     );
 }

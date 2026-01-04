@@ -1,5 +1,3 @@
-// app/collections/planetarium/page.tsx
-
 'use client';
 
 import React, { useRef, useState, Suspense, useCallback, useEffect } from 'react';
@@ -11,6 +9,7 @@ import Link from 'next/link';
 
 import { SimulationProvider, useSimulation, TimeKeeper, J2000_EPOCH } from './context';
 import { StarBackground, Sun, Planet, SpaceDust, AsteroidBelt, SolarWind } from './components/Scene';
+import { SpaceshipController, SpaceshipHUD } from './components/Scene/Spaceship'; // UPDATED IMPORT
 import { SystemControls } from './components/Controls'; 
 import { FantasyContent } from './components/FantasyScene';
 
@@ -39,6 +38,8 @@ function PlanetariumContent() {
     const [showSolarWind, setShowSolarWind] = useState(false);
     
     const [isCinematic, setIsCinematic] = useState(false);
+    const [isSpaceshipMode, setIsSpaceshipMode] = useState(false);
+
     const [cinematicKey, setCinematicKey] = useState(0); 
     const [cinematicOverlay, setCinematicOverlay] = useState<OverlayData>({ show: false });
     const [flightData, setFlightData] = useState<FlightData>({ active: false });
@@ -51,6 +52,10 @@ function PlanetariumContent() {
         setFinderOpen(false);
     }, [activeSystem]);
 
+    useEffect(() => {
+        if (isCinematic) setIsSpaceshipMode(false);
+    }, [isCinematic]);
+
     const handleSelect = useCallback((id: string | null) => {
         if (isCinematic) return;
         setSelectedId(id);
@@ -58,10 +63,10 @@ function PlanetariumContent() {
     }, [isCinematic]);
 
     const handleBackgroundClick = useCallback(() => {
-        if (isCinematic) return;
+        if (isCinematic || isSpaceshipMode) return;
         setSelectedId(null);
         setFinderOpen(false);
-    }, [isCinematic]);
+    }, [isCinematic, isSpaceshipMode]);
     
     const handleRecenter = () => {
         setSelectedId(null);
@@ -92,6 +97,7 @@ function PlanetariumContent() {
         setSelectedId(null);
         setFinderOpen(false);
         setIsCinematic(true);
+        setIsSpaceshipMode(false); 
         setCinematicOverlay({ show: false });
         setFlightData({ active: false });
     };
@@ -149,7 +155,16 @@ function PlanetariumContent() {
                 
                 <Suspense fallback={null}>
                     <TimeKeeper />
-                    <SystemControls targetId={selectedId} refs={planetRefs} isCinematic={isCinematic} />
+                    
+                    <SystemControls 
+                        targetId={selectedId} 
+                        refs={planetRefs} 
+                        isCinematic={isCinematic} 
+                        isSpaceshipMode={isSpaceshipMode} 
+                    />
+
+                    {/* SPACESHIP PHYSICS & CAMERA (Inside Canvas) */}
+                    <SpaceshipController active={isSpaceshipMode} />
 
                     {activeSystem === 'fantasy' ? (
                         <FantasyContent 
@@ -185,12 +200,13 @@ function PlanetariumContent() {
                                     key={planet.id} 
                                     data={planet} 
                                     isSelected={selectedId === planet.id}
+                                    selectedId={selectedId}
                                     isCinematic={isCinematic}
                                     showOrbits={showOrbits}
                                     showLabels={showLabels}
                                     scalePosition={scalePositions[planet.id]}
                                     isScaleAlignment={isScaleMode}
-                                    allScalePositions={scalePositions} // PASS FULL MAP
+                                    allScalePositions={scalePositions}
                                     onClick={(idOverride?: string) => handleSelect(idOverride || planet.id)}
                                     onSelectRef={(id: string, ref: THREE.Object3D) => { planetRefs.current[id] = ref; }}
                                 />
@@ -205,6 +221,9 @@ function PlanetariumContent() {
                     </EffectComposer>
                 </Suspense>
             </Canvas>
+
+            {/* SPACESHIP HUD (Outside Canvas) */}
+            <SpaceshipHUD active={isSpaceshipMode} />
 
             <CinematicOverlay data={cinematicOverlay} />
             <FlightComputer data={flightData} />
@@ -244,6 +263,8 @@ function PlanetariumContent() {
                         showLabels={showLabels} setShowLabels={setShowLabels}
                         showSolarWind={showSolarWind} setShowSolarWind={setShowSolarWind}
                         handleRecenter={handleRecenter}
+                        isSpaceshipMode={isSpaceshipMode}
+                        setIsSpaceshipMode={setIsSpaceshipMode}
                     />
                 </>
             )}
