@@ -2,12 +2,355 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSimulation } from '../context'; 
+import { useSimulation, MAX_FUEL, FUEL_COST_PER_UNIT, MAX_BOOST, BOOST_COST_PER_UNIT } from '../context'; 
 import { 
     ArrowLeft, Thermometer, Clock, Calendar, Minimize2, Maximize2, Orbit, Satellite, 
     Film, Sparkles, Eye, EyeOff, Tag, Crosshair, Shuffle, BarChart3, 
-    Rocket, CalendarCheck, Search, X 
+    Rocket, CalendarCheck, Search, X, Briefcase, CheckCircle, Navigation, DollarSign, Fuel, Wifi, Lock, Zap
 } from 'lucide-react';
+
+// --- JOB COMPLETION OVERLAY ---
+export function JobCompleteOverlay() {
+    const { lastCompletedJob, clearCompletedJob } = useSimulation();
+
+    useEffect(() => {
+        if (lastCompletedJob) {
+            const timer = setTimeout(() => {
+                clearCompletedJob();
+            }, 6000); 
+            return () => clearTimeout(timer);
+        }
+    }, [lastCompletedJob, clearCompletedJob]);
+
+    return (
+        <AnimatePresence>
+            {lastCompletedJob && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center pointer-events-none">
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 1.1, filter: "blur(20px)" }}
+                        transition={{ type: "spring", duration: 0.8 }}
+                        className="bg-black/80 backdrop-blur-xl border-y-2 border-[#DFFF00] w-full max-w-3xl py-12 px-8 flex flex-col items-center justify-center relative overflow-hidden"
+                    >
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#DFFF00]/10 to-transparent w-[200%] translate-x-[-50%] animate-[shine_3s_infinite_linear]" />
+                        
+                        <motion.div 
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: 0.2, type: "spring" }}
+                            className="w-20 h-20 bg-[#DFFF00] rounded-full flex items-center justify-center mb-6 text-black shadow-[0_0_50px_rgba(223,255,0,0.5)]"
+                        >
+                            <CheckCircle size={40} strokeWidth={3} />
+                        </motion.div>
+
+                        <motion.h1 
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.3 }}
+                            className="text-4xl md:text-6xl font-black text-white uppercase tracking-tighter italic mb-2"
+                        >
+                            Contract <span className="text-[#DFFF00]">Fulfilled</span>
+                        </motion.h1>
+
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.5 }}
+                            className="text-zinc-400 font-mono uppercase tracking-[0.2em] text-sm mb-8"
+                        >
+                            Payment Transferred Successfully
+                        </motion.div>
+
+                        <div className="grid grid-cols-2 gap-12 w-full max-w-lg">
+                            <motion.div 
+                                initial={{ x: -50, opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                transition={{ delay: 0.7 }}
+                                className="text-right border-r border-white/20 pr-12"
+                            >
+                                <div className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-1">Cargo Delivered</div>
+                                <div className="text-white font-bold text-xl">{lastCompletedJob.cargo}</div>
+                            </motion.div>
+                            <motion.div 
+                                initial={{ x: 50, opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                transition={{ delay: 0.9 }}
+                                className="text-left"
+                            >
+                                <div className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-1">Credit Reward</div>
+                                <div className="text-[#DFFF00] font-black text-3xl flex items-center gap-1">
+                                    + {lastCompletedJob.reward.toLocaleString()} <span className="text-sm">CR</span>
+                                </div>
+                            </motion.div>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
+    );
+}
+
+// --- JOB BOARD COMPONENT ---
+export function JobBoard({ onClose }: { onClose: () => void }) {
+    const { availableJobs, acceptJob, activeJob, completeJob, credits, dockedAt, findBody, fuel, buyFuel, boost, buyBoost } = useSimulation();
+    const locationBody = findBody(dockedAt);
+    
+    const [dockingSequence, setDockingSequence] = useState(true);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDockingSequence(false);
+        }, 2500); 
+        return () => clearTimeout(timer);
+    }, []);
+
+    // CHECKS
+    const fuelMissing = Math.max(0, MAX_FUEL - fuel);
+    const refuelCost = Math.floor(fuelMissing * FUEL_COST_PER_UNIT);
+    const canAffordFuel = credits >= refuelCost;
+    const isFuelLow = fuel < (MAX_FUEL * 0.3);
+
+    const boostMissing = Math.max(0, MAX_BOOST - boost);
+    const boostCost = Math.floor(boostMissing * BOOST_COST_PER_UNIT);
+    const canAffordBoost = credits >= boostCost;
+    const isBoostLow = boost < (MAX_BOOST * 0.3);
+
+    // CAN WE DELIVER HERE?
+    const canDeliverActiveJob = activeJob && activeJob.destId === dockedAt;
+
+    return (
+        <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-xl flex items-center justify-center p-4">
+            
+            <AnimatePresence mode="wait">
+                {dockingSequence ? (
+                    <motion.div 
+                        key="docking"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 1.1, filter: "blur(10px)" }}
+                        className="flex flex-col items-center justify-center text-center max-w-md w-full"
+                    >
+                         <div className="w-24 h-24 border-2 border-dashed border-[#DFFF00] rounded-full flex items-center justify-center animate-spin-slow mb-6 relative">
+                             <div className="absolute inset-2 border border-[#DFFF00]/30 rounded-full animate-ping-slow" />
+                             <Lock size={32} className="text-[#DFFF00]" />
+                         </div>
+                         <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-2 animate-pulse">
+                             Docking Sequence Initiated
+                         </h2>
+                         <div className="text-[#DFFF00] font-mono text-sm uppercase tracking-widest flex items-center gap-2">
+                             <Wifi size={14} className="animate-pulse" />
+                             Establishing Uplink...
+                         </div>
+                         <div className="mt-8 w-64 h-1 bg-zinc-800 rounded-full overflow-hidden">
+                             <motion.div 
+                                 initial={{ width: 0 }} 
+                                 animate={{ width: "100%" }} 
+                                 transition={{ duration: 2.2, ease: "easeInOut" }}
+                                 className="h-full bg-[#DFFF00]" 
+                             />
+                         </div>
+                    </motion.div>
+                ) : (
+                    <motion.div 
+                        key="board"
+                        initial={{ scale: 0.95, opacity: 0, y: 10 }}
+                        animate={{ scale: 1, opacity: 1, y: 0 }}
+                        transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+                        className="bg-zinc-900 border border-white/20 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl relative"
+                    >
+                        {/* Header */}
+                        <div className="bg-zinc-800 p-6 flex justify-between items-center border-b border-white/10">
+                            <div>
+                                <div className="text-[#DFFF00] font-mono text-xs uppercase tracking-widest mb-1 flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-[#DFFF00] rounded-full animate-pulse" />
+                                    Trading Terminal Online
+                                </div>
+                                <h2 className="text-2xl font-black text-white uppercase">
+                                    {locationBody?.name} <span className="text-zinc-500">Logistics</span>
+                                </h2>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-zinc-500 text-xs uppercase tracking-wider">Account Balance</div>
+                                <div className="text-xl font-mono text-[#DFFF00] flex items-center gap-1 justify-end">
+                                    <DollarSign size={16} /> {credits.toLocaleString()}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto max-h-[60vh] custom-scrollbar">
+                            
+                            {/* ACTIVE DELIVERY (PRIORITY) */}
+                            {canDeliverActiveJob && (
+                                <div className="mb-8 animate-in slide-in-from-left duration-500">
+                                    <div className="text-[#DFFF00] text-xs uppercase tracking-widest font-bold mb-3 flex items-center gap-2">
+                                        <Briefcase size={14} className="animate-bounce" /> Incoming Delivery
+                                    </div>
+                                    <div className="bg-[#DFFF00]/10 border border-[#DFFF00] rounded-xl p-6 flex items-center justify-between">
+                                        <div>
+                                            <div className="text-2xl font-black text-white uppercase">{activeJob?.description}</div>
+                                            <div className="text-[#DFFF00] font-mono text-sm mt-1">Cargo: {activeJob?.cargo}</div>
+                                        </div>
+                                        <button 
+                                            onClick={() => { completeJob(); onClose(); }}
+                                            className="px-8 py-4 bg-[#DFFF00] hover:bg-white text-black font-black uppercase tracking-widest text-sm rounded-xl shadow-[0_0_30px_rgba(223,255,0,0.3)] transition-all hover:scale-105 active:scale-95"
+                                        >
+                                            Complete Contract
+                                        </button>
+                                    </div>
+                                    <div className="h-px bg-white/10 w-full my-6" />
+                                </div>
+                            )}
+
+                            {/* STATION SERVICES */}
+                            <div className="text-zinc-500 text-xs uppercase tracking-widest font-bold mb-3">Station Services</div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                
+                                {/* REFUEL */}
+                                <div className="bg-black/20 border border-white/10 rounded-xl p-4 flex flex-col justify-between h-full">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isFuelLow ? 'bg-red-500/20 text-red-500' : 'bg-emerald-500/20 text-emerald-500'}`}>
+                                            <Fuel size={20} />
+                                        </div>
+                                        <div>
+                                            <div className="text-white font-bold text-sm">Reactor Fuel</div>
+                                            <div className="text-zinc-500 text-xs font-mono">
+                                                Level: <span className={isFuelLow ? "text-red-400" : "text-emerald-400"}>{Math.floor((fuel/MAX_FUEL)*100)}%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {fuelMissing > 10 ? (
+                                        <button 
+                                            onClick={buyFuel}
+                                            disabled={!canAffordFuel}
+                                            className={`
+                                                w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all
+                                                ${canAffordFuel 
+                                                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg' 
+                                                    : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}
+                                            `}
+                                        >
+                                            Refuel (-{refuelCost} CR)
+                                        </button>
+                                    ) : (
+                                        <div className="text-center py-2 text-emerald-500 text-xs font-bold uppercase tracking-widest opacity-60">Full</div>
+                                    )}
+                                </div>
+
+                                {/* REBOOST */}
+                                <div className="bg-black/20 border border-white/10 rounded-xl p-4 flex flex-col justify-between h-full">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isBoostLow ? 'bg-orange-500/20 text-orange-500' : 'bg-blue-500/20 text-blue-500'}`}>
+                                            <Zap size={20} />
+                                        </div>
+                                        <div>
+                                            <div className="text-white font-bold text-sm">Injector Fluid</div>
+                                            <div className="text-zinc-500 text-xs font-mono">
+                                                Level: <span className={isBoostLow ? "text-orange-400" : "text-blue-400"}>{Math.floor((boost/MAX_BOOST)*100)}%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {boostMissing > 5 ? (
+                                        <button 
+                                            onClick={buyBoost}
+                                            disabled={!canAffordBoost}
+                                            className={`
+                                                w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all
+                                                ${canAffordBoost 
+                                                    ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg' 
+                                                    : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}
+                                            `}
+                                        >
+                                            Refill (-{boostCost} CR)
+                                        </button>
+                                    ) : (
+                                        <div className="text-center py-2 text-blue-500 text-xs font-bold uppercase tracking-widest opacity-60">Full</div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="h-px bg-white/10 w-full mb-6" />
+
+                            {/* JOB LIST */}
+                            {!canDeliverActiveJob && (
+                                <>
+                                    <div className="text-zinc-500 text-xs uppercase tracking-widest font-bold mb-3">Available Contracts</div>
+                                    <div className="grid gap-3">
+                                        {availableJobs.length === 0 ? (
+                                            <div className="text-center py-8 text-zinc-600 italic">
+                                                No logistics contracts available at this location.
+                                            </div>
+                                        ) : (
+                                            availableJobs.map(job => (
+                                                <div key={job.id} className="bg-black/40 border border-white/10 rounded-xl p-4 flex justify-between items-center hover:bg-white/5 transition-colors group">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-10 h-10 rounded-full bg-[#DFFF00]/10 flex items-center justify-center text-[#DFFF00]">
+                                                            <Briefcase size={18} />
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-white font-bold text-sm group-hover:text-[#DFFF00] transition-colors">{job.description}</div>
+                                                            <div className="text-zinc-500 text-xs font-mono uppercase mt-1">Cargo: {job.cargo}</div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="text-right">
+                                                            <div className="text-white font-mono font-bold">{job.reward} CR</div>
+                                                            <div className="text-zinc-600 text-[10px] uppercase">Reward</div>
+                                                        </div>
+                                                        <button 
+                                                            onClick={() => { acceptJob(job); onClose(); }}
+                                                            className="bg-[#DFFF00] hover:bg-white text-black font-bold uppercase text-xs px-4 py-2 rounded-lg transition-colors shadow-[0_0_15px_rgba(223,255,0,0.1)]"
+                                                        >
+                                                            Accept
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="bg-zinc-800/50 p-4 border-t border-white/10 flex justify-end">
+                            <button onClick={onClose} className="text-zinc-400 hover:text-white text-sm font-bold uppercase tracking-wider px-4">
+                                Undock & Launch
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+}
+
+// --- MISSION HUD COMPONENT ---
+export function MissionHUD() {
+    const { activeJob, findBody } = useSimulation();
+    
+    if (!activeJob) return null;
+    
+    const dest = findBody(activeJob.destId);
+
+    return (
+        <div className="fixed top-24 left-4 z-40 animate-in slide-in-from-left duration-500">
+            <div className="bg-black/60 backdrop-blur-md border-l-2 border-[#DFFF00] p-4 rounded-r-xl max-w-[250px]">
+                <div className="flex items-center gap-2 text-[#DFFF00] mb-1">
+                    <Briefcase size={12} />
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Active Contract</span>
+                </div>
+                <div className="text-white font-bold text-sm leading-tight mb-2">
+                    {activeJob.description}
+                </div>
+                <div className="flex items-center gap-2 text-zinc-400 text-xs">
+                    <Navigation size={12} />
+                    <span>Target: {dest?.name}</span>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 // --- CINEMATIC MENU ---
 export function CinematicMenu({ onSelectTour }: { onSelectTour: (id: string) => void }) {
@@ -62,7 +405,7 @@ export function CinematicMenu({ onSelectTour }: { onSelectTour: (id: string) => 
     );
 }
 
-// --- DETAIL PANEL (COMPACT & SMOOTH) ---
+// --- DETAIL PANEL ---
 export function DetailPanel({ id, onClose }: { id: string | null, onClose: () => void }) {
     const { findBody, activeSystem, setActiveSystem } = useSimulation();
     const [isMinimized, setIsMinimized] = useState(false);
@@ -84,7 +427,7 @@ export function DetailPanel({ id, onClose }: { id: string | null, onClose: () =>
             `}>
                 <motion.div 
                     key={id}
-                    layout="position" // Enables smooth morphological layout changes
+                    layout="position"
                     initial={{ opacity: 0, y: 20, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 20, scale: 0.95 }}
@@ -97,14 +440,12 @@ export function DetailPanel({ id, onClose }: { id: string | null, onClose: () =>
                         bg-black/80 backdrop-blur-2xl border border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]
                         overflow-hidden flex flex-col
                         w-auto
-                        /* Tighter corner radius for more technical look */
                         ${isMinimized 
                             ? 'rounded-full md:min-w-[300px]' 
                             : 'rounded-2xl md:min-w-[600px] md:max-w-3xl' 
                         }
                     `}
                 >
-                    {/* HEADER - Compact Padding */}
                     <motion.div 
                         layout="position"
                         className="flex items-center justify-between px-4 py-2.5 cursor-pointer hover:bg-white/5 transition-colors relative z-20 border-b border-white/5"
@@ -146,20 +487,17 @@ export function DetailPanel({ id, onClose }: { id: string | null, onClose: () =>
                          </div>
                     </motion.div>
 
-                    {/* EXPANDED CONTENT - Compact & Animated */}
                     <AnimatePresence mode="popLayout">
                         {!isMinimized && (
                             <motion.div
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: "auto" }}
                                 exit={{ opacity: 0, height: 0 }}
-                                transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }} // Smooth "Apple-like" easing
+                                transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }} 
                                 className="relative z-10"
                             >
                                  <div className="px-5 py-4 bg-black/20">
                                      <div className="grid grid-cols-1 md:grid-cols-[1.3fr,1fr] gap-5 items-start">
-                                        
-                                        {/* COL 1 */}
                                         <div className="flex flex-col h-full justify-between gap-3">
                                             <p className="text-zinc-300 leading-snug text-xs font-light pr-2">
                                                 {data.description}
@@ -188,9 +526,7 @@ export function DetailPanel({ id, onClose }: { id: string | null, onClose: () =>
                                             </div>
                                         </div>
 
-                                        {/* COL 2 */}
                                         <div className="flex flex-col gap-3">
-                                            {/* Stats - Compact */}
                                             <div className="grid grid-cols-3 gap-1.5">
                                                 {[
                                                     { icon: Thermometer, label: 'Temp', val: data.stats.temp, color: 'blue' },
@@ -205,7 +541,6 @@ export function DetailPanel({ id, onClose }: { id: string | null, onClose: () =>
                                                 ))}
                                             </div>
 
-                                            {/* Satellites - Compact List */}
                                             {data.moons && data.moons.length > 0 ? (
                                                 <div className="bg-white/5 rounded-lg p-2 border border-white/5">
                                                     <div className="flex items-center gap-1.5 mb-1.5 opacity-60">
@@ -232,7 +567,6 @@ export function DetailPanel({ id, onClose }: { id: string | null, onClose: () =>
                         )}
                     </AnimatePresence>
                     
-                    {/* DESKTOP CONNECTOR */}
                     <div className="hidden md:block absolute -bottom-4 left-1/2 -translate-x-1/2 w-48 h-5 bg-black/80 backdrop-blur-2xl border-x border-white/10 [clip-path:polygon(5%_0%,95%_0%,100%_100%,0%_100%)] z-0">
                         <div className="absolute top-0 left-0 w-full h-px bg-white/5" />
                     </div>
@@ -272,7 +606,6 @@ export function SystemFinder({ isOpen, onClose, onSelect }: any) {
     return (
         <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex flex-col pt-safe-top">
             
-            {/* Header / Search Bar */}
             <div className="sticky top-0 z-10 w-full bg-black/50 border-b border-white/10 p-4 md:p-6 backdrop-blur-md">
                 <div className="max-w-5xl mx-auto flex flex-col gap-4">
                     <div className="flex items-center justify-between">
@@ -324,7 +657,6 @@ export function SystemFinder({ isOpen, onClose, onSelect }: any) {
                 </div>
             </div>
 
-            {/* Content Grid */}
             <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-32">
                 <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
                     {filteredBodies.length > 0 ? (

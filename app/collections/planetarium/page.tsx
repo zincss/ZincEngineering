@@ -9,6 +9,7 @@ import Link from 'next/link';
 
 import { SimulationProvider, useSimulation, TimeKeeper, J2000_EPOCH } from './context';
 import { StarBackground, Sun, Planet, SpaceDust, AsteroidBelt, SolarWind } from './components/Scene'; 
+// --- PASS selectedId PROP HERE ---
 import { SpaceshipController, SpaceshipHUD } from './components/Scene/Spaceship';
 import { SystemControls } from './components/Controls'; 
 import { FantasyContent } from './components/FantasyScene';
@@ -16,7 +17,7 @@ import { FantasyContent } from './components/FantasyScene';
 import { CinematicDirector, CinematicOverlay, FlightComputer, generateCommercialFlight } from './components/Cinematic';
 import type { OverlayData, FlightData } from './components/Cinematic';
 
-import { DetailPanel, SystemFinder, SpeedControls, CinematicMenu } from './components/UI';
+import { DetailPanel, SystemFinder, SpeedControls, CinematicMenu, JobBoard, MissionHUD, JobCompleteOverlay } from './components/UI';
 
 function TimeDisplay() {
     const { simulationTime, activeSystem } = useSimulation();
@@ -28,7 +29,7 @@ function TimeDisplay() {
 }
 
 function PlanetariumContent() {
-    const { setTime, setSpeed, activeSystem, currentData } = useSimulation();
+    const { setTime, setSpeed, activeSystem, currentData, dockedAt, setDockedAt } = useSimulation();
     
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [finderOpen, setFinderOpen] = useState(false);
@@ -63,8 +64,10 @@ function PlanetariumContent() {
     }, [isCinematic]);
 
     const handleBackgroundClick = useCallback(() => {
-        if (isCinematic || isSpaceshipMode) return;
-        setSelectedId(null);
+        // Allow deselection only if NOT in spaceship mode, or if clicking void
+        // In spaceship mode, we might want to keep the target locked until ESC is pressed
+        if (isCinematic) return;
+        if (!isSpaceshipMode) setSelectedId(null);
         setFinderOpen(false);
     }, [isCinematic, isSpaceshipMode]);
     
@@ -164,7 +167,8 @@ function PlanetariumContent() {
                     />
 
                     {/* SPACESHIP PHYSICS & CAMERA (Inside Canvas) */}
-                    <SpaceshipController active={isSpaceshipMode} />
+                    {/* PASS LOCKED TARGET ID HERE */}
+                    <SpaceshipController active={isSpaceshipMode} lockedTargetId={selectedId} />
 
                     {activeSystem === 'fantasy' ? (
                         <FantasyContent 
@@ -222,8 +226,11 @@ function PlanetariumContent() {
                 </Suspense>
             </Canvas>
 
-            {/* SPACESHIP HUD (Outside Canvas) */}
+            {/* SPACESHIP HUD & GAME UI */}
             <SpaceshipHUD active={isSpaceshipMode} />
+            <MissionHUD />
+            <JobCompleteOverlay />
+            {dockedAt && <JobBoard onClose={() => setDockedAt(null)} />}
 
             <CinematicOverlay data={cinematicOverlay} />
             <FlightComputer data={flightData} />
