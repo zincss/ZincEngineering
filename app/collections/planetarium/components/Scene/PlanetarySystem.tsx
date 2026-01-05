@@ -23,20 +23,33 @@ function PlanetClouds({ textureUrl, radius }: { textureUrl: string, radius: numb
     );
 }
 
-// --- SATURN RINGS (TWEAKED) ---
-function SaturnRings({ innerRadius, outerRadius }: { innerRadius: number, outerRadius: number }) {
+// --- SATURN RINGS (UPDATED WITH DREADNAUGHT) ---
+function SaturnRings({ innerRadius, outerRadius, dreadnaughtData, onSelectRef, onClick }: { innerRadius: number, outerRadius: number, dreadnaughtData?: any, onSelectRef?: any, onClick?: any }) {
+    const groupRef = useRef<THREE.Group>(null);
     const meshRef = useRef<THREE.InstancedMesh>(null);
-    // Increased density slightly for a fuller look
+    const dreadnaughtRef = useRef<THREE.Group>(null);
+    
+    // Increased density for fuller look
     const count = 9000; 
+
+    // Dreadnaught Position (Fixed relative to ring rotation)
+    const dreadX = dreadnaughtData ? dreadnaughtData.distance : 17;
+    const holeRadius = 2.0; // Size of the "carved" space
+
+    useEffect(() => {
+        if(dreadnaughtData && dreadnaughtRef.current && onSelectRef) {
+            onSelectRef(dreadnaughtData.id, dreadnaughtRef.current);
+        }
+    }, [dreadnaughtData, onSelectRef]);
 
     useLayoutEffect(() => {
         if (!meshRef.current) return;
         const tempObj = new THREE.Object3D();
         const color = new THREE.Color();
-        // Updated Palette: More rocky/dusty tones
         const colors = ['#E0CDA7', '#C4A88F', '#8B7D6E', '#A0A0A0']; 
 
         for (let i = 0; i < count; i++) {
+            // Random Angle
             const angle = Math.random() * Math.PI * 2;
             let r = 0;
             const seed = Math.random();
@@ -52,14 +65,23 @@ function SaturnRings({ innerRadius, outerRadius }: { innerRadius: number, outerR
 
             const x = Math.cos(angle) * r;
             const z = Math.sin(angle) * r;
-            // Flatter vertical spread for a sharper ring plane
+            
+            // HOLE LOGIC: If particle is near the Dreadnaught, skip it (push it elsewhere)
+            if (dreadnaughtData) {
+                const dx = x - dreadX; // Dreadnaught is at (dreadX, 0, 0)
+                const dz = z - 0;
+                const dist = Math.sqrt(dx*dx + dz*dz);
+                if (dist < holeRadius) {
+                    // Move particle to the other side to clear the hole
+                    continue; 
+                }
+            }
+
             const y = (Math.random() - 0.5) * 0.15; 
             
             tempObj.position.set(x, y, z);
             tempObj.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
             
-            // TWEAK: Irregular Scales
-            // Instead of perfect cubes, we stretch them slightly to look like debris
             const scaleBase = r < 18 ? 0.12 : 0.09;
             const s = Math.random() * scaleBase + 0.03;
             tempObj.scale.set(s, s * (0.6 + Math.random() * 0.4), s * (0.6 + Math.random() * 0.4));
@@ -67,11 +89,9 @@ function SaturnRings({ innerRadius, outerRadius }: { innerRadius: number, outerR
             tempObj.updateMatrix();
             meshRef.current.setMatrixAt(i, tempObj.matrix);
             
-            // TWEAK: Color Gradient
             const colIndex = Math.floor(Math.random() * colors.length);
             color.set(colors[colIndex]);
             
-            // Inner rings warmer/denser, Outer rings icier/faded
             if (r < 18) {
                 color.offsetHSL(0.02, 0.05, -0.05); 
             } else {
@@ -83,18 +103,49 @@ function SaturnRings({ innerRadius, outerRadius }: { innerRadius: number, outerR
         }
         meshRef.current.instanceMatrix.needsUpdate = true;
         if (meshRef.current.instanceColor) meshRef.current.instanceColor.needsUpdate = true;
-    }, [innerRadius, outerRadius]);
+    }, [innerRadius, outerRadius, dreadnaughtData, dreadX]);
 
     useFrame(({ clock }) => {
-        if (meshRef.current) meshRef.current.rotation.y = clock.getElapsedTime() * 0.005;
+        // Rotate the ENTIRE group (Rings + Dreadnaught) together
+        if (groupRef.current) groupRef.current.rotation.y = clock.getElapsedTime() * 0.005;
     });
 
     return (
-        // Added castShadow and receiveShadow for self-shadowing depth
-        <instancedMesh ref={meshRef} args={[undefined, undefined, count]} rotation={[0,0,0]} castShadow receiveShadow>
-            <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial roughness={0.7} metalness={0.3} />
-        </instancedMesh>
+        <group ref={groupRef}>
+            <instancedMesh ref={meshRef} args={[undefined, undefined, count]} rotation={[0,0,0]} castShadow receiveShadow>
+                <boxGeometry args={[1, 1, 1]} />
+                <meshStandardMaterial roughness={0.7} metalness={0.3} />
+            </instancedMesh>
+            
+            {/* THE DREADNAUGHT (Rendered here to stay locked in the hole) */}
+            {dreadnaughtData && (
+                <group 
+                    ref={dreadnaughtRef}
+                    position={[dreadX, 0, 0]}
+                    onClick={(e) => { e.stopPropagation(); onClick(dreadnaughtData.id); }}
+                >
+                    {/* Main Hull (Diamond Shape) */}
+                    <mesh rotation={[0, 0, Math.PI/4]} scale={[1, 0.4, 0.4]}>
+                        <boxGeometry args={[dreadnaughtData.radius * 8, dreadnaughtData.radius * 3, dreadnaughtData.radius * 3]} />
+                        <meshStandardMaterial color={dreadnaughtData.color} roughness={0.8} metalness={0.6} />
+                    </mesh>
+                    {/* Engine Glow */}
+                    <mesh position={[-dreadnaughtData.radius * 4, 0, 0]}>
+                         <planeGeometry args={[dreadnaughtData.radius * 2, dreadnaughtData.radius * 2]} />
+                         <meshBasicMaterial color="#aaffaa" transparent opacity={0.5} side={THREE.DoubleSide} />
+                    </mesh>
+                    
+                    {/* Label attached to the mesh inside the group */}
+                    <SmartLabel 
+                        text={dreadnaughtData.name} 
+                        type={dreadnaughtData.type} 
+                        position={[0, dreadnaughtData.radius * 2, 0]} 
+                        offset={0} 
+                        visible={true}
+                    />
+                </group>
+            )}
+        </group>
     );
 }
 
@@ -107,19 +158,14 @@ function Moon({ data, parentRadius, onSelectRef, onClick, showLabels, isCinemati
     const { timeRef, getOrbitalPosition } = useSimulation();
     const [hovered, setHover] = useState(false);
     
-    // UPDATED: Increased offset for moons so label doesn't overlap
     const labelOffset = data.radius * 3 + 1.5;
 
     useFrame(() => {
         if (groupRef.current) {
-            // DETACH MOON FROM PARENT IN SCALE MODE
             if (isScaleAlignment && scalePosition && parentScalePosition) {
                 const localPos = scalePosition.clone().sub(parentScalePosition);
                 groupRef.current.position.copy(localPos);
-                
-                if (meshRef.current) {
-                    meshRef.current.rotation.y += 0.01;
-                }
+                if (meshRef.current) meshRef.current.rotation.y += 0.01;
                 return;
             }
 
@@ -153,7 +199,6 @@ function Moon({ data, parentRadius, onSelectRef, onClick, showLabels, isCinemati
                     onPointerOver={(e) => { e.stopPropagation(); setHover(true); document.body.style.cursor = 'pointer'; }}
                     onPointerOut={(e) => { e.stopPropagation(); setHover(false); document.body.style.cursor = 'auto'; }}
                  >
-                    {/* INVISIBLE HIT SPHERE FOR EASIER CLICKING */}
                     <mesh visible={false}>
                         <sphereGeometry args={[data.radius * 4, 16, 16]} />
                         <meshBasicMaterial />
@@ -200,7 +245,6 @@ function Moon({ data, parentRadius, onSelectRef, onClick, showLabels, isCinemati
                 onPointerOver={(e) => { e.stopPropagation(); setHover(true); document.body.style.cursor = 'pointer'; }}
                 onPointerOut={(e) => { e.stopPropagation(); setHover(false); document.body.style.cursor = 'auto'; }}
             >
-                {/* INVISIBLE HIT SPHERE FOR EASIER CLICKING */}
                 <mesh visible={false}>
                     <sphereGeometry args={[data.radius * 2.5, 16, 16]} />
                     <meshBasicMaterial />
@@ -271,7 +315,8 @@ function PlanetBody({ data, meshRef, colorMap, onClick }: any) {
             
             {data.cloudTextureUrl && <PlanetClouds textureUrl={data.cloudTextureUrl} radius={data.radius} />}
             
-            {data.atmosphere && !data.cloudTextureUrl && (
+            {/* REMOVED ATMOSPHERE GLOW FOR MARS */}
+            {data.atmosphere && !data.cloudTextureUrl && data.id !== 'mars' && (
                 <RealisticAtmosphere 
                     radius={data.radius} 
                     color={data.id === 'mars' ? '#E27B58' : '#3366ff'} 
@@ -294,6 +339,9 @@ export function Planet({ data, isSelected, selectedId, onClick, onSelectRef, isC
     const meshRef = useRef<THREE.Mesh>(null);
     const groupRef = useRef<THREE.Group>(null);
     const { timeRef, getOrbitalPosition } = useSimulation();
+
+    // Identify if this planet has the Dreadnaught
+    const dreadnaught = data.moons?.find((m: any) => m.id === 'dreadnaught');
 
     useEffect(() => {
         if(groupRef.current) onSelectRef(data.id, groupRef.current);
@@ -320,18 +368,12 @@ export function Planet({ data, isSelected, selectedId, onClick, onSelectRef, isC
     const useTextureRing = data.ringTextureUrl && data.id !== 'saturn';
     const ringMap = useTextureRing ? useLoader(THREE.TextureLoader, data.ringTextureUrl) as THREE.Texture : null;
     const tiltRadians = THREE.MathUtils.degToRad(data.axialTilt || 0);
-
-    // UPDATED: Increased vertical offset for main planet labels
     const planetLabelOffset = data.radius * 1.5 + 5;
 
     useFrame((state, delta) => {
         if (isScaleAlignment && scalePosition && groupRef.current) {
-            // INSTANT SNAP for sorting mode to prevent "racing"
             groupRef.current.position.copy(scalePosition);
-            
-            if (meshRef.current) {
-                meshRef.current.rotation.y += delta * 0.1; 
-            }
+            if (meshRef.current) meshRef.current.rotation.y += delta * 0.1; 
             return;
         }
 
@@ -356,7 +398,20 @@ export function Planet({ data, isSelected, selectedId, onClick, onSelectRef, isC
             <group ref={groupRef}>
                 <group rotation={[0, 0, tiltRadians]}>
                     <PlanetBody data={data} meshRef={meshRef} colorMap={colorMap} onClick={onClick} />
-                    {data.id === 'saturn' && <group><SaturnRings innerRadius={13} outerRadius={25} /></group>}
+                    
+                    {/* SATURN RINGS & DREADNAUGHT RENDERED HERE */}
+                    {data.id === 'saturn' && (
+                        <group>
+                            <SaturnRings 
+                                innerRadius={13} 
+                                outerRadius={25} 
+                                dreadnaughtData={dreadnaught} 
+                                onSelectRef={onSelectRef}
+                                onClick={onClick}
+                            />
+                        </group>
+                    )}
+                    
                     {useTextureRing && ringMap && (
                         <mesh rotation={[-Math.PI/2, 0, 0]}>
                             <ringGeometry args={[data.radius * 1.4, data.radius * 2.5, 128]} />
@@ -381,6 +436,9 @@ export function Planet({ data, isSelected, selectedId, onClick, onSelectRef, isC
                 />
 
                 {data.moons && data.moons.map((moon: any, idx: number) => {
+                    // SKIP DREADNAUGHT (It is handled inside SaturnRings)
+                    if (moon.id === 'dreadnaught') return null;
+
                     const isMoonSelected = selectedId === moon.id;
                     const moonScalePos = isScaleAlignment && allScalePositions ? allScalePositions[moon.id] : undefined;
                     
@@ -396,7 +454,6 @@ export function Planet({ data, isSelected, selectedId, onClick, onSelectRef, isC
                                 onClick={() => onClick(moon.id)} 
                                 showLabels={showLabels}
                                 isCinematic={isCinematic}
-                                // Pass specific scale position to moon
                                 scalePosition={moonScalePos}
                                 parentScalePosition={scalePosition}
                                 isScaleAlignment={isScaleAlignment}

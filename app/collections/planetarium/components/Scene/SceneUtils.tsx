@@ -80,7 +80,7 @@ export function EllipticalOrbit({ body, type = 'planet', isSelected = false, par
     );
 }
 
-// --- SMART LABEL ---
+// --- SMART LABEL (FIXED WORLD POSITION TRACKING) ---
 export function SmartLabel({ 
     text, 
     type, 
@@ -95,70 +95,101 @@ export function SmartLabel({
     offset?: number 
 }) {
     const { camera } = useThree();
+    
+    // We use a Group ref to track the actual World Position of this label anchor
+    const groupRef = useRef<THREE.Group>(null);
     const scalerRef = useRef<HTMLDivElement>(null);
     
-    const isStar = type === 'Star' || type === 'Black Hole';
-    const isPlanet = type === 'Planet' || type === 'Dwarf Planet';
-    const isMoon = type === 'Moon' || type === 'Station';
+    const isMajor = type === 'Star' || type === 'Black Hole' || type === 'Planet' || type === 'Dwarf Planet';
+    const isMinor = type === 'Moon' || type === 'Station';
 
     useFrame(() => {
-        if (!scalerRef.current || !visible) return;
-        const labelPos = new THREE.Vector3(position[0], position[1] + offset, position[2]);
-        const dist = camera.position.distanceTo(labelPos);
+        if (!scalerRef.current || !visible || !groupRef.current) return;
+        
+        // FIX: Calculate distance based on TRUE WORLD POSITION
+        const worldPos = new THREE.Vector3();
+        groupRef.current.getWorldPosition(worldPos);
+        const dist = camera.position.distanceTo(worldPos);
         
         // --- ADAPTIVE LOGIC ---
         let scale = 1;
         let opacity = 1;
 
-        if (isMoon) {
-             // UPDATED: Fade out quickly when zooming out to avoid crowding.
-             // Dist < 5: Close up scaling
-             // Dist > 350: Start fading out (Visible near planet, invisible from system view)
-             if (dist < 5) scale = Math.max(0.4, dist * 0.15);
-             if (dist > 350) opacity = Math.max(0, 1 - (dist - 350) / 150);
+        if (isMinor) {
+             // 1. SMART VISIBILITY FOR MINOR OBJECTS
+             // Only show moons/stations when closer than 200 units
+             // Fade out smoothly between 120 and 200.
+             const FADE_START = 120;
+             const FADE_END = 200;
+             
+             if (dist > FADE_END) {
+                 opacity = 0;
+             } else if (dist > FADE_START) {
+                 opacity = 1 - (dist - FADE_START) / (FADE_END - FADE_START);
+             } else {
+                 opacity = 1;
+             }
+
+             // Scale down slightly when at the edge of visibility to reduce noise
+             scale = Math.max(0.6, 1 - (dist / FADE_END) * 0.3);
+
         } else {
-             // Planets remain visible much further out
-             if (dist < 50) scale = Math.max(0.4, dist * 0.02);
-             if (dist > 5000) opacity = Math.max(0, 1 - (dist - 5000) / 5000);
+             // 2. LOGIC FOR MAJOR BODIES
+             // Always visible unless super far (System View / Galaxy View)
+             if (dist > 15000) {
+                 opacity = Math.max(0, 1 - (dist - 15000) / 5000);
+             }
+             
+             // Scale up slightly when far to maintain readability
+             if (dist > 500) scale = 1.1;
         }
         
-        scalerRef.current.style.transform = `scale(${scale})`;
+        // 3. BETTER POSITIONING
+        // translateY(-60%) moves the label up so the anchor point is at the BOTTOM of the text
+        scalerRef.current.style.transform = `scale(${scale}) translateY(-60%)`; 
         scalerRef.current.style.opacity = opacity.toString();
-        scalerRef.current.style.display = opacity < 0.05 ? 'none' : 'block';
+        
+        // Prevent interaction/layout ghosts when invisible
+        scalerRef.current.style.visibility = opacity < 0.05 ? 'hidden' : 'visible';
+        scalerRef.current.style.pointerEvents = 'none'; // Labels shouldn't block clicks
     });
 
     if (!visible) return null;
 
-    const textSizeClass = isStar ? 'text-[10px] md:text-xs font-bold' :
-                          isPlanet ? 'text-[8px] md:text-[10px] font-semibold' :
+    const textSizeClass = isMajor ? 'text-[10px] md:text-xs font-bold' :
                           'text-[8px] md:text-[9px] font-medium opacity-90';
 
     return (
-        <Html 
-            position={[position[0], position[1] + offset, position[2]]} 
-            center 
-            zIndexRange={[0, 0]} 
-            style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}
-        >
-            <div ref={scalerRef} className="origin-center transition-transform duration-75 will-change-transform">
-                <div className={`
-                    flex items-center gap-1.5 px-2 py-1 rounded-full border backdrop-blur-md shadow-lg
-                    transition-colors duration-200
-                    ${isStar ? 'bg-black/60 border-white/30' : 
-                      isPlanet ? 'bg-black/50 border-white/20' : 
-                      'bg-black/40 border-white/15'}
-                `}>
-                    {type === 'Station' && (
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#DFFF00] animate-pulse shadow-[0_0_4px_#DFFF00]" />
-                    )}
-                    <span className={`
-                        font-mono uppercase tracking-widest leading-none text-white
-                        ${textSizeClass}
+        // Wrap in a group positioned at the requested local coordinates.
+        // This allows us to get the derived World Position easily.
+        <group ref={groupRef} position={[position[0], position[1] + offset, position[2]]}>
+            <Html 
+                position={[0, 0, 0]} // Position is handled by parent group
+                center 
+                zIndexRange={[0, 0]} 
+                style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}
+            >
+                <div ref={scalerRef} className="origin-bottom transition-opacity duration-200 will-change-transform">
+                    <div className={`
+                        flex items-center gap-1.5 px-2 py-1 rounded-full border backdrop-blur-md shadow-lg
+                        transition-colors duration-200
+                        ${isMajor ? 'bg-black/60 border-white/30' : 
+                          'bg-black/40 border-white/15'}
                     `}>
-                        {text}
-                    </span>
+                        {type === 'Station' && (
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#DFFF00] animate-pulse shadow-[0_0_4px_#DFFF00]" />
+                        )}
+                        <span className={`
+                            font-mono uppercase tracking-widest leading-none text-white
+                            ${textSizeClass}
+                        `}>
+                            {text}
+                        </span>
+                    </div>
+                    {/* Optional: A small line connecting label to object for clarity */}
+                    <div className="w-px h-3 bg-white/20 mx-auto" />
                 </div>
-            </div>
-        </Html>
+            </Html>
+        </group>
     )
 }

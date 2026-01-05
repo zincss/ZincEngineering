@@ -400,15 +400,15 @@ export const PLANET_DATA: CelestialBody[] = [
           id: "dreadnaught",
           name: "The Dreadnaught",
           type: "Station",
-          description: "Oryx's flagship, parked within the rings of Saturn.",
-          radius: 0.05, 
-          distance: 13, 
-          orbitalPeriod: 10, 
+          description: "Oryx's flagship, carved out within the rings of Saturn.",
+          radius: 0.1, // Slightly larger for visibility
+          distance: 17, // Placed inside the ring system
+          orbitalPeriod: 10, // Visual only now (controlled by ring rotation)
           rotationPeriod: 0,
           meanLongitude: 180, 
           axialTilt: 0,
           textureUrl: "",
-          color: "#4a3b2a",
+          color: "#5c4f3d", // Darker hive-like color
           stats: { temp: "Cold", day: "-", year: "-" }
         }
     ]
