@@ -187,158 +187,376 @@ export const TOURS: Tour[] = [
     {
         id: 'grand_tour',
         name: 'The Grand Tour',
-        description: 'From the blazing Sun to the supermassive heart of the galaxy.',
+        description: 'A seamless 5-minute cinematic journey from the Sun to the Supermassive Black Hole at the center of the galaxy.',
         shots: [
-            // SUN
+            // --- 1. THE SUN: IGNITION ---
             { 
-                title: 'THE SUN', subtitle: 'THE ARCHITECT', titleDelay: 4.0, type: 'spline', transition: 'cut', duration: 35, distance: 0, height: 0, speed: 0, dampening: 0.94,
-                showFlightComputer: true, originName: 'ZINC SYSTEM', destName: 'SOL', facts: SUN_FACTS,
-                keyframes: [{ targetId: 'sun', offset: [0, 250, 600], roll: 0, fov: 55 }, { targetId: 'sun', offset: [150, 80, 150], roll: 5, fov: 60 }, { targetId: 'sun', offset: [180, 0, -120], roll: 0, fov: 55 }],
-                lookAtKeyframes: [{ targetId: 'sun', offset: [0, 0, 0] }, { targetId: 'sun', offset: [0, 0, 0] }, { targetId: 'sun', offset: [0, 0, 0] }]
-            },
-            // TRANSIT
-            { type: 'spline', transition: 'smooth', duration: 25, distance: 0, height: 0, speed: 0, dampening: 0.9,
-                showFlightComputer: true, originName: 'SOL', destName: 'MERCURY', facts: MERCURY_FACTS,
-                keyframes: [{ targetId: 'sun', offset: [180, 0, -120], roll: 0, fov: 55 }, { targetId: 'mercury', offset: [0, 25, 50], roll: 0, fov: 45 }],
-                lookAtKeyframes: [{ targetId: 'sun', offset: [0, 0, 0] }, { targetId: 'mercury', offset: [0, 0, 0] }]
-            },
-            // MERCURY
-            { title: 'MERCURY', subtitle: 'EDGE OF THE SUN', titleDelay: 5.0, type: 'spline', transition: 'smooth', duration: 35, distance: 0, height: 0, speed: 0, dampening: 0.9,
-                showFlightComputer: true, originName: 'SOL', destName: 'MERCURY', facts: MERCURY_FACTS,
-                keyframes: [{ targetId: 'mercury', offset: [0, 25, 50], roll: 0, fov: 45 }, { targetId: 'mercury', offset: [6, 2, 2], roll: 15, fov: 60 }, { targetId: 'mercury', offset: [10, -5, -25], roll: 0, fov: 50 }],
-                lookAtKeyframes: [{ targetId: 'mercury', offset: [0, 0, 0] }, { targetId: 'mercury', offset: [0, 0, 0] }, { targetId: 'mercury', offset: [0, 0, 0] }]
-            },
-            // TRANSIT
-            { type: 'spline', transition: 'smooth', duration: 25, distance: 0, height: 0, speed: 0, dampening: 0.9,
-                showFlightComputer: true, originName: 'MERCURY', destName: 'VENUS', facts: VENUS_FACTS,
-                keyframes: [{ targetId: 'mercury', offset: [10, -5, -25], roll: 0, fov: 50 }, { targetId: 'venus', offset: [-30, 15, 30], roll: -5, fov: 45 }],
-                lookAtKeyframes: [{ targetId: 'mercury', offset: [0, 0, 0] }, { targetId: 'venus', offset: [0, 0, 0] }]
-            },
-            // VENUS
-            { title: 'VENUS', subtitle: 'MORNING STAR', titleDelay: 5.0, type: 'spline', transition: 'smooth', duration: 35, distance: 0, height: 0, speed: 0, dampening: 0.92,
-                showFlightComputer: true, originName: 'MERCURY', destName: 'VENUS', facts: VENUS_FACTS,
-                keyframes: [{ targetId: 'venus', offset: [-30, 15, 30], roll: -5, fov: 45 }, { targetId: 'venus', offset: [-15, 0, -15], roll: -10, fov: 55 }, { targetId: 'venus', offset: [20, -10, -20], roll: 0, fov: 50 }],
-                lookAtKeyframes: [{ targetId: 'venus', offset: [0, 0, 0] }, { targetId: 'venus', offset: [0, 0, 0] }, { targetId: 'venus', offset: [0, 0, 0] }]
-            },
-            // TRANSIT
-            { type: 'spline', transition: 'smooth', duration: 25, distance: 0, height: 0, speed: 0, dampening: 0.9,
-                showFlightComputer: true, originName: 'VENUS', destName: 'EARTH', facts: EARTH_FACTS,
-                keyframes: [{ targetId: 'venus', offset: [20, -10, -20], roll: 0, fov: 50 }, { targetId: 'earth', offset: [30, 20, 50], roll: 5, fov: 40 }],
-                lookAtKeyframes: [{ targetId: 'venus', offset: [0, 0, 0] }, { targetId: 'earth', offset: [0, 0, 0] }]
-            },
-            // EARTH
-            { title: 'EARTH', subtitle: 'TERRA', titleDelay: 5.0, type: 'spline', transition: 'smooth', duration: 40, distance: 0, height: 0, speed: 0, dampening: 0.94,
-                showFlightComputer: true, originName: 'VENUS', destName: 'EARTH', facts: EARTH_FACTS,
-                keyframes: [{ targetId: 'earth', offset: [30, 20, 50], roll: 5, fov: 40 }, { targetId: 'earth', offset: [5, 1, 5], roll: 0, fov: 55 }, { targetId: 'moon', offset: [0, 0.5, 3], roll: 0, fov: 60 }, { targetId: 'earth', offset: [-25, -15, -25], roll: 0, fov: 50 }],
-                lookAtKeyframes: [{ targetId: 'earth', offset: [0, 0, 0] }, { targetId: 'earth', offset: [0, 0, 0] }, { targetId: 'moon', offset: [0, 0, 0] }, { targetId: 'earth', offset: [0, 0, 0] }]
-            },
-            // TRANSIT
-            { type: 'spline', transition: 'smooth', duration: 25, distance: 0, height: 0, speed: 0, dampening: 0.9,
-                showFlightComputer: true, originName: 'EARTH', destName: 'MARS', facts: MARS_FACTS,
-                keyframes: [{ targetId: 'earth', offset: [-25, -15, -25], roll: 0, fov: 50 }, { targetId: 'mars', offset: [-25, 10, 25], roll: -10, fov: 45 }],
-                lookAtKeyframes: [{ targetId: 'earth', offset: [0, 0, 0] }, { targetId: 'mars', offset: [0, 0, 0] }]
-            },
-            // MARS
-            { title: 'MARS', subtitle: 'THE RED PLANET', titleDelay: 4.5, type: 'spline', transition: 'smooth', duration: 35, distance: 0, height: 0, speed: 0, dampening: 0.9,
-                showFlightComputer: true, originName: 'EARTH', destName: 'MARS', facts: MARS_FACTS,
-                keyframes: [{ targetId: 'mars', offset: [-25, 10, 25], roll: -10, fov: 45 }, { targetId: 'mars', offset: [0, 2, 4], roll: -25, fov: 65 }, { targetId: 'mars', offset: [20, -10, -20], roll: 0, fov: 50 }],
-                lookAtKeyframes: [{ targetId: 'mars', offset: [0, 0, 0] }, { targetId: 'mars', offset: [0, 0, 0] }, { targetId: 'mars', offset: [0, 0, 0] }]
-            },
-            // TRANSIT
-            { type: 'spline', transition: 'smooth', duration: 30, distance: 0, height: 0, speed: 0, dampening: 0.9,
-                showFlightComputer: true, originName: 'MARS', destName: 'JUPITER', facts: JUPITER_FACTS,
-                keyframes: [{ targetId: 'mars', offset: [20, -10, -20], roll: 0, fov: 50 }, { targetId: 'jupiter', offset: [-200, 50, -200], roll: 5, fov: 45 }],
-                lookAtKeyframes: [{ targetId: 'mars', offset: [0, 0, 0] }, { targetId: 'jupiter', offset: [0, 0, 0] }]
-            },
-            // JUPITER
-            { title: 'JUPITER', subtitle: 'THE GIANT', titleDelay: 5.0, type: 'spline', transition: 'smooth', duration: 40, distance: 0, height: 0, speed: 0, dampening: 0.94,
-                showFlightComputer: true, originName: 'MARS', destName: 'JUPITER', facts: JUPITER_FACTS,
-                keyframes: [{ targetId: 'jupiter', offset: [-200, 50, -200], roll: 5, fov: 45 }, { targetId: 'jupiter', offset: [0, 0, -60], roll: 10, fov: 60 }, { targetId: 'jupiter', offset: [200, -50, 200], roll: 0, fov: 50 }],
-                lookAtKeyframes: [{ targetId: 'jupiter', offset: [0, 0, 0] }, { targetId: 'jupiter', offset: [0, 0, 0] }, { targetId: 'jupiter', offset: [0, 0, 0] }]
-            },
-            // TRANSIT
-            { type: 'spline', transition: 'smooth', duration: 30, distance: 0, height: 0, speed: 0, dampening: 0.9,
-                showFlightComputer: true, originName: 'JUPITER', destName: 'SATURN', facts: SATURN_FACTS,
-                keyframes: [{ targetId: 'jupiter', offset: [200, -50, 200], roll: 0, fov: 50 }, { targetId: 'saturn', offset: [180, 80, 180], roll: -10, fov: 45 }],
-                lookAtKeyframes: [{ targetId: 'jupiter', offset: [0, 0, 0] }, { targetId: 'saturn', offset: [0, 0, 0] }]
-            },
-            // SATURN
-            { title: 'SATURN', subtitle: 'LORD OF THE RINGS', titleDelay: 5.0, type: 'spline', transition: 'smooth', duration: 40, distance: 0, height: 0, speed: 0, dampening: 0.94,
-                showFlightComputer: true, originName: 'JUPITER', destName: 'SATURN', facts: SATURN_FACTS,
-                keyframes: [{ targetId: 'saturn', offset: [180, 80, 180], roll: -10, fov: 45 }, { targetId: 'saturn', offset: [30, 5, 0], roll: -30, fov: 70 }, { targetId: 'saturn', offset: [-120, -60, -120], roll: 0, fov: 55 }],
-                lookAtKeyframes: [{ targetId: 'saturn', offset: [0, 0, 0] }, { targetId: 'saturn', offset: [0, 0, 0] }, { targetId: 'saturn', offset: [0, 0, 0] }]
-            },
-            // TRANSIT
-            { type: 'spline', transition: 'smooth', duration: 25, distance: 0, height: 0, speed: 0, dampening: 0.9,
-                showFlightComputer: true, originName: 'SATURN', destName: 'URANUS', facts: URANUS_FACTS,
-                keyframes: [{ targetId: 'saturn', offset: [-120, -60, -120], roll: 0, fov: 55 }, { targetId: 'uranus', offset: [60, 60, 60], roll: 45, fov: 45 }],
-                lookAtKeyframes: [{ targetId: 'saturn', offset: [0, 0, 0] }, { targetId: 'uranus', offset: [0, 0, 0] }]
-            },
-            // URANUS
-            { title: 'URANUS', subtitle: 'ICE GIANT', titleDelay: 4.5, type: 'spline', transition: 'smooth', duration: 35, distance: 0, height: 0, speed: 0, dampening: 0.9,
-                showFlightComputer: true, originName: 'SATURN', destName: 'URANUS', facts: URANUS_FACTS,
-                keyframes: [{ targetId: 'uranus', offset: [60, 60, 60], roll: 45, fov: 45 }, { targetId: 'uranus', offset: [0, 0, 15], roll: 90, fov: 60 }, { targetId: 'uranus', offset: [-60, -60, -60], roll: 45, fov: 50 }],
-                lookAtKeyframes: [{ targetId: 'uranus', offset: [0, 0, 0] }, { targetId: 'uranus', offset: [0, 0, 0] }, { targetId: 'uranus', offset: [0, 0, 0] }]
-            },
-            // TRANSIT
-            { type: 'spline', transition: 'smooth', duration: 25, distance: 0, height: 0, speed: 0, dampening: 0.9,
-                showFlightComputer: true, originName: 'URANUS', destName: 'NEPTUNE', facts: NEPTUNE_FACTS,
-                keyframes: [{ targetId: 'uranus', offset: [-60, -60, -60], roll: 45, fov: 50 }, { targetId: 'neptune', offset: [-70, 20, -70], roll: 0, fov: 45 }],
-                lookAtKeyframes: [{ targetId: 'uranus', offset: [0, 0, 0] }, { targetId: 'neptune', offset: [0, 0, 0] }]
-            },
-            // NEPTUNE
-            { title: 'NEPTUNE', subtitle: 'WINDY GIANT', titleDelay: 4.5, type: 'spline', transition: 'smooth', duration: 35, distance: 0, height: 0, speed: 0, dampening: 0.9,
-                showFlightComputer: true, originName: 'URANUS', destName: 'NEPTUNE', facts: NEPTUNE_FACTS,
-                keyframes: [{ targetId: 'neptune', offset: [-70, 20, -70], roll: 0, fov: 45 }, { targetId: 'neptune', offset: [0, 0, 18], roll: -15, fov: 60 }, { targetId: 'neptune', offset: [60, -20, 60], roll: 0, fov: 50 }],
-                lookAtKeyframes: [{ targetId: 'neptune', offset: [0, 0, 0] }, { targetId: 'neptune', offset: [0, 0, 0] }, { targetId: 'neptune', offset: [0, 0, 0] }]
-            },
-            // TRANSIT
-            { type: 'spline', transition: 'smooth', duration: 25, distance: 0, height: 0, speed: 0, dampening: 0.9,
-                showFlightComputer: true, originName: 'NEPTUNE', destName: 'PLUTO', facts: PLUTO_FACTS,
-                keyframes: [{ targetId: 'neptune', offset: [60, -20, 60], roll: 0, fov: 50 }, { targetId: 'pluto', offset: [-15, 8, 15], roll: 0, fov: 40 }],
-                lookAtKeyframes: [{ targetId: 'neptune', offset: [0, 0, 0] }, { targetId: 'pluto', offset: [0, 0, 0] }]
-            },
-            // PLUTO
-            { title: 'PLUTO', subtitle: 'THE OUTPOST', titleDelay: 4.5, type: 'spline', transition: 'smooth', duration: 35, distance: 0, height: 0, speed: 0, dampening: 0.9,
-                showFlightComputer: true, originName: 'NEPTUNE', destName: 'PLUTO', facts: PLUTO_FACTS,
-                keyframes: [{ targetId: 'pluto', offset: [-15, 8, 15], roll: 0, fov: 40 }, { targetId: 'pluto', offset: [0, 1.5, 4], roll: 10, fov: 55 }, { targetId: 'pluto', offset: [15, -8, 15], roll: 0, fov: 45 }],
-                lookAtKeyframes: [{ targetId: 'pluto', offset: [0, 0, 0] }, { targetId: 'pluto', offset: [0, 0, 0] }, { targetId: 'pluto', offset: [0, 0, 0] }]
-            },
-            // TRANSIT
-            { type: 'spline', transition: 'smooth', duration: 35, distance: 0, height: 0, speed: 0, dampening: 0.8,
-                showFlightComputer: true, originName: 'PLUTO', destName: 'GALACTIC CENTER', facts: GALACTIC_FACTS,
-                keyframes: [{ targetId: 'pluto', offset: [15, -8, 15], roll: 0, fov: 45 }, { targetId: 'sagittarius_a', offset: [-500, 200, 1000], roll: 10, fov: 45 }],
-                lookAtKeyframes: [{ targetId: 'pluto', offset: [0, 0, 0] }, { targetId: 'sagittarius_a', offset: [0, 0, 0] }]
-            },
-            // SAGITTARIUS A*
-            { title: 'SAGITTARIUS A*', subtitle: 'GALACTIC CENTER', titleDelay: 6.0, type: 'spline', transition: 'smooth', duration: 45, distance: 0, height: 0, speed: 0, dampening: 0.95, shakeIntensity: 0.2,
-                showFlightComputer: true, originName: 'PLUTO', destName: 'SAG A*', facts: GALACTIC_FACTS,
-                keyframes: [{ targetId: 'sagittarius_a', offset: [-500, 200, 1000], roll: 10, fov: 45 }, { targetId: 'sagittarius_a', offset: [0, 50, 200], roll: 45, fov: 70 }, { targetId: 'sagittarius_a', offset: [500, -200, 500], roll: 90, fov: 55 }],
-                lookAtKeyframes: [{ targetId: 'sagittarius_a', offset: [0, 0, 0] }, { targetId: 'sagittarius_a', offset: [0, 0, 0] }, { targetId: 'sagittarius_a', offset: [0, 0, 0] }]
-            },
-            // WARP LOOP - PART 1: THE JUMP
-            { title: 'CHRONOSYNC', subtitle: 'WARP SEQUENCE', type: 'spline', transition: 'smooth', duration: 10, distance: 0, height: 0, speed: 0, dampening: 0.2, shakeIntensity: 0.8,
-                showFlightComputer: true, originName: 'SAG A*', destName: 'SOL', facts: COMMERCIAL_FACTS,
+                title: 'THE SUN', subtitle: 'SYSTEM ARCHITECT', titleDelay: 3.0, 
+                type: 'spline', transition: 'cut', duration: 30, 
+                showFlightComputer: true, originName: 'ZINC PRIME', destName: 'SOL', facts: SUN_FACTS,
+                dampening: 0.8,
                 keyframes: [
-                    { targetId: 'sagittarius_a', offset: [500, -200, 500], roll: 90, fov: 55 }, 
-                    { targetId: 'sagittarius_a', offset: [2000, 2000, 2000], roll: 180, fov: 160 }, 
-                    { targetId: 'sun', offset: [0, 500, 1500], roll: 360, fov: 120 }
+                    { targetId: 'sun', offset: [0, 800, 1200], roll: 0, fov: 45 },    // Wide establish
+                    { targetId: 'sun', offset: [400, 200, 400], roll: 20, fov: 55 },  // Spiraling in
+                    { targetId: 'sun', offset: [150, 0, -150], roll: 45, fov: 65 },   // Skimming surface
+                    { targetId: 'sun', offset: [-100, -50, -300], roll: 20, fov: 60 } // Exit vector
                 ],
                 lookAtKeyframes: [
-                    { targetId: 'sagittarius_a', offset: [0, 0, 0] }, 
-                    { targetId: 'sun', offset: [0, 0, 0] }, 
+                    { targetId: 'sun', offset: [0, 0, 0] },
+                    { targetId: 'sun', offset: [0, 0, 0] },
+                    { targetId: 'sun', offset: [0, 0, 0] },
                     { targetId: 'sun', offset: [0, 0, 0] }
                 ]
             },
-            // WARP LOOP - PART 2: STABILIZATION
-            { title: 'CHRONOSYNC', subtitle: 'RESETTING SIMULATION', type: 'spline', transition: 'smooth', duration: 5, distance: 0, height: 0, speed: 0, dampening: 0.94, shakeIntensity: 0.0,
-                showFlightComputer: true, originName: 'SOL', destName: 'SYSTEM RESET', facts: COMMERCIAL_FACTS,
+
+            // --- 2. MERCURY: THE MESSENGER ---
+            // Transit
+            { 
+                type: 'spline', transition: 'smooth', duration: 15, 
+                showFlightComputer: true, originName: 'SOL', destName: 'MERCURY', facts: MERCURY_FACTS,
+                dampening: 0.9,
                 keyframes: [
-                    { targetId: 'sun', offset: [0, 500, 1500], roll: 360, fov: 120 }, 
-                    { targetId: 'sun', offset: [0, 250, 600], roll: 360, fov: 55 }
+                    { targetId: 'sun', offset: [-100, -50, -300], roll: 20, fov: 60 },
+                    { targetId: 'mercury', offset: [50, 20, 50], roll: 0, fov: 45 }
                 ],
                 lookAtKeyframes: [
-                    { targetId: 'sun', offset: [0, 0, 0] }, 
+                    { targetId: 'sun', offset: [0, 0, 0] },
+                    { targetId: 'mercury', offset: [0, 0, 0] }
+                ]
+            },
+            // Reveal
+            { 
+                title: 'MERCURY', subtitle: 'SCORCHED WORLD', titleDelay: 2.0, 
+                type: 'spline', transition: 'smooth', duration: 20, 
+                showFlightComputer: true, originName: 'SOL', destName: 'MERCURY', facts: MERCURY_FACTS,
+                dampening: 0.9,
+                keyframes: [
+                    { targetId: 'mercury', offset: [50, 20, 50], roll: 0, fov: 45 },
+                    { targetId: 'mercury', offset: [5, 2, 5], roll: 30, fov: 65 },   // Close flyby
+                    { targetId: 'mercury', offset: [-20, -10, -20], roll: 0, fov: 50 } // Exit
+                ],
+                lookAtKeyframes: [
+                    { targetId: 'mercury', offset: [0, 0, 0] },
+                    { targetId: 'mercury', offset: [0, 0, 0] },
+                    { targetId: 'mercury', offset: [0, 0, 0] }
+                ]
+            },
+
+            // --- 3. VENUS: THE VEIL ---
+            // Transit
+            { 
+                type: 'spline', transition: 'smooth', duration: 15,
+                showFlightComputer: true, originName: 'MERCURY', destName: 'VENUS', facts: VENUS_FACTS,
+                keyframes: [
+                    { targetId: 'mercury', offset: [-20, -10, -20], roll: 0, fov: 50 },
+                    { targetId: 'venus', offset: [60, 30, 60], roll: -10, fov: 45 }
+                ],
+                lookAtKeyframes: [
+                    { targetId: 'mercury', offset: [0, 0, 0] },
+                    { targetId: 'venus', offset: [0, 0, 0] }
+                ]
+            },
+            // Reveal
+            { 
+                title: 'VENUS', subtitle: 'TOXIC BEAUTY', titleDelay: 2.0, 
+                type: 'spline', transition: 'smooth', duration: 25, 
+                showFlightComputer: true, originName: 'MERCURY', destName: 'VENUS', facts: VENUS_FACTS,
+                keyframes: [
+                    { targetId: 'venus', offset: [60, 30, 60], roll: -10, fov: 45 },
+                    { targetId: 'venus', offset: [-15, 0, -15], roll: -25, fov: 60 },
+                    { targetId: 'venus', offset: [30, -10, -30], roll: 0, fov: 50 }
+                ],
+                lookAtKeyframes: [
+                    { targetId: 'venus', offset: [0, 0, 0] },
+                    { targetId: 'venus', offset: [0, 0, 0] },
+                    { targetId: 'venus', offset: [0, 0, 0] }
+                ]
+            },
+
+            // --- 4. EARTH: HOME ---
+            // Transit
+            { 
+                type: 'spline', transition: 'smooth', duration: 20,
+                showFlightComputer: true, originName: 'VENUS', destName: 'TERRA', facts: EARTH_FACTS,
+                keyframes: [
+                    { targetId: 'venus', offset: [30, -10, -30], roll: 0, fov: 50 },
+                    { targetId: 'earth', offset: [-50, 20, 50], roll: 10, fov: 40 }
+                ],
+                lookAtKeyframes: [
+                    { targetId: 'venus', offset: [0, 0, 0] },
+                    { targetId: 'earth', offset: [0, 0, 0] }
+                ]
+            },
+            // Reveal
+            { 
+                title: 'EARTH', subtitle: 'CRADLE OF LIFE', titleDelay: 3.0, 
+                type: 'spline', transition: 'smooth', duration: 35, 
+                showFlightComputer: true, originName: 'VENUS', destName: 'TERRA', facts: EARTH_FACTS,
+                keyframes: [
+                    { targetId: 'earth', offset: [-50, 20, 50], roll: 10, fov: 40 },
+                    { targetId: 'earth', offset: [-5, 2, 5], roll: 0, fov: 60 },
+                    { targetId: 'moon', offset: [0, 1, 3], roll: 5, fov: 55 }, // Moon check
+                    { targetId: 'earth', offset: [30, -10, -30], roll: 0, fov: 50 }
+                ],
+                lookAtKeyframes: [
+                    { targetId: 'earth', offset: [0, 0, 0] },
+                    { targetId: 'earth', offset: [0, 0, 0] },
+                    { targetId: 'moon', offset: [0, 0, 0] },
+                    { targetId: 'earth', offset: [0, 0, 0] }
+                ]
+            },
+
+            // --- 5. MARS: RED DUST ---
+            // Transit
+            { 
+                type: 'spline', transition: 'smooth', duration: 20,
+                showFlightComputer: true, originName: 'TERRA', destName: 'MARS', facts: MARS_FACTS,
+                keyframes: [
+                    { targetId: 'earth', offset: [30, -10, -30], roll: 0, fov: 50 },
+                    { targetId: 'mars', offset: [-40, 15, 40], roll: -5, fov: 45 }
+                ],
+                lookAtKeyframes: [
+                    { targetId: 'earth', offset: [0, 0, 0] },
+                    { targetId: 'mars', offset: [0, 0, 0] }
+                ]
+            },
+            // Reveal
+            { 
+                title: 'MARS', subtitle: 'THE FRONTIER', titleDelay: 2.0, 
+                type: 'spline', transition: 'smooth', duration: 30, 
+                showFlightComputer: true, originName: 'TERRA', destName: 'MARS', facts: MARS_FACTS,
+                keyframes: [
+                    { targetId: 'mars', offset: [-40, 15, 40], roll: -5, fov: 45 },
+                    { targetId: 'mars', offset: [0, 3, 0], roll: -35, fov: 70 }, // Top down pole view?
+                    { targetId: 'mars', offset: [30, -10, -30], roll: 0, fov: 50 }
+                ],
+                lookAtKeyframes: [
+                    { targetId: 'mars', offset: [0, 0, 0] },
+                    { targetId: 'mars', offset: [0, 0, 0] },
+                    { targetId: 'mars', offset: [0, 0, 0] }
+                ]
+            },
+
+            // --- 6. JUPITER: THE MONARCH ---
+            // Transit (Long)
+            { 
+                type: 'spline', transition: 'smooth', duration: 25,
+                showFlightComputer: true, originName: 'MARS', destName: 'JUPITER', facts: JUPITER_FACTS,
+                keyframes: [
+                    { targetId: 'mars', offset: [30, -10, -30], roll: 0, fov: 50 },
+                    { targetId: 'jupiter', offset: [-250, 100, 250], roll: 10, fov: 40 }
+                ],
+                lookAtKeyframes: [
+                    { targetId: 'mars', offset: [0, 0, 0] },
+                    { targetId: 'jupiter', offset: [0, 0, 0] }
+                ]
+            },
+            // Reveal
+            { 
+                title: 'JUPITER', subtitle: 'KING OF WORLDS', titleDelay: 4.0, 
+                type: 'spline', transition: 'smooth', duration: 40, 
+                showFlightComputer: true, originName: 'MARS', destName: 'JUPITER', facts: JUPITER_FACTS,
+                keyframes: [
+                    { targetId: 'jupiter', offset: [-250, 100, 250], roll: 10, fov: 40 },
+                    { targetId: 'jupiter', offset: [-80, 0, 40], roll: 20, fov: 60 },
+                    { targetId: 'jupiter', offset: [150, -50, -150], roll: 0, fov: 50 }
+                ],
+                lookAtKeyframes: [
+                    { targetId: 'jupiter', offset: [0, 0, 0] },
+                    { targetId: 'jupiter', offset: [0, 0, 0] },
+                    { targetId: 'jupiter', offset: [0, 0, 0] }
+                ]
+            },
+
+            // --- 7. SATURN: THE CROWN ---
+            // Transit
+            { 
+                type: 'spline', transition: 'smooth', duration: 30,
+                showFlightComputer: true, originName: 'JUPITER', destName: 'SATURN', facts: SATURN_FACTS,
+                keyframes: [
+                    { targetId: 'jupiter', offset: [150, -50, -150], roll: 0, fov: 50 },
+                    { targetId: 'saturn', offset: [200, 80, 200], roll: -15, fov: 45 }
+                ],
+                lookAtKeyframes: [
+                    { targetId: 'jupiter', offset: [0, 0, 0] },
+                    { targetId: 'saturn', offset: [0, 0, 0] }
+                ]
+            },
+            // Reveal
+            { 
+                title: 'SATURN', subtitle: 'JEWEL OF THE SYSTEM', titleDelay: 4.0, 
+                type: 'spline', transition: 'smooth', duration: 45, 
+                showFlightComputer: true, originName: 'JUPITER', destName: 'SATURN', facts: SATURN_FACTS,
+                keyframes: [
+                    { targetId: 'saturn', offset: [200, 80, 200], roll: -15, fov: 45 },
+                    { targetId: 'saturn', offset: [0, 2, 80], roll: -45, fov: 70 }, // Ring skim
+                    { targetId: 'saturn', offset: [-150, -60, -150], roll: 0, fov: 55 }
+                ],
+                lookAtKeyframes: [
+                    { targetId: 'saturn', offset: [0, 0, 0] },
+                    { targetId: 'saturn', offset: [0, 0, 0] },
+                    { targetId: 'saturn', offset: [0, 0, 0] }
+                ]
+            },
+
+            // --- 8. URANUS: THE ROLL ---
+            // Transit
+            { 
+                type: 'spline', transition: 'smooth', duration: 25,
+                showFlightComputer: true, originName: 'SATURN', destName: 'URANUS', facts: URANUS_FACTS,
+                keyframes: [
+                    { targetId: 'saturn', offset: [-150, -60, -150], roll: 0, fov: 55 },
+                    { targetId: 'uranus', offset: [80, 80, 80], roll: 45, fov: 45 }
+                ],
+                lookAtKeyframes: [
+                    { targetId: 'saturn', offset: [0, 0, 0] },
+                    { targetId: 'uranus', offset: [0, 0, 0] }
+                ]
+            },
+            // Reveal
+            { 
+                title: 'URANUS', subtitle: 'THE SIDEWAYS GIANT', titleDelay: 3.0, 
+                type: 'spline', transition: 'smooth', duration: 30, 
+                showFlightComputer: true, originName: 'SATURN', destName: 'URANUS', facts: URANUS_FACTS,
+                keyframes: [
+                    { targetId: 'uranus', offset: [80, 80, 80], roll: 45, fov: 45 },
+                    { targetId: 'uranus', offset: [0, 0, 25], roll: 90, fov: 65 },
+                    { targetId: 'uranus', offset: [-60, -60, -60], roll: 45, fov: 50 }
+                ],
+                lookAtKeyframes: [
+                    { targetId: 'uranus', offset: [0, 0, 0] },
+                    { targetId: 'uranus', offset: [0, 0, 0] },
+                    { targetId: 'uranus', offset: [0, 0, 0] }
+                ]
+            },
+
+            // --- 9. NEPTUNE: THE DEPTHS ---
+            // Transit
+            { 
+                type: 'spline', transition: 'smooth', duration: 25,
+                showFlightComputer: true, originName: 'URANUS', destName: 'NEPTUNE', facts: NEPTUNE_FACTS,
+                keyframes: [
+                    { targetId: 'uranus', offset: [-60, -60, -60], roll: 45, fov: 50 },
+                    { targetId: 'neptune', offset: [-80, 30, -80], roll: 0, fov: 45 }
+                ],
+                lookAtKeyframes: [
+                    { targetId: 'uranus', offset: [0, 0, 0] },
+                    { targetId: 'neptune', offset: [0, 0, 0] }
+                ]
+            },
+            // Reveal
+            { 
+                title: 'NEPTUNE', subtitle: 'THE WINDY ABYSS', titleDelay: 3.0, 
+                type: 'spline', transition: 'smooth', duration: 30, 
+                showFlightComputer: true, originName: 'URANUS', destName: 'NEPTUNE', facts: NEPTUNE_FACTS,
+                keyframes: [
+                    { targetId: 'neptune', offset: [-80, 30, -80], roll: 0, fov: 45 },
+                    { targetId: 'neptune', offset: [0, 0, 25], roll: -20, fov: 60 },
+                    { targetId: 'neptune', offset: [60, -20, 60], roll: 0, fov: 50 }
+                ],
+                lookAtKeyframes: [
+                    { targetId: 'neptune', offset: [0, 0, 0] },
+                    { targetId: 'neptune', offset: [0, 0, 0] },
+                    { targetId: 'neptune', offset: [0, 0, 0] }
+                ]
+            },
+
+            // --- 10. PLUTO: THE EDGE ---
+            // Transit
+            { 
+                type: 'spline', transition: 'smooth', duration: 25,
+                showFlightComputer: true, originName: 'NEPTUNE', destName: 'PLUTO', facts: PLUTO_FACTS,
+                keyframes: [
+                    { targetId: 'neptune', offset: [60, -20, 60], roll: 0, fov: 50 },
+                    { targetId: 'pluto', offset: [-20, 10, 20], roll: 0, fov: 45 }
+                ],
+                lookAtKeyframes: [
+                    { targetId: 'neptune', offset: [0, 0, 0] },
+                    { targetId: 'pluto', offset: [0, 0, 0] }
+                ]
+            },
+            // Reveal
+            { 
+                title: 'PLUTO', subtitle: 'KING OF THE KUIPER BELT', titleDelay: 3.0, 
+                type: 'spline', transition: 'smooth', duration: 25, 
+                showFlightComputer: true, originName: 'NEPTUNE', destName: 'PLUTO', facts: PLUTO_FACTS,
+                keyframes: [
+                    { targetId: 'pluto', offset: [-20, 10, 20], roll: 0, fov: 45 },
+                    { targetId: 'pluto', offset: [0, 2, 5], roll: 15, fov: 60 },
+                    { targetId: 'pluto', offset: [20, -10, -20], roll: 0, fov: 50 }
+                ],
+                lookAtKeyframes: [
+                    { targetId: 'pluto', offset: [0, 0, 0] },
+                    { targetId: 'pluto', offset: [0, 0, 0] },
+                    { targetId: 'pluto', offset: [0, 0, 0] }
+                ]
+            },
+
+            // --- 11. THE VOID: TO THE CENTER ---
+            // Deep Space Warp
+            { 
+                title: 'INTERSTELLAR CRUISE', subtitle: 'VELOCITY: IMPOSSIBLE', titleDelay: 5.0,
+                type: 'spline', transition: 'smooth', duration: 40, 
+                showFlightComputer: true, originName: 'HELIOSPHERE', destName: 'GALACTIC CENTER', facts: GALACTIC_FACTS,
+                shakeIntensity: 0.1, dampening: 0.5,
+                keyframes: [
+                    { targetId: 'pluto', offset: [20, -10, -20], roll: 0, fov: 50 },
+                    { targetId: 'sagittarius_a', offset: [-5000, 2000, 5000], roll: 20, fov: 40 }
+                ],
+                lookAtKeyframes: [
+                    { targetId: 'pluto', offset: [0, 0, 0] },
+                    { targetId: 'sagittarius_a', offset: [0, 0, 0] }
+                ]
+            },
+
+            // --- 12. SAGITTARIUS A*: THE EVENT HORIZON ---
+            { 
+                title: 'SAGITTARIUS A*', subtitle: 'THE EYE OF GOD', titleDelay: 5.0, 
+                type: 'spline', transition: 'smooth', duration: 45, 
+                showFlightComputer: true, originName: 'MILKY WAY', destName: 'SINGULARITY', facts: GALACTIC_FACTS,
+                shakeIntensity: 0.3, dampening: 0.9,
+                keyframes: [
+                    { targetId: 'sagittarius_a', offset: [-5000, 2000, 5000], roll: 20, fov: 40 },
+                    { targetId: 'sagittarius_a', offset: [-500, 100, 500], roll: 45, fov: 60 },
+                    { targetId: 'sagittarius_a', offset: [0, 200, 10], roll: 90, fov: 100 }, // Looking down into the abyss
+                    { targetId: 'sagittarius_a', offset: [200, 0, 0], roll: 180, fov: 120 } // spiraling
+                ],
+                lookAtKeyframes: [
+                    { targetId: 'sagittarius_a', offset: [0, 0, 0] },
+                    { targetId: 'sagittarius_a', offset: [0, 0, 0] },
+                    { targetId: 'sagittarius_a', offset: [0, 0, 0] },
+                    { targetId: 'sagittarius_a', offset: [0, 0, 0] }
+                ]
+            },
+
+            // --- 13. CHRONOSYNC: THE LOOP ---
+            { 
+                title: 'EVENT HORIZON', subtitle: 'SPAGHETTIFICATION IMMINENT', titleDelay: 0, 
+                type: 'spline', transition: 'smooth', duration: 15, 
+                showFlightComputer: true, originName: 'SAG A*', destName: 'SOL', facts: COMMERCIAL_FACTS,
+                shakeIntensity: 2.0, dampening: 0.2,
+                keyframes: [
+                    { targetId: 'sagittarius_a', offset: [200, 0, 0], roll: 180, fov: 120 },
+                    { targetId: 'sagittarius_a', offset: [0, 0, 0], roll: 360, fov: 170 }, // Into the black hole
+                    { targetId: 'sun', offset: [0, 1000, 2000], roll: 720, fov: 150 }      // Spat out at sun
+                ],
+                lookAtKeyframes: [
+                    { targetId: 'sagittarius_a', offset: [0, 0, 0] },
+                    { targetId: 'sagittarius_a', offset: [0, 0, 0] },
+                    { targetId: 'sun', offset: [0, 0, 0] }
+                ]
+            },
+            // --- 14. STABILIZE ---
+            { 
+                type: 'spline', transition: 'smooth', duration: 10, 
+                showFlightComputer: false,
+                dampening: 0.8,
+                keyframes: [
+                    { targetId: 'sun', offset: [0, 1000, 2000], roll: 0, fov: 150 },
+                    { targetId: 'sun', offset: [0, 800, 1200], roll: 0, fov: 45 } // Back to Shot 1 Start
+                ],
+                lookAtKeyframes: [
+                    { targetId: 'sun', offset: [0, 0, 0] },
                     { targetId: 'sun', offset: [0, 0, 0] }
                 ]
             }
