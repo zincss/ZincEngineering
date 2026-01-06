@@ -329,11 +329,31 @@ export const TOURS: Tour[] = [
                 keyframes: [{ targetId: 'sagittarius_a', offset: [-500, 200, 1000], roll: 10, fov: 45 }, { targetId: 'sagittarius_a', offset: [0, 50, 200], roll: 45, fov: 70 }, { targetId: 'sagittarius_a', offset: [500, -200, 500], roll: 90, fov: 55 }],
                 lookAtKeyframes: [{ targetId: 'sagittarius_a', offset: [0, 0, 0] }, { targetId: 'sagittarius_a', offset: [0, 0, 0] }, { targetId: 'sagittarius_a', offset: [0, 0, 0] }]
             },
-            // WARP LOOP
-            { title: 'CHRONOSYNC', subtitle: 'RESETTING SIMULATION', type: 'spline', transition: 'smooth', duration: 15, distance: 0, height: 0, speed: 0, dampening: 0.2, shakeIntensity: 0.8,
+            // WARP LOOP - PART 1: THE JUMP
+            { title: 'CHRONOSYNC', subtitle: 'WARP SEQUENCE', type: 'spline', transition: 'smooth', duration: 10, distance: 0, height: 0, speed: 0, dampening: 0.2, shakeIntensity: 0.8,
                 showFlightComputer: true, originName: 'SAG A*', destName: 'SOL', facts: COMMERCIAL_FACTS,
-                keyframes: [{ targetId: 'sagittarius_a', offset: [500, -200, 500], roll: 90, fov: 55 }, { targetId: 'sagittarius_a', offset: [2000, 2000, 2000], roll: 180, fov: 160 }, { targetId: 'sun', offset: [0, 500, 1500], roll: 360, fov: 120 }, { targetId: 'sun', offset: [0, 250, 600], roll: 0, fov: 55 }],
-                lookAtKeyframes: [{ targetId: 'sagittarius_a', offset: [0, 0, 0] }, { targetId: 'sun', offset: [0, 0, 0] }, { targetId: 'sun', offset: [0, 0, 0] }, { targetId: 'sun', offset: [0, 0, 0] }]
+                keyframes: [
+                    { targetId: 'sagittarius_a', offset: [500, -200, 500], roll: 90, fov: 55 }, 
+                    { targetId: 'sagittarius_a', offset: [2000, 2000, 2000], roll: 180, fov: 160 }, 
+                    { targetId: 'sun', offset: [0, 500, 1500], roll: 360, fov: 120 }
+                ],
+                lookAtKeyframes: [
+                    { targetId: 'sagittarius_a', offset: [0, 0, 0] }, 
+                    { targetId: 'sun', offset: [0, 0, 0] }, 
+                    { targetId: 'sun', offset: [0, 0, 0] }
+                ]
+            },
+            // WARP LOOP - PART 2: STABILIZATION
+            { title: 'CHRONOSYNC', subtitle: 'RESETTING SIMULATION', type: 'spline', transition: 'smooth', duration: 5, distance: 0, height: 0, speed: 0, dampening: 0.94, shakeIntensity: 0.0,
+                showFlightComputer: true, originName: 'SOL', destName: 'SYSTEM RESET', facts: COMMERCIAL_FACTS,
+                keyframes: [
+                    { targetId: 'sun', offset: [0, 500, 1500], roll: 360, fov: 120 }, 
+                    { targetId: 'sun', offset: [0, 250, 600], roll: 360, fov: 55 }
+                ],
+                lookAtKeyframes: [
+                    { targetId: 'sun', offset: [0, 0, 0] }, 
+                    { targetId: 'sun', offset: [0, 0, 0] }
+                ]
             }
         ]
     },

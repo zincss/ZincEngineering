@@ -8,14 +8,24 @@ import { getPlayerSave, savePlayerProgress, PlanetariumSaveData } from './action
 import { PLANET_DATA, CelestialBody } from './data';
 import { FANTASY_DATA } from './fantasy_data';
 import { SHIP_CATALOG, ShipStats, getShipById } from './ships'; 
+import { 
+    J2000_EPOCH, 
+    MILLISECONDS_PER_DAY, 
+    FUEL_COST_PER_UNIT, 
+    BOOST_COST_PER_UNIT,
+    UNINHABITABLE_IDS,
+    CARGO_TIERS
+} from './constants';
 
-export const J2000_EPOCH = 946728000000;
-export const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
-
-export const FUEL_COST_PER_UNIT = 0.5; 
-export const BOOST_COST_PER_UNIT = 5; 
-
-const UNINHABITABLE_IDS = ['sun', 'sagittarius_a', 'zinc_prime_stars', 'jupiter', 'saturn', 'uranus', 'neptune', 'endor_prime'];
+// Re-export constants for backwards compatibility
+export { 
+    J2000_EPOCH, 
+    MILLISECONDS_PER_DAY, 
+    FUEL_COST_PER_UNIT, 
+    BOOST_COST_PER_UNIT,
+    UNINHABITABLE_IDS,
+    CARGO_TIERS
+} from './constants';
 
 export interface HaulingJob {
     id: string;
