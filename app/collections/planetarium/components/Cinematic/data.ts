@@ -193,8 +193,9 @@ export const TOURS: Tour[] = [
             { 
                 title: 'THE SUN', subtitle: 'SYSTEM ARCHITECT', titleDelay: 3.0, 
                 type: 'spline', transition: 'cut', duration: 30, 
+                distance: 0, height: 0, speed: 0,
                 showFlightComputer: true, originName: 'ZINC PRIME', destName: 'SOL', facts: SUN_FACTS,
-                dampening: 0.8,
+                dampening: 0.94,
                 keyframes: [
                     { targetId: 'sun', offset: [0, 800, 1200], roll: 0, fov: 45 },    // Wide establish
                     { targetId: 'sun', offset: [400, 200, 400], roll: 20, fov: 55 },  // Spiraling in
@@ -213,6 +214,7 @@ export const TOURS: Tour[] = [
             // Transit
             { 
                 type: 'spline', transition: 'smooth', duration: 15, 
+                distance: 0, height: 0, speed: 0,
                 showFlightComputer: true, originName: 'SOL', destName: 'MERCURY', facts: MERCURY_FACTS,
                 dampening: 0.9,
                 keyframes: [
@@ -228,6 +230,7 @@ export const TOURS: Tour[] = [
             { 
                 title: 'MERCURY', subtitle: 'SCORCHED WORLD', titleDelay: 2.0, 
                 type: 'spline', transition: 'smooth', duration: 20, 
+                distance: 0, height: 0, speed: 0,
                 showFlightComputer: true, originName: 'SOL', destName: 'MERCURY', facts: MERCURY_FACTS,
                 dampening: 0.9,
                 keyframes: [
@@ -246,6 +249,7 @@ export const TOURS: Tour[] = [
             // Transit
             { 
                 type: 'spline', transition: 'smooth', duration: 15,
+                distance: 0, height: 0, speed: 0,
                 showFlightComputer: true, originName: 'MERCURY', destName: 'VENUS', facts: VENUS_FACTS,
                 keyframes: [
                     { targetId: 'mercury', offset: [-20, -10, -20], roll: 0, fov: 50 },
@@ -260,6 +264,7 @@ export const TOURS: Tour[] = [
             { 
                 title: 'VENUS', subtitle: 'TOXIC BEAUTY', titleDelay: 2.0, 
                 type: 'spline', transition: 'smooth', duration: 25, 
+                distance: 0, height: 0, speed: 0,
                 showFlightComputer: true, originName: 'MERCURY', destName: 'VENUS', facts: VENUS_FACTS,
                 keyframes: [
                     { targetId: 'venus', offset: [60, 30, 60], roll: -10, fov: 45 },
@@ -277,6 +282,7 @@ export const TOURS: Tour[] = [
             // Transit
             { 
                 type: 'spline', transition: 'smooth', duration: 20,
+                distance: 0, height: 0, speed: 0,
                 showFlightComputer: true, originName: 'VENUS', destName: 'TERRA', facts: EARTH_FACTS,
                 keyframes: [
                     { targetId: 'venus', offset: [30, -10, -30], roll: 0, fov: 50 },
@@ -291,6 +297,7 @@ export const TOURS: Tour[] = [
             { 
                 title: 'EARTH', subtitle: 'CRADLE OF LIFE', titleDelay: 3.0, 
                 type: 'spline', transition: 'smooth', duration: 35, 
+                distance: 0, height: 0, speed: 0,
                 showFlightComputer: true, originName: 'VENUS', destName: 'TERRA', facts: EARTH_FACTS,
                 keyframes: [
                     { targetId: 'earth', offset: [-50, 20, 50], roll: 10, fov: 40 },
@@ -310,6 +317,7 @@ export const TOURS: Tour[] = [
             // Transit
             { 
                 type: 'spline', transition: 'smooth', duration: 20,
+                distance: 0, height: 0, speed: 0,
                 showFlightComputer: true, originName: 'TERRA', destName: 'MARS', facts: MARS_FACTS,
                 keyframes: [
                     { targetId: 'earth', offset: [30, -10, -30], roll: 0, fov: 50 },
@@ -324,6 +332,7 @@ export const TOURS: Tour[] = [
             { 
                 title: 'MARS', subtitle: 'THE FRONTIER', titleDelay: 2.0, 
                 type: 'spline', transition: 'smooth', duration: 30, 
+                distance: 0, height: 0, speed: 0,
                 showFlightComputer: true, originName: 'TERRA', destName: 'MARS', facts: MARS_FACTS,
                 keyframes: [
                     { targetId: 'mars', offset: [-40, 15, 40], roll: -5, fov: 45 },
@@ -341,6 +350,7 @@ export const TOURS: Tour[] = [
             // Transit (Long)
             { 
                 type: 'spline', transition: 'smooth', duration: 25,
+                distance: 0, height: 0, speed: 0,
                 showFlightComputer: true, originName: 'MARS', destName: 'JUPITER', facts: JUPITER_FACTS,
                 keyframes: [
                     { targetId: 'mars', offset: [30, -10, -30], roll: 0, fov: 50 },
@@ -355,6 +365,7 @@ export const TOURS: Tour[] = [
             { 
                 title: 'JUPITER', subtitle: 'KING OF WORLDS', titleDelay: 4.0, 
                 type: 'spline', transition: 'smooth', duration: 40, 
+                distance: 0, height: 0, speed: 0,
                 showFlightComputer: true, originName: 'MARS', destName: 'JUPITER', facts: JUPITER_FACTS,
                 keyframes: [
                     { targetId: 'jupiter', offset: [-250, 100, 250], roll: 10, fov: 40 },
@@ -372,6 +383,7 @@ export const TOURS: Tour[] = [
             // Transit
             { 
                 type: 'spline', transition: 'smooth', duration: 30,
+                distance: 0, height: 0, speed: 0,
                 showFlightComputer: true, originName: 'JUPITER', destName: 'SATURN', facts: SATURN_FACTS,
                 keyframes: [
                     { targetId: 'jupiter', offset: [150, -50, -150], roll: 0, fov: 50 },
@@ -386,6 +398,7 @@ export const TOURS: Tour[] = [
             { 
                 title: 'SATURN', subtitle: 'JEWEL OF THE SYSTEM', titleDelay: 4.0, 
                 type: 'spline', transition: 'smooth', duration: 45, 
+                distance: 0, height: 0, speed: 0,
                 showFlightComputer: true, originName: 'JUPITER', destName: 'SATURN', facts: SATURN_FACTS,
                 keyframes: [
                     { targetId: 'saturn', offset: [200, 80, 200], roll: -15, fov: 45 },
@@ -403,6 +416,7 @@ export const TOURS: Tour[] = [
             // Transit
             { 
                 type: 'spline', transition: 'smooth', duration: 25,
+                distance: 0, height: 0, speed: 0,
                 showFlightComputer: true, originName: 'SATURN', destName: 'URANUS', facts: URANUS_FACTS,
                 keyframes: [
                     { targetId: 'saturn', offset: [-150, -60, -150], roll: 0, fov: 55 },
@@ -417,7 +431,9 @@ export const TOURS: Tour[] = [
             { 
                 title: 'URANUS', subtitle: 'THE SIDEWAYS GIANT', titleDelay: 3.0, 
                 type: 'spline', transition: 'smooth', duration: 30, 
+                distance: 0, height: 0, speed: 0,
                 showFlightComputer: true, originName: 'SATURN', destName: 'URANUS', facts: URANUS_FACTS,
+                dampening: 0.94,
                 keyframes: [
                     { targetId: 'uranus', offset: [80, 80, 80], roll: 45, fov: 45 },
                     { targetId: 'uranus', offset: [0, 0, 25], roll: 90, fov: 65 },
@@ -434,6 +450,7 @@ export const TOURS: Tour[] = [
             // Transit
             { 
                 type: 'spline', transition: 'smooth', duration: 25,
+                distance: 0, height: 0, speed: 0,
                 showFlightComputer: true, originName: 'URANUS', destName: 'NEPTUNE', facts: NEPTUNE_FACTS,
                 keyframes: [
                     { targetId: 'uranus', offset: [-60, -60, -60], roll: 45, fov: 50 },
@@ -448,6 +465,7 @@ export const TOURS: Tour[] = [
             { 
                 title: 'NEPTUNE', subtitle: 'THE WINDY ABYSS', titleDelay: 3.0, 
                 type: 'spline', transition: 'smooth', duration: 30, 
+                distance: 0, height: 0, speed: 0,
                 showFlightComputer: true, originName: 'URANUS', destName: 'NEPTUNE', facts: NEPTUNE_FACTS,
                 keyframes: [
                     { targetId: 'neptune', offset: [-80, 30, -80], roll: 0, fov: 45 },
@@ -465,6 +483,7 @@ export const TOURS: Tour[] = [
             // Transit
             { 
                 type: 'spline', transition: 'smooth', duration: 25,
+                distance: 0, height: 0, speed: 0,
                 showFlightComputer: true, originName: 'NEPTUNE', destName: 'PLUTO', facts: PLUTO_FACTS,
                 keyframes: [
                     { targetId: 'neptune', offset: [60, -20, 60], roll: 0, fov: 50 },
@@ -479,6 +498,7 @@ export const TOURS: Tour[] = [
             { 
                 title: 'PLUTO', subtitle: 'KING OF THE KUIPER BELT', titleDelay: 3.0, 
                 type: 'spline', transition: 'smooth', duration: 25, 
+                distance: 0, height: 0, speed: 0,
                 showFlightComputer: true, originName: 'NEPTUNE', destName: 'PLUTO', facts: PLUTO_FACTS,
                 keyframes: [
                     { targetId: 'pluto', offset: [-20, 10, 20], roll: 0, fov: 45 },
@@ -496,12 +516,13 @@ export const TOURS: Tour[] = [
             // Deep Space Warp
             { 
                 title: 'INTERSTELLAR CRUISE', subtitle: 'VELOCITY: IMPOSSIBLE', titleDelay: 5.0,
-                type: 'spline', transition: 'smooth', duration: 40, 
+                type: 'spline', transition: 'smooth', duration: 45, 
+                distance: 0, height: 0, speed: 0,
                 showFlightComputer: true, originName: 'HELIOSPHERE', destName: 'GALACTIC CENTER', facts: GALACTIC_FACTS,
-                shakeIntensity: 0.1, dampening: 0.5,
+                shakeIntensity: 0.2, dampening: 0.94,
                 keyframes: [
                     { targetId: 'pluto', offset: [20, -10, -20], roll: 0, fov: 50 },
-                    { targetId: 'sagittarius_a', offset: [-5000, 2000, 5000], roll: 20, fov: 40 }
+                    { targetId: 'sagittarius_a', offset: [-6000, 3000, 6000], roll: 10, fov: 40 }
                 ],
                 lookAtKeyframes: [
                     { targetId: 'pluto', offset: [0, 0, 0] },
@@ -512,14 +533,15 @@ export const TOURS: Tour[] = [
             // --- 12. SAGITTARIUS A*: THE EVENT HORIZON ---
             { 
                 title: 'SAGITTARIUS A*', subtitle: 'THE EYE OF GOD', titleDelay: 5.0, 
-                type: 'spline', transition: 'smooth', duration: 45, 
+                type: 'spline', transition: 'smooth', duration: 60, 
+                distance: 0, height: 0, speed: 0,
                 showFlightComputer: true, originName: 'MILKY WAY', destName: 'SINGULARITY', facts: GALACTIC_FACTS,
-                shakeIntensity: 0.3, dampening: 0.9,
+                shakeIntensity: 0.3, dampening: 0.98,
                 keyframes: [
-                    { targetId: 'sagittarius_a', offset: [-5000, 2000, 5000], roll: 20, fov: 40 },
-                    { targetId: 'sagittarius_a', offset: [-500, 100, 500], roll: 45, fov: 60 },
-                    { targetId: 'sagittarius_a', offset: [0, 200, 10], roll: 90, fov: 100 }, // Looking down into the abyss
-                    { targetId: 'sagittarius_a', offset: [200, 0, 0], roll: 180, fov: 120 } // spiraling
+                    { targetId: 'sagittarius_a', offset: [-6000, 3000, 6000], roll: 10, fov: 40 },
+                    { targetId: 'sagittarius_a', offset: [-800, 200, 800], roll: 30, fov: 55 },
+                    { targetId: 'sagittarius_a', offset: [0, 400, 0], roll: 90, fov: 90 }, // High top-down view
+                    { targetId: 'sagittarius_a', offset: [150, 50, 150], roll: 135, fov: 110 } // Spiral entry
                 ],
                 lookAtKeyframes: [
                     { targetId: 'sagittarius_a', offset: [0, 0, 0] },
@@ -531,16 +553,19 @@ export const TOURS: Tour[] = [
 
             // --- 13. CHRONOSYNC: THE LOOP ---
             { 
-                title: 'EVENT HORIZON', subtitle: 'SPAGHETTIFICATION IMMINENT', titleDelay: 0, 
-                type: 'spline', transition: 'smooth', duration: 15, 
+                title: 'SINGULARITY', subtitle: 'TIME DILATION CRITICAL', titleDelay: 0, 
+                type: 'spline', transition: 'smooth', duration: 35, 
+                distance: 0, height: 0, speed: 0,
                 showFlightComputer: true, originName: 'SAG A*', destName: 'SOL', facts: COMMERCIAL_FACTS,
-                shakeIntensity: 2.0, dampening: 0.2,
+                shakeIntensity: 1.5, dampening: 0.92,
                 keyframes: [
-                    { targetId: 'sagittarius_a', offset: [200, 0, 0], roll: 180, fov: 120 },
-                    { targetId: 'sagittarius_a', offset: [0, 0, 0], roll: 360, fov: 170 }, // Into the black hole
+                    { targetId: 'sagittarius_a', offset: [150, 50, 150], roll: 135, fov: 110 },
+                    { targetId: 'sagittarius_a', offset: [50, 0, 50], roll: 180, fov: 140 },
+                    { targetId: 'sagittarius_a', offset: [0, 0, 0], roll: 360, fov: 170 }, // The Point of No Return
                     { targetId: 'sun', offset: [0, 1000, 2000], roll: 720, fov: 150 }      // Spat out at sun
                 ],
                 lookAtKeyframes: [
+                    { targetId: 'sagittarius_a', offset: [0, 0, 0] },
                     { targetId: 'sagittarius_a', offset: [0, 0, 0] },
                     { targetId: 'sagittarius_a', offset: [0, 0, 0] },
                     { targetId: 'sun', offset: [0, 0, 0] }
@@ -548,9 +573,10 @@ export const TOURS: Tour[] = [
             },
             // --- 14. STABILIZE ---
             { 
-                type: 'spline', transition: 'smooth', duration: 10, 
+                type: 'spline', transition: 'smooth', duration: 15, 
+                distance: 0, height: 0, speed: 0,
                 showFlightComputer: false,
-                dampening: 0.8,
+                dampening: 0.96,
                 keyframes: [
                     { targetId: 'sun', offset: [0, 1000, 2000], roll: 0, fov: 150 },
                     { targetId: 'sun', offset: [0, 800, 1200], roll: 0, fov: 45 } // Back to Shot 1 Start
