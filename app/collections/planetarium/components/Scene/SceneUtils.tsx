@@ -78,9 +78,9 @@ export function EllipticalOrbit({ body, type = 'planet', isSelected = false, par
     );
 }
 
-// --- SMART LABEL (UPDATED PARENT VISIBILITY) ---
+// --- SMART LABEL (UPDATED FOR CLOSE-UP PROXIMITY) ---
 export function SmartLabel({ 
-    id, // NEW PROP: We need ID to check relationships
+    id,
     text, 
     type, 
     position, 
@@ -103,7 +103,6 @@ export function SmartLabel({
     const isMajor = type === 'Star' || type === 'Black Hole' || type === 'Planet' || type === 'Dwarf Planet';
     const isMinor = type === 'Moon' || type === 'Station';
 
-    // Helper to check if this label belongs to the parent of the destination
     const isParentOfDestination = (myId: string, destId: string) => {
         const parent = PLANET_DATA.find(p => p.moons?.some(m => m.id === destId));
         return parent && parent.id === myId;
@@ -112,13 +111,11 @@ export function SmartLabel({
     useFrame(() => {
         if (!scalerRef.current || !visible || !groupRef.current) return;
         
-        // --- JOB FILTERING LOGIC ---
         if (activeJob && id) {
             const destId = activeJob.destId;
             const isDestination = id === destId;
             const isParent = isParentOfDestination(id, destId);
             
-            // Show only the Destination AND its Parent (so you can find the moon)
             if (!isDestination && !isParent) {
                 scalerRef.current.style.opacity = '0';
                 scalerRef.current.style.pointerEvents = 'none';
@@ -132,7 +129,9 @@ export function SmartLabel({
         
         let scale = 1;
         let opacity = 1;
+        let currentOffset = offset;
 
+        // --- DISTANCE LOGIC ---
         if (isMinor) {
              const FADE_START = 120;
              const FADE_END = 200;
@@ -143,11 +142,28 @@ export function SmartLabel({
 
              scale = Math.max(0.6, 1 - (dist / FADE_END) * 0.3);
 
+             // Pull label closer when very near
+             if (dist < 50) {
+                 // Linearly interpolate offset from 100% to 30% as distance drops
+                 const proximityFactor = Math.max(0, (dist - 10) / 40); 
+                 currentOffset = offset * (0.3 + 0.7 * proximityFactor);
+             }
+
         } else {
+             // Major bodies fade out at extreme range
              if (dist > 15000) opacity = Math.max(0, 1 - (dist - 15000) / 5000);
              if (dist > 500) scale = 1.1;
+             
+             // Pull label closer for major bodies too
+             if (dist < 100) {
+                 const proximityFactor = Math.max(0, (dist - 20) / 80);
+                 currentOffset = offset * (0.4 + 0.6 * proximityFactor);
+             }
         }
         
+        // APPLY DYNAMIC POSITION
+        groupRef.current.position.set(position[0], position[1] + currentOffset, position[2]);
+
         scalerRef.current.style.transform = `scale(${scale}) translateY(-60%)`; 
         scalerRef.current.style.opacity = opacity.toString();
         scalerRef.current.style.visibility = opacity < 0.05 ? 'hidden' : 'visible';

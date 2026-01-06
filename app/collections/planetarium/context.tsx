@@ -7,13 +7,12 @@ import { useAuth } from '@/app/context/AuthContext';
 import { getPlayerSave, savePlayerProgress, PlanetariumSaveData } from './actions'; 
 import { PLANET_DATA, CelestialBody } from './data';
 import { FANTASY_DATA } from './fantasy_data';
+import { SHIP_CATALOG, ShipStats, getShipById } from './ships'; 
 
 export const J2000_EPOCH = 946728000000;
 export const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
 
-export const MAX_FUEL = 2000;
 export const FUEL_COST_PER_UNIT = 0.5; 
-export const MAX_BOOST = 100;
 export const BOOST_COST_PER_UNIT = 5; 
 
 const UNINHABITABLE_IDS = ['sun', 'sagittarius_a', 'zinc_prime_stars', 'jupiter', 'saturn', 'uranus', 'neptune', 'endor_prime'];
@@ -25,6 +24,7 @@ export interface HaulingJob {
     cargo: string;
     reward: number;
     description: string;
+    tier: number;
 }
 
 const solveKepler = (M: number, e: number): number => {
@@ -94,6 +94,13 @@ interface SimulationContextType {
     credits: number;
     fuel: number; 
     boost: number;
+    
+    // SHIP STATE
+    currentShip: ShipStats;
+    ownedShips: string[];
+    purchaseShip: (shipId: string) => void;
+    equipShip: (shipId: string) => void;
+    
     activeJob: HaulingJob | null;
     availableJobs: HaulingJob[];
     dockedAt: string | null;
@@ -112,7 +119,8 @@ interface SimulationContextType {
     updateBoost: (newAmount: number) => void;
     buyBoost: () => void;
     
-    saveGame: (currentPosition?: THREE.Vector3) => Promise<void>;
+    // UPDATED: Added creditOverride support
+    saveGame: (currentPosition?: THREE.Vector3, creditOverride?: number) => Promise<void>;
 }
 
 const SimulationContext = createContext<SimulationContextType | null>(null);
@@ -131,9 +139,14 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
     const [simTimeState, setSimTimeState] = useState(Date.now());
     const [activeSystem, setActiveSystem] = useState<'solar' | 'fantasy'>('solar');
     
-    const [credits, setCredits] = useState(1000);
-    const [fuel, setFuel] = useState(MAX_FUEL); 
-    const [boost, setBoost] = useState(MAX_BOOST); 
+    const [credits, setCredits] = useState(500);
+    const [fuel, setFuel] = useState(1000); 
+    const [boost, setBoost] = useState(50); 
+    
+    // Ship State
+    const [currentShipId, setCurrentShipId] = useState('starter_tub');
+    const [ownedShips, setOwnedShips] = useState<string[]>(['starter_tub']);
+    
     const [activeJob, setActiveJob] = useState<HaulingJob | null>(null);
     const [dockedAt, _setDockedAt] = useState<string | null>(null);
     const [lastDockedNode, setLastDockedNode] = useState<string | null>(null);
@@ -153,6 +166,9 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
         _setDockedAt(id);
     }, []);
 
+    // Derived Current Ship Object
+    const currentShip = useMemo(() => getShipById(currentShipId), [currentShipId]);
+
     useEffect(() => {
         let mounted = true;
         const load = async () => {
@@ -166,6 +182,10 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
                         setCredits(save.credits);
                         setActiveSystem(save.current_system as any);
                         
+                        // Load Ship Data
+                        if (save.current_ship_id) setCurrentShipId(save.current_ship_id);
+                        if (save.owned_ships) setOwnedShips(save.owned_ships);
+                        
                         if (save.docked_at) {
                             _setDockedAt(save.docked_at);
                             setLastDockedNode(save.docked_at);
@@ -175,7 +195,6 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
                         
                         setSavedPosition(save.position);
                         
-                        // Default to Earth ONLY if nothing exists and user is signed in
                         if (!save.docked_at && !save.position) {
                             _setDockedAt('earth');
                             setLastDockedNode('earth');
@@ -190,11 +209,12 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
                 // GUEST INITIALIZATION
                 if (mounted) {
                     setIsLoadingSave(false);
-                    setFuel(MAX_FUEL);
-                    setBoost(MAX_BOOST);
-                    setCredits(1000);
+                    setFuel(1000); 
+                    setBoost(50);
+                    setCredits(500);
+                    setCurrentShipId('starter_tub');
+                    setOwnedShips(['starter_tub']);
                     
-                    // FIX: Do NOT dock guests automatically. Start them in free view.
                     _setDockedAt(null); 
                     setLastDockedNode(null);
                     setSavedPosition(null);
@@ -242,7 +262,8 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
         return undefined;
     }, [currentData]);
 
-    const saveGame = useCallback(async (currentPosition?: THREE.Vector3) => {
+    // UPDATED: Added creditOverride to support instant saving after job complete
+    const saveGame = useCallback(async (currentPosition?: THREE.Vector3, creditOverride?: number) => {
         if (!user || isLoadingSave) return; 
         
         if (currentPosition) {
@@ -252,16 +273,58 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
         const data: PlanetariumSaveData = {
             fuel,
             boost,
-            credits,
+            credits: creditOverride !== undefined ? creditOverride : credits, // USE OVERRIDE IF PRESENT
             current_system: activeSystem,
             location_id: dockedAt, 
             docked_at: dockedAt,
-            position: currentPosition ? { x: currentPosition.x, y: currentPosition.y, z: currentPosition.z } : null
+            position: currentPosition ? { x: currentPosition.x, y: currentPosition.y, z: currentPosition.z } : null,
+            current_ship_id: currentShipId,
+            owned_ships: ownedShips
         };
 
         await savePlayerProgress(data);
-    }, [user, isLoadingSave, fuel, boost, credits, activeSystem, dockedAt]);
+    }, [user, isLoadingSave, fuel, boost, credits, activeSystem, dockedAt, currentShipId, ownedShips]);
 
+    // SHIP ACTIONS
+    const purchaseShip = useCallback((shipId: string) => {
+        const ship = getShipById(shipId);
+        if (!ship) return;
+        if (ownedShips.includes(shipId)) return;
+        
+        if (credits >= ship.price) {
+            const newCredits = credits - ship.price;
+            setCredits(newCredits);
+            setOwnedShips(prev => [...prev, shipId]);
+            // Instant save on purchase
+            saveGame(undefined, newCredits);
+        }
+    }, [credits, ownedShips, saveGame]);
+
+    const equipShip = useCallback((shipId: string) => {
+        if (ownedShips.includes(shipId)) {
+            setCurrentShipId(shipId);
+            // Cap fuel/boost if new ship has smaller tanks
+            const newShip = getShipById(shipId);
+            setFuel(prev => Math.min(prev, newShip.maxFuel));
+            setBoost(prev => Math.min(prev, newShip.maxBoost));
+            
+            // Trigger a save so the ship persists
+            const data: PlanetariumSaveData = {
+                fuel: Math.min(fuel, newShip.maxFuel),
+                boost: Math.min(boost, newShip.maxBoost),
+                credits,
+                current_system: activeSystem,
+                location_id: dockedAt,
+                docked_at: dockedAt,
+                position: savedPosition ? { x: savedPosition.x, y: savedPosition.y, z: savedPosition.z } : null,
+                current_ship_id: shipId,
+                owned_ships: ownedShips
+            };
+            savePlayerProgress(data);
+        }
+    }, [ownedShips, fuel, boost, credits, activeSystem, dockedAt, savedPosition]);
+
+    // TIERED JOB GENERATION
     const generateJobsForLocation = useCallback((locationId: string) => {
         const origin = findBody(locationId);
         if (!origin) return;
@@ -275,25 +338,59 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
             );
         
         const newJobs: HaulingJob[] = [];
-        const CARGO_TYPES = ['Helium-3', 'Water Ice', 'Machinery', 'Rare Ore', 'Data Cores', 'Passengers'];
         
-        for(let i=0; i<3; i++) {
+        // Define cargo pools by Tier
+        const tier = currentShip.tier || 1;
+        
+        const TIER_1_CARGO = ['Scrap Metal', 'Bio-Waste', 'Water Ice', 'Processed Food', 'Raw Iron'];
+        const TIER_2_CARGO = ['Helium-3', 'Machinery', 'Textiles', 'Electronics', 'Fertilizer'];
+        const TIER_3_CARGO = ['Rare Ore', 'Medical Supplies', 'Weapons', 'Gold Bullion', 'Cybernetics'];
+        const TIER_4_CARGO = ['Data Cores', 'Prototype Tech', 'Zero-G Alloys', 'Sentient AI Units'];
+        const TIER_5_CARGO = ['Alien Artifacts', 'Quantum Cores', 'Neutron Star Matter', 'Dark Matter Containers'];
+
+        // Build pool based on ship tier
+        let cargoPool = [...TIER_1_CARGO];
+        if (tier >= 2) cargoPool = [...cargoPool, ...TIER_2_CARGO];
+        if (tier >= 3) cargoPool = [...cargoPool, ...TIER_3_CARGO];
+        if (tier >= 4) cargoPool = [...cargoPool, ...TIER_4_CARGO];
+        if (tier >= 5) cargoPool = [...cargoPool, ...TIER_5_CARGO];
+
+        const jobCount = 2 + Math.floor(tier / 2);
+
+        for(let i=0; i < jobCount; i++) {
             const dest = validDestinations[Math.floor(Math.random() * validDestinations.length)];
             const dist = Math.abs(origin.distance - dest.distance) + 10; 
-            const reward = Math.floor(dist * 50 + 500); 
-            const cargo = CARGO_TYPES[Math.floor(Math.random() * CARGO_TYPES.length)];
+            
+            let selectedCargo = cargoPool[Math.floor(Math.random() * cargoPool.length)];
+            
+            // --- UPDATED ECONOMY MATH ---
+            // Base reward increased from 10 -> 30 to better cover fuel
+            let baseReward = dist * 30; 
+            
+            // Multiplier based on cargo tier
+            let valueMult = 1.0;
+            if (TIER_5_CARGO.includes(selectedCargo)) valueMult = 10.0;
+            else if (TIER_4_CARGO.includes(selectedCargo)) valueMult = 5.0;
+            else if (TIER_3_CARGO.includes(selectedCargo)) valueMult = 2.5;
+            else if (TIER_2_CARGO.includes(selectedCargo)) valueMult = 1.5;
+            else valueMult = 1.2; // Tier 1 multiplier buffed from 0.5 -> 1.2
+
+            // Flat fee increased to ensure short hops are profitable
+            const flatFee = 1000 * valueMult; // Was 100
+            const reward = Math.floor((baseReward * valueMult) + flatFee);
 
             newJobs.push({
                 id: Math.random().toString(36).substr(2, 9),
                 originId: locationId,
                 destId: dest.id,
-                cargo: cargo,
+                cargo: selectedCargo,
                 reward: reward,
-                description: `Deliver ${cargo} to ${dest.name}`
+                description: `Deliver ${selectedCargo} to ${dest.name}`,
+                tier: tier 
             });
         }
         setAvailableJobs(newJobs);
-    }, [currentData, findBody]);
+    }, [currentData, findBody, currentShip]);
 
     const acceptJob = useCallback((job: HaulingJob) => {
         setActiveJob(job);
@@ -301,58 +398,82 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
         setDockedAt(null); 
     }, [setDockedAt]);
 
+    // UPDATED: Fix Stale State Issue
     const completeJob = useCallback(() => {
         if(activeJob) {
-            setCredits(c => c + activeJob.reward);
+            const newCredits = credits + activeJob.reward;
+            
+            setCredits(newCredits);
             setLastCompletedJob(activeJob); 
             setActiveJob(null);
-            saveGame(); 
+            
+            // Pass newCredits directly to saveGame to avoid stale state closure
+            saveGame(undefined, newCredits); 
         }
-    }, [activeJob, saveGame]);
+    }, [activeJob, saveGame, credits]);
 
     const clearCompletedJob = useCallback(() => {
         setLastCompletedJob(null);
     }, []);
 
     const updateFuel = useCallback((newAmount: number) => {
-        setFuel(Math.max(0, Math.min(MAX_FUEL, newAmount)));
-    }, []);
+        setFuel(Math.max(0, Math.min(currentShip.maxFuel, newAmount)));
+    }, [currentShip]);
 
     const buyFuel = useCallback(() => {
         setFuel(prev => {
-            const missing = MAX_FUEL - prev;
+            const missing = currentShip.maxFuel - prev;
             const cost = Math.floor(missing * FUEL_COST_PER_UNIT);
             if (credits >= cost) {
-                setCredits(c => c - cost);
-                return MAX_FUEL; 
+                const newCredits = credits - cost;
+                setCredits(newCredits);
+                // Instant Save
+                saveGame(undefined, newCredits); 
+                return currentShip.maxFuel; 
+            }
+            if (credits > 0) {
+                 const affordableUnits = credits / FUEL_COST_PER_UNIT;
+                 setCredits(0);
+                 saveGame(undefined, 0);
+                 return prev + affordableUnits;
             }
             return prev;
         });
-    }, [credits]);
+    }, [credits, currentShip, saveGame]);
 
     const updateBoost = useCallback((newAmount: number) => {
-        setBoost(Math.max(0, Math.min(MAX_BOOST, newAmount)));
-    }, []);
+        setBoost(Math.max(0, Math.min(currentShip.maxBoost, newAmount)));
+    }, [currentShip]);
 
     const buyBoost = useCallback(() => {
         setBoost(prev => {
-            const missing = MAX_BOOST - prev;
+            const missing = currentShip.maxBoost - prev;
             const cost = Math.floor(missing * BOOST_COST_PER_UNIT);
             if (credits >= cost) {
-                setCredits(c => c - cost);
-                return MAX_BOOST;
+                const newCredits = credits - cost;
+                setCredits(newCredits);
+                // Instant Save
+                saveGame(undefined, newCredits);
+                return currentShip.maxBoost;
+            }
+            if (credits > 0) {
+                const affordableUnits = credits / BOOST_COST_PER_UNIT;
+                setCredits(0);
+                saveGame(undefined, 0);
+                return prev + affordableUnits;
             }
             return prev;
         });
-    }, [credits]);
+    }, [credits, currentShip, saveGame]);
 
     const value = useMemo(() => ({ 
         timeRef, speedRef, simulationTime: simTimeState, speed, setSpeed, resetTime, setTime,
         activeSystem, setActiveSystem, currentData, findBody, getOrbitalPosition, getOrbitPoints,
         credits, fuel, boost, activeJob, availableJobs, dockedAt, lastDockedNode, lastDockVector, lastCompletedJob, savedPosition,
+        currentShip, ownedShips, purchaseShip, equipShip, 
         setDockedAt, acceptJob, completeJob, clearCompletedJob, generateJobsForLocation, 
         updateFuel, buyFuel, updateBoost, buyBoost, saveGame, user, isLoadingSave
-    }), [speed, simTimeState, activeSystem, currentData, findBody, resetTime, setTime, credits, fuel, boost, activeJob, availableJobs, dockedAt, lastDockedNode, lastDockVector, lastCompletedJob, savedPosition, updateFuel, buyFuel, updateBoost, buyBoost, saveGame, user, isLoadingSave]);
+    }), [speed, simTimeState, activeSystem, currentData, findBody, resetTime, setTime, credits, fuel, boost, activeJob, availableJobs, dockedAt, lastDockedNode, lastDockVector, lastCompletedJob, savedPosition, currentShip, ownedShips, updateFuel, buyFuel, updateBoost, buyBoost, saveGame, user, isLoadingSave, purchaseShip, equipShip]);
 
     return (
         <SimulationContext.Provider value={value}>

@@ -10,6 +10,8 @@ export interface PlanetariumSaveData {
     location_id: string | null;
     docked_at: string | null;
     position: { x: number, y: number, z: number } | null;
+    current_ship_id?: string;
+    owned_ships?: string[];
 }
 
 export async function getPlayerSave() {
@@ -30,16 +32,18 @@ export async function getPlayerSave() {
         return null;
     }
 
+    // DEFAULT STARTING VALUES
     if (!data) {
-        // Create default save if none exists
         const defaultSave = {
             user_id: user.id,
-            fuel: 2000,
-            boost: 100,
-            credits: 1000,
+            fuel: 1000, // Starter fuel
+            boost: 50,  // Starter boost
+            credits: 500, // Reduced starter credits
             current_system: 'solar',
             location_id: 'earth',
-            docked_at: 'earth'
+            docked_at: 'earth',
+            current_ship_id: 'starter_tub', // Default ship
+            owned_ships: ['starter_tub']
         };
         
         await supabase.from('planetarium_saves').insert(defaultSave);
@@ -49,6 +53,7 @@ export async function getPlayerSave() {
         };
     }
 
+    // Return data with fallbacks for older saves that might lack ship columns
     return {
         fuel: data.fuel,
         boost: data.boost,
@@ -60,7 +65,9 @@ export async function getPlayerSave() {
             x: data.position_x,
             y: data.position_y,
             z: data.position_z
-        } : null
+        } : null,
+        current_ship_id: data.current_ship_id || 'starter_tub',
+        owned_ships: data.owned_ships || ['starter_tub']
     };
 }
 
@@ -84,6 +91,8 @@ export async function savePlayerProgress(data: PlanetariumSaveData) {
             position_x: data.position?.x ?? null,
             position_y: data.position?.y ?? null,
             position_z: data.position?.z ?? null,
+            current_ship_id: data.current_ship_id,
+            owned_ships: data.owned_ships,
             last_updated: new Date().toISOString()
         });
 
@@ -100,29 +109,5 @@ export async function savePlayerProgress(data: PlanetariumSaveData) {
 
     if (profileError) console.error("Profile Sync Error:", profileError);
 
-    // REMOVED: revalidatePath('/collections/planetarium'); 
-    // This stops the page from reloading/flickering on every save.
-    return { success: true };
-}
-
-export async function claimJobReward(amount: number) {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) return { error: 'Not authorized' };
-
-    const { error } = await supabase.rpc('increment_credits', { 
-        amount_to_add: amount, 
-        user_id_arg: user.id 
-    });
-
-    if (error) {
-        const { data: profile } = await supabase.from('profiles').select('credits').eq('id', user.id).single();
-        if (profile) {
-            await supabase.from('profiles').update({ credits: profile.credits + amount }).eq('id', user.id);
-            await supabase.from('planetarium_saves').update({ credits: profile.credits + amount }).eq('id', user.id);
-        }
-    }
-    
     return { success: true };
 }
