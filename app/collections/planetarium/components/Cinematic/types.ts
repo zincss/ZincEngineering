@@ -29,6 +29,7 @@ export interface CinematicShot {
     // V2 SPLINE ENGINE
     keyframes?: Keyframe[];       
     lookAtKeyframes?: Keyframe[]; 
+    closedSpline?: boolean;
     
     // Camera Shake
     shakeIntensity?: number;

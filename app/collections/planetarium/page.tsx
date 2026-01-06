@@ -73,26 +73,38 @@ function PlanetariumContent() {
         }
     }, [dockedAt]);
 
-    // AUTO-RESUME LOGIC (Only for signed-in users)
+    // AUTO-RESUME & INTRO LOGIC
     useEffect(() => {
-        if (!user) return; // FIX: Do not auto-resume flight mode for guests
+        if (isLoadingSave) return;
 
-        // 1. Initial Load: If we have a saved position and aren't docked, jump to ship
-        if (!isLoadingSave && !initialLoadRef.current) {
+        // 1. Initial Load Logic
+        if (!initialLoadRef.current) {
             initialLoadRef.current = true;
-            if (!dockedAt && savedPosition) {
+
+            // Play Intro for Solar System
+            if (activeSystem === 'solar') {
+                setIsCinematic(true);
+                setCurrentTourId('intro_reveal');
+                setCinematicKey(k => k + 1);
+                setCinematicOverlay({ show: false });
+                setFlightData({ active: false });
+            } 
+            // Otherwise (Fantasy System or specific override), standard resume
+            else if (user && !dockedAt && savedPosition) {
                 setIsSpaceshipMode(true);
             }
         }
         
-        // 2. Undocking: If we just undocked, jump to ship
-        const wasDocked = prevDocked.current;
-        const isDocked = !!dockedAt;
-        if (wasDocked && !isDocked && !isCinematic) {
-            setIsSpaceshipMode(true);
+        // 2. Undocking: If we just undocked, jump to ship (only for logged in users)
+        if (user) {
+            const wasDocked = prevDocked.current;
+            const isDocked = !!dockedAt;
+            if (wasDocked && !isDocked && !isCinematic) {
+                setIsSpaceshipMode(true);
+            }
+            prevDocked.current = isDocked;
         }
-        prevDocked.current = isDocked;
-    }, [isLoadingSave, dockedAt, savedPosition, isCinematic, user]);
+    }, [isLoadingSave, activeSystem, dockedAt, savedPosition, isCinematic, user]);
 
 
     const handleSelect = useCallback((id: string | null) => {
@@ -148,9 +160,16 @@ function PlanetariumContent() {
     };
 
     const stopCinematic = () => {
+        const wasIntro = currentTourId === 'intro_reveal';
+        
         setIsCinematic(false);
         setCinematicOverlay({ show: false });
         setFlightData({ active: false });
+
+        // If we just finished the intro and the user is logged in/ready to fly, engage spaceship mode
+        if (wasIntro && user && !dockedAt && savedPosition) {
+            setIsSpaceshipMode(true);
+        }
     };
 
     const scalePositions = useMemo(() => {
@@ -227,6 +246,8 @@ function PlanetariumContent() {
                                 onStop={stopCinematic}
                                 onOverlayUpdate={setCinematicOverlay}
                                 onFlightUpdate={setFlightData}
+                                loop={currentTourId !== 'intro_reveal'}
+                                overridePositions={isScaleMode ? scalePositions : undefined}
                             />
                             
                             <StarBackground />
@@ -297,8 +318,21 @@ function PlanetariumContent() {
                         
                         {!selectedId && (
                             <div className="flex flex-col gap-2 w-full md:w-auto items-end mt-12 md:mt-0">
-                                <div className="flex flex-wrap md:flex-nowrap gap-2 md:gap-3 pointer-events-auto w-full md:w-auto">
-                                    {activeSystem === 'solar' && <CinematicMenu onSelectTour={startCinematic} />}
+                                <div className="flex flex-wrap md:flex-nowrap gap-2 md:gap-3 pointer-events-auto w-full md:w-auto items-start">
+                                    {activeSystem === 'solar' && (
+                                        <div className="flex flex-col gap-1 w-full md:w-auto flex-1 md:flex-initial">
+                                            <CinematicMenu onSelectTour={startCinematic} />
+                                            {!user && (
+                                                <button 
+                                                    onClick={() => startCinematic('grand_tour')}
+                                                    className="hidden md:flex items-center justify-center gap-1.5 text-[10px] font-mono uppercase tracking-widest text-zinc-500 hover:text-[#DFFF00] transition-colors py-1"
+                                                >
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-[#DFFF00] animate-pulse" />
+                                                    Start: Grand Tour
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
                                     <button 
                                         onClick={() => setFinderOpen(true)}
                                         className="flex-1 md:flex-initial min-w-[120px] flex items-center justify-center gap-2 px-4 py-3 bg-[#DFFF00] hover:bg-white text-black font-bold uppercase tracking-widest rounded-full transition-all shadow-[0_0_20px_rgba(223,255,0,0.3)] text-[10px] md:text-xs"

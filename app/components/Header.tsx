@@ -15,9 +15,10 @@ const NAV_CONFIG = [
   {
     id: 'astro',
     label: 'ASTRO',
-    href: '/collections/weather', 
+    href: '/collections/astro', 
     icon: <Orbit size={14} />,
     subItems: [
+        { label: 'Overview', href: '/collections/astro' },
         { label: 'Weather Station', href: '/collections/weather' },
         { label: 'Planetarium', href: '/collections/planetarium' },
     ]
@@ -80,7 +81,7 @@ export default function Header() {
   // Logic to determine active state
   const getActiveState = (id: string) => {
       switch(id) {
-          case 'astro': return pathname?.startsWith('/collections/weather') || pathname?.startsWith('/collections/planetarium');
+          case 'astro': return pathname?.startsWith('/collections/weather') || pathname?.startsWith('/collections/planetarium') || pathname?.startsWith('/collections/astro');
           case 'play': return pathname?.startsWith('/play') && !pathname?.startsWith('/play/poker');
           case 'market': return pathname?.startsWith('/market');
           case 'archive': return (pathname?.startsWith('/collections') && !pathname?.startsWith('/collections/weather') && !pathname?.startsWith('/collections/planetarium')) || pathname?.startsWith('/gaming') || pathname?.startsWith('/automotive');

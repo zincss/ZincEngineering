@@ -13,14 +13,18 @@ export function CinematicDirector({
     refs, 
     onStop,
     onOverlayUpdate,
-    onFlightUpdate 
+    onFlightUpdate,
+    loop = true,
+    overridePositions
 }: { 
     active: boolean, 
     tourId: string, 
     refs: any, 
     onStop: () => void,
     onOverlayUpdate: (data: OverlayData) => void,
-    onFlightUpdate: (data: FlightData) => void
+    onFlightUpdate: (data: FlightData) => void,
+    loop?: boolean,
+    overridePositions?: Record<string, THREE.Vector3>
 }) {
     const { camera } = useThree();
     
@@ -86,7 +90,9 @@ export function CinematicDirector({
 
             shot.keyframes.forEach(kf => {
                 const vec = new THREE.Vector3();
-                if (kf.targetId && refs.current[kf.targetId]) {
+                if (kf.targetId && overridePositions && overridePositions[kf.targetId]) {
+                    vec.copy(overridePositions[kf.targetId]);
+                } else if (kf.targetId && refs.current[kf.targetId]) {
                     refs.current[kf.targetId].getWorldPosition(vec);
                 }
                 if (kf.offset) vec.add(new THREE.Vector3(...kf.offset));
@@ -101,19 +107,21 @@ export function CinematicDirector({
             });
 
             // Increased tension (0.5 -> 0.4) for tighter curves around planets
-            activeSpline.current = new THREE.CatmullRomCurve3(points, false, 'catmullrom', 0.4);
-            activeAuxSpline.current = new THREE.CatmullRomCurve3(auxPoints, false, 'catmullrom', 0.5);
+            activeSpline.current = new THREE.CatmullRomCurve3(points, shot.closedSpline || false, 'catmullrom', 0.4);
+            activeAuxSpline.current = new THREE.CatmullRomCurve3(auxPoints, shot.closedSpline || false, 'catmullrom', 0.5);
 
             if (shot.lookAtKeyframes) {
                 const lookPoints = shot.lookAtKeyframes.map(kf => {
                     const vec = new THREE.Vector3();
-                    if (kf.targetId && refs.current[kf.targetId]) {
+                    if (kf.targetId && overridePositions && overridePositions[kf.targetId]) {
+                        vec.copy(overridePositions[kf.targetId]);
+                    } else if (kf.targetId && refs.current[kf.targetId]) {
                         refs.current[kf.targetId].getWorldPosition(vec);
                     }
                     if (kf.offset) vec.add(new THREE.Vector3(...kf.offset));
                     return vec;
                 });
-                activeLookSpline.current = new THREE.CatmullRomCurve3(lookPoints, false, 'catmullrom', 0.5);
+                activeLookSpline.current = new THREE.CatmullRomCurve3(lookPoints, shot.closedSpline || false, 'catmullrom', 0.5);
             } else {
                 activeLookSpline.current = null;
             }
@@ -140,9 +148,13 @@ export function CinematicDirector({
                 const t = activeSpline.current.getTangentAt(0);
                 startLook.copy(startPos).add(t);
             }
-        } else if (shot.targetId && refs.current[shot.targetId]) {
+        } else if (shot.targetId) {
              const tPos = new THREE.Vector3();
-             refs.current[shot.targetId].getWorldPosition(tPos);
+             if (overridePositions && overridePositions[shot.targetId]) {
+                 tPos.copy(overridePositions[shot.targetId]);
+             } else if (refs.current[shot.targetId]) {
+                 refs.current[shot.targetId].getWorldPosition(tPos);
+             }
              startPos.set(tPos.x + shot.distance, tPos.y + shot.height, tPos.z);
              startLook.copy(tPos);
         }
@@ -232,6 +244,10 @@ export function CinematicDirector({
         }
 
         if (elapsed > shot.duration) {
+            if (!loop && shotIndex === tour.shots.length - 1) {
+                onStop();
+                return;
+            }
             const nextIndex = (shotIndex + 1) % tour.shots.length;
             setShotIndex(nextIndex);
             setShotStartTime(Date.now());
@@ -266,8 +282,12 @@ export function CinematicDirector({
              // Fallback
              idealPos.copy(currentLerpStart.current.pos);
              const targetCenter = new THREE.Vector3(0,0,0);
-             if (shot.targetId && refs.current[shot.targetId]) {
-                refs.current[shot.targetId].getWorldPosition(targetCenter);
+             if (shot.targetId) {
+                if (overridePositions && overridePositions[shot.targetId]) {
+                    targetCenter.copy(overridePositions[shot.targetId]);
+                } else if (refs.current[shot.targetId]) {
+                    refs.current[shot.targetId].getWorldPosition(targetCenter);
+                }
              }
              idealLookAt.copy(targetCenter);
         }

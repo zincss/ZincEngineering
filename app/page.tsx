@@ -522,15 +522,15 @@ export default function Home() {
                 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8, duration: 0.8 }}
                 className="mt-16 flex flex-col sm:flex-row items-center gap-5 w-full justify-center"
               >
-                <button 
-                  onClick={() => setShowIntro(true)}
+                <Link 
+                  href="/collections/astro"
                   className="group relative px-10 py-4 bg-[#DFFF00] text-black font-black text-xs tracking-[0.2em] uppercase rounded-full overflow-hidden transition-all hover:scale-[1.02] active:scale-95 shadow-[0_0_40px_rgba(223,255,0,0.15)] hover:shadow-[0_0_60px_rgba(223,255,0,0.3)]"
                 >
                   <span className="relative z-10 flex items-center gap-3">
                     ASTRO DLC UPDATE <ArrowRight size={14} />
                   </span>
                   <div className="absolute inset-0 bg-white/40 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                </button>
+                </Link>
 
                 <button 
                   onClick={scrollToLogs}

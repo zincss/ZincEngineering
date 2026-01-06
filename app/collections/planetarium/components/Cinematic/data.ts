@@ -35,91 +35,78 @@ const generateScaleShots = (): CinematicShot[] => {
     allBodies.sort((a, b) => a.radius - b.radius);
 
     const smallest = allBodies[0];
+    const midPoint = allBodies[Math.floor(allBodies.length * 0.45)];
+    const giantsStart = allBodies.find(b => b.radius > 3) || midPoint; 
     const largestPlanet = allBodies[allBodies.length - 1]; // Jupiter typically
-    const midPoint = allBodies[Math.floor(allBodies.length * 0.4)];
-    const giantsStart = allBodies.find(b => b.radius > 3) || midPoint; // Find first "big" one
 
-    // Preset Start Configuration (Closer & tighter for impact)
-    const startOffset: [number, number, number] = [0.8, 0.2, 0.8]; 
+    // Configuration for the Perfect Loop
+    // We need the start and end keyframes to be IDENTICAL in relative offset and rotation
+    const startOffset: [number, number, number] = [2, 0.5, 2];
     const startLookAt: [number, number, number] = [0, 0, 0];
     const startRoll = 0;
     const startFov = 45;
 
     return [
-        // SHOT 1: THE HEAVY PARADE (Slow, Close, Impactful)
         {
             title: 'COSMIC SCALE', 
             subtitle: 'MAGNITUDE COMPARISON', 
             titleDelay: 1.0, 
             type: 'spline', 
             transition: 'cut', 
-            duration: 90, // Slower duration for "heavier" feel
+            duration: 90, 
             distance: 0, 
             height: 0, 
             speed: 0, 
-            dampening: 0.98, // High dampening for heavy camera feel
+            dampening: 0.94, // Smooth, heavy cinematic feel
             showFlightComputer: true, 
             originName: 'MICRO', 
             destName: 'MACRO', 
             facts: SCALE_FACTS,
+            closedSpline: true,
             keyframes: [
-                // 1. Start: Very close to the smallest body
+                // --- PART 1: THE CLIMB (Smallest to Largest) ---
+                
+                // 1. START: Close up on the smallest body
                 { targetId: smallest.id, offset: startOffset, roll: startRoll, fov: startFov },
                 
-                // 2. Small Bodies: Skimming right past them
-                { targetId: allBodies[3].id, offset: [2, 0.5, 2], roll: 5, fov: 50 },
-                
-                // 3. Mid-Point: Pulling back slightly but staying low
-                { targetId: midPoint.id, offset: [8, 2, 8], roll: 0, fov: 55 },
-                
-                // 4. The Rise: Approaching giants, looking up from below to emphasize scale
-                { targetId: giantsStart.id, offset: [15, -5, 15], roll: -5, fov: 60 },
-                
-                // 5. The Titans: Passing Jupiter/Saturn closely
-                { targetId: largestPlanet.id, offset: [50, 0, 40], roll: 0, fov: 65 },
-                
-                // 6. Arrival: The Sun (Massive scale reveal)
-                { targetId: 'sun', offset: [180, 20, 100], roll: 5, fov: 50 }
-            ],
-            lookAtKeyframes: [
-                { targetId: smallest.id, offset: [0, 0, 0] },
-                { targetId: midPoint.id, offset: [0, 0, 0] },
-                { targetId: largestPlanet.id, offset: [0, 5, 0] }, // Look slightly up at giant
-                { targetId: 'sun', offset: [0, 0, 0] }
-            ]
-        },
+                // 2. Weaving through the small moons/dwarfs (Low and fast)
+                { targetId: allBodies[4].id, offset: [3, -1, 3], roll: 15, fov: 50 },
+                { targetId: allBodies[8].id, offset: [-4, 2, 4], roll: -10, fov: 55 },
 
-        // SHOT 2: THE SMOOTH RETURN (Seamless Loop)
-        {
-            title: 'RESET', 
-            subtitle: 'LOOPING SIMULATION', 
-            titleDelay: 2.0,
-            type: 'spline', 
-            transition: 'smooth', 
-            duration: 30, // Gentle return flight
-            distance: 0, 
-            height: 0, 
-            speed: 0, 
-            dampening: 0.94,
-            showFlightComputer: false, 
-            keyframes: [
-                // Start from Shot 1 End
-                { targetId: 'sun', offset: [180, 20, 100], roll: 5, fov: 50 },
+                // 3. Mid-Size: Pulling back slightly, revealing the line
+                { targetId: midPoint.id, offset: [-12, 5, 12], roll: 0, fov: 60 },
+
+                // 4. Approaching the Giants (Low angle up, emphasizing size)
+                { targetId: giantsStart.id, offset: [15, -10, 20], roll: -5, fov: 65 },
+
+                // 5. The Titans: Sweeping past Jupiter/Saturn
+                { targetId: largestPlanet.id, offset: [60, 0, 50], roll: 10, fov: 70 },
+
+                // 6. THE SUN REVEAL (Massive scale)
+                { targetId: 'sun', offset: [250, 50, 150], roll: 5, fov: 55 },
                 
-                // Pull wide and high to see the whole line
-                { targetId: largestPlanet.id, offset: [0, 150, 100], roll: 0, fov: 60 },
+                // --- PART 2: THE RETURN (Majestic Wide Shot) ---
                 
-                // Glide back towards the small end
-                { targetId: midPoint.id, offset: [0, 80, 40], roll: 5, fov: 55 },
+                // 7. Rise High above the Ecliptic (Seeing the whole line)
+                { targetId: largestPlanet.id, offset: [0, 200, 100], roll: 0, fov: 80 },
                 
-                // Dive in...
-                { targetId: smallest.id, offset: [5, 10, 5], roll: 0, fov: 50 },
+                // 8. Glide back over the middle (Looking down)
+                { targetId: midPoint.id, offset: [0, 100, 50], roll: 5, fov: 70 },
                 
-                // SNAP: Perfect loop to start
-                { targetId: smallest.id, offset: startOffset, roll: startRoll, fov: startFov }
+                // 9. Descent towards the start
+                { targetId: smallest.id, offset: [10, 20, 10], roll: 0, fov: 60 }
             ],
             lookAtKeyframes: [
+                { targetId: smallest.id, offset: startLookAt },
+                { targetId: allBodies[4].id, offset: [0, 0, 0] },
+                { targetId: allBodies[8].id, offset: [0, 0, 0] },
+                { targetId: midPoint.id, offset: [0, 0, 0] },
+                { targetId: giantsStart.id, offset: [0, 5, 0] },
+                { targetId: largestPlanet.id, offset: [0, 0, 0] },
                 { targetId: 'sun', offset: [0, 0, 0] },
+                
+                // Return flight look-ats
+                { targetId: largestPlanet.id, offset: [0, 0, 0] },
                 { targetId: midPoint.id, offset: [0, 0, 0] },
                 { targetId: smallest.id, offset: startLookAt }
             ]
@@ -643,6 +630,35 @@ export const TOURS: Tour[] = [
         name: 'Cosmic Scale',
         description: 'A cinematic lineup from smallest to largest.',
         shots: SCALE_SHOTS
+    },
+
+    {
+        id: 'intro_reveal',
+        name: 'System Intro',
+        description: 'Welcome to the Planetarium.',
+        shots: [
+            {
+                title: 'WELCOME', subtitle: 'INITIALIZING SIMULATION', titleDelay: 0.5,
+                type: 'spline', transition: 'cut', duration: 8, distance: 0, height: 0, speed: 0, dampening: 0.92,
+                showFlightComputer: false,
+                keyframes: [
+                    // Start high above the ecliptic, looking down at the Sun
+                    { targetId: 'sun', offset: [0, 1200, 100], roll: 180, fov: 80 },
+                    // Sweep down and around
+                    { targetId: 'sun', offset: [600, 300, 600], roll: 90, fov: 60 },
+                    // Get closer to the plane, sweeping past inner planets
+                    { targetId: 'sun', offset: [200, 100, 300], roll: 10, fov: 50 },
+                    // End near the default camera position
+                    { targetId: 'sun', offset: [0, 400, 600], roll: 0, fov: 45 } 
+                ],
+                lookAtKeyframes: [
+                    { targetId: 'sun', offset: [0, 0, 0] },
+                    { targetId: 'sun', offset: [0, 0, 0] },
+                    { targetId: 'sun', offset: [0, 0, 0] },
+                    { targetId: 'sun', offset: [0, 0, 0] }
+                ]
+            }
+        ]
     }
 ];
 
