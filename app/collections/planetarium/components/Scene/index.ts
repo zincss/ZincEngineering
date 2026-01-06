@@ -1,6 +1,6 @@
-export * from './shaders';
-export * from './SceneUtils';
-export * from './Environment';
-export * from './StellarBodies';
-export * from './PlanetarySystem';
-export * from './Spaceship';
+export { AtmosphereShader, SolarWindShader, DustShader, AccretionDiskShader, SunSurfaceShader, SunAtmosphereShader } from './shaders';
+export { RealisticAtmosphere, EllipticalOrbit, SmartLabel } from './SceneUtils';
+export { SolarWind, SpaceDust, AsteroidBelt, StarBackground } from './Environment';
+export { BlackHole, Sun } from './StellarBodies';
+export { Planet } from './PlanetarySystem';
+export { SpaceshipController, SpaceshipHUD } from './Spaceship';

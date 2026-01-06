@@ -23,18 +23,15 @@ function PlanetClouds({ textureUrl, radius }: { textureUrl: string, radius: numb
     );
 }
 
-// --- SATURN RINGS (UPDATED WITH DREADNAUGHT) ---
-function SaturnRings({ innerRadius, outerRadius, dreadnaughtData, onSelectRef, onClick }: { innerRadius: number, outerRadius: number, dreadnaughtData?: any, onSelectRef?: any, onClick?: any }) {
+// --- SATURN RINGS ---
+function SaturnRings({ innerRadius, outerRadius, dreadnaughtData, onSelectRef, onClick, onHover }: any) {
     const groupRef = useRef<THREE.Group>(null);
     const meshRef = useRef<THREE.InstancedMesh>(null);
     const dreadnaughtRef = useRef<THREE.Group>(null);
     
-    // Increased density for fuller look
     const count = 9000; 
-
-    // Dreadnaught Position (Fixed relative to ring rotation)
     const dreadX = dreadnaughtData ? dreadnaughtData.distance : 17;
-    const holeRadius = 2.0; // Size of the "carved" space
+    const holeRadius = 2.0; 
 
     useEffect(() => {
         if(dreadnaughtData && dreadnaughtRef.current && onSelectRef) {
@@ -49,36 +46,26 @@ function SaturnRings({ innerRadius, outerRadius, dreadnaughtData, onSelectRef, o
         const colors = ['#E0CDA7', '#C4A88F', '#8B7D6E', '#A0A0A0']; 
 
         for (let i = 0; i < count; i++) {
-            // Random Angle
             const angle = Math.random() * Math.PI * 2;
             let r = 0;
             const seed = Math.random();
             const ringB_Width = 5.5; 
             const ringA_Width = 4.5;
             
-            // 55% Inner Ring (B), 45% Outer Ring (A)
-            if (seed > 0.45) {
-                 r = innerRadius + Math.random() * ringB_Width;
-            } else {
-                 r = (innerRadius + ringB_Width + 2.0) + Math.random() * ringA_Width;
-            }
+            if (seed > 0.45) r = innerRadius + Math.random() * ringB_Width;
+            else r = (innerRadius + ringB_Width + 2.0) + Math.random() * ringA_Width;
 
             const x = Math.cos(angle) * r;
             const z = Math.sin(angle) * r;
             
-            // HOLE LOGIC: If particle is near the Dreadnaught, skip it (push it elsewhere)
             if (dreadnaughtData) {
-                const dx = x - dreadX; // Dreadnaught is at (dreadX, 0, 0)
+                const dx = x - dreadX; 
                 const dz = z - 0;
                 const dist = Math.sqrt(dx*dx + dz*dz);
-                if (dist < holeRadius) {
-                    // Move particle to the other side to clear the hole
-                    continue; 
-                }
+                if (dist < holeRadius) continue; 
             }
 
             const y = (Math.random() - 0.5) * 0.15; 
-            
             tempObj.position.set(x, y, z);
             tempObj.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
             
@@ -91,12 +78,8 @@ function SaturnRings({ innerRadius, outerRadius, dreadnaughtData, onSelectRef, o
             
             const colIndex = Math.floor(Math.random() * colors.length);
             color.set(colors[colIndex]);
-            
-            if (r < 18) {
-                color.offsetHSL(0.02, 0.05, -0.05); 
-            } else {
-                color.offsetHSL(0, -0.1, 0.1);
-            }
+            if (r < 18) color.offsetHSL(0.02, 0.05, -0.05); 
+            else color.offsetHSL(0, -0.1, 0.1);
             
             color.multiplyScalar(0.8 + Math.random() * 0.4);
             meshRef.current.setColorAt(i, color);
@@ -106,43 +89,34 @@ function SaturnRings({ innerRadius, outerRadius, dreadnaughtData, onSelectRef, o
     }, [innerRadius, outerRadius, dreadnaughtData, dreadX]);
 
     useFrame(({ clock }) => {
-        // Rotate the ENTIRE group (Rings + Dreadnaught) together
         if (groupRef.current) groupRef.current.rotation.y = clock.getElapsedTime() * 0.005;
     });
 
     return (
         <group ref={groupRef}>
-            <instancedMesh ref={meshRef} args={[undefined, undefined, count]} rotation={[0,0,0]} castShadow receiveShadow>
+            <instancedMesh ref={meshRef} args={[undefined, undefined, count]} rotation={[0,0,0]} castShadow receiveShadow raycast={() => null}>
                 <boxGeometry args={[1, 1, 1]} />
                 <meshStandardMaterial roughness={0.7} metalness={0.3} />
             </instancedMesh>
             
-            {/* THE DREADNAUGHT (Rendered here to stay locked in the hole) */}
             {dreadnaughtData && (
                 <group 
                     ref={dreadnaughtRef}
                     position={[dreadX, 0, 0]}
                     onClick={(e) => { e.stopPropagation(); onClick(dreadnaughtData.id); }}
+                    onPointerOver={(e) => { e.stopPropagation(); if(onHover) onHover(dreadnaughtData.id); }}
+                    onPointerOut={(e) => { e.stopPropagation(); if(onHover) onHover(null); }}
                 >
-                    {/* Main Hull (Diamond Shape) */}
                     <mesh rotation={[0, 0, Math.PI/4]} scale={[1, 0.4, 0.4]}>
                         <boxGeometry args={[dreadnaughtData.radius * 8, dreadnaughtData.radius * 3, dreadnaughtData.radius * 3]} />
                         <meshStandardMaterial color={dreadnaughtData.color} roughness={0.8} metalness={0.6} />
                     </mesh>
-                    {/* Engine Glow */}
                     <mesh position={[-dreadnaughtData.radius * 4, 0, 0]}>
                          <planeGeometry args={[dreadnaughtData.radius * 2, dreadnaughtData.radius * 2]} />
                          <meshBasicMaterial color="#aaffaa" transparent opacity={0.5} side={THREE.DoubleSide} />
                     </mesh>
-                    
-                    {/* Label attached to the mesh inside the group */}
-                    <SmartLabel 
-                        text={dreadnaughtData.name} 
-                        type={dreadnaughtData.type} 
-                        position={[0, dreadnaughtData.radius * 2, 0]} 
-                        offset={0} 
-                        visible={true}
-                    />
+                    {/* Pass ID for visibility logic */}
+                    <SmartLabel id={dreadnaughtData.id} text={dreadnaughtData.name} type={dreadnaughtData.type} position={[0, dreadnaughtData.radius * 2, 0]} offset={0} visible={true} />
                 </group>
             )}
         </group>
@@ -150,7 +124,7 @@ function SaturnRings({ innerRadius, outerRadius, dreadnaughtData, onSelectRef, o
 }
 
 // --- MOON ---
-function Moon({ data, parentRadius, onSelectRef, onClick, showLabels, isCinematic, scalePosition, parentScalePosition, isScaleAlignment }: any) {
+function Moon({ data, parentRadius, onSelectRef, onClick, onHover, showLabels, isCinematic, scalePosition, parentScalePosition, isScaleAlignment }: any) {
     const meshRef = useRef<THREE.Mesh>(null);
     const groupRef = useRef<THREE.Group>(null);
     const isStation = data.type === 'Station';
@@ -168,12 +142,10 @@ function Moon({ data, parentRadius, onSelectRef, onClick, showLabels, isCinemati
                 if (meshRef.current) meshRef.current.rotation.y += 0.01;
                 return;
             }
-
             const pos = getOrbitalPosition(data, timeRef.current);
             const oldStyleDist = parentRadius + data.distance;
             const scaleFactor = oldStyleDist / (data.distance || 1); 
             pos.multiplyScalar(scaleFactor); 
-            
             groupRef.current.position.copy(pos);
             
             if (data.id === 'iss') groupRef.current.lookAt(0, 0, 0); 
@@ -188,6 +160,20 @@ function Moon({ data, parentRadius, onSelectRef, onClick, showLabels, isCinemati
     useEffect(() => {
         if(groupRef.current) onSelectRef(data.id, groupRef.current);
     }, [data.id, onSelectRef]);
+
+    const handleOver = (e: any) => {
+        e.stopPropagation();
+        setHover(true);
+        document.body.style.cursor = 'pointer';
+        if (onHover) onHover(data.id);
+    };
+
+    const handleOut = (e: any) => {
+        e.stopPropagation();
+        setHover(false);
+        document.body.style.cursor = 'auto';
+        if (onHover) onHover(null);
+    };
     
     if (isStation) {
          return (
@@ -196,14 +182,13 @@ function Moon({ data, parentRadius, onSelectRef, onClick, showLabels, isCinemati
                     ref={meshRef as any} 
                     onClick={(e) => e.stopPropagation()} 
                     onDoubleClick={(e) => { e.stopPropagation(); onClick(); }}
-                    onPointerOver={(e) => { e.stopPropagation(); setHover(true); document.body.style.cursor = 'pointer'; }}
-                    onPointerOut={(e) => { e.stopPropagation(); setHover(false); document.body.style.cursor = 'auto'; }}
+                    onPointerOver={handleOver}
+                    onPointerOut={handleOut}
                  >
                     <mesh visible={false}>
                         <sphereGeometry args={[data.radius * 4, 16, 16]} />
                         <meshBasicMaterial />
                     </mesh>
-
                     <group>
                         <mesh>
                             <sphereGeometry args={[data.radius, 64, 64]} />
@@ -226,13 +211,8 @@ function Moon({ data, parentRadius, onSelectRef, onClick, showLabels, isCinemati
                         </mesh>
                     )}
                 </group>
-                <SmartLabel 
-                    text={data.name} 
-                    type={data.type} 
-                    position={[0, data.radius, 0]} 
-                    offset={labelOffset} 
-                    visible={!isCinematic && showLabels} 
-                />
+                {/* Pass ID for visibility logic */}
+                <SmartLabel id={data.id} text={data.name} type={data.type} position={[0, data.radius, 0]} offset={labelOffset} visible={!isCinematic && showLabels} />
             </group>
         );
     }
@@ -242,43 +222,47 @@ function Moon({ data, parentRadius, onSelectRef, onClick, showLabels, isCinemati
             <group
                 onClick={(e) => e.stopPropagation()} 
                 onDoubleClick={(e) => { e.stopPropagation(); onClick(); }}
-                onPointerOver={(e) => { e.stopPropagation(); setHover(true); document.body.style.cursor = 'pointer'; }}
-                onPointerOut={(e) => { e.stopPropagation(); setHover(false); document.body.style.cursor = 'auto'; }}
+                onPointerOver={handleOver}
+                onPointerOut={handleOut}
             >
                 <mesh visible={false}>
                     <sphereGeometry args={[data.radius * 2.5, 16, 16]} />
                     <meshBasicMaterial />
                 </mesh>
-
                 <mesh ref={meshRef}>
                     <sphereGeometry args={[data.radius, 64, 64]} />
                     <meshStandardMaterial map={texture} color={data.color} />
                 </mesh>
                 {hovered && (
-                    <mesh 
-                        rotation={meshRef.current?.rotation} 
-                        scale={[1.05, 1.05, 1.05]} 
-                        raycast={() => null}
-                    >
+                    <mesh rotation={meshRef.current?.rotation} scale={[1.05, 1.05, 1.05]} raycast={() => null}>
                         <sphereGeometry args={[data.radius, 64, 64]} />
                         <meshBasicMaterial color="#DFFF00" transparent opacity={0.3} side={THREE.BackSide} depthWrite={false} />
                     </mesh>
                 )}
             </group>
-             <SmartLabel 
-                text={data.name} 
-                type={data.type} 
-                position={[0, data.radius, 0]} 
-                offset={labelOffset} 
-                visible={!isCinematic && showLabels} 
-            />
+             {/* Pass ID for visibility logic */}
+             <SmartLabel id={data.id} text={data.name} type={data.type} position={[0, data.radius, 0]} offset={labelOffset} visible={!isCinematic && showLabels} />
         </group>
     );
 }
 
 // --- PLANET BODY ---
-function PlanetBody({ data, meshRef, colorMap, onClick }: any) {
+function PlanetBody({ data, meshRef, colorMap, onClick, onHover }: any) {
     const [hovered, setHover] = useState(false);
+
+    const handleOver = (e: any) => {
+        e.stopPropagation();
+        setHover(true);
+        document.body.style.cursor = 'pointer';
+        if (onHover) onHover(data.id);
+    };
+
+    const handleOut = (e: any) => {
+        e.stopPropagation();
+        setHover(false);
+        document.body.style.cursor = 'auto';
+        if (onHover) onHover(null);
+    };
 
     if (data.id === 'kuva') {
         return (
@@ -286,8 +270,8 @@ function PlanetBody({ data, meshRef, colorMap, onClick }: any) {
                 ref={meshRef} 
                 onClick={(e) => e.stopPropagation()} 
                 onDoubleClick={(e) => { e.stopPropagation(); onClick(); }}
-                onPointerOver={(e) => { e.stopPropagation(); setHover(true); document.body.style.cursor = 'pointer'; }}
-                onPointerOut={(e) => { e.stopPropagation(); setHover(false); document.body.style.cursor = 'auto'; }}
+                onPointerOver={handleOver}
+                onPointerOut={handleOut}
             >
                 <mesh>
                     <dodecahedronGeometry args={[data.radius, 0]} />
@@ -306,8 +290,8 @@ function PlanetBody({ data, meshRef, colorMap, onClick }: any) {
                 ref={meshRef}
                 onClick={(e) => e.stopPropagation()} 
                 onDoubleClick={(e) => { e.stopPropagation(); onClick(); }}
-                onPointerOver={(e) => { e.stopPropagation(); setHover(true); document.body.style.cursor = 'pointer'; }}
-                onPointerOut={(e) => { e.stopPropagation(); setHover(false); document.body.style.cursor = 'auto'; }}
+                onPointerOver={handleOver}
+                onPointerOut={handleOut}
             >
                 <sphereGeometry args={[data.radius, 64, 64]} />
                 <meshStandardMaterial map={colorMap} roughness={0.7} metalness={0.1} color={!colorMap ? data.color : undefined} />
@@ -315,13 +299,8 @@ function PlanetBody({ data, meshRef, colorMap, onClick }: any) {
             
             {data.cloudTextureUrl && <PlanetClouds textureUrl={data.cloudTextureUrl} radius={data.radius} />}
             
-            {/* REMOVED ATMOSPHERE GLOW FOR MARS */}
             {data.atmosphere && !data.cloudTextureUrl && data.id !== 'mars' && (
-                <RealisticAtmosphere 
-                    radius={data.radius} 
-                    color={data.id === 'mars' ? '#E27B58' : '#3366ff'} 
-                    sunPosition={new THREE.Vector3(0,0,0)} 
-                />
+                <RealisticAtmosphere radius={data.radius} color={data.id === 'mars' ? '#E27B58' : '#3366ff'} sunPosition={new THREE.Vector3(0,0,0)} />
             )}
             
              {hovered && (
@@ -335,12 +314,10 @@ function PlanetBody({ data, meshRef, colorMap, onClick }: any) {
 }
 
 // --- MAIN PLANET COMPONENT ---
-export function Planet({ data, isSelected, selectedId, onClick, onSelectRef, isCinematic, showOrbits, showLabels, scalePosition, isScaleAlignment, allScalePositions }: any) {
+export function Planet({ data, isSelected, selectedId, onClick, onSelectRef, isCinematic, showOrbits, showLabels, scalePosition, isScaleAlignment, allScalePositions, onHover }: any) {
     const meshRef = useRef<THREE.Mesh>(null);
     const groupRef = useRef<THREE.Group>(null);
     const { timeRef, getOrbitalPosition } = useSimulation();
-
-    // Identify if this planet has the Dreadnaught
     const dreadnaught = data.moons?.find((m: any) => m.id === 'dreadnaught');
 
     useEffect(() => {
@@ -353,12 +330,7 @@ export function Planet({ data, isSelected, selectedId, onClick, onSelectRef, isC
                 <group rotation={[THREE.MathUtils.degToRad(60), THREE.MathUtils.degToRad(30), 0]}>
                     <BlackHole data={data} onClick={onClick} />
                 </group>
-                <SmartLabel 
-                    text={data.name} 
-                    type={data.type} 
-                    position={[0, data.radius * 4, 0]} 
-                    visible={!isSelected && !isCinematic && showLabels} 
-                />
+                <SmartLabel id={data.id} text={data.name} type={data.type} position={[0, data.radius * 4, 0]} visible={!isSelected && !isCinematic && showLabels} />
              </group>
         );
     }
@@ -383,9 +355,9 @@ export function Planet({ data, isSelected, selectedId, onClick, onSelectRef, isC
         }
         
         if (meshRef.current && data.rotationPeriod !== 0) {
-            const daysSinceJ2000 = (timeRef.current - J2000_EPOCH) / MILLISECONDS_PER_DAY;
-            const hoursSinceJ2000 = daysSinceJ2000 * 24;
-            meshRef.current.rotation.y = (hoursSinceJ2000 / data.rotationPeriod) * (Math.PI * 2);
+            const days = (timeRef.current - J2000_EPOCH) / MILLISECONDS_PER_DAY;
+            const hours = days * 24;
+            meshRef.current.rotation.y = (hours / data.rotationPeriod) * (Math.PI * 2);
         }
     });
 
@@ -397,9 +369,8 @@ export function Planet({ data, isSelected, selectedId, onClick, onSelectRef, isC
             
             <group ref={groupRef}>
                 <group rotation={[0, 0, tiltRadians]}>
-                    <PlanetBody data={data} meshRef={meshRef} colorMap={colorMap} onClick={onClick} />
+                    <PlanetBody data={data} meshRef={meshRef} colorMap={colorMap} onClick={onClick} onHover={onHover} />
                     
-                    {/* SATURN RINGS & DREADNAUGHT RENDERED HERE */}
                     {data.id === 'saturn' && (
                         <group>
                             <SaturnRings 
@@ -408,6 +379,7 @@ export function Planet({ data, isSelected, selectedId, onClick, onSelectRef, isC
                                 dreadnaughtData={dreadnaught} 
                                 onSelectRef={onSelectRef}
                                 onClick={onClick}
+                                onHover={onHover}
                             />
                         </group>
                     )}
@@ -427,18 +399,11 @@ export function Planet({ data, isSelected, selectedId, onClick, onSelectRef, isC
                     </mesh>
                 )}
                 
-                <SmartLabel 
-                    text={data.name} 
-                    type={data.type} 
-                    position={[0, data.radius, 0]} 
-                    offset={planetLabelOffset}
-                    visible={!isSelected && !isCinematic && showLabels} 
-                />
+                {/* Pass ID to SmartLabel */}
+                <SmartLabel id={data.id} text={data.name} type={data.type} position={[0, data.radius, 0]} offset={planetLabelOffset} visible={!isSelected && !isCinematic && showLabels} />
 
                 {data.moons && data.moons.map((moon: any, idx: number) => {
-                    // SKIP DREADNAUGHT (It is handled inside SaturnRings)
                     if (moon.id === 'dreadnaught') return null;
-
                     const isMoonSelected = selectedId === moon.id;
                     const moonScalePos = isScaleAlignment && allScalePositions ? allScalePositions[moon.id] : undefined;
                     
@@ -452,6 +417,7 @@ export function Planet({ data, isSelected, selectedId, onClick, onSelectRef, isC
                                 parentRadius={data.radius} 
                                 onSelectRef={onSelectRef} 
                                 onClick={() => onClick(moon.id)} 
+                                onHover={onHover}
                                 showLabels={showLabels}
                                 isCinematic={isCinematic}
                                 scalePosition={moonScalePos}

@@ -3,25 +3,21 @@
 import React, { createContext, useContext, useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useAuth } from '@/app/context/AuthContext'; 
+import { getPlayerSave, savePlayerProgress, PlanetariumSaveData } from './actions'; 
 import { PLANET_DATA, CelestialBody } from './data';
 import { FANTASY_DATA } from './fantasy_data';
 
 export const J2000_EPOCH = 946728000000;
 export const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
 
-// --- GAME CONFIG ---
 export const MAX_FUEL = 2000;
 export const FUEL_COST_PER_UNIT = 0.5; 
 export const MAX_BOOST = 100;
 export const BOOST_COST_PER_UNIT = 5; 
 
-// --- BODIES YOU CANNOT DELIVER TO ---
-const UNINHABITABLE_IDS = [
-    'sun', 'sagittarius_a', 'zinc_prime_stars', 
-    'jupiter', 'saturn', 'uranus', 'neptune', 'endor_prime' // Gas Giants
-];
+const UNINHABITABLE_IDS = ['sun', 'sagittarius_a', 'zinc_prime_stars', 'jupiter', 'saturn', 'uranus', 'neptune', 'endor_prime'];
 
-// --- GAME TYPES ---
 export interface HaulingJob {
     id: string;
     originId: string;
@@ -31,12 +27,9 @@ export interface HaulingJob {
     description: string;
 }
 
-// --- MATH HELPERS ---
 const solveKepler = (M: number, e: number): number => {
     let E = M;
-    for (let i = 0; i < 8; i++) {
-        E = E - (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
-    }
+    for (let i = 0; i < 8; i++) { E = E - (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E)); }
     return E;
 };
 
@@ -81,7 +74,6 @@ export const getOrbitPoints = (body: CelestialBody, segments: number = 128): THR
     return points;
 };
 
-// --- CONTEXT ---
 interface SimulationContextType {
     timeRef: React.MutableRefObject<number>;
     speedRef: React.MutableRefObject<number>;
@@ -97,15 +89,20 @@ interface SimulationContextType {
     getOrbitalPosition: (body: CelestialBody, time: number) => THREE.Vector3;
     getOrbitPoints: (body: CelestialBody, segments?: number) => THREE.Vector3[];
     
-    // GAME MECHANICS
+    user: any;
+    isLoadingSave: boolean;
     credits: number;
     fuel: number; 
     boost: number;
     activeJob: HaulingJob | null;
     availableJobs: HaulingJob[];
     dockedAt: string | null;
+    lastDockedNode: string | null;
+    lastDockVector: { x: number, y: number, z: number } | null;
     lastCompletedJob: HaulingJob | null;
-    setDockedAt: (id: string | null) => void;
+    savedPosition: { x: number, y: number, z: number } | null;
+    
+    setDockedAt: (id: string | null, vector?: { x: number, y: number, z: number } | null) => void;
     acceptJob: (job: HaulingJob) => void;
     completeJob: () => void;
     clearCompletedJob: () => void;
@@ -114,6 +111,8 @@ interface SimulationContextType {
     buyFuel: () => void;
     updateBoost: (newAmount: number) => void;
     buyBoost: () => void;
+    
+    saveGame: (currentPosition?: THREE.Vector3) => Promise<void>;
 }
 
 const SimulationContext = createContext<SimulationContextType | null>(null);
@@ -124,23 +123,87 @@ export function useSimulation() {
     return context;
 }
 
-// --- PROVIDER ---
 export function SimulationProvider({ children }: { children: React.ReactNode }) {
+    const { user } = useAuth(); 
+    const [isLoadingSave, setIsLoadingSave] = useState(true);
+
     const [speed, setSpeed] = useState(1);
     const [simTimeState, setSimTimeState] = useState(Date.now());
     const [activeSystem, setActiveSystem] = useState<'solar' | 'fantasy'>('solar');
     
-    // GAME STATE
     const [credits, setCredits] = useState(1000);
     const [fuel, setFuel] = useState(MAX_FUEL); 
     const [boost, setBoost] = useState(MAX_BOOST); 
     const [activeJob, setActiveJob] = useState<HaulingJob | null>(null);
-    const [dockedAt, setDockedAt] = useState<string | null>(null);
+    const [dockedAt, _setDockedAt] = useState<string | null>(null);
+    const [lastDockedNode, setLastDockedNode] = useState<string | null>(null);
+    const [lastDockVector, setLastDockVector] = useState<{ x: number, y: number, z: number } | null>(null);
     const [availableJobs, setAvailableJobs] = useState<HaulingJob[]>([]);
     const [lastCompletedJob, setLastCompletedJob] = useState<HaulingJob | null>(null);
+    const [savedPosition, setSavedPosition] = useState<{ x: number, y: number, z: number } | null>(null);
 
     const timeRef = useRef(Date.now());
     const speedRef = useRef(1);
+
+    const setDockedAt = useCallback((id: string | null, vector?: { x: number, y: number, z: number } | null) => {
+        if (id) {
+            setLastDockedNode(id);
+            if (vector) setLastDockVector(vector);
+        }
+        _setDockedAt(id);
+    }, []);
+
+    useEffect(() => {
+        let mounted = true;
+        const load = async () => {
+            if (user) {
+                setIsLoadingSave(true);
+                try {
+                    const save = await getPlayerSave();
+                    if (save && mounted) {
+                        setFuel(save.fuel);
+                        setBoost(save.boost);
+                        setCredits(save.credits);
+                        setActiveSystem(save.current_system as any);
+                        
+                        if (save.docked_at) {
+                            _setDockedAt(save.docked_at);
+                            setLastDockedNode(save.docked_at);
+                        } else {
+                            _setDockedAt(null);
+                        }
+                        
+                        setSavedPosition(save.position);
+                        
+                        // Default to Earth ONLY if nothing exists and user is signed in
+                        if (!save.docked_at && !save.position) {
+                            _setDockedAt('earth');
+                            setLastDockedNode('earth');
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to load save", e);
+                } finally {
+                    if (mounted) setIsLoadingSave(false);
+                }
+            } else {
+                // GUEST INITIALIZATION
+                if (mounted) {
+                    setIsLoadingSave(false);
+                    setFuel(MAX_FUEL);
+                    setBoost(MAX_BOOST);
+                    setCredits(1000);
+                    
+                    // FIX: Do NOT dock guests automatically. Start them in free view.
+                    _setDockedAt(null); 
+                    setLastDockedNode(null);
+                    setSavedPosition(null);
+                }
+            }
+        };
+        load();
+        return () => { mounted = false; };
+    }, [user]);
 
     useEffect(() => {
         speedRef.current = speed;
@@ -179,12 +242,30 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
         return undefined;
     }, [currentData]);
 
-    // --- GAME LOGIC ---
+    const saveGame = useCallback(async (currentPosition?: THREE.Vector3) => {
+        if (!user || isLoadingSave) return; 
+        
+        if (currentPosition) {
+            setSavedPosition({ x: currentPosition.x, y: currentPosition.y, z: currentPosition.z });
+        }
+
+        const data: PlanetariumSaveData = {
+            fuel,
+            boost,
+            credits,
+            current_system: activeSystem,
+            location_id: dockedAt, 
+            docked_at: dockedAt,
+            position: currentPosition ? { x: currentPosition.x, y: currentPosition.y, z: currentPosition.z } : null
+        };
+
+        await savePlayerProgress(data);
+    }, [user, isLoadingSave, fuel, boost, credits, activeSystem, dockedAt]);
+
     const generateJobsForLocation = useCallback((locationId: string) => {
         const origin = findBody(locationId);
         if (!origin) return;
 
-        // FILTER: Only allow valid destinations (No Gas Giants, No Stars)
         const validDestinations = currentData.flatMap(p => [p, ...(p.moons || [])])
             .filter(b => 
                 b.id !== locationId && 
@@ -218,15 +299,16 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
         setActiveJob(job);
         setAvailableJobs([]); 
         setDockedAt(null); 
-    }, []);
+    }, [setDockedAt]);
 
     const completeJob = useCallback(() => {
         if(activeJob) {
             setCredits(c => c + activeJob.reward);
             setLastCompletedJob(activeJob); 
             setActiveJob(null);
+            saveGame(); 
         }
-    }, [activeJob]);
+    }, [activeJob, saveGame]);
 
     const clearCompletedJob = useCallback(() => {
         setLastCompletedJob(null);
@@ -240,10 +322,13 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
         setFuel(prev => {
             const missing = MAX_FUEL - prev;
             const cost = Math.floor(missing * FUEL_COST_PER_UNIT);
-            setCredits(c => Math.max(0, c - cost)); 
-            return MAX_FUEL; 
+            if (credits >= cost) {
+                setCredits(c => c - cost);
+                return MAX_FUEL; 
+            }
+            return prev;
         });
-    }, []);
+    }, [credits]);
 
     const updateBoost = useCallback((newAmount: number) => {
         setBoost(Math.max(0, Math.min(MAX_BOOST, newAmount)));
@@ -253,18 +338,21 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
         setBoost(prev => {
             const missing = MAX_BOOST - prev;
             const cost = Math.floor(missing * BOOST_COST_PER_UNIT);
-            setCredits(c => Math.max(0, c - cost));
-            return MAX_BOOST;
+            if (credits >= cost) {
+                setCredits(c => c - cost);
+                return MAX_BOOST;
+            }
+            return prev;
         });
-    }, []);
+    }, [credits]);
 
     const value = useMemo(() => ({ 
         timeRef, speedRef, simulationTime: simTimeState, speed, setSpeed, resetTime, setTime,
         activeSystem, setActiveSystem, currentData, findBody, getOrbitalPosition, getOrbitPoints,
-        credits, fuel, boost, activeJob, availableJobs, dockedAt, lastCompletedJob,
+        credits, fuel, boost, activeJob, availableJobs, dockedAt, lastDockedNode, lastDockVector, lastCompletedJob, savedPosition,
         setDockedAt, acceptJob, completeJob, clearCompletedJob, generateJobsForLocation, 
-        updateFuel, buyFuel, updateBoost, buyBoost
-    }), [speed, simTimeState, activeSystem, currentData, findBody, resetTime, setTime, credits, fuel, boost, activeJob, availableJobs, dockedAt, lastCompletedJob, updateFuel, buyFuel, updateBoost, buyBoost]);
+        updateFuel, buyFuel, updateBoost, buyBoost, saveGame, user, isLoadingSave
+    }), [speed, simTimeState, activeSystem, currentData, findBody, resetTime, setTime, credits, fuel, boost, activeJob, availableJobs, dockedAt, lastDockedNode, lastDockVector, lastCompletedJob, savedPosition, updateFuel, buyFuel, updateBoost, buyBoost, saveGame, user, isLoadingSave]);
 
     return (
         <SimulationContext.Provider value={value}>

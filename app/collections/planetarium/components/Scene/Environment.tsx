@@ -80,7 +80,7 @@ export function SpaceDust() {
     );
 }
 
-// --- ASTEROID BELT (UPDATED) ---
+// --- ASTEROID BELT ---
 export function AsteroidBelt() {
     const meshRef = useRef<THREE.InstancedMesh>(null);
     const count = 4000; 
@@ -92,24 +92,20 @@ export function AsteroidBelt() {
         
         for(let i=0; i<count; i++) {
            const angle = Math.random() * Math.PI * 2;
-           // Improved Distribution: Less uniform, more "bands"
            const radius = 300 + Math.random() * 250 + (Math.random() > 0.5 ? 50 : 0); 
            
            const x = Math.cos(angle) * radius;
            const z = Math.sin(angle) * radius;
-           // Gaussian-like vertical spread (concentrated in middle)
            const y = (Math.random() - 0.5) * (Math.random() * 80); 
            
            tempObj.position.set(x, y, z);
            tempObj.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
            
-           // Varied scale
            const scale = Math.random() * 0.5 + 0.1; 
            tempObj.scale.set(scale, scale, scale);
            tempObj.updateMatrix();
            meshRef.current.setMatrixAt(i, tempObj.matrix);
            
-           // Rock Colors
            color.setHSL(0.08, 0.1, Math.random() * 0.4 + 0.3); 
            meshRef.current.setColorAt(i, color);
         }
@@ -123,7 +119,6 @@ export function AsteroidBelt() {
   
     return (
         <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
-           {/* Replaced Dodecahedron with Icosahedron for more "rocky" look */}
            <icosahedronGeometry args={[1, 0]} /> 
            <meshStandardMaterial color="#FFFFFF" roughness={0.9} metalness={0.1} flatShading />
         </instancedMesh>

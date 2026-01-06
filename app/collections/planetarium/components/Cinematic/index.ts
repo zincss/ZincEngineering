@@ -1,5 +1,5 @@
-export * from './types';
-export * from './Director';
-export * from './Overlay';
-export * from './FlightComputer';
-export * from './utils';
+export { CinematicDirector } from './Director';
+export { CinematicOverlay } from './Overlay';
+export { FlightComputer } from './FlightComputer';
+export { generateCommercialFlight } from './utils';
+export type { CinematicShot, Tour, OverlayData, FlightData } from './types';

@@ -5,7 +5,9 @@ import { useFrame } from '@react-three/fiber';
 import { Html, CameraControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { useSimulation } from '../context';
-import { StarBackground, SpaceDust, Planet } from './Scene'; 
+// --- FIXED DIRECT IMPORTS ---
+import { StarBackground, SpaceDust } from './Scene/Environment';
+import { Planet } from './Scene/PlanetarySystem';
 
 // --- SHARED SUN SHADERS (Adapted for Custom Colors) ---
 const StarSurfaceShader = {

@@ -3,7 +3,7 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { Zap, Compass, Target, MousePointer2, RefreshCw, Gauge, ArrowRightCircle, Plane, AlertCircle, Fuel, Crosshair, AlertTriangle } from 'lucide-react';
+import { Zap, Compass, Target, RefreshCw, Gauge, ArrowRightCircle, Plane, AlertCircle, Fuel, Crosshair, AlertTriangle, Lock, Wallet } from 'lucide-react';
 import { useSimulation, getOrbitalPosition, MAX_FUEL, MAX_BOOST } from '../../context';
 import { PLANET_DATA, CelestialBody } from '../../data';
 
@@ -11,8 +11,10 @@ const SPACESHIP_UPDATE_EVENT = 'spaceship-update';
 const SPACESHIP_CONTROL_EVENT = 'spaceship-control';
 export const SPACESHIP_EXIT_EVENT = 'spaceship-exit';
 
-// UNINHABITABLE BODIES (Gas Giants / Stars)
+// CONFIGURATION
 const NO_LANDING_IDS = ['sun', 'sagittarius_a', 'jupiter', 'saturn', 'uranus', 'neptune', 'zinc_prime_stars', 'endor_prime'];
+const DOCKING_RANGE = 50; 
+const DISTANCE_MULTIPLIER = 1275; 
 
 interface OrbitTarget {
     id: string;
@@ -43,19 +45,22 @@ const isDockableStructure = (type: string) => {
     return ['Station', 'Relay', 'Satellite', 'Ship', 'Telescope', 'Outpost', 'Base', 'Forge', 'City'].includes(type);
 };
 
-export function SpaceshipController({ active, lockedTargetId }: { active: boolean, lockedTargetId: string | null }) {
+export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }: { active: boolean, lockedTargetId: string | null, hoveredTargetId: string | null }) {
     const { camera } = useThree() as unknown as { camera: THREE.PerspectiveCamera };
-    const { timeRef, fuel: contextFuel, updateFuel, boost: contextBoost, updateBoost } = useSimulation(); 
+    const { timeRef, fuel: contextFuel, updateFuel, boost: contextBoost, updateBoost, saveGame, savedPosition, dockedAt, lastDockedNode, lastDockVector, findBody, isLoadingSave } = useSimulation(); 
     
     const velocity = useRef(new THREE.Vector3(0, 0, 0));
-    // RE-ADDED MISSING REF
     const lastEventTime = useRef(0);
     const isPrecision = useRef(false);
     const flightAssist = useRef(true); 
+    const initialized = useRef(false);
     
     const fuelRef = useRef(contextFuel);
     const boostRef = useRef(contextBoost);
     
+    const lockedTargetRef = useRef(lockedTargetId);
+    const hoveredTargetRef = useRef(hoveredTargetId);
+
     const isOrbiting = useRef(false);
     const activeOrbitTarget = useRef<OrbitTarget | null>(null);
 
@@ -69,13 +74,9 @@ export function SpaceshipController({ active, lockedTargetId }: { active: boolea
         boost: false
     });
     
-    const baseFov = 45;
-
-    // --- PRE-CALCULATE HIERARCHY MAP ---
     const { allBodies, parentMap } = useMemo(() => {
         const bodies: CelestialBody[] = [];
         const parents: Record<string, CelestialBody> = {};
-        
         PLANET_DATA.forEach(p => {
             bodies.push(p);
             if (p.moons) {
@@ -88,13 +89,80 @@ export function SpaceshipController({ active, lockedTargetId }: { active: boolea
         return { allBodies: bodies, parentMap: parents };
     }, []);
 
+    // --- AUTO-SAVE LOGIC ---
     useEffect(() => {
-        fuelRef.current = contextFuel;
-    }, [contextFuel]);
+        if (!active || isLoadingSave || dockedAt) return;
+        
+        // Save every 10 seconds to ensure progress isn't lost on reload
+        const saveInterval = setInterval(() => {
+            if (camera) {
+                saveGame(camera.position.clone());
+            }
+        }, 10000);
 
+        return () => clearInterval(saveInterval);
+    }, [active, isLoadingSave, dockedAt, saveGame, camera]);
+
+    // Reset init flag when deactivated
     useEffect(() => {
-        boostRef.current = contextBoost;
-    }, [contextBoost]);
+        if (!active) initialized.current = false;
+    }, [active]);
+
+    // --- INITIALIZATION ---
+    useEffect(() => {
+        if (active && !isLoadingSave && !initialized.current) {
+            initialized.current = true;
+            velocity.current.set(0, 0, 0); 
+            cruiseThrottle.current = 0;
+
+            let spawnBodyId = null;
+
+            if (dockedAt) {
+                spawnBodyId = dockedAt;
+            }
+            else if (lastDockedNode) {
+                spawnBodyId = lastDockedNode;
+            }
+
+            if (spawnBodyId) {
+                const body = findBody(spawnBodyId);
+                if (body) {
+                    const bodyPos = getOrbitalPosition(body, timeRef.current);
+                    if (parentMap[body.id]) {
+                        const parent = parentMap[body.id];
+                        bodyPos.add(getOrbitalPosition(parent, timeRef.current));
+                    }
+                    
+                    if (lastDockVector && !dockedAt) {
+                        const offset = new THREE.Vector3(lastDockVector.x, lastDockVector.y, lastDockVector.z);
+                        if (offset.length() < body.radius * 1.05) offset.setLength(body.radius * 1.05);
+                        
+                        camera.position.copy(bodyPos).add(offset);
+                        camera.lookAt(bodyPos);
+                    } else {
+                        camera.position.copy(bodyPos).add(new THREE.Vector3(0, 0, body.radius + 100));
+                        camera.lookAt(bodyPos);
+                    }
+                }
+            } 
+            else if (savedPosition) {
+                camera.position.set(savedPosition.x, savedPosition.y, savedPosition.z);
+            }
+            else {
+                 const earth = findBody('earth');
+                 if (earth) {
+                    const pos = getOrbitalPosition(earth, timeRef.current);
+                    camera.position.copy(pos).add(new THREE.Vector3(0, 0, earth.radius + 200));
+                    camera.lookAt(pos);
+                 }
+            }
+        }
+    }, [active, isLoadingSave, dockedAt, lastDockedNode, lastDockVector, savedPosition, findBody, parentMap, timeRef, camera]);
+
+    useEffect(() => { lockedTargetRef.current = lockedTargetId; }, [lockedTargetId]);
+    useEffect(() => { hoveredTargetRef.current = hoveredTargetId; }, [hoveredTargetId]);
+    useEffect(() => { fuelRef.current = contextFuel; }, [contextFuel]);
+    useEffect(() => { boostRef.current = contextBoost; }, [contextBoost]);
 
     useEffect(() => {
         if (!active) return;
@@ -141,6 +209,7 @@ export function SpaceshipController({ active, lockedTargetId }: { active: boolea
                 if (MOVEMENT_KEYS.EXIT.includes(e.code)) {
                     updateFuel(fuelRef.current); 
                     updateBoost(boostRef.current);
+                    saveGame(camera.position.clone());
                     window.dispatchEvent(new CustomEvent(SPACESHIP_EXIT_EVENT));
                 }
                 if (MOVEMENT_KEYS.FORWARD.includes(e.code) || MOVEMENT_KEYS.BACKWARD.includes(e.code)) {
@@ -174,9 +243,8 @@ export function SpaceshipController({ active, lockedTargetId }: { active: boolea
             window.removeEventListener('keydown', onDown);
             window.removeEventListener('keyup', onUp);
         };
-    }, [active, allBodies, updateFuel, updateBoost]);
+    }, [active, allBodies, updateFuel, updateBoost, saveGame, camera]);
 
-    // --- TARGETING LOGIC V3 (Dynamic Ranges) ---
     const calculateTargetScore = (
         body: CelestialBody, 
         currentPos: THREE.Vector3, 
@@ -194,37 +262,40 @@ export function SpaceshipController({ active, lockedTargetId }: { active: boolea
         const isStation = isDockableStructure(body.type);
         const isMoon = body.type === 'Moon';
         const isDwarf = body.type === 'Dwarf Planet';
-        
-        // --- 1. DYNAMIC SCAN RANGES ---
-        let activeScanRange = 15000; 
-        if (isMoon) activeScanRange = 5000; 
-        if (isStation) activeScanRange = 2000; 
 
-        if (dist > activeScanRange) return null;
-
-        // --- 2. USER OVERRIDE ---
-        if (lockedTargetId && lockedTargetId === body.id) {
+        if (lockedTargetRef.current && lockedTargetRef.current === body.id) {
              return {
-                score: -10000000 + dist, 
+                score: -100000000 + dist, 
                 data: { id: body.id, data: body, pos: bodyPos, dist, altitude, isStation }
             };
         }
 
-        // --- 3. ALIGNMENT CHECK ---
+        if (hoveredTargetRef.current && hoveredTargetRef.current === body.id) {
+            return {
+                score: -50000000 + dist, 
+                data: { id: body.id, data: body, pos: bodyPos, dist, altitude, isStation }
+            };
+        }
+        
+        let activeScanRange = 15000; 
+        if (isMoon) activeScanRange = 5000; 
+        if (isStation) activeScanRange = 2500; 
+
+        if (dist > activeScanRange) return null;
+
         const dirToBody = bodyPos.clone().sub(currentPos).normalize();
         const viewAlign = camDir.dot(dirToBody); 
+        const proximityThreshold = Math.max(50, body.radius * 5); 
         
-        if (dist > 500 && viewAlign < 0.5) return null;
+        if (dist > proximityThreshold && viewAlign < 0.6) return null;
 
-        // --- 4. SCORING HIERARCHY ---
         let score = altitude;
-        
-        if (isStation) score -= 50000; 
-        else if (isMoon) score -= 20000;
-        else if (isDwarf) score -= 10000;
+        if (isStation) score -= 800;
+        else if (isMoon) score -= 500; 
+        else if (isDwarf) score -= 250; 
 
-        const alignMultiplier = Math.pow(Math.max(0, viewAlign), 10) * 10; 
-        score = score / alignMultiplier;
+        const alignWeight = dist < proximityThreshold ? 1 : Math.pow(Math.max(0, viewAlign), 10) * 10;
+        score = score / alignWeight;
 
         return {
             score,
@@ -250,22 +321,31 @@ export function SpaceshipController({ active, lockedTargetId }: { active: boolea
         }
 
         if (bestTarget) {
-            const r = bestTarget.dist;
-            let massMultiplier = 20; 
-            let cushionMultiplier = 2000; 
+            const maxOrbitRange = Math.max(15000, bestTarget.data.radius * 25);
+            if (bestTarget.dist > maxOrbitRange) {
+                return; 
+            }
+
+            const safetyRadius = bestTarget.data.radius * 1.5;
+            const r = Math.max(bestTarget.dist, safetyRadius);
+            
+            let massMultiplier = 5; 
+            let cushionMultiplier = 500; 
 
             if (bestTarget.isStation) {
-                massMultiplier = 400; 
-                cushionMultiplier = 50; 
+                massMultiplier = 50;  
+                cushionMultiplier = 100; 
             } else if (bestTarget.data.type === 'Moon' || bestTarget.data.type === 'Dwarf Planet') {
-                massMultiplier = 15; 
-                cushionMultiplier = 1000; 
+                massMultiplier = 8; 
+                cushionMultiplier = 800; 
             }
 
             const massProxy = bestTarget.data.radius * massMultiplier;
             const cushion = bestTarget.data.radius * cushionMultiplier;
             const acceleration = massProxy / (r * r + cushion);
-            const orbitalSpeed = Math.sqrt(acceleration * r);
+            let orbitalSpeed = Math.sqrt(acceleration * r);
+            const MAX_SAFE_SPEED = 80; 
+            orbitalSpeed = Math.min(orbitalSpeed, MAX_SAFE_SPEED);
 
             const radiusVec = new THREE.Vector3().subVectors(currentPos, bestTarget.pos).normalize();
             let tangent = new THREE.Vector3().crossVectors(radiusVec, new THREE.Vector3(0, 1, 0)).normalize();
@@ -280,14 +360,12 @@ export function SpaceshipController({ active, lockedTargetId }: { active: boolea
         }
     };
 
-    // --- MAIN LOOP ---
     useFrame((state, delta) => {
         if (!active) return;
         const dt = Math.min(delta, 0.1);
         const precision = isPrecision.current;
         const orbiting = isOrbiting.current;
 
-        // Steering
         if (!orbiting) {
             const mx = state.pointer.x;
             const my = state.pointer.y;
@@ -308,7 +386,6 @@ export function SpaceshipController({ active, lockedTargetId }: { active: boolea
             }
         }
 
-        // Movement
         const ACCEL = precision ? 2.5 : 10.0; 
         const DRAG = orbiting ? 0.0 : (flightAssist.current ? (precision ? 4.0 : 2.0) : 0.5); 
         const BOOST_MULT = precision ? 2.0 : 12.0; 
@@ -346,7 +423,6 @@ export function SpaceshipController({ active, lockedTargetId }: { active: boolea
             }
         }
 
-        // Physics & Targeting Scan
         const physicsTime = timeRef.current; 
         const currentPos = camera.position;
         const gravityForce = new THREE.Vector3(0, 0, 0);
@@ -368,22 +444,27 @@ export function SpaceshipController({ active, lockedTargetId }: { active: boolea
              const isMoon = body.type === 'Moon';
              const isDwarf = body.type === 'Dwarf Planet';
              
-             if (distToBody < 5000 && distToBody > body.radius * 0.9) {
-                 let massMultiplier = 20; 
-                 let cushionMultiplier = 2000; 
-                 if (isStation) { massMultiplier = 400; cushionMultiplier = 50; }
-                 else if (isMoon || isDwarf) { massMultiplier = 15; cushionMultiplier = 1000; }
+             const gravityRange = isStation ? 800 : (body.radius * 3 + 2000); 
+             
+             if (distToBody < gravityRange && distToBody > body.radius * 0.9) {
+                 let massMultiplier = 2; 
+                 let cushionMultiplier = 500; 
+                 if (isStation) { massMultiplier = 20; cushionMultiplier = 100; }
+                 else if (isMoon || isDwarf) { massMultiplier = 4; cushionMultiplier = 800; }
 
                  const massProxy = body.radius * massMultiplier; 
                  const cushion = body.radius * cushionMultiplier;
                  const acceleration = massProxy / (distToBody * distToBody + cushion);
                  
                  const dir = new THREE.Vector3().subVectors(bodyPos, currentPos).normalize();
-                 gravityForce.add(dir.multiplyScalar(acceleration * dt));
+                 const MAX_GRAVITY_FORCE = 2.0; 
+                 const finalAccel = Math.min(acceleration, MAX_GRAVITY_FORCE);
+                 gravityForce.add(dir.multiplyScalar(finalAccel * dt));
                  
                  if (orbiting && activeOrbitTarget.current?.id === body.id) {
-                     const idealSpeed = Math.sqrt(acceleration * distToBody);
-                     velocity.current.setLength(idealSpeed);
+                     const safeRadius = Math.max(distToBody, body.radius * 1.2);
+                     let idealSpeed = Math.sqrt(acceleration * safeRadius);
+                     velocity.current.setLength(Math.min(idealSpeed, 100)); 
                  }
              }
 
@@ -407,12 +488,36 @@ export function SpaceshipController({ active, lockedTargetId }: { active: boolea
         }
 
         const currentSpeed = velocity.current.length(); 
+        
         const targetFov = 45 + (currentSpeed * 0.05); 
         camera.fov = THREE.MathUtils.lerp(camera.fov, Math.min(targetFov, 80), 0.1);
         camera.updateProjectionMatrix();
 
         const now = state.clock.elapsedTime;
         if (now - lastEventTime.current > 0.03) { 
+            let distToTarget = 0;
+            let altitudeToTarget = 0;
+            let targetRadius = 0;
+            const targetData = activeOrbitTarget.current 
+                ? activeOrbitTarget.current 
+                : (validOrbitTargetId ? { id: validOrbitTargetId } : null);
+
+            if (targetData) {
+                 const body = allBodies.find(b => b.id === targetData.id);
+                 if(body) {
+                     targetRadius = body.radius;
+                     if(activeOrbitTarget.current) {
+                         distToTarget = activeOrbitTarget.current.dist;
+                         altitudeToTarget = activeOrbitTarget.current.altitude;
+                     } else {
+                         let bodyPos = getOrbitalPosition(body, physicsTime);
+                         if (parentMap[body.id]) bodyPos.add(getOrbitalPosition(parentMap[body.id], physicsTime));
+                         distToTarget = currentPos.distanceTo(bodyPos);
+                         altitudeToTarget = distToTarget - body.radius;
+                     }
+                 }
+            }
+
             const event = new CustomEvent(SPACESHIP_UPDATE_EVENT, { 
                 detail: { 
                     speed: currentSpeed, 
@@ -426,7 +531,13 @@ export function SpaceshipController({ active, lockedTargetId }: { active: boolea
                     cruise: cruiseThrottle.current,
                     mouseX: state.pointer.x,
                     mouseY: state.pointer.y,
-                    targetId: activeOrbitTarget.current ? activeOrbitTarget.current.id : validOrbitTargetId
+                    targetId: targetData?.id,
+                    targetDist: distToTarget, 
+                    targetAltitude: altitudeToTarget, 
+                    targetRadius: targetRadius, 
+                    shipPos: { x: currentPos.x, y: currentPos.y, z: currentPos.z }, 
+                    shipQuat: camera.quaternion, // PASS ROTATION TO HUD
+                    isLocked: !!lockedTargetRef.current
                 } 
             });
             window.dispatchEvent(event);
@@ -438,8 +549,9 @@ export function SpaceshipController({ active, lockedTargetId }: { active: boolea
     return null;
 }
 
-// --- HUD COMPONENT ---
 export function SpaceshipHUD({ active }: { active: boolean }) {
+    const { setDockedAt, generateJobsForLocation, updateFuel, updateBoost, findBody, saveGame, credits } = useSimulation();
+    
     const [speed, setSpeed] = useState(0);
     const [boost, setBoost] = useState(MAX_BOOST);
     const [fuel, setFuel] = useState(MAX_FUEL);      
@@ -450,13 +562,21 @@ export function SpaceshipHUD({ active }: { active: boolean }) {
     const [isOrbiting, setIsOrbiting] = useState(false);
     const [cruise, setCruise] = useState(0);
     const [reticlePos, setReticlePos] = useState({ x: 0, y: 0 });
-    
-    const { setDockedAt, generateJobsForLocation, updateFuel, updateBoost, findBody } = useSimulation();
+    const [isLocked, setIsLocked] = useState(false);
+    const [targetAltitude, setTargetAltitude] = useState(0); 
+    const [targetDist, setTargetDist] = useState(0);
+    const [targetRadius, setTargetRadius] = useState(0);
     const [targetId, setTargetId] = useState<string | null>(null);
+
+    const shipQuat = useRef(new THREE.Quaternion());
 
     const targetBody = findBody(targetId);
     const targetName = targetBody ? targetBody.name : 'TARGET';
     const isNoLandingZone = targetId ? NO_LANDING_IDS.includes(targetId) : false;
+    
+    const inDockingRange = targetAltitude < DOCKING_RANGE;
+    const maxOrbitRange = Math.max(15000, targetRadius * 25);
+    const inOrbitRange = targetDist < maxOrbitRange;
 
     useEffect(() => {
         if (!active) return;
@@ -472,6 +592,14 @@ export function SpaceshipHUD({ active }: { active: boolean }) {
             setCruise(e.detail.cruise);
             setReticlePos({ x: e.detail.mouseX, y: e.detail.mouseY });
             if(e.detail.targetId) setTargetId(e.detail.targetId);
+            setIsLocked(e.detail.isLocked || false);
+            setTargetAltitude(e.detail.targetAltitude || 0); 
+            setTargetDist(e.detail.targetDist || 0);
+            setTargetRadius(e.detail.targetRadius || 0);
+            
+            if (e.detail.shipQuat) {
+                shipQuat.current.copy(e.detail.shipQuat);
+            }
         };
         window.addEventListener(SPACESHIP_UPDATE_EVENT, handleUpdate);
         return () => window.removeEventListener(SPACESHIP_UPDATE_EVENT, handleUpdate);
@@ -482,25 +610,43 @@ export function SpaceshipHUD({ active }: { active: boolean }) {
     };
     
     const handleDock = () => {
-        if (targetId && !isNoLandingZone) {
+        if (targetId && !isNoLandingZone && inDockingRange && targetBody) {
             updateFuel(fuel); 
             updateBoost(boost); 
             generateJobsForLocation(targetId);
-            setDockedAt(targetId);
+            
+            const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(shipQuat.current);
+            const offset = direction.multiplyScalar(-targetDist); 
+            
+            setDockedAt(targetId, { x: offset.x, y: offset.y, z: offset.z });
+            saveGame(); 
         }
     };
 
     if (!active) return null;
 
     const hudPrimary = isPrecision ? '#60A5FA' : '#DFFF00'; 
-    const hudBorderClass = isPrecision ? 'border-blue-400' : 'border-[#DFFF00]';
-    const hudShadowClass = isPrecision ? 'shadow-[0_-10px_40px_rgba(59,130,246,0.3)]' : 'shadow-[0_-10px_40px_rgba(223,255,0,0.3)]';
+    const formatDist = (val: number) => {
+        const km = val * DISTANCE_MULTIPLIER;
+        if (km >= 1000000) return (km / 1000000).toFixed(2) + "M km";
+        if (km >= 1000) return (km / 1000).toFixed(1) + "k km";
+        return km.toFixed(0) + " km";
+    };
 
     return (
         <div className="fixed inset-0 z-[45] pointer-events-none flex flex-col justify-end items-center pb-0 overflow-hidden">
+            {/* Wallet Display - Moved to Right & Styled Symmetrically */}
+            <div className="absolute top-32 right-6 flex items-center gap-2 pointer-events-auto">
+                <div className="bg-black/80 backdrop-blur-md px-4 py-2 rounded-lg border-r-2 border-[#DFFF00] flex items-center gap-3">
+                    <div className="flex flex-col items-end">
+                        <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">Credits</span>
+                        <span className="text-lg font-mono text-white font-bold leading-none">{credits.toLocaleString()}</span>
+                    </div>
+                    <Wallet size={16} className="text-[#DFFF00]" />
+                </div>
+            </div>
+
             <div className={`relative mb-32 flex items-end gap-6 transition-transform duration-100 pointer-events-auto ${isBoosting ? 'scale-105 translate-y-1' : ''}`}>
-                
-                {/* --- LEFT WING --- */}
                 <div className="flex flex-col items-end gap-2 pb-2">
                      <div className="flex items-center gap-2 text-[10px] font-mono tracking-widest opacity-80">
                          <span>NAV-092</span>
@@ -526,9 +672,8 @@ export function SpaceshipHUD({ active }: { active: boolean }) {
                     </div>
                 </div>
 
-                {/* --- CENTER --- */}
                 <div className="flex flex-col items-center">
-                    <div className={`relative flex flex-col items-center bg-black/80 backdrop-blur-xl px-14 py-5 rounded-t-3xl border-t-2 border-x ${hudBorderClass} ${hudShadowClass} z-10 transition-colors duration-300`}>
+                    <div className={`relative flex flex-col items-center bg-black/80 backdrop-blur-xl px-14 py-5 rounded-t-3xl border-t-2 border-x ${isPrecision ? 'border-blue-400' : 'border-[#DFFF00]'} ${isPrecision ? 'shadow-[0_-10px_40px_rgba(59,130,246,0.3)]' : 'shadow-[0_-10px_40px_rgba(223,255,0,0.3)]'} z-10 transition-colors duration-300`}>
                         <div className={`absolute top-2 w-12 h-1 rounded-full transition-colors duration-300 ${isPrecision ? 'bg-blue-500/30' : 'bg-[#DFFF00]/30'}`} />
                         <div className="flex items-baseline gap-2 mt-1">
                             <span className={`text-6xl font-black tabular-nums tracking-tighter ${isBoosting ? 'text-[#00FFFF] drop-shadow-[0_0_15px_#00FFFF]' : 'text-white'}`}>
@@ -550,7 +695,6 @@ export function SpaceshipHUD({ active }: { active: boolean }) {
                     </div>
                 </div>
 
-                {/* --- RIGHT WING --- */}
                 <div className="flex flex-col items-start gap-2 pb-2">
                     <div className={`flex items-center gap-1 text-[10px] font-bold tracking-wider transition-colors ${isBoosting ? 'text-[#00FFFF]' : 'text-zinc-600'}`}>
                         <Zap size={12} className={isBoosting ? 'animate-pulse' : ''} />
@@ -578,27 +722,42 @@ export function SpaceshipHUD({ active }: { active: boolean }) {
                                 ) : (
                                     <button
                                         onClick={handleDock}
-                                        className={`flex items-center gap-2 px-4 py-2 rounded-r-full text-black border-b-2 hover:bg-white transition-all animate-in zoom-in ${isPrecision ? 'bg-blue-400 border-blue-400' : 'bg-[#DFFF00] border-[#DFFF00]'}`}
+                                        disabled={!inDockingRange}
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-r-full text-black border-b-2 transition-all 
+                                            ${inDockingRange 
+                                                ? `hover:bg-white hover:scale-105 active:scale-95 cursor-pointer ${isPrecision ? 'bg-blue-400 border-blue-400' : 'bg-[#DFFF00] border-[#DFFF00]'}`
+                                                : 'bg-zinc-800 border-zinc-700 text-zinc-500 cursor-not-allowed opacity-80'}`}
                                     >
                                         <div className="flex flex-col items-start leading-none">
-                                            <span className="text-[9px] font-bold tracking-widest">DOCK TO</span>
-                                            <span className="text-[8px] opacity-60">{targetName}</span>
+                                            <span className="text-[9px] font-bold tracking-widest">
+                                                {inDockingRange ? "DOCK TO" : "RANGE ERROR"}
+                                            </span>
+                                            <span className="text-[8px] opacity-60">
+                                                {inDockingRange ? targetName : `ALT: ${formatDist(targetAltitude)}`}
+                                            </span>
                                         </div>
-                                        <ArrowRightCircle size={14} /> 
+                                        {inDockingRange ? <ArrowRightCircle size={14} /> : <AlertTriangle size={14} />} 
                                     </button>
                                 )}
                             </div>
                         ) : canOrbit ? (
                             <button
-                                onClick={() => dispatchControl('ENGAGE_ORBIT')}
+                                onClick={() => inOrbitRange && dispatchControl('ENGAGE_ORBIT')}
+                                disabled={!inOrbitRange}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-r-full rounded-tl-lg border-b-2 transition-all animate-in fade-in slide-in-from-left-4 duration-300 
-                                    ${isPrecision 
-                                        ? 'bg-blue-500/10 text-blue-400 border-blue-500/50 hover:bg-blue-400 hover:text-black' 
-                                        : 'bg-[#DFFF00]/10 text-[#DFFF00] border-[#DFFF00]/50 hover:bg-[#DFFF00] hover:text-black'}`}
+                                    ${inOrbitRange 
+                                        ? (isPrecision 
+                                            ? 'bg-blue-500/10 text-blue-400 border-blue-500/50 hover:bg-blue-400 hover:text-black cursor-pointer' 
+                                            : 'bg-[#DFFF00]/10 text-[#DFFF00] border-[#DFFF00]/50 hover:bg-[#DFFF00] hover:text-black cursor-pointer')
+                                        : 'bg-zinc-900 text-zinc-600 border-zinc-800 cursor-not-allowed'}`}
                             >
                                 <div className="flex flex-col items-start leading-none">
-                                    <span className="text-[9px] font-bold tracking-widest">ENGAGE ORBIT</span>
-                                    <span className="text-[8px] opacity-60">KEY O</span>
+                                    <span className="text-[9px] font-bold tracking-widest flex items-center gap-1">
+                                        {isLocked ? <><Lock size={9} /> LOCKED TARGET</> : "ENGAGE ORBIT"}
+                                    </span>
+                                    <span className="text-[8px] opacity-60">
+                                        {inOrbitRange ? (isLocked ? targetName : "KEY O") : "TOO FAR"}
+                                    </span>
                                 </div>
                                 <Target size={14} />
                             </button>
@@ -611,7 +770,6 @@ export function SpaceshipHUD({ active }: { active: boolean }) {
                 </div>
             </div>
             
-            {/* RETICLE */}
             <div className="absolute pointer-events-none transition-all duration-75 ease-out" style={{ left: '50%', top: '50%', transform: `translate(calc(-50% + ${reticlePos.x * window.innerWidth / 2}px), calc(-50% + ${-reticlePos.y * window.innerHeight / 2}px))` }}>
                  <div className={`w-8 h-8 border rounded-full flex items-center justify-center transition-colors duration-300 ${isBoosting ? 'border-[#00FFFF]' : (isPrecision ? 'border-blue-400' : 'border-white/30')}`}>
                     <div className={`w-1 h-1 rounded-full transition-colors duration-300 ${isBoosting ? 'bg-[#00FFFF] shadow-[0_0_10px_#00FFFF]' : (isPrecision ? 'bg-blue-400' : 'bg-[#DFFF00]')}`} />

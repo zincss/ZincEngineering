@@ -1,21 +1,27 @@
 'use client';
 
-import React, { useRef, useState, Suspense, useCallback, useEffect } from 'react';
+import React, { useRef, useState, Suspense, useCallback, useEffect, useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { EffectComposer, Bloom, Vignette, Noise } from '@react-three/postprocessing';
 import * as THREE from 'three';
-import { ArrowLeft, Search } from 'lucide-react';
+import { ArrowLeft, Search, Lock } from 'lucide-react';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 
+// --- DIRECT IMPORTS ---
 import { SimulationProvider, useSimulation, TimeKeeper, J2000_EPOCH } from './context';
-import { StarBackground, Sun, Planet, SpaceDust, AsteroidBelt, SolarWind } from './components/Scene'; 
-// --- PASS selectedId PROP HERE ---
+import { StarBackground, SolarWind, SpaceDust, AsteroidBelt } from './components/Scene/Environment';
+import { Sun } from './components/Scene/StellarBodies';
+import { Planet } from './components/Scene/PlanetarySystem';
 import { SpaceshipController, SpaceshipHUD } from './components/Scene/Spaceship';
 import { SystemControls } from './components/Controls'; 
 import { FantasyContent } from './components/FantasyScene';
 
-import { CinematicDirector, CinematicOverlay, FlightComputer, generateCommercialFlight } from './components/Cinematic';
-import type { OverlayData, FlightData } from './components/Cinematic';
+import { CinematicDirector } from './components/Cinematic/Director';
+import { CinematicOverlay } from './components/Cinematic/Overlay';
+import { FlightComputer } from './components/Cinematic/FlightComputer';
+import { generateCommercialFlight } from './components/Cinematic/utils';
+import type { OverlayData, FlightData } from './components/Cinematic/types';
 
 import { DetailPanel, SystemFinder, SpeedControls, CinematicMenu, JobBoard, MissionHUD, JobCompleteOverlay } from './components/UI';
 
@@ -29,9 +35,10 @@ function TimeDisplay() {
 }
 
 function PlanetariumContent() {
-    const { setTime, setSpeed, activeSystem, currentData, dockedAt, setDockedAt } = useSimulation();
+    const { setTime, setSpeed, activeSystem, currentData, dockedAt, setDockedAt, lastCompletedJob, isLoadingSave, savedPosition, user } = useSimulation();
     
     const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [hoveredId, setHoveredId] = useState<string | null>(null); 
     const [finderOpen, setFinderOpen] = useState(false);
     
     const [showOrbits, setShowOrbits] = useState(true);
@@ -47,6 +54,8 @@ function PlanetariumContent() {
     const [currentTourId, setCurrentTourId] = useState('grand_tour');
 
     const planetRefs = useRef<Record<string, THREE.Object3D>>({});
+    const initialLoadRef = useRef(false);
+    const prevDocked = useRef(!!dockedAt);
 
     useEffect(() => {
         setSelectedId(null);
@@ -57,6 +66,35 @@ function PlanetariumContent() {
         if (isCinematic) setIsSpaceshipMode(false);
     }, [isCinematic]);
 
+    // Force Spaceship Mode off if docked
+    useEffect(() => {
+        if (dockedAt) {
+            setIsSpaceshipMode(false);
+        }
+    }, [dockedAt]);
+
+    // AUTO-RESUME LOGIC (Only for signed-in users)
+    useEffect(() => {
+        if (!user) return; // FIX: Do not auto-resume flight mode for guests
+
+        // 1. Initial Load: If we have a saved position and aren't docked, jump to ship
+        if (!isLoadingSave && !initialLoadRef.current) {
+            initialLoadRef.current = true;
+            if (!dockedAt && savedPosition) {
+                setIsSpaceshipMode(true);
+            }
+        }
+        
+        // 2. Undocking: If we just undocked, jump to ship
+        const wasDocked = prevDocked.current;
+        const isDocked = !!dockedAt;
+        if (wasDocked && !isDocked && !isCinematic) {
+            setIsSpaceshipMode(true);
+        }
+        prevDocked.current = isDocked;
+    }, [isLoadingSave, dockedAt, savedPosition, isCinematic, user]);
+
+
     const handleSelect = useCallback((id: string | null) => {
         if (isCinematic) return;
         setSelectedId(id);
@@ -64,18 +102,22 @@ function PlanetariumContent() {
     }, [isCinematic]);
 
     const handleBackgroundClick = useCallback(() => {
-        // Allow deselection only if NOT in spaceship mode, or if clicking void
-        // In spaceship mode, we might want to keep the target locked until ESC is pressed
         if (isCinematic) return;
-        if (!isSpaceshipMode) setSelectedId(null);
+        setSelectedId(null);
         setFinderOpen(false);
-    }, [isCinematic, isSpaceshipMode]);
+    }, [isCinematic]);
     
     const handleRecenter = () => {
         setSelectedId(null);
         setSelectedId(activeSystem === 'solar' ? 'sun' : 'zinc_prime_stars');
         setTimeout(() => setSelectedId(null), 1000);
     };
+
+    const handleJobCompleteExit = useCallback(() => {
+        if (lastCompletedJob) {
+            setDockedAt(lastCompletedJob.destId);
+        }
+    }, [lastCompletedJob, setDockedAt]);
 
     const startCinematic = (tourId: string) => {
         if (activeSystem !== 'solar') return; 
@@ -111,20 +153,12 @@ function PlanetariumContent() {
         setFlightData({ active: false });
     };
 
-    // --- SCALE POSITIONS ---
-    const scalePositions = React.useMemo(() => {
+    const scalePositions = useMemo(() => {
         if (currentTourId !== 'scale_comparison') return {};
-        
-        const allBodies = [
-            ...currentData, 
-            ...currentData.flatMap(p => p.moons || [])
-        ].filter(b => b.type !== 'Star' && b.type !== 'Black Hole');
-
+        const allBodies = [...currentData, ...currentData.flatMap(p => p.moons || [])].filter(b => b.type !== 'Star' && b.type !== 'Black Hole');
         allBodies.sort((a, b) => a.radius - b.radius);
-
         const posMap: Record<string, THREE.Vector3> = {};
         let currentX = 0;
-
         allBodies.forEach((body, index) => {
              if (index > 0) {
                  const prevBody = allBodies[index - 1];
@@ -133,18 +167,20 @@ function PlanetariumContent() {
              }
              posMap[body.id] = new THREE.Vector3(currentX, 0, 0);
         });
-        
         const lastBody = allBodies[allBodies.length - 1];
         if (lastBody) {
             const sunGap = lastBody.radius + 25 + 50; 
             posMap['sun'] = new THREE.Vector3(currentX + sunGap, 0, 0);
         }
-
         return posMap;
     }, [currentData, currentTourId]);
 
     const isScaleMode = isCinematic && currentTourId === 'scale_comparison';
     const sunScalePos = isScaleMode && scalePositions['sun'] ? scalePositions['sun'] : new THREE.Vector3(0,0,0);
+
+    if (isLoadingSave) {
+        return <div className="w-full h-screen bg-black flex items-center justify-center text-[#DFFF00] font-mono animate-pulse">Initializing Flight Systems...</div>;
+    }
 
     return (
         <div className="relative w-full h-screen bg-black overflow-hidden touch-none">
@@ -166,9 +202,13 @@ function PlanetariumContent() {
                         isSpaceshipMode={isSpaceshipMode} 
                     />
 
-                    {/* SPACESHIP PHYSICS & CAMERA (Inside Canvas) */}
-                    {/* PASS LOCKED TARGET ID HERE */}
-                    <SpaceshipController active={isSpaceshipMode} lockedTargetId={selectedId} />
+                    {isSpaceshipMode && (
+                        <SpaceshipController 
+                            active={isSpaceshipMode} 
+                            lockedTargetId={selectedId} 
+                            hoveredTargetId={hoveredId} 
+                        />
+                    )}
 
                     {activeSystem === 'fantasy' ? (
                         <FantasyContent 
@@ -213,6 +253,7 @@ function PlanetariumContent() {
                                     allScalePositions={scalePositions}
                                     onClick={(idOverride?: string) => handleSelect(idOverride || planet.id)}
                                     onSelectRef={(id: string, ref: THREE.Object3D) => { planetRefs.current[id] = ref; }}
+                                    onHover={setHoveredId} 
                                 />
                             ))}
                         </>
@@ -226,16 +267,20 @@ function PlanetariumContent() {
                 </Suspense>
             </Canvas>
 
-            {/* SPACESHIP HUD & GAME UI */}
             <SpaceshipHUD active={isSpaceshipMode} />
             <MissionHUD />
-            <JobCompleteOverlay />
-            {dockedAt && <JobBoard onClose={() => setDockedAt(null)} />}
+            <JobCompleteOverlay onExit={handleJobCompleteExit} />
+            
+            {dockedAt && (
+                <div className="relative z-[100]">
+                    <JobBoard onClose={() => setDockedAt(null)} />
+                </div>
+            )}
 
             <CinematicOverlay data={cinematicOverlay} />
             <FlightComputer data={flightData} />
 
-            {!isCinematic && (
+            {!isCinematic && !dockedAt && (
                 <>
                     <div className="absolute top-0 left-0 w-full z-10 pointer-events-none p-4 md:p-6 pt-safe-top md:pt-6 flex flex-col md:flex-row justify-between items-start gap-4">
                         <div className="pointer-events-auto flex items-start justify-between w-full md:w-auto md:block">
@@ -276,7 +321,7 @@ function PlanetariumContent() {
                 </>
             )}
 
-            <DetailPanel id={selectedId} onClose={() => setSelectedId(null)} />
+            <DetailPanel id={isSpaceshipMode ? null : selectedId} onClose={() => setSelectedId(null)} />
             <SystemFinder isOpen={finderOpen} onClose={() => setFinderOpen(false)} onSelect={handleSelect} />
             
             {isCinematic && (

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState, useMemo, useEffect } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { AccretionDiskShader, SunSurfaceShader, SunAtmosphereShader } from './shaders';
@@ -82,6 +82,7 @@ export function Sun({ onClick }: { onClick: () => void }) {
     });
 
     const glowTexture = useMemo(() => {
+        if (typeof document === 'undefined') return null; // Safe guard for server render
         const canvas = document.createElement('canvas');
         canvas.width = 128; canvas.height = 128;
         const context = canvas.getContext('2d');
@@ -113,9 +114,11 @@ export function Sun({ onClick }: { onClick: () => void }) {
                 <sphereGeometry args={[25, 64, 64]} />
                 <shaderMaterial ref={coronaMat} args={[SunAtmosphereShader]} transparent side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} />
             </mesh>
-            <sprite ref={glowRef} scale={[90, 90, 1]} raycast={() => null}>
-                <spriteMaterial map={glowTexture} color="#ffaa00" blending={THREE.AdditiveBlending} depthWrite={false} />
-            </sprite>
+            {glowTexture && (
+                <sprite ref={glowRef} scale={[90, 90, 1]} raycast={() => null}>
+                    <spriteMaterial map={glowTexture} color="#ffaa00" blending={THREE.AdditiveBlending} depthWrite={false} />
+                </sprite>
+            )}
             <pointLight intensity={1.5} decay={0} distance={0} color="#fff8e7" />
             {hovered && (
                  <mesh scale={[1.02, 1.02, 1.02]} raycast={() => null}>

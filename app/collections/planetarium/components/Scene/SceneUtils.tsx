@@ -5,7 +5,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { useSimulation } from '../../context';
-import { CelestialBody } from '../../data';
+import { CelestialBody, PLANET_DATA } from '../../data';
 import { AtmosphereShader } from './shaders';
 
 // --- REALISTIC ATMOSPHERE COMPONENT ---
@@ -26,7 +26,7 @@ export function RealisticAtmosphere({ radius, color, sunPosition }: { radius: nu
     });
 
     return (
-        <mesh ref={meshRef} scale={[1.2, 1.2, 1.2]}>
+        <mesh ref={meshRef} scale={[1.2, 1.2, 1.2]} raycast={() => null}>
             <sphereGeometry args={[radius, 64, 64]} />
             <shaderMaterial 
                 ref={materialRef}
@@ -44,9 +44,8 @@ export function RealisticAtmosphere({ radius, color, sunPosition }: { radius: nu
 
 // --- ELLIPTICAL ORBIT LINE ---
 export function EllipticalOrbit({ body, type = 'planet', isSelected = false, parentRadius = 0 }: { body: CelestialBody, type?: 'planet' | 'moon', isSelected?: boolean, parentRadius?: number }) {
-    const { getOrbitPoints } = useSimulation();
+    const { getOrbitPoints, activeJob } = useSimulation(); 
     
-    // 2048 segments for high precision smooth lines
     const points = useMemo(() => {
         const rawPoints = getOrbitPoints(body, 2048);
         
@@ -62,16 +61,15 @@ export function EllipticalOrbit({ body, type = 'planet', isSelected = false, par
         return new THREE.BufferGeometry().setFromPoints(points);
     }, [points]);
 
-    // UPDATED: Brightened default to 0.15 (visible but subtle) and selected to 0.75
-    const opacity = isSelected ? 0.75 : 0.15;
+    const baseOpacity = isSelected ? 0.75 : (activeJob ? 0.05 : 0.15);
     const color = isSelected ? '#FFFFFF' : '#555555';
     const lineWidth = isSelected ? 2 : 1;
 
     return (
-        <lineLoop geometry={geometry}>
+        <lineLoop geometry={geometry} raycast={() => null}>
             <lineBasicMaterial 
                 color={color} 
-                opacity={opacity} 
+                opacity={baseOpacity} 
                 transparent 
                 depthWrite={false} 
                 linewidth={lineWidth} 
@@ -80,14 +78,16 @@ export function EllipticalOrbit({ body, type = 'planet', isSelected = false, par
     );
 }
 
-// --- SMART LABEL (FIXED WORLD POSITION TRACKING) ---
+// --- SMART LABEL (UPDATED PARENT VISIBILITY) ---
 export function SmartLabel({ 
+    id, // NEW PROP: We need ID to check relationships
     text, 
     type, 
     position, 
     visible, 
     offset = 0 
 }: { 
+    id?: string,
     text: string, 
     type: string, 
     position: [number, number, number], 
@@ -95,63 +95,63 @@ export function SmartLabel({
     offset?: number 
 }) {
     const { camera } = useThree();
+    const { activeJob } = useSimulation(); 
     
-    // We use a Group ref to track the actual World Position of this label anchor
     const groupRef = useRef<THREE.Group>(null);
     const scalerRef = useRef<HTMLDivElement>(null);
     
     const isMajor = type === 'Star' || type === 'Black Hole' || type === 'Planet' || type === 'Dwarf Planet';
     const isMinor = type === 'Moon' || type === 'Station';
 
+    // Helper to check if this label belongs to the parent of the destination
+    const isParentOfDestination = (myId: string, destId: string) => {
+        const parent = PLANET_DATA.find(p => p.moons?.some(m => m.id === destId));
+        return parent && parent.id === myId;
+    };
+
     useFrame(() => {
         if (!scalerRef.current || !visible || !groupRef.current) return;
         
-        // FIX: Calculate distance based on TRUE WORLD POSITION
+        // --- JOB FILTERING LOGIC ---
+        if (activeJob && id) {
+            const destId = activeJob.destId;
+            const isDestination = id === destId;
+            const isParent = isParentOfDestination(id, destId);
+            
+            // Show only the Destination AND its Parent (so you can find the moon)
+            if (!isDestination && !isParent) {
+                scalerRef.current.style.opacity = '0';
+                scalerRef.current.style.pointerEvents = 'none';
+                return;
+            }
+        }
+
         const worldPos = new THREE.Vector3();
         groupRef.current.getWorldPosition(worldPos);
         const dist = camera.position.distanceTo(worldPos);
         
-        // --- ADAPTIVE LOGIC ---
         let scale = 1;
         let opacity = 1;
 
         if (isMinor) {
-             // 1. SMART VISIBILITY FOR MINOR OBJECTS
-             // Only show moons/stations when closer than 200 units
-             // Fade out smoothly between 120 and 200.
              const FADE_START = 120;
              const FADE_END = 200;
              
-             if (dist > FADE_END) {
-                 opacity = 0;
-             } else if (dist > FADE_START) {
-                 opacity = 1 - (dist - FADE_START) / (FADE_END - FADE_START);
-             } else {
-                 opacity = 1;
-             }
+             if (dist > FADE_END) opacity = 0;
+             else if (dist > FADE_START) opacity = 1 - (dist - FADE_START) / (FADE_END - FADE_START);
+             else opacity = 1;
 
-             // Scale down slightly when at the edge of visibility to reduce noise
              scale = Math.max(0.6, 1 - (dist / FADE_END) * 0.3);
 
         } else {
-             // 2. LOGIC FOR MAJOR BODIES
-             // Always visible unless super far (System View / Galaxy View)
-             if (dist > 15000) {
-                 opacity = Math.max(0, 1 - (dist - 15000) / 5000);
-             }
-             
-             // Scale up slightly when far to maintain readability
+             if (dist > 15000) opacity = Math.max(0, 1 - (dist - 15000) / 5000);
              if (dist > 500) scale = 1.1;
         }
         
-        // 3. BETTER POSITIONING
-        // translateY(-60%) moves the label up so the anchor point is at the BOTTOM of the text
         scalerRef.current.style.transform = `scale(${scale}) translateY(-60%)`; 
         scalerRef.current.style.opacity = opacity.toString();
-        
-        // Prevent interaction/layout ghosts when invisible
         scalerRef.current.style.visibility = opacity < 0.05 ? 'hidden' : 'visible';
-        scalerRef.current.style.pointerEvents = 'none'; // Labels shouldn't block clicks
+        scalerRef.current.style.pointerEvents = 'none'; 
     });
 
     if (!visible) return null;
@@ -160,11 +160,9 @@ export function SmartLabel({
                           'text-[8px] md:text-[9px] font-medium opacity-90';
 
     return (
-        // Wrap in a group positioned at the requested local coordinates.
-        // This allows us to get the derived World Position easily.
         <group ref={groupRef} position={[position[0], position[1] + offset, position[2]]}>
             <Html 
-                position={[0, 0, 0]} // Position is handled by parent group
+                position={[0, 0, 0]} 
                 center 
                 zIndexRange={[0, 0]} 
                 style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}
@@ -186,7 +184,6 @@ export function SmartLabel({
                             {text}
                         </span>
                     </div>
-                    {/* Optional: A small line connecting label to object for clarity */}
                     <div className="w-px h-3 bg-white/20 mx-auto" />
                 </div>
             </Html>

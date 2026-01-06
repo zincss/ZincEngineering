@@ -2,25 +2,31 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSimulation, MAX_FUEL, FUEL_COST_PER_UNIT, MAX_BOOST, BOOST_COST_PER_UNIT } from '../context'; 
+import { useSimulation, MAX_FUEL, FUEL_COST_PER_UNIT, MAX_BOOST, BOOST_COST_PER_UNIT, getOrbitalPosition, HaulingJob } from '../context'; 
+import { PLANET_DATA } from '../data';
 import { 
     ArrowLeft, Thermometer, Clock, Calendar, Minimize2, Maximize2, Orbit, Satellite, 
     Film, Sparkles, Eye, EyeOff, Tag, Crosshair, Shuffle, BarChart3, 
-    Rocket, CalendarCheck, Search, X, Briefcase, CheckCircle, Navigation, DollarSign, Fuel, Wifi, Lock, Zap
+    Rocket, CalendarCheck, Search, X, Briefcase, CheckCircle, Navigation, DollarSign, Fuel, Wifi, Lock, Zap,
+    UploadCloud, ArrowUpCircle
 } from 'lucide-react';
+import * as THREE from 'three';
+
+const DISTANCE_MULTIPLIER = 1275; 
 
 // --- JOB COMPLETION OVERLAY ---
-export function JobCompleteOverlay() {
+export function JobCompleteOverlay({ onExit }: { onExit: () => void }) {
     const { lastCompletedJob, clearCompletedJob } = useSimulation();
 
     useEffect(() => {
         if (lastCompletedJob) {
             const timer = setTimeout(() => {
                 clearCompletedJob();
+                onExit(); 
             }, 6000); 
             return () => clearTimeout(timer);
         }
-    }, [lastCompletedJob, clearCompletedJob]);
+    }, [lastCompletedJob, clearCompletedJob, onExit]);
 
     return (
         <AnimatePresence>
@@ -96,16 +102,35 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
     const { availableJobs, acceptJob, activeJob, completeJob, credits, dockedAt, findBody, fuel, buyFuel, boost, buyBoost } = useSimulation();
     const locationBody = findBody(dockedAt);
     
-    const [dockingSequence, setDockingSequence] = useState(true);
+    const [viewState, setViewState] = useState<'docking' | 'board' | 'accepting' | 'launching'>('docking');
+    const [acceptedJobDetails, setAcceptedJobDetails] = useState<HaulingJob | null>(null);
 
     useEffect(() => {
         const timer = setTimeout(() => {
-            setDockingSequence(false);
-        }, 2500); 
+            setViewState('board');
+        }, 2000); 
         return () => clearTimeout(timer);
     }, []);
 
-    // CHECKS
+    const handleAccept = (job: HaulingJob) => {
+        setAcceptedJobDetails(job);
+        setViewState('accepting');
+        
+        setTimeout(() => {
+            setViewState('launching');
+            setTimeout(() => {
+                acceptJob(job); 
+            }, 3000); 
+        }, 3500);
+    };
+
+    const handleLaunch = () => {
+        setViewState('launching');
+        setTimeout(() => {
+            onClose(); 
+        }, 2500);
+    };
+
     const fuelMissing = Math.max(0, MAX_FUEL - fuel);
     const refuelCost = Math.floor(fuelMissing * FUEL_COST_PER_UNIT);
     const canAffordFuel = credits >= refuelCost;
@@ -116,14 +141,14 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
     const canAffordBoost = credits >= boostCost;
     const isBoostLow = boost < (MAX_BOOST * 0.3);
 
-    // CAN WE DELIVER HERE?
     const canDeliverActiveJob = activeJob && activeJob.destId === dockedAt;
 
     return (
         <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-xl flex items-center justify-center p-4">
-            
             <AnimatePresence mode="wait">
-                {dockingSequence ? (
+                
+                {/* 1. DOCKING SEQUENCE */}
+                {viewState === 'docking' && (
                     <motion.div 
                         key="docking"
                         initial={{ opacity: 0, scale: 0.9 }}
@@ -136,30 +161,108 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
                              <Lock size={32} className="text-[#DFFF00]" />
                          </div>
                          <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-2 animate-pulse">
-                             Docking Sequence Initiated
+                             Docking Sequence
                          </h2>
                          <div className="text-[#DFFF00] font-mono text-sm uppercase tracking-widest flex items-center gap-2">
                              <Wifi size={14} className="animate-pulse" />
-                             Establishing Uplink...
+                             Handshake Complete
                          </div>
                          <div className="mt-8 w-64 h-1 bg-zinc-800 rounded-full overflow-hidden">
                              <motion.div 
                                  initial={{ width: 0 }} 
                                  animate={{ width: "100%" }} 
-                                 transition={{ duration: 2.2, ease: "easeInOut" }}
+                                 transition={{ duration: 1.8, ease: "easeInOut" }}
                                  className="h-full bg-[#DFFF00]" 
                              />
                          </div>
                     </motion.div>
-                ) : (
+                )}
+
+                {/* 2. JOB ACCEPTED ANIMATION */}
+                {viewState === 'accepting' && acceptedJobDetails && (
+                    <motion.div
+                        key="accepting"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 1.1, filter: "blur(10px)" }}
+                        className="bg-zinc-900 border border-[#DFFF00] rounded-2xl p-10 flex flex-col items-center text-center max-w-lg w-full shadow-[0_0_50px_rgba(223,255,0,0.2)]"
+                    >
+                        <div className="w-16 h-16 bg-[#DFFF00] text-black rounded-full flex items-center justify-center mb-6 shadow-lg animate-bounce">
+                            <UploadCloud size={32} />
+                        </div>
+                        <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-1">
+                            Contract <span className="text-[#DFFF00]">Secured</span>
+                        </h2>
+                        <p className="text-zinc-400 text-sm font-mono uppercase tracking-widest mb-8">
+                            Upload Complete // Manifest Updated
+                        </p>
+                        
+                        <div className="w-full bg-black/40 rounded-xl p-6 border border-white/10 mb-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <span className="text-zinc-500 text-xs uppercase font-bold tracking-wider">Cargo</span>
+                                <span className="text-white font-mono font-bold text-lg">{acceptedJobDetails.cargo}</span>
+                            </div>
+                            <div className="flex justify-between items-center mb-4">
+                                <span className="text-zinc-500 text-xs uppercase font-bold tracking-wider">Destination</span>
+                                <span className="text-[#DFFF00] font-mono font-bold text-lg">
+                                    {findBody(acceptedJobDetails.destId)?.name || "Unknown"}
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-zinc-500 text-xs uppercase font-bold tracking-wider">Payment</span>
+                                <span className="text-white font-mono font-bold text-lg">{acceptedJobDetails.reward} CR</span>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 text-[#DFFF00] font-mono text-xs uppercase tracking-widest opacity-80 animate-pulse">
+                            <div className="w-2 h-2 bg-[#DFFF00] rounded-full" />
+                            Preparing for Departure...
+                        </div>
+                    </motion.div>
+                )}
+
+                {/* 3. LAUNCH SEQUENCE */}
+                {viewState === 'launching' && (
+                    <motion.div 
+                        key="launching"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 1.2, filter: "blur(20px)" }}
+                        className="flex flex-col items-center justify-center text-center max-w-md w-full"
+                    >
+                         <div className="mb-6 relative">
+                             <ArrowUpCircle size={64} className="text-[#DFFF00] animate-bounce" />
+                             <div className="absolute inset-0 bg-[#DFFF00] blur-xl opacity-30 animate-pulse" />
+                         </div>
+                         <h2 className="text-4xl font-black text-white uppercase tracking-tighter mb-2">
+                             Launching
+                         </h2>
+                         <div className="flex flex-col gap-1 text-[#DFFF00] font-mono text-xs uppercase tracking-widest opacity-80">
+                             <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>Releasing Clamps...</motion.span>
+                             <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>Pressurizing Thrusters...</motion.span>
+                             <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.4 }}>Guidance Internal...</motion.span>
+                         </div>
+                         <div className="mt-8 w-48 h-1 bg-zinc-800 rounded-full overflow-hidden">
+                             <motion.div 
+                                 initial={{ width: 0 }} 
+                                 animate={{ width: "100%" }} 
+                                 transition={{ duration: 2.5, ease: "linear" }}
+                                 className="h-full bg-[#DFFF00]" 
+                             />
+                         </div>
+                    </motion.div>
+                )}
+
+                {/* 4. MAIN BOARD */}
+                {viewState === 'board' && (
                     <motion.div 
                         key="board"
                         initial={{ scale: 0.95, opacity: 0, y: 10 }}
                         animate={{ scale: 1, opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
                         transition={{ type: "spring", bounce: 0, duration: 0.4 }}
                         className="bg-zinc-900 border border-white/20 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl relative"
                     >
-                        {/* Header */}
                         <div className="bg-zinc-800 p-6 flex justify-between items-center border-b border-white/10">
                             <div>
                                 <div className="text-[#DFFF00] font-mono text-xs uppercase tracking-widest mb-1 flex items-center gap-2">
@@ -180,7 +283,6 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
 
                         <div className="p-6 overflow-y-auto max-h-[60vh] custom-scrollbar">
                             
-                            {/* ACTIVE DELIVERY (PRIORITY) */}
                             {canDeliverActiveJob && (
                                 <div className="mb-8 animate-in slide-in-from-left duration-500">
                                     <div className="text-[#DFFF00] text-xs uppercase tracking-widest font-bold mb-3 flex items-center gap-2">
@@ -202,11 +304,9 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
                                 </div>
                             )}
 
-                            {/* STATION SERVICES */}
                             <div className="text-zinc-500 text-xs uppercase tracking-widest font-bold mb-3">Station Services</div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                                
-                                {/* REFUEL */}
+                                {/* Fuel Card */}
                                 <div className="bg-black/20 border border-white/10 rounded-xl p-4 flex flex-col justify-between h-full">
                                     <div className="flex items-center gap-3 mb-4">
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isFuelLow ? 'bg-red-500/20 text-red-500' : 'bg-emerald-500/20 text-emerald-500'}`}>
@@ -220,24 +320,12 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
                                         </div>
                                     </div>
                                     {fuelMissing > 10 ? (
-                                        <button 
-                                            onClick={buyFuel}
-                                            disabled={!canAffordFuel}
-                                            className={`
-                                                w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all
-                                                ${canAffordFuel 
-                                                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg' 
-                                                    : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}
-                                            `}
-                                        >
-                                            Refuel (-{refuelCost} CR)
-                                        </button>
+                                        <button onClick={buyFuel} disabled={!canAffordFuel} className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all ${canAffordFuel ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}`}>Refuel (-{refuelCost} CR)</button>
                                     ) : (
                                         <div className="text-center py-2 text-emerald-500 text-xs font-bold uppercase tracking-widest opacity-60">Full</div>
                                     )}
                                 </div>
-
-                                {/* REBOOST */}
+                                {/* Boost Card */}
                                 <div className="bg-black/20 border border-white/10 rounded-xl p-4 flex flex-col justify-between h-full">
                                     <div className="flex items-center gap-3 mb-4">
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isBoostLow ? 'bg-orange-500/20 text-orange-500' : 'bg-blue-500/20 text-blue-500'}`}>
@@ -251,18 +339,7 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
                                         </div>
                                     </div>
                                     {boostMissing > 5 ? (
-                                        <button 
-                                            onClick={buyBoost}
-                                            disabled={!canAffordBoost}
-                                            className={`
-                                                w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all
-                                                ${canAffordBoost 
-                                                    ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg' 
-                                                    : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}
-                                            `}
-                                        >
-                                            Refill (-{boostCost} CR)
-                                        </button>
+                                        <button onClick={buyBoost} disabled={!canAffordBoost} className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all ${canAffordBoost ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}`}>Refill (-{boostCost} CR)</button>
                                     ) : (
                                         <div className="text-center py-2 text-blue-500 text-xs font-bold uppercase tracking-widest opacity-60">Full</div>
                                     )}
@@ -271,10 +348,12 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
 
                             <div className="h-px bg-white/10 w-full mb-6" />
 
-                            {/* JOB LIST */}
                             {!canDeliverActiveJob && (
                                 <>
-                                    <div className="text-zinc-500 text-xs uppercase tracking-widest font-bold mb-3">Available Contracts</div>
+                                    <div className="text-zinc-500 text-xs uppercase tracking-widest font-bold mb-3 flex justify-between items-end">
+                                        <span>Available Contracts</span>
+                                        {activeJob && <span className="text-[#DFFF00] animate-pulse">1 Active</span>}
+                                    </div>
                                     <div className="grid gap-3">
                                         {availableJobs.length === 0 ? (
                                             <div className="text-center py-8 text-zinc-600 italic">
@@ -298,7 +377,7 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
                                                             <div className="text-zinc-600 text-[10px] uppercase">Reward</div>
                                                         </div>
                                                         <button 
-                                                            onClick={() => { acceptJob(job); onClose(); }}
+                                                            onClick={() => handleAccept(job)}
                                                             className="bg-[#DFFF00] hover:bg-white text-black font-bold uppercase text-xs px-4 py-2 rounded-lg transition-colors shadow-[0_0_15px_rgba(223,255,0,0.1)]"
                                                         >
                                                             Accept
@@ -312,9 +391,8 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
                             )}
                         </div>
 
-                        {/* Footer */}
-                        <div className="bg-zinc-800/50 p-4 border-t border-white/10 flex justify-end">
-                            <button onClick={onClose} className="text-zinc-400 hover:text-white text-sm font-bold uppercase tracking-wider px-4">
+                        <div className="bg-zinc-800/50 p-4 border-t border-white/10 flex justify-end gap-3">
+                            <button onClick={handleLaunch} className="bg-white/10 hover:bg-white hover:text-black text-white border border-white/20 text-sm font-bold uppercase tracking-wider px-6 py-2 rounded-lg transition-all">
                                 Undock & Launch
                             </button>
                         </div>
@@ -327,11 +405,71 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
 
 // --- MISSION HUD COMPONENT ---
 export function MissionHUD() {
-    const { activeJob, findBody } = useSimulation();
-    
+    const { activeJob, findBody, simulationTime } = useSimulation();
+    const [distance, setDistance] = useState(0);
+    const [eta, setEta] = useState(0); 
+    const [shipSpeed, setShipSpeed] = useState(0);
+
+    const dest = activeJob ? findBody(activeJob.destId) : null;
+
+    useEffect(() => {
+        if (!activeJob) {
+            setDistance(0);
+            setEta(0);
+            return;
+        }
+        
+        const handleUpdate = (e: any) => {
+            const shipPos = e.detail.shipPos; 
+            const speed = e.detail.speed; 
+            setShipSpeed(speed);
+
+            if (shipPos && dest) {
+                if (e.detail.targetId === activeJob.destId) {
+                    setDistance(e.detail.targetDist);
+                } else {
+                    // Fallback Calculation
+                    let destPos = getOrbitalPosition(dest, simulationTime);
+                    // Handle moon parent offset
+                    const parent = PLANET_DATA.find(p => p.moons?.some(m => m.id === dest.id));
+                    if (parent) {
+                        const parentPos = getOrbitalPosition(parent, simulationTime);
+                        destPos.add(parentPos);
+                    }
+                    const d = new THREE.Vector3(shipPos.x, shipPos.y, shipPos.z).distanceTo(destPos);
+                    setDistance(Math.max(0, d - dest.radius)); 
+                }
+            }
+        };
+        window.addEventListener('spaceship-update', handleUpdate);
+        return () => window.removeEventListener('spaceship-update', handleUpdate);
+    }, [activeJob, dest, simulationTime]);
+
+    // Calc ETA
+    useEffect(() => {
+        if (shipSpeed > 1 && distance > 0) {
+            setEta(distance / shipSpeed);
+        } else {
+            setEta(0);
+        }
+    }, [shipSpeed, distance]);
+
     if (!activeJob) return null;
-    
-    const dest = findBody(activeJob.destId);
+
+    const formatTime = (secs: number) => {
+        if (!secs || secs === Infinity) return "--:--";
+        if (secs > 3600) return "> 1 HR";
+        const m = Math.floor(secs / 60);
+        const s = Math.floor(secs % 60);
+        return `${m}m ${s}s`;
+    };
+
+    const formatDist = (val: number) => {
+        const km = val * DISTANCE_MULTIPLIER;
+        if (km >= 1000000) return (km / 1000000).toFixed(2) + "M km";
+        if (km >= 1000) return (km / 1000).toFixed(1) + "k km";
+        return km.toFixed(0) + " km";
+    };
 
     return (
         <div className="fixed top-24 left-4 z-40 animate-in slide-in-from-left duration-500">
@@ -343,16 +481,21 @@ export function MissionHUD() {
                 <div className="text-white font-bold text-sm leading-tight mb-2">
                     {activeJob.description}
                 </div>
-                <div className="flex items-center gap-2 text-zinc-400 text-xs">
-                    <Navigation size={12} />
-                    <span>Target: {dest?.name}</span>
+                <div className="flex flex-col gap-1 text-zinc-400 text-xs">
+                    <div className="flex items-center gap-2">
+                        <Navigation size={12} />
+                        <span>Target: {dest?.name || "Unknown"}</span>
+                    </div>
+                    <div className="flex justify-between items-center mt-1 border-t border-white/10 pt-2">
+                        <span>DIST: {distance > 0 ? formatDist(distance) : '---'}</span>
+                        <span className={eta > 0 ? "text-[#DFFF00]" : ""}>ETA: {formatTime(eta)}</span>
+                    </div>
                 </div>
             </div>
         </div>
     );
 }
 
-// --- CINEMATIC MENU ---
 export function CinematicMenu({ onSelectTour }: { onSelectTour: (id: string) => void }) {
     const [isOpen, setIsOpen] = useState(false);
     const tours = [
@@ -405,7 +548,6 @@ export function CinematicMenu({ onSelectTour }: { onSelectTour: (id: string) => 
     );
 }
 
-// --- DETAIL PANEL ---
 export function DetailPanel({ id, onClose }: { id: string | null, onClose: () => void }) {
     const { findBody, activeSystem, setActiveSystem } = useSimulation();
     const [isMinimized, setIsMinimized] = useState(false);
@@ -576,7 +718,6 @@ export function DetailPanel({ id, onClose }: { id: string | null, onClose: () =>
     );
 }
 
-// --- SYSTEM FINDER ---
 export function SystemFinder({ isOpen, onClose, onSelect }: any) {
     const { currentData } = useSimulation();
     const [searchTerm, setSearchTerm] = useState('');
@@ -605,89 +746,43 @@ export function SystemFinder({ isOpen, onClose, onSelect }: any) {
 
     return (
         <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex flex-col pt-safe-top">
-            
             <div className="sticky top-0 z-10 w-full bg-black/50 border-b border-white/10 p-4 md:p-6 backdrop-blur-md">
                 <div className="max-w-5xl mx-auto flex flex-col gap-4">
                     <div className="flex items-center justify-between">
                         <h2 className="text-2xl md:text-3xl font-black text-white uppercase tracking-tighter">
                             System <span className="text-[#DFFF00]">Browser</span>
                         </h2>
-                        <button 
-                            onClick={onClose} 
-                            className="p-2 bg-zinc-800 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-700 transition-all"
-                        >
-                            <X size={24} />
-                        </button>
+                        <button onClick={onClose} className="p-2 bg-zinc-800 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-700 transition-all"><X size={24} /></button>
                     </div>
-
                     <div className="flex flex-col md:flex-row gap-3">
                         <div className="relative flex-1">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                            <input 
-                                type="text" 
-                                placeholder="Search planets, moons, stations..." 
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full bg-zinc-900 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder-zinc-600 focus:outline-none focus:border-[#DFFF00] transition-colors"
-                            />
+                            <input type="text" placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-zinc-900 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder-zinc-600 focus:outline-none focus:border-[#DFFF00] transition-colors" />
                         </div>
-
                         <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
-                            {[
-                                { id: 'all', label: 'All' },
-                                { id: 'planet', label: 'Planets' },
-                                { id: 'moon', label: 'Moons' },
-                                { id: 'station', label: 'Stations' }
-                            ].map((tab) => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveFilter(tab.id as any)}
-                                    className={`
-                                        px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider whitespace-nowrap transition-all border
-                                        ${activeFilter === tab.id 
-                                            ? 'bg-[#DFFF00] text-black border-[#DFFF00]' 
-                                            : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-600 hover:text-white'}
-                                    `}
-                                >
-                                    {tab.label}
-                                </button>
+                            {[{ id: 'all', label: 'All' }, { id: 'planet', label: 'Planets' }, { id: 'moon', label: 'Moons' }, { id: 'station', label: 'Stations' }].map((tab) => (
+                                <button key={tab.id} onClick={() => setActiveFilter(tab.id as any)} className={`px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider whitespace-nowrap transition-all border ${activeFilter === tab.id ? 'bg-[#DFFF00] text-black border-[#DFFF00]' : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-600 hover:text-white'}`}>{tab.label}</button>
                             ))}
                         </div>
                     </div>
                 </div>
             </div>
-
             <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-32">
                 <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
                     {filteredBodies.length > 0 ? (
                         filteredBodies.map((body) => (
-                            <button 
-                                key={body.id}
-                                onClick={() => onSelect(body.id)}
-                                className="group flex items-center gap-4 bg-zinc-900/50 border border-white/5 hover:border-[#DFFF00]/50 hover:bg-zinc-800/80 p-4 rounded-xl text-left transition-all duration-300"
-                            >
-                                <div className={`
-                                    w-12 h-12 rounded-full flex items-center justify-center shrink-0
-                                    ${body.type === 'Star' ? 'bg-orange-500/20 text-orange-500' :
-                                      body.type === 'Planet' ? 'bg-blue-500/20 text-blue-500' :
-                                      body.type === 'Station' ? 'bg-[#DFFF00]/20 text-[#DFFF00]' :
-                                      'bg-zinc-700/50 text-zinc-400'}
-                                `}>
+                            <button key={body.id} onClick={() => onSelect(body.id)} className="group flex items-center gap-4 bg-zinc-900/50 border border-white/5 hover:border-[#DFFF00]/50 hover:bg-zinc-800/80 p-4 rounded-xl text-left transition-all duration-300">
+                                <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${body.type === 'Star' ? 'bg-orange-500/20 text-orange-500' : body.type === 'Planet' ? 'bg-blue-500/20 text-blue-500' : body.type === 'Station' ? 'bg-[#DFFF00]/20 text-[#DFFF00]' : 'bg-zinc-700/50 text-zinc-400'}`}>
                                     {body.type === 'Station' ? <Satellite size={20} /> : <Orbit size={20} />}
                                 </div>
                                 <div className="min-w-0">
-                                    <div className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 mb-0.5 truncate group-hover:text-[#DFFF00] transition-colors">
-                                        {body.type}
-                                    </div>
+                                    <div className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 mb-0.5 truncate group-hover:text-[#DFFF00] transition-colors">{body.type}</div>
                                     <div className="text-white font-bold text-lg leading-none truncate">{body.name}</div>
                                 </div>
                             </button>
                         ))
                     ) : (
-                        <div className="col-span-full flex flex-col items-center justify-center py-20 text-zinc-600">
-                            <Search size={48} className="mb-4 opacity-20" />
-                            <p className="uppercase tracking-widest text-sm">No Celestial Bodies Found</p>
-                        </div>
+                        <div className="col-span-full flex flex-col items-center justify-center py-20 text-zinc-600"><Search size={48} className="mb-4 opacity-20" /><p className="uppercase tracking-widest text-sm">No Celestial Bodies Found</p></div>
                     )}
                 </div>
             </div>
@@ -695,54 +790,41 @@ export function SystemFinder({ isOpen, onClose, onSelect }: any) {
     );
 }
 
-// --- SPEED CONTROLS ---
-export function SpeedControls({ 
-    showOrbits, setShowOrbits, 
-    showLabels, setShowLabels, 
-    showSolarWind, setShowSolarWind, 
-    handleRecenter,
-    isSpaceshipMode,
-    setIsSpaceshipMode
-}: any) {
-    const { speed, setSpeed, resetTime, setTime, simulationTime } = useSimulation();
+export function SpeedControls({ showOrbits, setShowOrbits, showLabels, setShowLabels, showSolarWind, setShowSolarWind, handleRecenter, isSpaceshipMode, setIsSpaceshipMode }: any) {
+    const { speed, setSpeed, resetTime, setTime, simulationTime, user } = useSimulation();
     const [dateInputOpen, setDateInputOpen] = useState(false);
-    
+    const [showLoginHint, setShowLoginHint] = useState(false); // New state for tooltip
+
+    const handleRocketClick = () => {
+        if (!user) {
+            setShowLoginHint(true);
+            setTimeout(() => setShowLoginHint(false), 2500);
+        } else {
+            setIsSpaceshipMode(!isSpaceshipMode);
+        }
+    };
+
     const handleDateSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
         const dateStr = formData.get('date') as string;
-        if(dateStr) {
-            const timestamp = new Date(dateStr).getTime();
-            if(!isNaN(timestamp)) {
-                setTime(timestamp);
-                setSpeed(1); 
-                setDateInputOpen(false);
-            }
-        }
+        if(dateStr) { const timestamp = new Date(dateStr).getTime(); if(!isNaN(timestamp)) { setTime(timestamp); setSpeed(1); setDateInputOpen(false); } }
     };
-    
+
     return (
         <>
             <AnimatePresence>
                 {dateInputOpen && (
-                    <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 20 }}
-                        className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[60] bg-zinc-900 border border-white/20 p-3 rounded-xl shadow-2xl flex flex-col items-center gap-2"
-                    >
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[60] bg-zinc-900 border border-white/20 p-3 rounded-xl shadow-2xl flex flex-col items-center gap-2">
                          <div className="text-[10px] text-zinc-400 uppercase tracking-widest font-mono">Jump to Date</div>
-                         <form onSubmit={handleDateSubmit} className="flex gap-2">
-                            <input 
-                                type="date" 
-                                name="date" 
-                                className="bg-black text-white text-xs p-2 rounded border border-zinc-700 outline-none focus:border-[#DFFF00]"
-                                defaultValue={new Date(simulationTime).toISOString().split('T')[0]}
-                            />
-                            <button type="submit" className="bg-[#DFFF00] text-black text-xs font-bold px-3 rounded hover:bg-white transition-colors">
-                                GO
-                            </button>
-                         </form>
+                         <form onSubmit={handleDateSubmit} className="flex gap-2"><input type="date" name="date" className="bg-black text-white text-xs p-2 rounded border border-zinc-700 outline-none focus:border-[#DFFF00]" defaultValue={new Date(simulationTime).toISOString().split('T')[0]} /><button type="submit" className="bg-[#DFFF00] text-black text-xs font-bold px-3 rounded hover:bg-white transition-colors">GO</button></form>
+                    </motion.div>
+                )}
+
+                {/* Login Required Tooltip */}
+                {showLoginHint && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="fixed bottom-24 left-4 z-[70] bg-red-900/90 border border-red-500 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest shadow-lg pointer-events-none">
+                        Login Required for Flight Systems
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -750,80 +832,27 @@ export function SpeedControls({
             <div className="fixed bottom-8 md:bottom-12 left-4 right-4 md:left-1/2 md:right-auto md:-translate-x-1/2 z-50 flex items-center justify-center pointer-events-none">
                 <div className="pointer-events-auto flex items-center gap-2 bg-black/70 backdrop-blur-xl p-1.5 rounded-full border border-white/10 shadow-[0_0_20px_rgba(0,0,0,0.5)] overflow-x-auto [&::-webkit-scrollbar]:hidden touch-pan-x">
                     <div className="flex items-center gap-1 pr-1">
-                        <button 
-                            onClick={() => setIsSpaceshipMode(!isSpaceshipMode)}
-                            className={`p-3 rounded-full transition-all ${isSpaceshipMode ? 'bg-[#DFFF00] text-black shadow-[0_0_15px_rgba(223,255,0,0.5)]' : 'text-zinc-400 hover:text-white hover:bg-white/10'}`}
-                            title="Toggle Spaceship Mode"
-                        >
-                            <Rocket size={18} />
-                        </button>
-                        <div className="w-px h-6 bg-white/20 mx-1" />
-                        <button 
-                            onClick={() => setShowOrbits(!showOrbits)}
-                            className={`p-3 rounded-full transition-all ${showOrbits ? 'bg-white text-black' : 'text-zinc-400 hover:text-white hover:bg-white/10'}`}
-                            title="Toggle Orbits"
-                        >
-                            {showOrbits ? <Eye size={18} /> : <EyeOff size={18} />}
-                        </button>
-                        <button 
-                            onClick={() => setShowLabels(!showLabels)}
-                            className={`p-3 rounded-full transition-all ${showLabels ? 'bg-white text-black' : 'text-zinc-400 hover:text-white hover:bg-white/10'}`}
-                            title="Toggle Labels"
-                        >
-                            <Tag size={18} />
-                        </button>
-                        <button 
-                            onClick={() => setShowSolarWind(!showSolarWind)}
-                            className={`p-3 rounded-full transition-all ${showSolarWind ? 'bg-[#DFFF00] text-black shadow-[0_0_15px_rgba(223,255,0,0.5)]' : 'text-zinc-400 hover:text-[#DFFF00] hover:bg-white/10'}`}
-                            title="Toggle Solar Wind"
-                        >
-                            <div className="w-4 h-4 rounded-full border border-current opacity-50" /> 
-                        </button>
-                        <button 
-                            onClick={handleRecenter}
-                            className="p-3 text-zinc-400 hover:text-white hover:bg-white/10 rounded-full transition-all"
-                            title="Recenter Camera"
-                        >
-                            <Crosshair size={18} />
-                        </button>
-                    </div>
-
-                    <div className="w-px h-8 bg-white/20 mx-1" />
-
-                    <div className="flex items-center gap-2 pl-1 relative">
-                        <button 
-                            onClick={resetTime}
-                            className="p-3 rounded-full hover:bg-white/10 text-[#DFFF00] transition-colors shrink-0"
-                            title="Reset to Live Time"
-                        >
-                            <div className="w-4 h-4 border-2 border-current rounded-full border-t-transparent -rotate-45" />
-                        </button>
-
-                         <button 
-                            onClick={() => setDateInputOpen(!dateInputOpen)}
-                            className={`p-3 rounded-full transition-colors shrink-0 ${dateInputOpen ? 'bg-white text-black' : 'text-zinc-400 hover:text-white hover:bg-white/10'}`}
-                            title="Jump to Date"
-                        >
-                            <CalendarCheck size={18} />
-                        </button>
                         
-                        {[
-                            { v: 1, l: 'LIVE' },
-                            { v: 100, l: '100x' },
-                            { v: 10000, l: '10kx' },
-                            { v: 100000, l: '100kx' },
-                            { v: 1000000, l: '1Mx' },
-                        ].map((opt) => (
-                            <button
-                                key={opt.v}
-                                onClick={() => setSpeed(opt.v)}
-                                className={`
-                                    px-3 py-1.5 rounded-full text-[10px] font-mono font-bold transition-all whitespace-nowrap shrink-0
-                                    ${speed === opt.v ? 'bg-white text-black' : 'text-zinc-400 hover:text-white hover:bg-white/10'}
-                                `}
-                            >
-                                {opt.l}
-                            </button>
+                        {/* ROCKET BUTTON - NOW LOCKED FOR GUESTS */}
+                        <button 
+                            onClick={handleRocketClick} 
+                            className={`p-3 rounded-full transition-all relative ${isSpaceshipMode ? 'bg-[#DFFF00] text-black shadow-[0_0_15px_rgba(223,255,0,0.5)]' : (user ? 'text-zinc-400 hover:text-white hover:bg-white/10' : 'text-zinc-600 bg-white/5 cursor-not-allowed')}`}
+                        >
+                            {user ? <Rocket size={18} /> : <Lock size={18} />}
+                        </button>
+
+                        <div className="w-px h-6 bg-white/20 mx-1" />
+                        <button onClick={() => setShowOrbits(!showOrbits)} className={`p-3 rounded-full transition-all ${showOrbits ? 'bg-white text-black' : 'text-zinc-400 hover:text-white hover:bg-white/10'}`}>{showOrbits ? <Eye size={18} /> : <EyeOff size={18} />}</button>
+                        <button onClick={() => setShowLabels(!showLabels)} className={`p-3 rounded-full transition-all ${showLabels ? 'bg-white text-black' : 'text-zinc-400 hover:text-white hover:bg-white/10'}`}><Tag size={18} /></button>
+                        <button onClick={() => setShowSolarWind(!showSolarWind)} className={`p-3 rounded-full transition-all ${showSolarWind ? 'bg-[#DFFF00] text-black shadow-[0_0_15px_rgba(223,255,0,0.5)]' : 'text-zinc-400 hover:text-[#DFFF00] hover:bg-white/10'}`}><div className="w-4 h-4 rounded-full border border-current opacity-50" /></button>
+                        <button onClick={handleRecenter} className="p-3 text-zinc-400 hover:text-white hover:bg-white/10 rounded-full transition-all"><Crosshair size={18} /></button>
+                    </div>
+                    <div className="w-px h-8 bg-white/20 mx-1" />
+                    <div className="flex items-center gap-2 pl-1 relative">
+                        <button onClick={resetTime} className="p-3 rounded-full hover:bg-white/10 text-[#DFFF00] transition-colors shrink-0"><div className="w-4 h-4 border-2 border-current rounded-full border-t-transparent -rotate-45" /></button>
+                         <button onClick={() => setDateInputOpen(!dateInputOpen)} className={`p-3 rounded-full transition-colors shrink-0 ${dateInputOpen ? 'bg-white text-black' : 'text-zinc-400 hover:text-white hover:bg-white/10'}`}><CalendarCheck size={18} /></button>
+                        {[{ v: 1, l: 'LIVE' }, { v: 100, l: '100x' }, { v: 10000, l: '10kx' }, { v: 100000, l: '100kx' }, { v: 1000000, l: '1Mx' }].map((opt) => (
+                            <button key={opt.v} onClick={() => setSpeed(opt.v)} className={`px-3 py-1.5 rounded-full text-[10px] font-mono font-bold transition-all whitespace-nowrap shrink-0 ${speed === opt.v ? 'bg-white text-black' : 'text-zinc-400 hover:text-white hover:bg-white/10'}`}>{opt.l}</button>
                         ))}
                     </div>
                 </div>
