@@ -343,7 +343,7 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
                 
                 // --- MINING TOGGLE ---
                 if (MOVEMENT_KEYS.MINING.includes(e.code)) {
-                    dispatchControl('MINING'); // Use central logic
+                    window.dispatchEvent(new CustomEvent(SPACESHIP_CONTROL_EVENT, { detail: { type: 'MINING' } }));
                 }
 
                 if (MOVEMENT_KEYS.AUTOPILOT.includes(e.code)) {
