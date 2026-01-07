@@ -14,6 +14,28 @@ interface AsteroidFieldProps {
     mode?: 'belt' | 'local';
 }
 
+function MiningLaser({ laser }: { laser: any }) {
+    const geoRef = useRef<THREE.BufferGeometry>(null);
+    
+    useEffect(() => {
+        if (geoRef.current) {
+            geoRef.current.setFromPoints([laser.start, laser.end]);
+        }
+    }, [laser.start, laser.end]);
+
+    return (
+        <line>
+            <bufferGeometry ref={geoRef} />
+            <lineBasicMaterial 
+                color={laser.color} 
+                linewidth={2} 
+                transparent 
+                opacity={Math.min(1, laser.timeLeft * 5)} 
+            />
+        </line>
+    );
+}
+
 export function AsteroidField({ count = 50, minRadius = 350, maxRadius = 550, mode = 'belt' }: AsteroidFieldProps) {
     const groupRef = useRef<THREE.Group>(null);
     const meshRef = useRef<THREE.InstancedMesh>(null);
@@ -209,10 +231,7 @@ export function AsteroidField({ count = 50, minRadius = 350, maxRadius = 550, mo
 
             {/* LASERS */}
             {lasers.map(laser => (
-                <line key={laser.id}>
-                    <bufferGeometry setFromPoints={[laser.start, laser.end]} />
-                    <lineBasicMaterial color={laser.color} linewidth={2} transparent opacity={laser.timeLeft * 5} />
-                </line>
+                <MiningLaser key={laser.id} laser={laser} />
             ))}
         </group>
     );

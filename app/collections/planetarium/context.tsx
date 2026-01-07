@@ -29,7 +29,8 @@ export {
     CARGO_TIERS,
     MINING_RESOURCES,
     MINING_LOCATIONS,
-    SPACESHIP_UPDATE_EVENT
+    SPACESHIP_UPDATE_EVENT,
+    formatTime
 } from './constants';
 
 export interface HaulingJob {
