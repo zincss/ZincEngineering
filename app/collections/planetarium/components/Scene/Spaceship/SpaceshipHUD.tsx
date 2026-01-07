@@ -19,6 +19,10 @@ import {
     formatDistance
 } from './constants';
 
+interface SpaceshipHUDProps {
+    active: boolean;
+}
+
 // --- 1. SHARED HUD COMPONENTS ---
 
 const WalletDisplay = ({ credits, color }: any) => (
