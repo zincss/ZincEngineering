@@ -32,13 +32,22 @@ export async function getPlayerSave() {
         return null;
     }
 
+    // Fetch fresh credits from profile (Source of Truth)
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('credits')
+        .eq('id', user.id)
+        .single();
+        
+    const currentCredits = profile?.credits ?? data?.credits ?? 500;
+
     // DEFAULT STARTING VALUES
     if (!data) {
         const defaultSave = {
             user_id: user.id,
             fuel: 1000, // Starter fuel
             boost: 50,  // Starter boost
-            credits: 500, // Reduced starter credits
+            credits: currentCredits, 
             current_system: 'solar',
             location_id: 'earth',
             docked_at: 'earth',
@@ -57,7 +66,7 @@ export async function getPlayerSave() {
     return {
         fuel: data.fuel,
         boost: data.boost,
-        credits: data.credits,
+        credits: currentCredits, // Use fresh profile credits
         current_system: data.current_system,
         location_id: data.location_id,
         docked_at: data.docked_at,
