@@ -410,6 +410,21 @@ export const PLANET_DATA: CelestialBody[] = [
           textureUrl: "",
           color: "#5c4f3d", // Darker hive-like color
           stats: { temp: "Cold", day: "-", year: "-" }
+        },
+        {
+          id: "titan_fuel_depot",
+          name: "Titan Fuel Depot",
+          type: "Station",
+          description: "High-grade methane refinement and refueling station.",
+          radius: 0.03,
+          distance: 25,
+          orbitalPeriod: 18,
+          rotationPeriod: 0,
+          meanLongitude: 90,
+          axialTilt: 0,
+          textureUrl: "",
+          color: "#00FF00",
+          stats: { temp: "-170°C", day: "-", year: "-" }
         }
     ]
   },
@@ -538,6 +553,38 @@ export const PLANET_DATA: CelestialBody[] = [
     color: "#DDDDDD",
     stats: { temp: "-240°C", day: "25.9 Hours", year: "558 Years" },
     moons: [] 
+  },
+  {
+    id: "deep_space_99",
+    name: "Deep Space 99",
+    type: "Station",
+    description: "A major refueling outpost in the asteroid belt.",
+    radius: 0.05,
+    distance: 350,
+    orbitalPeriod: 1500,
+    rotationPeriod: 24,
+    meanLongitude: 45,
+    axialTilt: 0,
+    textureUrl: "",
+    color: "#DFFF00",
+    stats: { temp: "-80°C", day: "24 Hours", year: "4.1 Years" },
+    moons: []
+  },
+  {
+    id: "kuiper_rest_stop",
+    name: "Kuiper Rest Stop",
+    type: "Station",
+    description: "Last chance for fuel before the Oort Cloud.",
+    radius: 0.08,
+    distance: 6500,
+    orbitalPeriod: 100000,
+    rotationPeriod: 12,
+    meanLongitude: 270,
+    axialTilt: 0,
+    textureUrl: "",
+    color: "#FF00FF",
+    stats: { temp: "-235°C", day: "12 Hours", year: "273 Years" },
+    moons: []
   },
   {
     id: "sagittarius_a",

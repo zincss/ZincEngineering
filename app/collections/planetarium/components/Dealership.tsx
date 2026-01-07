@@ -92,10 +92,12 @@ export function Dealership({ onClose }: { onClose: () => void }) {
                             <StatBar label="Thruster Output (Accel)" value={selectedShip.acceleration} max={25} icon={Gauge} color="blue" />
                             <StatBar label="Maneuverability" value={selectedShip.turnSpeed} max={3.0} icon={Activity} color="emerald" />
                             <StatBar label="Boost Multiplier" value={selectedShip.boostMultiplier} max={25} icon={Zap} color="purple" />
+                            <StatBar label="Storage Capacity" value={selectedShip.miningCap} max={10000} icon={ShoppingCart} color="orange" />
                         </div>
                         <div className="space-y-4">
                             <StatBar label="Fuel Capacity" value={selectedShip.maxFuel} max={10000} icon={null} color="orange" />
                             <StatBar label="Boost Tank" value={selectedShip.maxBoost} max={500} icon={null} color="pink" />
+                            <StatBar label="Mining Laser Power" value={selectedShip.miningLaserPower} max={10} icon={Activity} color="emerald" />
                             <div className="pt-2">
                                 <div className="text-xs uppercase tracking-widest text-zinc-500 mb-1 flex justify-between">
                                     <span>Efficiency Rating</span>

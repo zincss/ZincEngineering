@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-    Eye, EyeOff, Tag, Crosshair, Rocket, CalendarCheck, Lock 
+    Eye, EyeOff, Tag, Crosshair, Rocket, CalendarCheck, Lock, Pickaxe
 } from 'lucide-react';
-import { useSimulation } from '../../context';
+import * as THREE from 'three';
+import { useSimulation, MINING_LOCATIONS, SPACESHIP_UPDATE_EVENT, getOrbitalPosition } from '../../context';
 
 interface SpeedControlsProps {
     showOrbits: boolean;
@@ -30,9 +31,71 @@ export function SpeedControls({
     isSpaceshipMode,
     setIsSpaceshipMode
 }: SpeedControlsProps) {
-    const { speed, setSpeed, resetTime, setTime, simulationTime, user } = useSimulation();
+    const { speed, setSpeed, resetTime, setTime, simulationTime, user, miningState, startMining, stopMining, findBody, activeSystem, currentShip, timeRef, currentData } = useSimulation();
     const [dateInputOpen, setDateInputOpen] = useState(false);
     const [showLoginHint, setShowLoginHint] = useState(false);
+    const [showMiningHint, setShowMiningHint] = useState(false);
+    
+    const [canMine, setCanMine] = useState(false);
+    const [nearestMiningZone, setNearestMiningZone] = useState<string | null>(null);
+    const [distFromSun, setDistFromSun] = useState<number>(0);
+
+    // Monitor ship position for mining zones
+    useEffect(() => {
+        if (!isSpaceshipMode) return;
+
+        const handleUpdate = (e: any) => {
+            if (e.detail.shipPos) {
+                const shipPos = new THREE.Vector3(e.detail.shipPos.x, e.detail.shipPos.y, e.detail.shipPos.z);
+                const distFromCenter = shipPos.length();
+                setDistFromSun(Math.floor(distFromCenter));
+                
+                let foundZone = null;
+
+                // 1. Check Generic Zones (Radius based)
+                if (distFromCenter > 300 && distFromCenter < 600) {
+                    foundZone = 'asteroid_belt';
+                } else if (distFromCenter > 5800 && distFromCenter < 8500) {
+                    foundZone = 'kuiper_belt';
+                }
+
+                // 2. Check Specific Bodies
+                if (!foundZone) {
+                    for (const zoneId of MINING_LOCATIONS) {
+                        const body = findBody(zoneId);
+                        if (body) {
+                            // Use timeRef for instant check without re-render lag
+                            let bodyPos = getOrbitalPosition(body, timeRef.current);
+                            
+                            // Check if body has a parent (is a moon)
+                            const parent = currentData.find(p => p.moons?.some(m => m.id === body.id));
+                            if (parent) {
+                                bodyPos.add(getOrbitalPosition(parent, timeRef.current));
+                            }
+
+                            const dist = shipPos.distanceTo(bodyPos);
+                            // Mining range 500 units
+                            if (dist < 500) {
+                                foundZone = zoneId;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                if (foundZone) {
+                    setCanMine(true);
+                    setNearestMiningZone(foundZone);
+                } else {
+                    setCanMine(false);
+                    setNearestMiningZone(null);
+                }
+            }
+        };
+
+        window.addEventListener(SPACESHIP_UPDATE_EVENT, handleUpdate);
+        return () => window.removeEventListener(SPACESHIP_UPDATE_EVENT, handleUpdate);
+    }, [isSpaceshipMode, findBody, timeRef]);
 
     const handleRocketClick = () => {
         if (!user) {
@@ -40,6 +103,18 @@ export function SpeedControls({
             setTimeout(() => setShowLoginHint(false), 2500);
         } else {
             setIsSpaceshipMode(!isSpaceshipMode);
+        }
+    };
+
+    const handleMiningToggle = () => {
+        if (miningState.isMining) {
+            stopMining();
+        } else if (canMine && nearestMiningZone) {
+            startMining(nearestMiningZone);
+        } else {
+            // Show hint
+            setShowMiningHint(true);
+            setTimeout(() => setShowMiningHint(false), 4000);
         }
     };
 
@@ -64,7 +139,7 @@ export function SpeedControls({
         { v: 100000, l: '100kx' },
         { v: 1000000, l: '1Mx' }
     ];
-
+    
     return (
         <>
             <AnimatePresence>
@@ -104,6 +179,26 @@ export function SpeedControls({
                         Login Required for Flight Systems
                     </motion.div>
                 )}
+                
+                {/* Mining Hint Tooltip */}
+                {showMiningHint && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        className="fixed bottom-24 left-16 z-[70] bg-zinc-800/90 border border-purple-500 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg pointer-events-none w-64"
+                    >
+                        <div className="uppercase tracking-widest text-purple-400 mb-1">Scanner Offline</div>
+                        No mineable resources detected nearby.
+                        <br />
+                        <span className="text-zinc-400 font-normal">
+                            Try navigating to the <strong>Asteroid Belt</strong> (300-600 Units) or <strong>Kuiper Belt</strong> (&gt;5800 Units).
+                        </span>
+                        <div className="mt-2 text-[10px] text-zinc-500 border-t border-zinc-700 pt-1">
+                            Current Solar Distance: <span className="text-white">{distFromSun} Units</span>
+                        </div>
+                    </motion.div>
+                )}
             </AnimatePresence>
 
             <div className="fixed bottom-8 md:bottom-12 left-4 right-4 md:left-1/2 md:right-auto md:-translate-x-1/2 z-50 flex items-center justify-center pointer-events-none">
@@ -121,6 +216,22 @@ export function SpeedControls({
                         >
                             {user ? <Rocket size={18} /> : <Lock size={18} />}
                         </button>
+
+                        {/* MINING BUTTON - Always visible if ship has mining capabilities */}
+                        {isSpaceshipMode && (currentShip.miningCap || 0) > 0 && (
+                             <button
+                                onClick={handleMiningToggle}
+                                className={`p-3 rounded-full transition-all relative ${
+                                    miningState.isMining
+                                        ? 'bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)] animate-pulse'
+                                        : canMine 
+                                            ? 'bg-purple-500/20 text-purple-400 hover:bg-purple-500 hover:text-white'
+                                            : 'bg-zinc-800/50 text-zinc-600 hover:text-zinc-500' // Disabled/Scanning look
+                                }`}
+                            >
+                                <Pickaxe size={18} className={!canMine && !miningState.isMining ? "opacity-50" : ""} />
+                            </button>
+                        )}
 
                         <div className="w-px h-6 bg-white/20 mx-1" />
                         <button

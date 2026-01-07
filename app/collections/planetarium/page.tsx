@@ -14,6 +14,7 @@ import { StarBackground, SolarWind, SpaceDust, AsteroidBelt } from './components
 import { Sun } from './components/Scene/StellarBodies';
 import { Planet } from './components/Scene/PlanetarySystem';
 import { SpaceshipController, SpaceshipHUD } from './components/Scene/Spaceship';
+import { AsteroidField } from './components/Scene/AsteroidField';
 import { SystemControls } from './components/Controls'; 
 import { FantasyContent } from './components/FantasyScene';
 
@@ -23,7 +24,7 @@ import { FlightComputer } from './components/Cinematic/FlightComputer';
 import { generateCommercialFlight } from './components/Cinematic/utils';
 import type { OverlayData, FlightData } from './components/Cinematic/types';
 
-import { DetailPanel, SystemFinder, SpeedControls, CinematicMenu, JobBoard, MissionHUD, JobCompleteOverlay } from './components/UI';
+import { DetailPanel, SystemFinder, SpeedControls, CinematicMenu, JobBoard, MissionHUD, JobCompleteOverlay, NavigationComputer, MiningOverlay } from './components/UI';
 
 function TimeDisplay() {
     const { simulationTime, activeSystem } = useSimulation();
@@ -40,6 +41,7 @@ function PlanetariumContent() {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [hoveredId, setHoveredId] = useState<string | null>(null); 
     const [finderOpen, setFinderOpen] = useState(false);
+    const [navComputerOpen, setNavComputerOpen] = useState(false);
     
     const [showOrbits, setShowOrbits] = useState(true);
     const [showLabels, setShowLabels] = useState(true);
@@ -61,6 +63,12 @@ function PlanetariumContent() {
         setSelectedId(null);
         setFinderOpen(false);
     }, [activeSystem]);
+
+    useEffect(() => {
+        const handleOpenNav = () => setNavComputerOpen(true);
+        window.addEventListener('spaceship-open-nav', handleOpenNav);
+        return () => window.removeEventListener('spaceship-open-nav', handleOpenNav);
+    }, []);
 
     useEffect(() => {
         if (isCinematic) setIsSpaceshipMode(false);
@@ -253,6 +261,16 @@ function PlanetariumContent() {
                             <StarBackground />
                             {!isScaleMode && <SpaceDust />} 
                             {!isScaleMode && <AsteroidBelt />}
+                            {!isScaleMode && (
+                                <>
+                                    {/* Inner Belt (Main Asteroid Belt) */}
+                                    <AsteroidField count={100} minRadius={300} maxRadius={600} />
+                                    {/* Outer Belt (Kuiper Belt) */}
+                                    <AsteroidField count={100} minRadius={5800} maxRadius={8500} />
+                                    {/* Local Body Mining (e.g. Moons/Stations) */}
+                                    <AsteroidField count={40} minRadius={20} maxRadius={60} mode="local" />
+                                </>
+                            )}
                             {!isScaleMode && showSolarWind && <SolarWind />}
                             
                             <group position={sunScalePos}>
@@ -289,6 +307,7 @@ function PlanetariumContent() {
             </Canvas>
 
             <SpaceshipHUD active={isSpaceshipMode} />
+            <MiningOverlay />
             <MissionHUD />
             <JobCompleteOverlay onExit={handleJobCompleteExit} />
             
@@ -357,6 +376,7 @@ function PlanetariumContent() {
 
             <DetailPanel id={isSpaceshipMode ? null : selectedId} onClose={() => setSelectedId(null)} />
             <SystemFinder isOpen={finderOpen} onClose={() => setFinderOpen(false)} onSelect={handleSelect} />
+            <NavigationComputer isOpen={navComputerOpen} onClose={() => setNavComputerOpen(false)} onSelect={handleSelect} />
             
             {isCinematic && (
                 <div className="fixed bottom-8 md:bottom-12 w-full text-center pointer-events-auto animate-in fade-in duration-1000 z-50 px-4">

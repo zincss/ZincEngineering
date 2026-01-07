@@ -4,3 +4,4 @@ export { SolarWind, SpaceDust, AsteroidBelt, StarBackground } from './Environmen
 export { BlackHole, Sun } from './StellarBodies';
 export { Planet } from './PlanetarySystem';
 export { SpaceshipController, SpaceshipHUD } from './Spaceship';
+export { AsteroidField } from './AsteroidField';

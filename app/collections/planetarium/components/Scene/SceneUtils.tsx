@@ -85,14 +85,16 @@ export function SmartLabel({
     type, 
     position, 
     visible, 
-    offset = 0 
+    offset = 0,
+    isSelected = false
 }: { 
     id?: string,
     text: string, 
     type: string, 
     position: [number, number, number], 
     visible: boolean,
-    offset?: number 
+    offset?: number,
+    isSelected?: boolean
 }) {
     const { camera } = useThree();
     const { activeJob } = useSimulation(); 
@@ -136,7 +138,9 @@ export function SmartLabel({
              const FADE_START = 120;
              const FADE_END = 200;
              
-             if (dist > FADE_END) opacity = 0;
+             if (isSelected) {
+                 opacity = 1;
+             } else if (dist > FADE_END) opacity = 0;
              else if (dist > FADE_START) opacity = 1 - (dist - FADE_START) / (FADE_END - FADE_START);
              else opacity = 1;
 

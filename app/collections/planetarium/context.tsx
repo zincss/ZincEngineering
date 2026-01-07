@@ -14,7 +14,9 @@ import {
     FUEL_COST_PER_UNIT, 
     BOOST_COST_PER_UNIT,
     UNINHABITABLE_IDS,
-    CARGO_TIERS
+    CARGO_TIERS,
+    MINING_RESOURCES,
+    MINING_LOCATIONS
 } from './constants';
 
 // Re-export constants for backwards compatibility
@@ -24,7 +26,10 @@ export {
     FUEL_COST_PER_UNIT, 
     BOOST_COST_PER_UNIT,
     UNINHABITABLE_IDS,
-    CARGO_TIERS
+    CARGO_TIERS,
+    MINING_RESOURCES,
+    MINING_LOCATIONS,
+    SPACESHIP_UPDATE_EVENT
 } from './constants';
 
 export interface HaulingJob {
@@ -35,6 +40,10 @@ export interface HaulingJob {
     reward: number;
     description: string;
     tier: number;
+}
+
+export interface Inventory {
+    [resourceId: string]: number;
 }
 
 const solveKepler = (M: number, e: number): number => {
@@ -128,9 +137,32 @@ interface SimulationContextType {
     buyFuel: () => void;
     updateBoost: (newAmount: number) => void;
     buyBoost: () => void;
+
+    // MINING
+    inventory: Inventory;
+    miningState: { isMining: boolean; activeZoneId: string | null };
+    startMining: (zoneId: string) => void;
+    stopMining: () => void;
+    mineAsteroid: (resource: string) => number; // Returns quantity added
+    sellResource: (resourceId: string, quantity: number) => void;
+    marketState: Record<string, { data: MarketData, lastUpdate: number }>;
+    getMarketForStation: (stationId: string) => MarketData | null;
+    
+    // HANGAR / SHIP MANAGEMENT
+    shipLocations: { [shipId: string]: string }; // Maps shipId to stationId
+    shipTransfers: { [shipId: string]: { destination: string, arrivalTime: number, totalTime: number } };
+    recallShip: (shipId: string) => void;
     
     // UPDATED: Added creditOverride support
-    saveGame: (currentPosition?: THREE.Vector3, creditOverride?: number) => Promise<void>;
+    saveGame: (currentPosition?: THREE.Vector3, creditOverride?: number, invOverride?: Inventory, locOverride?: { [shipId: string]: string }) => Promise<void>;
+}
+
+export interface MarketData {
+    [resourceId: string]: {
+        price: number;
+        demand: number; // 0.5 to 1.5 multiplier
+        saturation: number; // 0 to 100 (percentage filled)
+    }
 }
 
 const SimulationContext = createContext<SimulationContextType | null>(null);
@@ -156,6 +188,8 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
     // Ship State
     const [currentShipId, setCurrentShipId] = useState('starter_tub');
     const [ownedShips, setOwnedShips] = useState<string[]>(['starter_tub']);
+    const [shipLocations, setShipLocations] = useState<{ [shipId: string]: string }>({});
+    const [shipTransfers, setShipTransfers] = useState<{ [shipId: string]: { destination: string, arrivalTime: number, totalTime: number } }>({});
     
     const [activeJob, setActiveJob] = useState<HaulingJob | null>(null);
     const [dockedAt, _setDockedAt] = useState<string | null>(null);
@@ -165,19 +199,129 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
     const [lastCompletedJob, setLastCompletedJob] = useState<HaulingJob | null>(null);
     const [savedPosition, setSavedPosition] = useState<{ x: number, y: number, z: number } | null>(null);
 
+    // Mining & Market State
+    const [inventory, setInventory] = useState<Inventory>({});
+    const [miningState, setMiningState] = useState<{ isMining: boolean; activeZoneId: string | null }>({
+        isMining: false,
+        activeZoneId: null
+    });
+    const [marketState, setMarketState] = useState<Record<string, { data: MarketData, lastUpdate: number }>>({});
+
     const timeRef = useRef(Date.now());
     const speedRef = useRef(1);
+
+    // ------------------------------------------------------------------
+    // HELPERS
+    // ------------------------------------------------------------------
+
+    const currentData = useMemo(() => {
+        return activeSystem === 'fantasy' ? FANTASY_DATA : PLANET_DATA;
+    }, [activeSystem]);
+
+    const findBody = useCallback((id: string | null): CelestialBody | undefined => {
+        if (!id) return undefined;
+        for (const body of currentData) {
+            if (body.id === id) return body;
+            if (body.moons) {
+                const moon = body.moons.find(m => m.id === id);
+                if (moon) return moon;
+            }
+        }
+        return undefined;
+    }, [currentData]);
+
+    const generateMarket = useCallback((stationId: string): MarketData => {
+        const market: MarketData = {};
+        const resources = Object.keys(MINING_RESOURCES);
+        
+        resources.forEach(res => {
+            const basePrice = (MINING_RESOURCES as any)[res]?.price || 1;
+            
+            // Random demand fluctuation (0.7x to 1.4x)
+            const demand = 0.7 + Math.random() * 0.7; 
+            
+            // Initial saturation (0% to 60%)
+            const saturation = Math.floor(Math.random() * 60);
+
+            market[res] = {
+                price: Math.floor(basePrice * demand),
+                demand,
+                saturation
+            };
+        });
+
+        return market;
+    }, []);
+
+    const getMarketForStation = useCallback((stationId: string): MarketData | null => {
+        const now = Date.now();
+        const current = marketState[stationId];
+        
+        // 30 Minutes = 1800000ms
+        if (current && (now - current.lastUpdate) < 1800000) {
+            return current.data;
+        }
+        
+        // Generate new market
+        const newData = generateMarket(stationId);
+        setMarketState(prev => ({
+            ...prev,
+            [stationId]: {
+                data: newData,
+                lastUpdate: now
+            }
+        }));
+        return newData;
+    }, [marketState, generateMarket]);
+
+    // ------------------------------------------------------------------
+    // INIT & SAVE
+    // ------------------------------------------------------------------
 
     const setDockedAt = useCallback((id: string | null, vector?: { x: number, y: number, z: number } | null) => {
         if (id) {
             setLastDockedNode(id);
             if (vector) setLastDockVector(vector);
+            // Auto stop mining if docked
+            setMiningState(prev => ({ ...prev, isMining: false }));
+            
+            // Trigger market refresh if needed
+            getMarketForStation(id);
         }
         _setDockedAt(id);
-    }, []);
+    }, [getMarketForStation]);
+
 
     // Derived Current Ship Object
     const currentShip = useMemo(() => getShipById(currentShipId), [currentShipId]);
+
+    // TRANSFER MONITORING LOOP
+    useEffect(() => {
+        const interval = setInterval(() => {
+            const now = Date.now();
+            setShipTransfers(prev => {
+                const next = { ...prev };
+                let changed = false;
+                
+                Object.keys(next).forEach(shipId => {
+                    if (now >= next[shipId].arrivalTime) {
+                        // Transfer complete
+                        const dest = next[shipId].destination;
+                        delete next[shipId];
+                        
+                        setShipLocations(locs => ({
+                            ...locs,
+                            [shipId]: dest
+                        }));
+                        changed = true;
+                    }
+                });
+                
+                return changed ? next : prev;
+            });
+        }, 1000);
+        return () => clearInterval(interval);
+    }, []);
 
     useEffect(() => {
         let mounted = true;
@@ -196,6 +340,23 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
                         if (save.current_ship_id) setCurrentShipId(save.current_ship_id);
                         if (save.owned_ships) setOwnedShips(save.owned_ships);
                         
+                        // Load Ship Locations (using 'extra' field or assuming schema update soon)
+                        // For now we store it in local state but if we want persistence we need backend update.
+                        // Assuming save object has it or we default.
+                        const savedLocs = (save as any).ship_locations || {};
+                        
+                        // Ensure all owned ships (except current) have a location
+                        const owned = save.owned_ships || ['starter_tub'];
+                        const current = save.current_ship_id || 'starter_tub';
+                        
+                        const finalLocs: {[key:string]: string} = { ...savedLocs };
+                        owned.forEach((sId: string) => {
+                            if (sId !== current && !finalLocs[sId]) {
+                                finalLocs[sId] = 'earth'; // Default fallback
+                            }
+                        });
+                        setShipLocations(finalLocs);
+
                         if (save.docked_at) {
                             _setDockedAt(save.docked_at);
                             setLastDockedNode(save.docked_at);
@@ -204,6 +365,10 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
                         }
                         
                         setSavedPosition(save.position);
+                        
+                        if ((save as any).inventory) {
+                            setInventory((save as any).inventory);
+                        }
                         
                         if (!save.docked_at && !save.position) {
                             _setDockedAt('earth');
@@ -224,6 +389,8 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
                     setCredits(500);
                     setCurrentShipId('starter_tub');
                     setOwnedShips(['starter_tub']);
+                    setInventory({});
+                    setShipLocations({});
                     
                     _setDockedAt(null); 
                     setLastDockedNode(null);
@@ -256,31 +423,15 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
         setSimTimeState(t);
     }, []);
 
-    const currentData = useMemo(() => {
-        return activeSystem === 'fantasy' ? FANTASY_DATA : PLANET_DATA;
-    }, [activeSystem]);
-
-    const findBody = useCallback((id: string | null): CelestialBody | undefined => {
-        if (!id) return undefined;
-        for (const body of currentData) {
-            if (body.id === id) return body;
-            if (body.moons) {
-                const moon = body.moons.find(m => m.id === id);
-                if (moon) return moon;
-            }
-        }
-        return undefined;
-    }, [currentData]);
-
-    // UPDATED: Added creditOverride to support instant saving after job complete
-    const saveGame = useCallback(async (currentPosition?: THREE.Vector3, creditOverride?: number) => {
+    // UPDATED: Added locOverride
+    const saveGame = useCallback(async (currentPosition?: THREE.Vector3, creditOverride?: number, invOverride?: Inventory, locOverride?: { [shipId: string]: string }) => {
         if (!user || isLoadingSave) return; 
         
         if (currentPosition) {
             setSavedPosition({ x: currentPosition.x, y: currentPosition.y, z: currentPosition.z });
         }
 
-        const data: PlanetariumSaveData = {
+        const data: PlanetariumSaveData & { inventory?: Inventory, ship_locations?: { [shipId: string]: string } } = {
             fuel,
             boost,
             credits: creditOverride !== undefined ? creditOverride : credits, // USE OVERRIDE IF PRESENT
@@ -289,13 +440,18 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
             docked_at: dockedAt,
             position: currentPosition ? { x: currentPosition.x, y: currentPosition.y, z: currentPosition.z } : null,
             current_ship_id: currentShipId,
-            owned_ships: ownedShips
+            owned_ships: ownedShips,
+            inventory: invOverride || inventory,
+            ship_locations: locOverride || shipLocations
         };
 
         await savePlayerProgress(data);
-    }, [user, isLoadingSave, fuel, boost, credits, activeSystem, dockedAt, currentShipId, ownedShips]);
+    }, [user, isLoadingSave, fuel, boost, credits, activeSystem, dockedAt, currentShipId, ownedShips, inventory, shipLocations]);
 
-    // SHIP ACTIONS
+    // ------------------------------------------------------------------
+    // SHIP MANAGEMENT
+    // ------------------------------------------------------------------
+
     const purchaseShip = useCallback((shipId: string) => {
         const ship = getShipById(shipId);
         if (!ship) return;
@@ -305,36 +461,103 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
             const newCredits = credits - ship.price;
             setCredits(newCredits);
             setOwnedShips(prev => [...prev, shipId]);
+            
+            // New ship is delivered to current location
+            const newLocs = { ...shipLocations, [shipId]: dockedAt || 'earth' };
+            setShipLocations(newLocs);
+            
             // Instant save on purchase
-            saveGame(undefined, newCredits);
+            saveGame(undefined, newCredits, undefined, newLocs);
         }
-    }, [credits, ownedShips, saveGame]);
+    }, [credits, ownedShips, saveGame, dockedAt, shipLocations]);
 
     const equipShip = useCallback((shipId: string) => {
-        if (ownedShips.includes(shipId)) {
-            setCurrentShipId(shipId);
-            // Cap fuel/boost if new ship has smaller tanks
-            const newShip = getShipById(shipId);
-            setFuel(prev => Math.min(prev, newShip.maxFuel));
-            setBoost(prev => Math.min(prev, newShip.maxBoost));
-            
-            // Trigger a save so the ship persists
-            const data: PlanetariumSaveData = {
-                fuel: Math.min(fuel, newShip.maxFuel),
-                boost: Math.min(boost, newShip.maxBoost),
-                credits,
-                current_system: activeSystem,
-                location_id: dockedAt,
-                docked_at: dockedAt,
-                position: savedPosition ? { x: savedPosition.x, y: savedPosition.y, z: savedPosition.z } : null,
-                current_ship_id: shipId,
-                owned_ships: ownedShips
-            };
-            savePlayerProgress(data);
+        if (!dockedAt) return; // Must be docked to switch
+        if (!ownedShips.includes(shipId)) return;
+        
+        // Check if ship is here
+        const shipLoc = shipLocations[shipId];
+        if (shipLoc && shipLoc !== dockedAt) {
+            console.warn("Ship is not at this station");
+            return;
         }
-    }, [ownedShips, fuel, boost, credits, activeSystem, dockedAt, savedPosition]);
 
-    // TIERED JOB GENERATION
+        // SWAP LOGIC
+        const oldShipId = currentShipId;
+        const newShipId = shipId;
+        
+        if (oldShipId === newShipId) return;
+
+        // 1. Update State
+        setCurrentShipId(newShipId);
+        
+        const newShip = getShipById(newShipId);
+        setFuel(prev => Math.min(prev, newShip.maxFuel));
+        setBoost(prev => Math.min(prev, newShip.maxBoost));
+        
+        setShipLocations(prev => {
+            const next = { ...prev };
+            // Move old ship to current station
+            next[oldShipId] = dockedAt;
+            // Remove new ship from locations (it's now active)
+            delete next[newShipId];
+            return next;
+        });
+
+        // 2. Persist
+        // We need the *calculated* new locations for the save
+        const nextLocs = { ...shipLocations };
+        nextLocs[oldShipId] = dockedAt;
+        delete nextLocs[newShipId];
+
+        const data: PlanetariumSaveData & { ship_locations?: any } = {
+            fuel: Math.min(fuel, newShip.maxFuel),
+            boost: Math.min(boost, newShip.maxBoost),
+            credits,
+            current_system: activeSystem,
+            location_id: dockedAt,
+            docked_at: dockedAt,
+            position: savedPosition ? { x: savedPosition.x, y: savedPosition.y, z: savedPosition.z } : null,
+            current_ship_id: newShipId,
+            owned_ships: ownedShips,
+            ship_locations: nextLocs
+        };
+        savePlayerProgress(data);
+
+    }, [ownedShips, fuel, boost, credits, activeSystem, dockedAt, savedPosition, shipLocations, currentShipId, ownedShips]);
+
+    const recallShip = useCallback((shipId: string) => {
+        if (!dockedAt) return;
+        const shipLoc = shipLocations[shipId];
+        if (!shipLoc || shipLoc === dockedAt) return;
+        
+        // Calculate Distance
+        const originBody = findBody(shipLoc);
+        const destBody = findBody(dockedAt);
+        
+        if (!originBody || !destBody) return;
+        
+        const posA = getOrbitalPosition(originBody, simTimeState);
+        const posB = getOrbitalPosition(destBody, simTimeState);
+        const dist = posA.distanceTo(posB);
+        
+        // Travel Time: 5s base + 1s per 50 units
+        const duration = 5000 + (dist / 50) * 1000;
+        
+        setShipTransfers(prev => ({
+            ...prev,
+            [shipId]: {
+                destination: dockedAt,
+                arrivalTime: Date.now() + duration,
+                totalTime: duration
+            }
+        }));
+    }, [dockedAt, shipLocations, findBody, simTimeState]);
+
+    // ------------------------------------------------------------------
+    // JOBS & ECONOMY
+    // ------------------------------------------------------------------
+
     const generateJobsForLocation = useCallback((locationId: string) => {
         const origin = findBody(locationId);
         if (!origin) return;
@@ -476,14 +699,152 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
         });
     }, [credits, currentShip, saveGame]);
 
+    // MINING IMPLEMENTATION
+    const startMining = useCallback((zoneId: string) => {
+        setMiningState({ isMining: true, activeZoneId: zoneId });
+    }, []);
+
+    const stopMining = useCallback(() => {
+        setMiningState({ isMining: false, activeZoneId: null });
+    }, []);
+
+    const mineAsteroid = useCallback((resource: string) => {
+        if (!currentShip.miningCap) return 0;
+
+        // Use functional state update to get the fresh inventory
+        let added = 0;
+        setInventory(prev => {
+            const currentLoad = Object.values(prev).reduce((a, b) => a + b, 0);
+            if (currentLoad >= currentShip.miningCap) return prev; // Full
+
+            const baseYield = 1;
+            const actualYield = Math.floor(baseYield * (currentShip.miningLaserPower || 1));
+            // Ensure at least 1 if power > 0, unless 0 power
+            const amountToAdd = Math.max(1, Math.min(actualYield, currentShip.miningCap - currentLoad));
+            
+            if (amountToAdd <= 0) return prev;
+
+            added = amountToAdd;
+            return {
+                ...prev,
+                [resource]: (prev[resource] || 0) + amountToAdd
+            };
+        });
+        
+        return added;
+    }, [currentShip]);
+
+    const sellResource = useCallback((resourceId: string, quantity: number) => {
+        if (!dockedAt) return;
+        const currentMarket = getMarketForStation(dockedAt);
+        if (!currentMarket) return;
+        
+        const marketItem = currentMarket[resourceId];
+        if (!marketItem || marketItem.saturation >= 100) return; // Market saturated or item not valid
+
+        const available = inventory[resourceId] || 0;
+        const amountToSell = Math.min(quantity, available);
+        
+        if (amountToSell <= 0) return;
+
+        const profit = amountToSell * marketItem.price;
+
+        // 1. Update Credits & Inventory
+        const newCredits = credits + profit;
+        setCredits(newCredits);
+        
+        const newInventory = { ...inventory };
+        newInventory[resourceId] -= amountToSell;
+        if (newInventory[resourceId] <= 0) delete newInventory[resourceId];
+        setInventory(newInventory);
+
+        // 2. Update Market Saturation (Selling fills demand)
+        setMarketState(prev => {
+            const stationMarket = prev[dockedAt];
+            if (!stationMarket) return prev;
+            
+            const newSaturation = Math.min(100, stationMarket.data[resourceId].saturation + Math.ceil(amountToSell / 2));
+            
+            return {
+                ...prev,
+                [dockedAt]: {
+                    ...stationMarket,
+                    data: {
+                        ...stationMarket.data,
+                        [resourceId]: {
+                            ...stationMarket.data[resourceId],
+                            saturation: newSaturation
+                        }
+                    }
+                }
+            };
+        });
+
+        // 3. Save
+        saveGame(undefined, newCredits, newInventory);
+    }, [inventory, credits, saveGame, dockedAt, getMarketForStation]);
+
+    const buyResource = useCallback((resourceId: string, quantity: number) => {
+        if (!dockedAt) return;
+        const currentMarket = getMarketForStation(dockedAt);
+        if (!currentMarket) return;
+
+        const marketItem = currentMarket[resourceId];
+        if (!marketItem) return;
+
+        const cost = quantity * marketItem.price;
+        if (credits < cost) return;
+
+        // Check Cargo Capacity
+        const currentLoad = Object.values(inventory).reduce((a, b) => a + b, 0);
+        const maxLoad = currentShip.miningCap || 0;
+        if (currentLoad + quantity > maxLoad) return;
+
+        // 1. Update Credits & Inventory
+        const newCredits = credits - cost;
+        setCredits(newCredits);
+
+        const newInventory = { ...inventory };
+        newInventory[resourceId] = (newInventory[resourceId] || 0) + quantity;
+        setInventory(newInventory);
+
+        // 2. Update Market Saturation (Buying reduces saturation/stock)
+        setMarketState(prev => {
+            const stationMarket = prev[dockedAt];
+            if (!stationMarket) return prev;
+
+            const newSaturation = Math.max(0, stationMarket.data[resourceId].saturation - Math.ceil(quantity / 2));
+
+            return {
+                ...prev,
+                [dockedAt]: {
+                    ...stationMarket,
+                    data: {
+                        ...stationMarket.data,
+                        [resourceId]: {
+                            ...stationMarket.data[resourceId],
+                            saturation: newSaturation
+                        }
+                    }
+                }
+            };
+        });
+
+        saveGame(undefined, newCredits, newInventory);
+    }, [inventory, credits, saveGame, dockedAt, getMarketForStation, currentShip]);
+
     const value = useMemo(() => ({ 
         timeRef, speedRef, simulationTime: simTimeState, speed, setSpeed, resetTime, setTime,
         activeSystem, setActiveSystem, currentData, findBody, getOrbitalPosition, getOrbitPoints,
         credits, fuel, boost, activeJob, availableJobs, dockedAt, lastDockedNode, lastDockVector, lastCompletedJob, savedPosition,
         currentShip, ownedShips, purchaseShip, equipShip, 
         setDockedAt, acceptJob, completeJob, clearCompletedJob, generateJobsForLocation, 
-        updateFuel, buyFuel, updateBoost, buyBoost, saveGame, user, isLoadingSave
-    }), [speed, simTimeState, activeSystem, currentData, findBody, resetTime, setTime, credits, fuel, boost, activeJob, availableJobs, dockedAt, lastDockedNode, lastDockVector, lastCompletedJob, savedPosition, currentShip, ownedShips, updateFuel, buyFuel, updateBoost, buyBoost, saveGame, user, isLoadingSave, purchaseShip, equipShip]);
+        updateFuel, buyFuel, updateBoost, buyBoost, saveGame, user, isLoadingSave,
+        inventory, miningState, startMining, stopMining, mineAsteroid, sellResource, buyResource,
+        marketState, getMarketForStation,
+        shipLocations, shipTransfers, recallShip
+    }), [speed, simTimeState, activeSystem, currentData, findBody, resetTime, setTime, credits, fuel, boost, activeJob, availableJobs, dockedAt, lastDockedNode, lastDockVector, lastCompletedJob, savedPosition, currentShip, ownedShips, updateFuel, buyFuel, updateBoost, buyBoost, saveGame, user, isLoadingSave, purchaseShip, equipShip, inventory, miningState, startMining, stopMining, mineAsteroid, sellResource, buyResource, marketState, getMarketForStation, shipLocations, shipTransfers, recallShip]);
+
 
     return (
         <SimulationContext.Provider value={value}>

@@ -8,3 +8,5 @@ export { CinematicMenu } from './CinematicMenu';
 export { DetailPanel } from './DetailPanel';
 export { SystemFinder } from './SystemFinder';
 export { SpeedControls } from './SpeedControls';
+export { NavigationComputer } from './NavigationComputer';
+export { MiningOverlay } from './MiningOverlay';

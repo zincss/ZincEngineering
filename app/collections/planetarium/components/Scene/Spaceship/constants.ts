@@ -63,6 +63,7 @@ export const MOVEMENT_KEYS = {
     ORBIT: ['KeyO'],
     FLIGHT_ASSIST: ['KeyZ'], 
     AUTOPILOT: ['KeyC'], 
+    MINING: ['KeyM'],
     EXIT: ['Escape'] 
 };
 

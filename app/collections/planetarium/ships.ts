@@ -27,6 +27,10 @@ export interface ShipStats {
     turnSpeed: number;
     boostMultiplier: number;
     cruiseSpeed: number;
+
+    // Mining Capabilities
+    miningCap: number;      // Cargo space for ore
+    miningLaserPower: number; // Speed of mining (1 = standard)
     
     // Visual/Flavor
     color: string;
@@ -50,6 +54,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         turnSpeed: 0.8,
         boostMultiplier: 5.0,
         cruiseSpeed: 0.6,
+        miningCap: 100,
+        miningLaserPower: 1.0,
         color: "#71717a",
         hud: {
             primary: '#fb923c', // Rusty Orange
@@ -75,6 +81,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         turnSpeed: 1.5,
         boostMultiplier: 12.0,
         cruiseSpeed: 1.0,
+        miningCap: 80,
+        miningLaserPower: 1.2,
         color: "#DFFF00",
         hud: {
             primary: '#DFFF00', // Zinc Yellow
@@ -100,6 +108,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         turnSpeed: 2.5,
         boostMultiplier: 18.0,
         cruiseSpeed: 1.2,
+        miningCap: 40,
+        miningLaserPower: 0.8,
         color: "#ef4444",
         hud: {
             primary: '#ef4444', // Red
@@ -124,6 +134,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         turnSpeed: 0.5,
         boostMultiplier: 4.0,
         cruiseSpeed: 0.8,
+        miningCap: 2500,
+        miningLaserPower: 3.0,
         color: "#f59e0b",
         hud: {
             primary: '#f59e0b', // Amber
@@ -149,6 +161,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         turnSpeed: 1.8,
         boostMultiplier: 14.0,
         cruiseSpeed: 1.1,
+        miningCap: 120,
+        miningLaserPower: 1.5,
         color: "#18181b",
         hud: {
             primary: '#10b981', // Emerald (Night vision style)
@@ -173,6 +187,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         turnSpeed: 3.0,
         boostMultiplier: 25.0,
         cruiseSpeed: 1.5,
+        miningCap: 0,
+        miningLaserPower: 0,
         color: "#06b6d4",
         hud: {
             primary: '#06b6d4', // Cyan
@@ -198,6 +214,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         turnSpeed: 1.2,
         boostMultiplier: 10.0,
         cruiseSpeed: 1.0,
+        miningCap: 500,
+        miningLaserPower: 2.0,
         color: "#e879f9",
         hud: {
             primary: '#d8b4fe', // Light Purple
@@ -222,6 +240,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         turnSpeed: 2.0,
         boostMultiplier: 20.0,
         cruiseSpeed: 1.3,
+        miningCap: 10000,
+        miningLaserPower: 10.0,
         color: "#5c4f3d",
         hud: {
             primary: '#84cc16', // Lime (Hive magic)

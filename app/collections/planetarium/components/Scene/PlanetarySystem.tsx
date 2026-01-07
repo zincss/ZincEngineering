@@ -24,7 +24,7 @@ function PlanetClouds({ textureUrl, radius }: { textureUrl: string, radius: numb
 }
 
 // --- SATURN RINGS ---
-function SaturnRings({ innerRadius, outerRadius, dreadnaughtData, onSelectRef, onClick, onHover }: any) {
+function SaturnRings({ innerRadius, outerRadius, dreadnaughtData, onSelectRef, onClick, onHover, selectedId }: any) {
     const groupRef = useRef<THREE.Group>(null);
     const meshRef = useRef<THREE.InstancedMesh>(null);
     const dreadnaughtRef = useRef<THREE.Group>(null);
@@ -116,7 +116,15 @@ function SaturnRings({ innerRadius, outerRadius, dreadnaughtData, onSelectRef, o
                          <meshBasicMaterial color="#aaffaa" transparent opacity={0.5} side={THREE.DoubleSide} />
                     </mesh>
                     {/* Pass ID for visibility logic */}
-                    <SmartLabel id={dreadnaughtData.id} text={dreadnaughtData.name} type={dreadnaughtData.type} position={[0, dreadnaughtData.radius * 2, 0]} offset={0} visible={true} />
+                    <SmartLabel 
+                        id={dreadnaughtData.id} 
+                        text={dreadnaughtData.name} 
+                        type={dreadnaughtData.type} 
+                        position={[0, dreadnaughtData.radius * 2, 0]} 
+                        offset={0} 
+                        visible={true}
+                        isSelected={selectedId === dreadnaughtData.id} 
+                    />
                 </group>
             )}
         </group>
@@ -124,7 +132,7 @@ function SaturnRings({ innerRadius, outerRadius, dreadnaughtData, onSelectRef, o
 }
 
 // --- MOON ---
-function Moon({ data, parentRadius, onSelectRef, onClick, onHover, showLabels, isCinematic, scalePosition, parentScalePosition, isScaleAlignment }: any) {
+function Moon({ data, parentRadius, onSelectRef, onClick, onHover, showLabels, isCinematic, scalePosition, parentScalePosition, isScaleAlignment, selectedId }: any) {
     const meshRef = useRef<THREE.Mesh>(null);
     const groupRef = useRef<THREE.Group>(null);
     const isStation = data.type === 'Station';
@@ -133,6 +141,7 @@ function Moon({ data, parentRadius, onSelectRef, onClick, onHover, showLabels, i
     const [hovered, setHover] = useState(false);
     
     const labelOffset = data.radius * 3 + 1.5;
+    const isSelected = selectedId === data.id;
 
     useFrame(() => {
         if (groupRef.current) {
@@ -212,7 +221,15 @@ function Moon({ data, parentRadius, onSelectRef, onClick, onHover, showLabels, i
                     )}
                 </group>
                 {/* Pass ID for visibility logic */}
-                <SmartLabel id={data.id} text={data.name} type={data.type} position={[0, data.radius, 0]} offset={labelOffset} visible={!isCinematic && showLabels} />
+                <SmartLabel 
+                    id={data.id} 
+                    text={data.name} 
+                    type={data.type} 
+                    position={[0, data.radius, 0]} 
+                    offset={labelOffset} 
+                    visible={(!selectedId || isSelected) && !isCinematic && showLabels}
+                    isSelected={isSelected} 
+                />
             </group>
         );
     }
@@ -241,7 +258,15 @@ function Moon({ data, parentRadius, onSelectRef, onClick, onHover, showLabels, i
                 )}
             </group>
              {/* Pass ID for visibility logic */}
-             <SmartLabel id={data.id} text={data.name} type={data.type} position={[0, data.radius, 0]} offset={labelOffset} visible={!isCinematic && showLabels} />
+             <SmartLabel 
+                id={data.id} 
+                text={data.name} 
+                type={data.type} 
+                position={[0, data.radius, 0]} 
+                offset={labelOffset} 
+                visible={(!selectedId || isSelected) && !isCinematic && showLabels}
+                isSelected={isSelected} 
+             />
         </group>
     );
 }
@@ -380,6 +405,7 @@ export function Planet({ data, isSelected, selectedId, onClick, onSelectRef, isC
                                 onSelectRef={onSelectRef}
                                 onClick={onClick}
                                 onHover={onHover}
+                                selectedId={selectedId}
                             />
                         </group>
                     )}
@@ -400,7 +426,15 @@ export function Planet({ data, isSelected, selectedId, onClick, onSelectRef, isC
                 )}
                 
                 {/* Pass ID to SmartLabel */}
-                <SmartLabel id={data.id} text={data.name} type={data.type} position={[0, data.radius, 0]} offset={planetLabelOffset} visible={!isSelected && !isCinematic && showLabels} />
+                <SmartLabel 
+                    id={data.id} 
+                    text={data.name} 
+                    type={data.type} 
+                    position={[0, data.radius, 0]} 
+                    offset={planetLabelOffset} 
+                    visible={(!selectedId || isSelected) && !isCinematic && showLabels}
+                    isSelected={isSelected} 
+                />
 
                 {data.moons && data.moons.map((moon: any, idx: number) => {
                     if (moon.id === 'dreadnaught') return null;
@@ -423,6 +457,7 @@ export function Planet({ data, isSelected, selectedId, onClick, onSelectRef, isC
                                 scalePosition={moonScalePos}
                                 parentScalePosition={scalePosition}
                                 isScaleAlignment={isScaleAlignment}
+                                selectedId={selectedId}
                             />
                         </React.Fragment>
                     );

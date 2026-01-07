@@ -2,35 +2,53 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
     Lock, Wifi, UploadCloud, ArrowUpCircle, Container, DollarSign, 
-    Fuel, Zap, Briefcase 
+    Fuel, Zap, Briefcase, Pickaxe, ChevronDown, ChevronUp
 } from 'lucide-react';
-import { useSimulation, HaulingJob } from '../../context';
+import { useSimulation, HaulingJob, MINING_RESOURCES } from '../../context';
 import { FUEL_COST_PER_UNIT, BOOST_COST_PER_UNIT } from '../../constants';
 import { Dealership } from '../Dealership';
+import { Hangar } from './Hangar';
 
 export function JobBoard({ onClose }: { onClose: () => void }) {
-    const { 
+    const {
         availableJobs, acceptJob, activeJob, completeJob, credits, dockedAt, 
-        findBody, fuel, buyFuel, boost, buyBoost, currentShip 
+        findBody, fuel, buyFuel, boost, buyBoost, currentShip,
+        inventory, sellResource, buyResource, getMarketForStation
     } = useSimulation();
     
     const locationBody = findBody(dockedAt);
+    const marketData = dockedAt ? getMarketForStation(dockedAt) : null;
 
     const [viewState, setViewState] = useState<'docking' | 'board' | 'accepting' | 'launching'>('docking');
     const [acceptedJobDetails, setAcceptedJobDetails] = useState<HaulingJob | null>(null);
 
-    // Tab State for Dealership
-    const [activeTab, setActiveTab] = useState<'jobs' | 'dealership'>('jobs');
+    // Tab State
+    const [activeTab, setActiveTab] = useState<'jobs' | 'hangar' | 'dealership'>('jobs');
     const isDealershipAvailable = dockedAt === 'dreadnaught';
 
+    // Market UI State
+    const [isMarketOpen, setIsMarketOpen] = useState(false);
+    const [tradeRowId, setTradeRowId] = useState<string | null>(null);
+    const [tradeQty, setTradeQty] = useState<number>(1);
+
+    const toggleTradeRow = (resId: string) => {
+        if (tradeRowId === resId) {
+            setTradeRowId(null);
+            setTradeQty(1);
+        } else {
+            setTradeRowId(resId);
+            setTradeQty(1);
+        }
+    };
+
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setViewState('board');
-        }, 2000);
-        return () => clearTimeout(timer);
-    }, []);
+        if (viewState === 'docking') {
+            const timer = setTimeout(() => setViewState('board'), 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [viewState]);
 
     const handleAccept = (job: HaulingJob) => {
         setAcceptedJobDetails(job);
@@ -182,7 +200,7 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95 }}
                         transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-                        className="bg-zinc-900 border border-white/20 rounded-2xl w-full max-w-4xl overflow-hidden shadow-2xl relative flex flex-col h-[70vh]"
+                        className="bg-zinc-900 border border-white/20 rounded-2xl w-full max-w-4xl overflow-hidden shadow-2xl relative flex flex-col h-[80vh]"
                     >
                         <div className="bg-zinc-800 p-6 flex justify-between items-center border-b border-white/10 shrink-0">
                             <div>
@@ -203,6 +221,12 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
                                         className={`px-4 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'jobs' ? 'bg-zinc-700 text-white shadow' : 'text-zinc-500 hover:text-zinc-300'}`}
                                     >
                                         Market
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('hangar')}
+                                        className={`px-4 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'hangar' ? 'bg-zinc-700 text-white shadow' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                    >
+                                        Hangar
                                     </button>
                                     {isDealershipAvailable && (
                                         <button
@@ -228,11 +252,13 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
 
                             {activeTab === 'dealership' && isDealershipAvailable ? (
                                 <Dealership onClose={onClose} />
+                            ) : activeTab === 'hangar' ? (
+                                <Hangar onClose={onClose} />
                             ) : (
-                                <div className="p-6">
-                                    {/* Existing Jobs Content */}
+                                <div className="p-6 space-y-6">
+                                    {/* Active Job Section */}
                                     {canDeliverActiveJob && (
-                                        <div className="mb-8 animate-in slide-in-from-left duration-500">
+                                        <div className="animate-in slide-in-from-left duration-500">
                                             <div className="text-[#DFFF00] text-xs uppercase tracking-widest font-bold mb-3 flex items-center gap-2">
                                                 <Briefcase size={14} className="animate-bounce" /> Incoming Delivery
                                             </div>
@@ -248,15 +274,14 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
                                                     Complete Contract
                                                 </button>
                                             </div>
-                                            <div className="h-px bg-white/10 w-full my-6" />
                                         </div>
                                     )}
 
-                                    <div className="text-zinc-500 text-xs uppercase tracking-widest font-bold mb-3">Station Services</div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                    {/* REFUEL & REPAIR GRID */}
+                                    <div className="grid grid-cols-2 gap-4">
                                         {/* Fuel Card */}
-                                        <div className="bg-black/20 border border-white/10 rounded-xl p-4 flex flex-col justify-between h-full">
-                                            <div className="flex items-center gap-3 mb-4">
+                                        <div className="bg-black/20 border border-white/10 rounded-xl p-4 flex justify-between items-center">
+                                            <div className="flex items-center gap-3">
                                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isFuelLow ? 'bg-red-500/20 text-red-500' : 'bg-emerald-500/20 text-emerald-500'}`}>
                                                     <Fuel size={20} />
                                                 </div>
@@ -268,14 +293,15 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
                                                 </div>
                                             </div>
                                             {fuelMissing > 10 ? (
-                                                <button onClick={buyFuel} disabled={!canAffordFuel} className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all ${canAffordFuel ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}`}>Refuel (-{refuelCost} CR)</button>
+                                                <button onClick={buyFuel} disabled={!canAffordFuel} className={`px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all ${canAffordFuel ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}`}>Refuel (-{refuelCost} CR)</button>
                                             ) : (
-                                                <div className="text-center py-2 text-emerald-500 text-xs font-bold uppercase tracking-widest opacity-60">Full</div>
+                                                <div className="text-emerald-500 text-xs font-bold uppercase tracking-widest opacity-60 px-4">Full</div>
                                             )}
                                         </div>
+
                                         {/* Boost Card */}
-                                        <div className="bg-black/20 border border-white/10 rounded-xl p-4 flex flex-col justify-between h-full">
-                                            <div className="flex items-center gap-3 mb-4">
+                                        <div className="bg-black/20 border border-white/10 rounded-xl p-4 flex justify-between items-center">
+                                            <div className="flex items-center gap-3">
                                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isBoostLow ? 'bg-orange-500/20 text-orange-500' : 'bg-blue-500/20 text-blue-500'}`}>
                                                     <Zap size={20} />
                                                 </div>
@@ -287,55 +313,192 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
                                                 </div>
                                             </div>
                                             {boostMissing > 5 ? (
-                                                <button onClick={buyBoost} disabled={!canAffordBoost} className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all ${canAffordBoost ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}`}>Refill (-{boostCost} CR)</button>
+                                                <button onClick={buyBoost} disabled={!canAffordBoost} className={`px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all ${canAffordBoost ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}`}>Refill (-{boostCost} CR)</button>
                                             ) : (
-                                                <div className="text-center py-2 text-blue-500 text-xs font-bold uppercase tracking-widest opacity-60">Full</div>
+                                                <div className="text-blue-500 text-xs font-bold uppercase tracking-widest opacity-60 px-4">Full</div>
                                             )}
                                         </div>
                                     </div>
 
-                                    <div className="h-px bg-white/10 w-full mb-6" />
+                                    {/* DYNAMIC MARKET TABLE */}
+                                    <div className="bg-black/20 border border-white/10 rounded-xl overflow-hidden">
+                                        <div className="bg-white/5 px-6 py-3 border-b border-white/10 flex justify-between items-center">
+                                            <div className="flex items-center gap-6">
+                                                <div className="text-zinc-400 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                                                    <Pickaxe size={14} /> Local Commodities Market
+                                                </div>
+                                                <button 
+                                                    onClick={() => {
+                                                        const el = document.getElementById('contracts-section');
+                                                        el?.scrollIntoView({ behavior: 'smooth' });
+                                                    }}
+                                                    className="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-[10px] text-[#DFFF00] font-bold uppercase tracking-widest transition-colors flex items-center gap-2"
+                                                >
+                                                    <Briefcase size={12} /> Contracts Available
+                                                </button>
+                                            </div>
+                                            <div className="flex items-center gap-4">
+                                                <div className="text-right">
+                                                    <div className="text-[10px] text-zinc-500 uppercase font-bold">Cargo Hold</div>
+                                                    <div className="text-xs font-mono text-white">
+                                                        {Object.values(inventory).reduce((a,b) => a+b, 0)} / {currentShip.miningCap} Units
+                                                    </div>
+                                                </div>
+                                                <div className="text-[10px] text-zinc-600 font-mono uppercase">Prices update every 30m</div>
+                                            </div>
+                                        </div>
+                                        
+                                        <table className="w-full text-left">
+                                            <thead>
+                                                <tr className="border-b border-white/5 text-zinc-500 text-[10px] uppercase font-bold tracking-wider">
+                                                    <th className="px-6 py-3">Resource</th>
+                                                    <th className="px-6 py-3 text-right">Market Price</th>
+                                                    <th className="px-6 py-3">Saturation / Trend</th>
+                                                    <th className="px-6 py-3 text-right">My Cargo</th>
+                                                    <th className="px-6 py-3 text-right">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {Object.entries(MINING_RESOURCES).map(([resId, meta]: [string, any]) => {
+                                                    const marketItem = marketData?.[resId];
+                                                    const basePrice = meta.price;
+                                                    const currentPrice = marketItem?.price || basePrice;
+                                                    const saturation = marketItem?.saturation || 0;
+                                                    const myQty = inventory[resId] || 0;
+                                                    
+                                                    const isHighPrice = currentPrice > basePrice;
+                                                    const isSaturated = saturation >= 100;
 
-                                    {!canDeliverActiveJob && (
-                                        <>
-                                            <div className="text-zinc-500 text-xs uppercase tracking-widest font-bold mb-3 flex justify-between items-end">
-                                                <span>Available Contracts</span>
-                                                {activeJob && <span className="text-[#DFFF00] animate-pulse">1 Active</span>}
+                                                    const currentLoad = Object.values(inventory).reduce((a, b) => a + b, 0);
+                                                    const maxLoad = currentShip.miningCap || 0;
+                                                    const canFitMore = currentLoad < maxLoad;
+                                                    
+                                                    return (
+                                                        <tr key={resId} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                                            <td className="px-6 py-3">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: meta.color }} />
+                                                                    <span className="text-white font-bold text-sm">{meta.name}</span>
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-6 py-3 text-right font-mono">
+                                                                <div className={isHighPrice ? "text-emerald-400" : "text-rose-400"}>
+                                                                    {currentPrice} CR
+                                                                </div>
+                                                                <div className="text-[10px] text-zinc-600 uppercase tracking-tighter">
+                                                                    Avg: {basePrice}
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-6 py-3">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden min-w-[60px]">
+                                                                        <div 
+                                                                            className={`h-full ${isSaturated ? 'bg-red-500' : 'bg-blue-500'}`} 
+                                                                            style={{ width: `${Math.min(100, saturation)}%` }} 
+                                                                        />
+                                                                    </div>
+                                                                    <div className="text-[10px] font-mono whitespace-nowrap">
+                                                                        {isHighPrice ? (
+                                                                            <span className="text-emerald-500 flex items-center gap-0.5"><ChevronUp size={10} /> +{Math.round(((currentPrice-basePrice)/basePrice)*100)}%</span>
+                                                                        ) : (
+                                                                            <span className="text-rose-500 flex items-center gap-0.5"><ChevronDown size={10} /> {Math.round(((currentPrice-basePrice)/basePrice)*100)}%</span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-6 py-3 text-right">
+                                                                {myQty > 0 ? (
+                                                                    <span className="text-white font-bold">{myQty}</span>
+                                                                ) : (
+                                                                    <span className="text-zinc-600">-</span>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-6 py-3">
+                                                                <div className="flex items-center justify-end gap-3">
+                                                                    {/* BUY TOOLS */}
+                                                                    <div className="flex bg-black/40 rounded overflow-hidden border border-white/5">
+                                                                        <button
+                                                                            onClick={() => buyResource(resId, 1)}
+                                                                            disabled={credits < currentPrice || !canFitMore}
+                                                                            className="px-2 py-1 text-[9px] font-bold text-emerald-500 hover:bg-emerald-500/10 disabled:opacity-30 disabled:hover:bg-transparent"
+                                                                        >
+                                                                            BUY 1
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => buyResource(resId, 10)}
+                                                                            disabled={credits < currentPrice * 10 || currentLoad + 10 > maxLoad}
+                                                                            className="px-2 py-1 text-[9px] font-bold text-emerald-500 hover:bg-emerald-500/10 border-l border-white/5 disabled:opacity-30 disabled:hover:bg-transparent"
+                                                                        >
+                                                                            10
+                                                                        </button>
+                                                                    </div>
+
+                                                                    {/* SELL TOOLS */}
+                                                                    <div className="flex bg-black/40 rounded overflow-hidden border border-white/5">
+                                                                        <button
+                                                                            onClick={() => sellResource(resId, 1)}
+                                                                            disabled={myQty < 1 || isSaturated}
+                                                                            className="px-2 py-1 text-[9px] font-bold text-purple-400 hover:bg-purple-500/10 disabled:opacity-30 disabled:hover:bg-transparent"
+                                                                        >
+                                                                            SELL 1
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => sellResource(resId, 10)}
+                                                                            disabled={myQty < 10 || isSaturated}
+                                                                            className="px-2 py-1 text-[9px] font-bold text-purple-400 hover:bg-purple-500/10 border-l border-white/5 disabled:opacity-30 disabled:hover:bg-transparent"
+                                                                        >
+                                                                            10
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => sellResource(resId, myQty)}
+                                                                            disabled={myQty <= 0 || isSaturated}
+                                                                            className="px-2 py-1 text-[9px] font-bold text-white bg-purple-600 hover:bg-purple-500 border-l border-white/5 disabled:opacity-30 disabled:hover:bg-transparent"
+                                                                        >
+                                                                            ALL
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    {!canDeliverActiveJob && availableJobs.length > 0 && (
+                                        <div id="contracts-section">
+                                            <div className="text-zinc-500 text-xs uppercase tracking-widest font-bold mt-8 mb-3">
+                                                <span>Hauling Contracts</span>
                                             </div>
                                             <div className="grid gap-3">
-                                                {availableJobs.length === 0 ? (
-                                                    <div className="text-center py-8 text-zinc-600 italic">
-                                                        No logistics contracts available at this location.
-                                                    </div>
-                                                ) : (
-                                                    availableJobs.map(job => (
-                                                        <div key={job.id} className="bg-black/40 border border-white/10 rounded-xl p-4 flex justify-between items-center hover:bg-white/5 transition-colors group">
-                                                            <div className="flex items-center gap-4">
-                                                                <div className="w-10 h-10 rounded-full bg-[#DFFF00]/10 flex items-center justify-center text-[#DFFF00]">
-                                                                    <Briefcase size={18} />
-                                                                </div>
-                                                                <div>
-                                                                    <div className="text-white font-bold text-sm group-hover:text-[#DFFF00] transition-colors">{job.description}</div>
-                                                                    <div className="text-zinc-500 text-xs font-mono uppercase mt-1">Cargo: {job.cargo}</div>
-                                                                </div>
+                                                {availableJobs.map(job => (
+                                                    <div key={job.id} className="bg-black/40 border border-white/10 rounded-xl p-4 flex justify-between items-center hover:bg-white/5 transition-colors group">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="w-10 h-10 rounded-full bg-[#DFFF00]/10 flex items-center justify-center text-[#DFFF00]">
+                                                                <Briefcase size={18} />
                                                             </div>
-                                                            <div className="flex items-center gap-4">
-                                                                <div className="text-right">
-                                                                    <div className="text-white font-mono font-bold">{job.reward} CR</div>
-                                                                    <div className="text-zinc-600 text-[10px] uppercase">Reward</div>
-                                                                </div>
-                                                                <button
-                                                                    onClick={() => handleAccept(job)}
-                                                                    className="bg-[#DFFF00] hover:bg-white text-black font-bold uppercase text-xs px-4 py-2 rounded-lg transition-colors shadow-[0_0_15px_rgba(223,255,0,0.1)]"
-                                                                >
-                                                                    Accept
-                                                                </button>
+                                                            <div>
+                                                                <div className="text-white font-bold text-sm group-hover:text-[#DFFF00] transition-colors">{job.description}</div>
+                                                                <div className="text-zinc-500 text-xs font-mono uppercase mt-1">Cargo: {job.cargo}</div>
                                                             </div>
                                                         </div>
-                                                    ))
-                                                )}
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="text-right">
+                                                                <div className="text-white font-mono font-bold">{job.reward} CR</div>
+                                                                <div className="text-zinc-600 text-[10px] uppercase">Reward</div>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => handleAccept(job)}
+                                                                className="bg-[#DFFF00] hover:bg-white text-black font-bold uppercase text-xs px-4 py-2 rounded-lg transition-colors shadow-[0_0_15px_rgba(223,255,0,0.1)]"
+                                                            >
+                                                                Accept
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
                                             </div>
-                                        </>
+                                        </div>
                                     )}
                                 </div>
                             )}

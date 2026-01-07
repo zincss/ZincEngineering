@@ -36,6 +36,32 @@ export const UNINHABITABLE_IDS = [
     'endor_prime'
 ];
 
+// === MINING CONSTANTS ===
+export const MINING_LOCATIONS = [
+    'ceres',
+    'deep_space_99',
+    'pluto',
+    'kuiper_rest_stop',
+    'eris',
+    'titania_outpost', // Uranus rings/moon
+    'enceladus' // Saturn rings
+];
+
+export const MINING_RESOURCES = {
+    'ice': { name: 'Water Ice', price: 25, color: '#38bdf8' },
+    'iron': { name: 'Iron Ore', price: 35, color: '#a1a1aa' },
+    'silicon': { name: 'Silicon', price: 45, color: '#94a3b8' },
+    'titanium': { name: 'Titanium', price: 75, color: '#64748b' },
+    'gold': { name: 'Gold Ore', price: 150, color: '#facc15' },
+    'cobalt': { name: 'Cobalt', price: 220, color: '#1d4ed8' },
+    'platinum': { name: 'Platinum', price: 350, color: '#e2e8f0' },
+    'palladium': { name: 'Palladium', price: 500, color: '#f472b6' },
+    'void_crystal': { name: 'Void Crystal', price: 800, color: '#a855f7' },
+    'iridium': { name: 'Iridium', price: 1200, color: '#ef4444' },
+    'painite': { name: 'Painite', price: 2500, color: '#ec4899' },
+    'low_temp_diamond': { name: 'Low Temp Diamond', price: 5000, color: '#bae6fd' }
+};
+
 // === CARGO TIER DEFINITIONS ===
 export const CARGO_TIERS = {
     TIER_1: ['Scrap Metal', 'Bio-Waste', 'Water Ice', 'Processed Food', 'Raw Iron'],
@@ -60,6 +86,7 @@ export const MOVEMENT_KEYS = {
     ORBIT: ['KeyO'],
     FLIGHT_ASSIST: ['KeyZ'],
     AUTOPILOT: ['KeyC'],
+    MINING: ['KeyM'],
     EXIT: ['Escape']
 };
 

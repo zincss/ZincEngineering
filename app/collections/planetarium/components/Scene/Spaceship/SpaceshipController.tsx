@@ -5,7 +5,7 @@
 import React, { useRef, useEffect, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { useSimulation, getOrbitalPosition } from '../../../context';
+import { useSimulation, getOrbitalPosition, MINING_LOCATIONS } from '../../../context';
 import { PLANET_DATA, CelestialBody } from '../../../data';
 import {
     SPACESHIP_UPDATE_EVENT,
@@ -38,7 +38,11 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
         findBody, 
         isLoadingSave, 
         currentShip, 
-        activeJob 
+        activeJob,
+        miningState,
+        startMining,
+        stopMining,
+        currentData
     } = useSimulation(); 
     
     const velocity = useRef(new THREE.Vector3(0, 0, 0));
@@ -247,7 +251,7 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
             if (e.detail.type === 'ENGAGE_ORBIT') engageOrbit();
             if (e.detail.type === 'TOGGLE_FA') flightAssist.current = !flightAssist.current;
             if (e.detail.type === 'TOGGLE_AUTOPILOT') {
-                if (activeJob) autopilot.current = !autopilot.current;
+                if (activeJob || lockedTargetRef.current) autopilot.current = !autopilot.current;
             }
         };
 
@@ -291,8 +295,40 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
                 if (MOVEMENT_KEYS.ORBIT.includes(e.code)) engageOrbit();
                 if (MOVEMENT_KEYS.FLIGHT_ASSIST.includes(e.code)) flightAssist.current = !flightAssist.current;
                 
+                // --- MINING TOGGLE ---
+                if (MOVEMENT_KEYS.MINING.includes(e.code)) {
+                    if (miningState.isMining) {
+                        stopMining();
+                    } else {
+                        // Check location
+                        const shipPos = camera.position;
+                        const distFromCenter = shipPos.length();
+                        let foundZone = null;
+                        
+                        if (distFromCenter > 300 && distFromCenter < 600) foundZone = 'asteroid_belt';
+                        else if (distFromCenter > 5800 && distFromCenter < 8500) foundZone = 'kuiper_belt';
+                        else {
+                            for (const zoneId of MINING_LOCATIONS) {
+                                const body = findBody(zoneId);
+                                if (body) {
+                                    let bodyPos = getOrbitalPosition(body, timeRef.current);
+                                    if (parentMap[body.id]) {
+                                        bodyPos.add(getOrbitalPosition(parentMap[body.id], timeRef.current));
+                                    }
+                                    if (shipPos.distanceTo(bodyPos) < 500) {
+                                        foundZone = zoneId;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (foundZone) startMining(foundZone);
+                    }
+                }
+
                 if (MOVEMENT_KEYS.AUTOPILOT.includes(e.code)) {
-                    if (activeJob) {
+                    if (activeJob || lockedTargetRef.current) {
                         autopilot.current = !autopilot.current;
                         if(autopilot.current) {
                             isOrbiting.current = false; 
@@ -341,7 +377,7 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
             window.removeEventListener('keydown', onDown);
             window.removeEventListener('keyup', onUp);
         };
-    }, [active, allBodies, updateFuel, updateBoost, saveGame, camera, currentShip, activeJob]);
+    }, [active, allBodies, updateFuel, updateBoost, saveGame, camera, currentShip, activeJob, miningState, startMining, stopMining]);
 
     useFrame((state, delta) => {
         if (!active) return;
@@ -350,16 +386,22 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
         const orbiting = isOrbiting.current;
         const ap = autopilot.current;
 
-        const ACCEL = precision ? (currentShip.acceleration * 0.25) : currentShip.acceleration; 
+        // --- MINING PHYSICS OVERRIDES ---
+        const isMining = miningState.isMining;
+        const MINING_SPEED_CAP = 0.2; // 20% speed
+        const MINING_ACCEL_MOD = 0.2; // 20% accel
+        
+        const ACCEL = (precision ? (currentShip.acceleration * 0.25) : currentShip.acceleration) * (isMining ? MINING_ACCEL_MOD : 1.0); 
         const TURN_SPEED_MULT = precision ? 0.6 : 1.0;
-        const TURN_SENSITIVITY = currentShip.turnSpeed * TURN_SPEED_MULT;
+        const TURN_SENSITIVITY = currentShip.turnSpeed * TURN_SPEED_MULT * (isMining ? 0.5 : 1.0); // Damped turning
         const BOOST_MULT = precision ? 2.0 : currentShip.boostMultiplier; 
         const FUEL_BURN_BASE = currentShip.fuelBurnRate; 
         const BOOST_BURN_RATE = currentShip.boostBurnRate;
 
         // --- AUTOPILOT LOGIC (FIXED SPEED) ---
-        if (ap && activeJob) {
-            const targetBody = allBodies.find(b => b.id === activeJob.destId);
+        const apTargetId = activeJob?.destId || lockedTargetRef.current;
+        if (ap && apTargetId) {
+            const targetBody = allBodies.find(b => b.id === apTargetId);
             if (targetBody) {
                 const physicsTime = timeRef.current;
                 let targetPos = getOrbitalPosition(targetBody, physicsTime);
@@ -416,9 +458,11 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
         }
 
         const DRAG = (orbiting || ap) ? 0.0 : (flightAssist.current ? (precision ? 4.0 : 2.0) : 0.5); 
+        // Extra drag when mining for "refined" feel
+        const FINAL_DRAG = isMining ? (DRAG + 8.0) : DRAG;
 
         let thrustMult = 1.0;
-        if (keys.current.boost && boostRef.current > 0 && !ap) {
+        if (keys.current.boost && boostRef.current > 0 && !ap && !isMining) {
             thrustMult = BOOST_MULT;
             boostRef.current = Math.max(0, boostRef.current - (BOOST_BURN_RATE * dt));
         }
@@ -428,6 +472,12 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
             const inputVector = new THREE.Vector3(0, 0, 0);
             if (keys.current.forward) inputVector.z -= 1;
             if (keys.current.backward) inputVector.z += 1;
+            
+            // Limit cruise throttle if mining
+            if (isMining && Math.abs(cruiseThrottle.current) > MINING_SPEED_CAP) {
+                cruiseThrottle.current = Math.sign(cruiseThrottle.current) * MINING_SPEED_CAP;
+            }
+            
             if (cruiseThrottle.current !== 0) inputVector.z -= cruiseThrottle.current;
             if (keys.current.left) inputVector.x -= 1;
             if (keys.current.right) inputVector.x += 1;
@@ -446,6 +496,15 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
                 } else {
                     cruiseThrottle.current = 0;
                 }
+            }
+        }
+
+        // Hard cap velocity when mining
+        if (isMining) {
+            const currentV = velocity.current.length();
+            const MAX_MINING_VELOCITY = 10.0; 
+            if (currentV > MAX_MINING_VELOCITY) {
+                velocity.current.setLength(THREE.MathUtils.lerp(currentV, MAX_MINING_VELOCITY, dt * 5.0));
             }
         }
 
@@ -504,7 +563,7 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
         }
 
         velocity.current.add(gravityForce);
-        if (DRAG > 0) velocity.current.add(velocity.current.clone().multiplyScalar(-DRAG * dt));
+        if (FINAL_DRAG > 0) velocity.current.add(velocity.current.clone().multiplyScalar(-FINAL_DRAG * dt));
         camera.position.add(velocity.current.clone().multiplyScalar(dt));
 
         if (orbiting && activeOrbitTarget.current) {
@@ -595,7 +654,9 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
         }
         
         // === FOV EFFECTS ===
-        const targetFov = 45 + (currentSpeed * 0.05) + (isBoosting ? 5 : 0); 
+        let targetFov = 45 + (currentSpeed * 0.05) + (isBoosting ? 5 : 0);
+        if (isMining) targetFov = 35; // ZOOM IN IF MINING
+        
         camera.fov = THREE.MathUtils.lerp(camera.fov, Math.min(targetFov, 85), 0.1);
         camera.updateProjectionMatrix();
 
@@ -646,6 +707,7 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
                     targetAltitude: altitudeToTarget, 
                     targetRadius: targetRadius, 
                     shipPos: { x: currentPos.x, y: currentPos.y, z: currentPos.z }, 
+                    distanceFromCenter: currentPos.length(),
                     shipQuat: camera.quaternion, 
                     isLocked: !!lockedTargetRef.current
                 } 

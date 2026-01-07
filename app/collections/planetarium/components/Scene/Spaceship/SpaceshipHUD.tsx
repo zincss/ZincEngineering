@@ -249,6 +249,18 @@ export function SpaceshipHUD({ active }: SpaceshipHUDProps) {
                     </div>
 
                     <div className="flex flex-col gap-1 items-start">
+                        {/* NAV COMPUTER BUTTON */}
+                        <button 
+                            onClick={() => window.dispatchEvent(new CustomEvent('spaceship-open-nav'))}
+                            className={`flex items-center gap-2 px-4 py-1.5 border-b-2 transition-all hover:bg-zinc-800 hover:text-white ${btnShape === 'rounded-l-full rounded-tr-lg' ? 'rounded-r-full rounded-tl-lg' : 'rounded-sm'} bg-zinc-900/50 text-zinc-400 border-zinc-800`}
+                        >
+                            <div className="flex flex-col items-start leading-none">
+                                <span className="text-[9px] font-bold tracking-widest">NAV COMPUTER</span>
+                                <span className="text-[8px] opacity-60">SET DESTINATION</span>
+                            </div>
+                            <Navigation size={14} />
+                        </button>
+
                         {/* AUTOPILOT TOGGLE */}
                         <button 
                             onClick={() => dispatchControl('TOGGLE_AUTOPILOT')} 
@@ -325,11 +337,23 @@ export function SpaceshipHUD({ active }: SpaceshipHUDProps) {
                                 >
                                     <div className="flex flex-col items-start leading-none">
                                         <span className="text-[9px] font-bold tracking-widest flex items-center gap-1">
-                                            {isLocked ? <><Lock size={9} /> LOCKED TARGET</> : "ENGAGE ORBIT"}
+                                            {isLocked ? <><Lock size={9} /> LOCKED: {targetName}</> : "ENGAGE ORBIT"}
                                         </span>
-                                        <span className="text-[8px] opacity-60">
-                                            {inOrbitRange ? (isLocked ? targetName : "KEY O") : "TOO FAR"}
-                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[8px] opacity-60">
+                                                {inOrbitRange ? (isLocked ? `DIST: ${formatDistance(targetAltitude)}` : "KEY O") : "TOO FAR"}
+                                            </span>
+                                            {isLocked && speed > 1 && (
+                                                <span className="text-[8px] font-mono text-[#DFFF00]">
+                                                    ETA: {(() => {
+                                                        const seconds = targetDist / speed;
+                                                        if (seconds < 60) return `${Math.floor(seconds)}s`;
+                                                        if (seconds < 3600) return `${Math.floor(seconds/60)}m`;
+                                                        return `${Math.floor(seconds/3600)}h`;
+                                                    })()}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                     <Target size={14} />
                                 </button>
