@@ -146,6 +146,7 @@ interface SimulationContextType {
     stopMining: () => void;
     mineAsteroid: (resource: string) => number; // Returns quantity added
     sellResource: (resourceId: string, quantity: number) => void;
+    buyResource: (resourceId: string, quantity: number) => void;
     marketState: Record<string, { data: MarketData, lastUpdate: number }>;
     getMarketForStation: (stationId: string) => MarketData | null;
     

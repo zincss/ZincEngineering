@@ -62,6 +62,7 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
     const activeOrbitTarget = useRef<OrbitTarget | null>(null);
 
     const cruiseThrottle = useRef(0);
+    const smoothedPointer = useRef(new THREE.Vector2(0, 0));
     
     // Cockpit motion state for immersive camera effects
     const cockpitMotion = useRef({
@@ -438,22 +439,45 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
 
         // --- MANUAL STEERING ---
         if (!orbiting && !ap) {
-            const mx = state.pointer.x;
-            const my = state.pointer.y;
-            const deadzone = 0.15;
+            // Smooth pointer input to reduce jitter
+            const targetMX = state.pointer.x;
+            const targetMY = state.pointer.y;
+            
+            // Smoothing factor: higher = more "weight" / lag, lower = snappier
+            // We use ship tier and turn speed to influence this "weight"
+            const inertia = Math.max(0.05, 0.2 - (currentShip.turnSpeed * 0.05));
+            smoothedPointer.current.x = THREE.MathUtils.lerp(smoothedPointer.current.x, targetMX, dt / inertia);
+            smoothedPointer.current.y = THREE.MathUtils.lerp(smoothedPointer.current.y, targetMY, dt / inertia);
+
+            const mx = smoothedPointer.current.x;
+            const my = smoothedPointer.current.y;
+            
+            const deadzone = 0.05; // Reduced deadzone for smoother engagement
             let turnX = 0; let turnY = 0;
-            if (Math.abs(mx) > deadzone) turnX = Math.sign(mx) * (Math.abs(mx) - deadzone) / (1 - deadzone);
-            if (Math.abs(my) > deadzone) turnY = Math.sign(my) * (Math.abs(my) - deadzone) / (1 - deadzone);
+            
+            if (Math.abs(mx) > deadzone) {
+                const val = (Math.abs(mx) - deadzone) / (1 - deadzone);
+                // Sigmoid-like curve for natural ramp-up
+                turnX = Math.sign(mx) * (val * val); 
+            }
+            if (Math.abs(my) > deadzone) {
+                const val = (Math.abs(my) - deadzone) / (1 - deadzone);
+                turnY = Math.sign(my) * (val * val);
+            }
             
             const sensitivity = TURN_SENSITIVITY;
-            camera.rotateY(-turnX * Math.abs(turnX) * sensitivity * dt);
-            camera.rotateX(turnY * Math.abs(turnY) * sensitivity * dt);
+            camera.rotateY(-turnX * sensitivity * dt);
+            camera.rotateX(turnY * sensitivity * dt);
             
+            // Smoothed Roll
             const rollSpeed = 2.0;
             if (keys.current.rollLeft) camera.rotateZ(rollSpeed * dt);
             if (keys.current.rollRight) camera.rotateZ(-rollSpeed * dt);
+            
+            // Flight assist auto-leveling (smoothed)
             if (flightAssist.current && !keys.current.rollLeft && !keys.current.rollRight) {
-                camera.rotation.z -= camera.rotation.z * 2.0 * dt;
+                const currentRoll = camera.rotation.z;
+                camera.rotation.z = THREE.MathUtils.lerp(currentRoll, 0, dt * 3.0);
             }
         }
 
