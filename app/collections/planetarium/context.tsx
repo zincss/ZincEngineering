@@ -30,6 +30,7 @@ export {
     MINING_RESOURCES,
     MINING_LOCATIONS,
     SPACESHIP_UPDATE_EVENT,
+    SPACESHIP_EXIT_EVENT,
     formatTime
 } from './constants';
 

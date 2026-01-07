@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // --- DIRECT IMPORTS ---
-import { SimulationProvider, useSimulation, TimeKeeper, J2000_EPOCH } from './context';
+import { SimulationProvider, useSimulation, TimeKeeper, J2000_EPOCH, SPACESHIP_EXIT_EVENT } from './context';
 import { StarBackground, SolarWind, SpaceDust, AsteroidBelt } from './components/Scene/Environment';
 import { Sun } from './components/Scene/StellarBodies';
 import { Planet } from './components/Scene/PlanetarySystem';
@@ -66,8 +66,15 @@ function PlanetariumContent() {
 
     useEffect(() => {
         const handleOpenNav = () => setNavComputerOpen(true);
+        const handleExitShip = () => setIsSpaceshipMode(false);
+        
         window.addEventListener('spaceship-open-nav', handleOpenNav);
-        return () => window.removeEventListener('spaceship-open-nav', handleOpenNav);
+        window.addEventListener(SPACESHIP_EXIT_EVENT, handleExitShip);
+        
+        return () => {
+            window.removeEventListener('spaceship-open-nav', handleOpenNav);
+            window.removeEventListener(SPACESHIP_EXIT_EVENT, handleExitShip);
+        };
     }, []);
 
     useEffect(() => {
@@ -306,10 +313,11 @@ function PlanetariumContent() {
                 </Suspense>
             </Canvas>
 
-            <SpaceshipHUD active={isSpaceshipMode} />
             <MiningOverlay />
             <MissionHUD />
             <JobCompleteOverlay onExit={handleJobCompleteExit} />
+            
+            <SpaceshipHUD active={isSpaceshipMode} />
             
             {dockedAt && (
                 <div className="relative z-[100]">
@@ -320,7 +328,7 @@ function PlanetariumContent() {
             <CinematicOverlay data={cinematicOverlay} />
             <FlightComputer data={flightData} />
 
-            {!isCinematic && !dockedAt && (
+            {!isCinematic && !dockedAt && !isSpaceshipMode && (
                 <>
                     <div className="absolute top-0 left-0 w-full z-10 pointer-events-none p-4 md:p-6 pt-safe-top md:pt-6 flex flex-col md:flex-row justify-between items-start gap-4">
                         <div className="pointer-events-auto flex items-start justify-between w-full md:w-auto md:block">

@@ -46,8 +46,10 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
     } = useSimulation(); 
     
     const velocity = useRef(new THREE.Vector3(0, 0, 0));
+    const trueQuaternion = useRef(new THREE.Quaternion()); // Actual flight direction
     const lastEventTime = useRef(0);
     const isPrecision = useRef(false);
+    const isFreeLook = useRef(false);
     const flightAssist = useRef(true); 
     const autopilot = useRef(false); 
     const initialized = useRef(false);
@@ -148,10 +150,13 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
                         camera.position.copy(bodyPos).add(new THREE.Vector3(0, 0, body.radius + 100));
                         camera.lookAt(bodyPos);
                     }
+                    trueQuaternion.current.copy(camera.quaternion);
                 }
             } 
             else if (savedPosition) {
                 camera.position.set(savedPosition.x, savedPosition.y, savedPosition.z);
+                // We don't have a saved rotation usually, so assume neutral or look at sun
+                trueQuaternion.current.copy(camera.quaternion);
             }
             else {
                  const earth = findBody('earth');
@@ -159,6 +164,7 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
                     const pos = getOrbitalPosition(earth, timeRef.current);
                     camera.position.copy(pos).add(new THREE.Vector3(0, 0, earth.radius + 200));
                     camera.lookAt(pos);
+                    trueQuaternion.current.copy(camera.quaternion);
                  }
             }
         }
@@ -254,6 +260,34 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
             if (e.detail.type === 'TOGGLE_AUTOPILOT') {
                 if (activeJob || lockedTargetRef.current) autopilot.current = !autopilot.current;
             }
+            if (e.detail.type === 'MINING') {
+                if (miningState.isMining) {
+                    stopMining();
+                } else {
+                    const shipPos = camera.position;
+                    const distFromCenter = shipPos.length();
+                    let foundZone = null;
+                    if (distFromCenter > 300 && distFromCenter < 600) foundZone = 'asteroid_belt';
+                    else if (distFromCenter > 5800 && distFromCenter < 8500) foundZone = 'kuiper_belt';
+                    else {
+                        for (const zoneId of MINING_LOCATIONS) {
+                            const body = findBody(zoneId);
+                            if (body) {
+                                let bodyPos = getOrbitalPosition(body, timeRef.current);
+                                if (parentMap[body.id]) bodyPos.add(getOrbitalPosition(parentMap[body.id], timeRef.current));
+                                if (shipPos.distanceTo(bodyPos) < 500) { foundZone = zoneId; break; }
+                            }
+                        }
+                    }
+                    if (foundZone) startMining(foundZone);
+                }
+            }
+            if (e.detail.type === 'EXIT') {
+                updateFuel(fuelRef.current); 
+                updateBoost(boostRef.current);
+                saveGame(camera.position.clone());
+                window.dispatchEvent(new CustomEvent(SPACESHIP_EXIT_EVENT));
+            }
         };
 
         const handleWheel = (e: WheelEvent) => {
@@ -293,39 +327,23 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
                     e.preventDefault();
                     isPrecision.current = !isPrecision.current;
                 }
-                if (MOVEMENT_KEYS.ORBIT.includes(e.code)) engageOrbit();
+                if ((MOVEMENT_KEYS as any).FREE_LOOK?.includes(e.code)) {
+                    e.preventDefault();
+                    isFreeLook.current = !isFreeLook.current;
+                }
+                if (MOVEMENT_KEYS.ORBIT.includes(e.code)) {
+                    if (isOrbiting.current) {
+                        // Contextual Docking trigger via event
+                        window.dispatchEvent(new CustomEvent(SPACESHIP_CONTROL_EVENT, { detail: { type: 'ATTEMPT_DOCK' } }));
+                    } else {
+                        engageOrbit();
+                    }
+                }
                 if (MOVEMENT_KEYS.FLIGHT_ASSIST.includes(e.code)) flightAssist.current = !flightAssist.current;
                 
                 // --- MINING TOGGLE ---
                 if (MOVEMENT_KEYS.MINING.includes(e.code)) {
-                    if (miningState.isMining) {
-                        stopMining();
-                    } else {
-                        // Check location
-                        const shipPos = camera.position;
-                        const distFromCenter = shipPos.length();
-                        let foundZone = null;
-                        
-                        if (distFromCenter > 300 && distFromCenter < 600) foundZone = 'asteroid_belt';
-                        else if (distFromCenter > 5800 && distFromCenter < 8500) foundZone = 'kuiper_belt';
-                        else {
-                            for (const zoneId of MINING_LOCATIONS) {
-                                const body = findBody(zoneId);
-                                if (body) {
-                                    let bodyPos = getOrbitalPosition(body, timeRef.current);
-                                    if (parentMap[body.id]) {
-                                        bodyPos.add(getOrbitalPosition(parentMap[body.id], timeRef.current));
-                                    }
-                                    if (shipPos.distanceTo(bodyPos) < 500) {
-                                        foundZone = zoneId;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        
-                        if (foundZone) startMining(foundZone);
-                    }
+                    dispatchControl('MINING'); // Use central logic
                 }
 
                 if (MOVEMENT_KEYS.AUTOPILOT.includes(e.code)) {
@@ -339,6 +357,7 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
                 }
 
                 if (MOVEMENT_KEYS.EXIT.includes(e.code)) {
+                    e.preventDefault();
                     updateFuel(fuelRef.current); 
                     updateBoost(boostRef.current);
                     saveGame(camera.position.clone());
@@ -416,14 +435,14 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
                 const targetQuaternion = new THREE.Quaternion();
                 const m = new THREE.Matrix4().lookAt(currentPos, targetPos, new THREE.Vector3(0, 1, 0));
                 targetQuaternion.setFromRotationMatrix(m);
-                camera.quaternion.slerp(targetQuaternion, dt * 1.5 * currentShip.turnSpeed); 
+                trueQuaternion.current.slerp(targetQuaternion, dt * 1.5 * currentShip.turnSpeed); 
 
                 const targetApSpeed = currentShip.acceleration / 4.0;
                 const currentSpeed = velocity.current.length();
                 
                 if (fuelRef.current > 0) {
                     if (currentSpeed < targetApSpeed) {
-                        const thrustDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                        const thrustDir = new THREE.Vector3(0, 0, -1).applyQuaternion(trueQuaternion.current);
                         velocity.current.add(thrustDir.multiplyScalar(ACCEL * 0.5 * dt)); 
                         fuelRef.current = Math.max(0, fuelRef.current - (FUEL_BURN_BASE * 0.5 * dt));
                     } else {
@@ -438,13 +457,11 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
         }
 
         // --- MANUAL STEERING ---
-        if (!orbiting && !ap) {
+        if (!orbiting && !ap && !isFreeLook.current) {
             // Smooth pointer input to reduce jitter
             const targetMX = state.pointer.x;
             const targetMY = state.pointer.y;
             
-            // Smoothing factor: higher = more "weight" / lag, lower = snappier
-            // We use ship tier and turn speed to influence this "weight"
             const inertia = Math.max(0.05, 0.2 - (currentShip.turnSpeed * 0.05));
             smoothedPointer.current.x = THREE.MathUtils.lerp(smoothedPointer.current.x, targetMX, dt / inertia);
             smoothedPointer.current.y = THREE.MathUtils.lerp(smoothedPointer.current.y, targetMY, dt / inertia);
@@ -452,12 +469,11 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
             const mx = smoothedPointer.current.x;
             const my = smoothedPointer.current.y;
             
-            const deadzone = 0.05; // Reduced deadzone for smoother engagement
+            const deadzone = 0.05; 
             let turnX = 0; let turnY = 0;
             
             if (Math.abs(mx) > deadzone) {
                 const val = (Math.abs(mx) - deadzone) / (1 - deadzone);
-                // Sigmoid-like curve for natural ramp-up
                 turnX = Math.sign(mx) * (val * val); 
             }
             if (Math.abs(my) > deadzone) {
@@ -466,18 +482,32 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
             }
             
             const sensitivity = TURN_SENSITIVITY;
-            camera.rotateY(-turnX * sensitivity * dt);
-            camera.rotateX(turnY * sensitivity * dt);
             
-            // Smoothed Roll
+            // Update trueQuaternion (actual flight path)
+            const qYaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -turnX * sensitivity * dt);
+            const qPitch = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), turnY * sensitivity * dt);
+            
+            trueQuaternion.current.multiply(qYaw);
+            trueQuaternion.current.multiply(qPitch);
+            
+            // Manual Roll
             const rollSpeed = 2.0;
-            if (keys.current.rollLeft) camera.rotateZ(rollSpeed * dt);
-            if (keys.current.rollRight) camera.rotateZ(-rollSpeed * dt);
+            if (keys.current.rollLeft) {
+                const qRoll = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), rollSpeed * dt);
+                trueQuaternion.current.multiply(qRoll);
+            }
+            if (keys.current.rollRight) {
+                const qRoll = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -rollSpeed * dt);
+                trueQuaternion.current.multiply(qRoll);
+            }
             
             // Flight assist auto-leveling (smoothed)
             if (flightAssist.current && !keys.current.rollLeft && !keys.current.rollRight) {
-                const currentRoll = camera.rotation.z;
-                camera.rotation.z = THREE.MathUtils.lerp(currentRoll, 0, dt * 3.0);
+                // To auto-level, we find the "up" vector of the ship and align it with the world up
+                const currentDir = new THREE.Vector3(0, 0, -1).applyQuaternion(trueQuaternion.current);
+                const targetMatrix = new THREE.Matrix4().lookAt(new THREE.Vector3(0,0,0), currentDir, new THREE.Vector3(0, 1, 0));
+                const targetQuat = new THREE.Quaternion().setFromRotationMatrix(targetMatrix);
+                trueQuaternion.current.slerp(targetQuat, dt * 2.0);
             }
         }
 
@@ -515,7 +545,7 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
                     fuelRef.current = Math.max(0, fuelRef.current - burn);
 
                     inputVector.normalize();
-                    const thrust = inputVector.clone().applyQuaternion(camera.quaternion);
+                    const thrust = inputVector.clone().applyQuaternion(trueQuaternion.current);
                     velocity.current.add(thrust.multiplyScalar(ACCEL * thrustMult * dt));
                 } else {
                     cruiseThrottle.current = 0;
@@ -594,7 +624,7 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
              const targetQuat = new THREE.Quaternion();
              const m = new THREE.Matrix4().lookAt(camera.position, activeOrbitTarget.current.pos, new THREE.Vector3(0, 1, 0));
              targetQuat.setFromRotationMatrix(m);
-             camera.quaternion.slerp(targetQuat, dt * 0.5);
+             trueQuaternion.current.slerp(targetQuat, dt * 0.5);
         }
 
         const currentSpeed = velocity.current.length();
@@ -604,55 +634,44 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
         const motion = cockpitMotion.current;
         const elapsedTime = state.clock.elapsedTime;
         
-        // Precision mode reduces all motion for finer control
         const precisionDampen = precision ? 0.3 : 1.0;
-        
-        // Update breath phase (continuous slow oscillation)
         motion.breathPhase += dt * 0.8;
         
-        // 1. IDLE BREATHING - very subtle ambient motion (always present)
         const breathingX = Math.sin(motion.breathPhase * 0.5) * 0.0004 * precisionDampen;
         const breathingY = Math.cos(motion.breathPhase * 0.35) * 0.0003 * precisionDampen;
         const breathingRoll = Math.sin(motion.breathPhase * 0.2) * 0.0002 * precisionDampen;
         
-        // 2. SPEED-BASED MICRO-VIBRATION - increases with velocity
-        const speedNormalized = Math.min(1, currentSpeed / 50); // Normalize to 0-1 range
+        const speedNormalized = Math.min(1, currentSpeed / 50);
         const speedVibrationIntensity = speedNormalized * 0.0008 * precisionDampen;
         const speedVibX = (Math.sin(elapsedTime * 45) + Math.sin(elapsedTime * 67)) * speedVibrationIntensity;
         const speedVibY = (Math.cos(elapsedTime * 53) + Math.cos(elapsedTime * 71)) * speedVibrationIntensity;
         
-        // 3. BOOST SHAKE - more intense rumble when boosting
         const targetShakeIntensity = isBoosting ? 0.003 * precisionDampen : 0;
         motion.shakeIntensity = THREE.MathUtils.lerp(motion.shakeIntensity, targetShakeIntensity, dt * 8);
         const boostShakeX = (Math.sin(elapsedTime * 80) * 0.6 + Math.sin(elapsedTime * 123) * 0.4) * motion.shakeIntensity;
         const boostShakeY = (Math.cos(elapsedTime * 95) * 0.5 + Math.cos(elapsedTime * 137) * 0.5) * motion.shakeIntensity;
         const boostShakeRoll = Math.sin(elapsedTime * 60) * motion.shakeIntensity * 0.3;
         
-        // 4. TURN-INDUCED ROLL - lean into turns (mouse-based steering feedback)
-        const mouseX = state.pointer.x;
-        const turnRollTarget = -mouseX * 0.015 * (1 + speedNormalized * 0.5) * precisionDampen; // More pronounced at speed
+        const mouseX = isFreeLook.current ? 0 : state.pointer.x;
+        const turnRollTarget = -mouseX * 0.015 * (1 + speedNormalized * 0.5) * precisionDampen;
         motion.roll = THREE.MathUtils.lerp(motion.roll, turnRollTarget, dt * 3);
         
-        // 5. THRUST-INDUCED PITCH - nose dips on acceleration, rises on deceleration
         let pitchTarget = 0;
         if (keys.current.forward) pitchTarget = -0.008 * (1 + speedNormalized * 0.3) * precisionDampen;
         if (keys.current.backward) pitchTarget = 0.006 * precisionDampen;
         if (cruiseThrottle.current > 0) pitchTarget = -0.004 * cruiseThrottle.current * precisionDampen;
         motion.pitch = THREE.MathUtils.lerp(motion.pitch, pitchTarget, dt * 4);
         
-        // 6. STRAFE SWAY - subtle lateral tilt when strafing
         let swayTarget = 0;
         if (keys.current.left) swayTarget = 0.008 * precisionDampen;
         if (keys.current.right) swayTarget = -0.008 * precisionDampen;
         motion.sway = THREE.MathUtils.lerp(motion.sway, swayTarget, dt * 5);
         
-        // 7. VERTICAL BOB - subtle feedback for vertical thrust
         let verticalTarget = 0;
         if (keys.current.up) verticalTarget = -0.004 * precisionDampen;
         if (keys.current.down) verticalTarget = 0.004 * precisionDampen;
         motion.verticalBob = THREE.MathUtils.lerp(motion.verticalBob, verticalTarget, dt * 5);
         
-        // 8. AUTOPILOT SMOOTH DRIFT - gentle computer-controlled sway
         let apDriftX = 0;
         let apDriftY = 0;
         if (ap) {
@@ -660,22 +679,16 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
             apDriftY = Math.cos(elapsedTime * 0.25) * 0.0002;
         }
         
-        // Combine all motion effects (only apply when not orbiting for smoother orbit experience)
-        if (!orbiting) {
-            // Apply pitch (X rotation)
-            camera.rotateX(breathingY + speedVibY + boostShakeY + motion.pitch + motion.verticalBob + apDriftY);
-            
-            // Apply yaw micro-movements (Y rotation)  
-            camera.rotateY(breathingX + speedVibX + boostShakeX + apDriftX);
-            
-            // Apply roll effects (Z rotation) - additive to existing roll
-            const motionRoll = breathingRoll + boostShakeRoll + motion.roll + motion.sway;
-            camera.rotateZ(motionRoll * 0.5); // Dampen slightly for comfort
-        } else {
-            // Even in orbit mode, apply gentle breathing for life
-            camera.rotateX(breathingY * 0.5);
-            camera.rotateY(breathingX * 0.5);
-        }
+        // --- APPLY FINAL CAMERA ORIENTATION ---
+        // Combine True Orientation + Visual Offsets
+        const visualOffsets = new THREE.Euler(
+            breathingY + speedVibY + boostShakeY + motion.pitch + motion.verticalBob + apDriftY,
+            breathingX + speedVibX + boostShakeX + apDriftX,
+            breathingRoll + boostShakeRoll + motion.roll + motion.sway
+        );
+        const offsetQuat = new THREE.Quaternion().setFromEuler(visualOffsets);
+        
+        camera.quaternion.copy(trueQuaternion.current).multiply(offsetQuat);
         
         // === FOV EFFECTS ===
         let targetFov = 45 + (currentSpeed * 0.05) + (isBoosting ? 5 : 0);
@@ -719,6 +732,7 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
                     shipName: currentShip.name,
                     boosting: keys.current.boost && boostRef.current > 0,
                     precision: precision,
+                    isFreeLook: isFreeLook.current,
                     flightAssist: flightAssist.current,
                     canOrbit: validOrbitTargetFound,
                     isOrbiting: orbiting,
@@ -732,7 +746,7 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
                     targetRadius: targetRadius, 
                     shipPos: { x: currentPos.x, y: currentPos.y, z: currentPos.z }, 
                     distanceFromCenter: currentPos.length(),
-                    shipQuat: camera.quaternion, 
+                    shipQuat: trueQuaternion.current, // SEND THE TRUE QUATERNION FOR HUD/DOCKING
                     isLocked: !!lockedTargetRef.current
                 } 
             });
