@@ -260,7 +260,7 @@ export function SpeedControls({
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: 10 }}
-                                        className="absolute bottom-16 left-1/2 -translate-x-1/2 bg-zinc-900 border border-white/20 p-1 rounded-xl shadow-2xl flex flex-col gap-1 min-w-[120px]"
+                                        className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-zinc-900 border border-white/20 p-1 rounded-xl shadow-2xl flex flex-col gap-1 min-w-[120px] z-[100]"
                                     >
                                         <div className="px-3 py-1 text-[9px] text-zinc-500 uppercase font-bold tracking-widest border-b border-white/10 mb-1 text-center">View Mode</div>
                                         <button 
