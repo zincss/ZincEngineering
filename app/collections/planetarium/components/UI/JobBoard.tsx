@@ -84,6 +84,142 @@ const ManufacturerLogo = ({ owner, color, className = "" }: { owner: string, col
     return <Hexagon size={24} color={color} className={className} />;
 };
 
+// --- MARKET ROW COMPONENT ---
+const MarketRow = ({ 
+    resId, meta, basePrice, currentPrice, saturation, myQty, 
+    credits, inventory, maxLoad, buyResource, sellResource, accentColor 
+}: any) => {
+    const [tradeQty, setTradeQty] = useState(1);
+    const currentLoad = Object.values(inventory).reduce((a: number, b: any) => a + (b as number), 0);
+    const freeSpace = Math.max(0, maxLoad - currentLoad);
+    const maxAffordable = Math.floor(credits / (currentPrice || 1));
+    const maxBuy = Math.min(freeSpace, maxAffordable);
+    
+    const isHighPrice = currentPrice > basePrice;
+    const isLowPrice = currentPrice < basePrice;
+    const isSaturated = saturation >= 100;
+
+    // Reset qty if bounds change significantly
+    useEffect(() => {
+        if (tradeQty > Math.max(maxBuy, myQty) && Math.max(maxBuy, myQty) > 0) {
+            setTradeQty(Math.max(1, Math.min(tradeQty, Math.max(maxBuy, myQty))));
+        }
+    }, [maxBuy, myQty]);
+
+    const adjustQty = (amt: number) => {
+        setTradeQty(prev => Math.max(1, Math.min(prev + amt, 999)));
+    };
+
+    return (
+        <tr className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group">
+            <td className="px-6 py-4">
+                <div className="flex items-center gap-3">
+                    <div className="w-2.5 h-2.5 rounded-sm shadow-[0_0_10px_currentColor]" style={{ backgroundColor: meta.color, color: meta.color }} />
+                    <div className="flex flex-col">
+                        <span className="text-white font-bold text-sm">{meta.name}</span>
+                        <span className="text-[9px] text-zinc-500 uppercase tracking-tighter">Refined Ore</span>
+                    </div>
+                </div>
+            </td>
+            <td className="px-6 py-4 text-center font-mono text-zinc-500 text-xs">
+                {basePrice} CR
+            </td>
+            <td className="px-6 py-4 text-center font-mono text-sm">
+                <div className={`flex flex-col items-center leading-none ${isLowPrice ? "text-emerald-400" : isHighPrice ? "text-rose-400" : "text-white"}`}>
+                    <span>{currentPrice} CR</span>
+                    <span className="text-[8px] mt-1 opacity-60 font-bold uppercase tracking-widest">
+                        {isLowPrice ? '−' : isHighPrice ? '+' : ''}{Math.abs(((currentPrice-basePrice)/basePrice)*100).toFixed(0)}%
+                    </span>
+                </div>
+            </td>
+            <td className="px-6 py-4">
+                <div className="flex items-center gap-3">
+                    <div className="flex-1 h-1 bg-zinc-900 rounded-full overflow-hidden min-w-[60px] border border-white/5">
+                        <div 
+                            className={`h-full transition-all duration-1000 ${isSaturated ? 'bg-red-500' : 'bg-blue-500'}`} 
+                            style={{ width: `${Math.min(100, saturation)}%` }} 
+                        />
+                    </div>
+                    <div className="text-[10px] font-mono text-zinc-500">{saturation}%</div>
+                </div>
+            </td>
+            <td className="px-6 py-4 text-center">
+                {myQty > 0 ? (
+                    <div className="flex flex-col items-center">
+                        <span className="text-white font-bold text-sm">{myQty}</span>
+                        <span className="text-[8px] text-zinc-500 uppercase">Stored</span>
+                    </div>
+                ) : (
+                    <span className="text-zinc-800 font-mono">-</span>
+                )}
+            </td>
+            <td className="px-6 py-4">
+                <div className="flex items-center justify-end gap-4">
+                    {/* QUANTITY PICKER */}
+                    <div className="flex items-center bg-black/60 border border-white/10 rounded-lg p-1 px-2 group-hover:border-white/20 transition-colors">
+                        <button 
+                            onClick={() => adjustQty(-1)} 
+                            className="w-6 h-6 flex items-center justify-center text-zinc-500 hover:text-white transition-colors"
+                        >
+                            <ChevronDown size={14} />
+                        </button>
+                        <input 
+                            type="number" 
+                            value={tradeQty}
+                            onChange={(e) => setTradeQty(Math.max(1, parseInt(e.target.value) || 1))}
+                            className="w-10 bg-transparent text-center text-xs font-bold font-mono text-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                        <button 
+                            onClick={() => adjustQty(1)} 
+                            className="w-6 h-6 flex items-center justify-center text-zinc-500 hover:text-white transition-colors"
+                        >
+                            <ChevronUp size={14} />
+                        </button>
+                        <div className="w-px h-4 bg-white/10 mx-1" />
+                        <button 
+                            onClick={() => setTradeQty(Math.max(1, Math.max(maxBuy, myQty)))}
+                            className="text-[8px] font-bold text-zinc-500 hover:text-[#DFFF00] transition-colors px-1"
+                        >
+                            MAX
+                        </button>
+                    </div>
+
+                    {/* TRADE BUTTONS */}
+                    <div className="flex flex-col items-end gap-1">
+                        <div className="flex gap-1.5">
+                            <button
+                                onClick={() => { buyResource(resId, tradeQty); setTradeQty(1); }}
+                                disabled={credits < currentPrice * tradeQty || freeSpace < tradeQty}
+                                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                                    credits >= currentPrice * tradeQty && freeSpace >= tradeQty
+                                    ? 'bg-emerald-500 text-black hover:bg-white shadow-lg shadow-emerald-500/10'
+                                    : 'bg-zinc-900 text-zinc-600 cursor-not-allowed border border-white/5'
+                                }`}
+                            >
+                                Buy
+                            </button>
+                            <button
+                                onClick={() => { sellResource(resId, tradeQty); setTradeQty(1); }}
+                                disabled={myQty < tradeQty || isSaturated}
+                                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                                    myQty >= tradeQty && !isSaturated
+                                    ? 'bg-purple-600 text-white hover:bg-purple-500 shadow-lg shadow-purple-500/10'
+                                    : 'bg-zinc-900 text-zinc-600 cursor-not-allowed border border-white/5'
+                                }`}
+                            >
+                                Sell
+                            </button>
+                        </div>
+                        <div className="text-[9px] font-mono text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                            Total: {(currentPrice * tradeQty).toLocaleString()} CR
+                        </div>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    );
+};
+
 export function JobBoard({ onClose }: { onClose: () => void }) {
     const {
         availableJobs, acceptJob, activeJob, completeJob, credits, dockedAt, 
@@ -412,6 +548,21 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
 
                                 <div className="bg-black/40 rounded-lg p-3 border border-white/5">
                                     <div className="flex justify-between items-center mb-1">
+                                        <span className="text-[9px] text-zinc-500 font-bold uppercase">Cargo</span>
+                                        <span className={`text-[10px] font-mono ${Object.values(inventory).reduce((a: number, b: any) => a + (b as number), 0) >= (currentShip.miningCap || 0) ? 'text-orange-500' : 'text-zinc-400'}`}>
+                                            {Object.values(inventory).reduce((a: number, b: any) => a + (b as number), 0)} / {currentShip.miningCap || 0}
+                                        </span>
+                                    </div>
+                                    <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
+                                        <div 
+                                            className="h-full bg-[#DFFF00]/60 transition-all duration-500" 
+                                            style={{ width: `${(Object.values(inventory).reduce((a: number, b: any) => a + (b as number), 0) / (currentShip.miningCap || 1)) * 100}%` }} 
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="bg-black/40 rounded-lg p-3 border border-white/5">
+                                    <div className="flex justify-between items-center mb-1">
                                         <span className="text-[9px] text-zinc-500 font-bold uppercase">Balance</span>
                                         <span className="text-[10px] font-mono" style={{ color: accentColor }}>{credits.toLocaleString()} CR</span>
                                     </div>
@@ -509,17 +660,33 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
                                         </div>
                                     </div>
                                 ) : (
-                                    // MARKET TAB
-                                    <div className="max-w-5xl mx-auto">
-                                        <div className="bg-black/20 border border-white/10 rounded-xl overflow-hidden">
-                                            <table className="w-full text-left">
+                                // MARKET TAB
+                                <div className="max-w-5xl mx-auto pb-20">
+                                    <div className="flex justify-between items-end mb-6">
+                                        <div>
+                                            <h2 className="text-zinc-500 text-[10px] uppercase font-bold tracking-[0.2em] mb-1">Trading Hub</h2>
+                                            <div className="text-white text-sm font-medium">Local Market Dynamics active. Prices fluctuate based on station demand.</div>
+                                        </div>
+                                        <div className="bg-white/5 border border-white/10 rounded-full px-4 py-2 flex items-center gap-4">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full bg-[#DFFF00]" />
+                                                <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">Hold Space</span>
+                                            </div>
+                                            <div className="text-white font-mono font-bold text-sm">
+                                                {Object.values(inventory).reduce((a: number, b: any) => a + (b as number), 0)} / {currentShip.miningCap || 0} <span className="text-[10px] text-zinc-500 font-normal ml-1">Units</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="bg-black/20 border border-white/10 rounded-xl overflow-hidden">
+                                            <table className="w-full text-left border-collapse">
                                                 <thead>
                                                     <tr className="border-b border-white/5 text-zinc-500 text-[10px] uppercase font-bold tracking-wider bg-black/40">
                                                         <th className="px-6 py-4">Resource</th>
-                                                        <th className="px-6 py-4 text-right">Market Price</th>
+                                                        <th className="px-6 py-4 text-center">System Avg</th>
+                                                        <th className="px-6 py-4 text-center">Local Price</th>
                                                         <th className="px-6 py-4">Demand</th>
-                                                        <th className="px-6 py-4 text-right">My Cargo</th>
-                                                        <th className="px-6 py-4 text-right">Trade</th>
+                                                        <th className="px-6 py-4 text-center">My Cargo</th>
+                                                        <th className="px-6 py-4 text-right min-w-[240px]">Trade Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -530,79 +697,22 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
                                                         const saturation = marketItem?.saturation || 0;
                                                         const myQty = inventory[resId] || 0;
                                                         
-                                                        const isHighPrice = currentPrice > basePrice;
-                                                        const isSaturated = saturation >= 100;
-
-                                                        const currentLoad = Object.values(inventory).reduce((a, b) => a + b, 0);
-                                                        const maxLoad = currentShip.miningCap || 0;
-                                                        const canFitMore = currentLoad < maxLoad;
-                                                        
                                                         return (
-                                                            <tr key={resId} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                                                <td className="px-6 py-3">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <div className="w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]" style={{ backgroundColor: meta.color, color: meta.color }} />
-                                                                        <span className="text-white font-bold text-sm">{meta.name}</span>
-                                                                    </div>
-                                                                </td>
-                                                                <td className="px-6 py-3 text-right font-mono">
-                                                                    <div className={isHighPrice ? "text-emerald-400" : "text-rose-400"}>
-                                                                        {currentPrice} CR
-                                                                    </div>
-                                                                </td>
-                                                                <td className="px-6 py-3">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <div className="flex-1 h-1 bg-zinc-800 rounded-full overflow-hidden min-w-[60px]">
-                                                                            <div 
-                                                                                className={`h-full ${isSaturated ? 'bg-red-500' : 'bg-blue-500'}`} 
-                                                                                style={{ width: `${Math.min(100, saturation)}%` }} 
-                                                                            />
-                                                                        </div>
-                                                                        <div className="text-[10px] font-mono text-zinc-500">
-                                                                            {saturation}%
-                                                                        </div>
-                                                                    </div>
-                                                                </td>
-                                                                <td className="px-6 py-3 text-right">
-                                                                    {myQty > 0 ? (
-                                                                        <span className="text-white font-bold">{myQty}</span>
-                                                                    ) : (
-                                                                        <span className="text-zinc-700">-</span>
-                                                                    )}
-                                                                </td>
-                                                                <td className="px-6 py-3">
-                                                                    <div className="flex items-center justify-end gap-2">
-                                                                        {/* BUY TOOLS */}
-                                                                        <div className="flex bg-black/40 rounded overflow-hidden border border-white/10">
-                                                                            <button
-                                                                                onClick={() => buyResource(resId, 1)}
-                                                                                disabled={credits < currentPrice || !canFitMore}
-                                                                                className="px-3 py-1 text-[9px] font-bold text-emerald-500 hover:bg-emerald-500/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
-                                                                            >
-                                                                                BUY
-                                                                            </button>
-                                                                        </div>
-
-                                                                        {/* SELL TOOLS */}
-                                                                        <div className="flex bg-black/40 rounded overflow-hidden border border-white/10">
-                                                                            <button
-                                                                                onClick={() => sellResource(resId, 1)}
-                                                                                disabled={myQty < 1 || isSaturated}
-                                                                                className="px-3 py-1 text-[9px] font-bold text-purple-400 hover:bg-purple-500/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
-                                                                            >
-                                                                                SELL
-                                                                            </button>
-                                                                            <button
-                                                                                onClick={() => sellResource(resId, myQty)}
-                                                                                disabled={myQty <= 0 || isSaturated}
-                                                                                className="px-3 py-1 text-[9px] font-bold text-white bg-purple-600 hover:bg-purple-500 border-l border-white/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
-                                                                            >
-                                                                                ALL
-                                                                            </button>
-                                                                        </div>
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
+                                                            <MarketRow 
+                                                                key={resId}
+                                                                resId={resId}
+                                                                meta={meta}
+                                                                basePrice={basePrice}
+                                                                currentPrice={currentPrice}
+                                                                saturation={saturation}
+                                                                myQty={myQty}
+                                                                credits={credits}
+                                                                inventory={inventory}
+                                                                maxLoad={currentShip.miningCap || 0}
+                                                                buyResource={buyResource}
+                                                                sellResource={sellResource}
+                                                                accentColor={accentColor}
+                                                            />
                                                         );
                                                     })}
                                                 </tbody>

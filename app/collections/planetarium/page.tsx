@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // --- DIRECT IMPORTS ---
-import { SimulationProvider, useSimulation, TimeKeeper, J2000_EPOCH, SPACESHIP_EXIT_EVENT } from './context';
+import { SimulationProvider, useSimulation, TimeKeeper, J2000_EPOCH, SPACESHIP_UPDATE_EVENT, SPACESHIP_CONTROL_EVENT, SPACESHIP_EXIT_EVENT } from './context';
 import { StarBackground, SolarWind, AsteroidBelt } from './components/Scene/Environment';
 import { GravityWellGrid } from './components/Scene/GravityWellGrid';
 import { Sun } from './components/Scene/StellarBodies';
