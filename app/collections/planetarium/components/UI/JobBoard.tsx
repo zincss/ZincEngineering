@@ -112,7 +112,7 @@ const MarketRow = ({
 
     return (
         <tr className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group">
-            <td className="px-6 py-4">
+            <td className="px-4 py-4">
                 <div className="flex items-center gap-3">
                     <div className="w-2.5 h-2.5 rounded-sm shadow-[0_0_10px_currentColor]" style={{ backgroundColor: meta.color, color: meta.color }} />
                     <div className="flex flex-col">
@@ -121,10 +121,10 @@ const MarketRow = ({
                     </div>
                 </div>
             </td>
-            <td className="px-6 py-4 text-center font-mono text-zinc-500 text-xs">
+            <td className="px-4 py-4 text-center font-mono text-zinc-500 text-xs">
                 {basePrice} CR
             </td>
-            <td className="px-6 py-4 text-center font-mono text-sm">
+            <td className="px-4 py-4 text-center font-mono text-sm">
                 <div className={`flex flex-col items-center leading-none ${isLowPrice ? "text-emerald-400" : isHighPrice ? "text-rose-400" : "text-white"}`}>
                     <span>{currentPrice} CR</span>
                     <span className="text-[8px] mt-1 opacity-60 font-bold uppercase tracking-widest">
@@ -132,7 +132,7 @@ const MarketRow = ({
                     </span>
                 </div>
             </td>
-            <td className="px-6 py-4">
+            <td className="px-4 py-4">
                 <div className="flex items-center gap-3">
                     <div className="flex-1 h-1 bg-zinc-900 rounded-full overflow-hidden min-w-[60px] border border-white/5">
                         <div 
@@ -143,7 +143,7 @@ const MarketRow = ({
                     <div className="text-[10px] font-mono text-zinc-500">{saturation}%</div>
                 </div>
             </td>
-            <td className="px-6 py-4 text-center">
+            <td className="px-4 py-4 text-center">
                 {myQty > 0 ? (
                     <div className="flex flex-col items-center">
                         <span className="text-white font-bold text-sm">{myQty}</span>
@@ -153,7 +153,7 @@ const MarketRow = ({
                     <span className="text-zinc-800 font-mono">-</span>
                 )}
             </td>
-            <td className="px-6 py-4">
+            <td className="px-4 py-4 pr-8">
                 <div className="flex items-center justify-end gap-3">
                     {/* QUANTITY PICKER */}
                     <div className="flex items-center bg-black/60 border border-white/10 rounded-lg p-1 group-hover:border-white/20 transition-colors">
@@ -677,16 +677,16 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="bg-black/20 border border-white/10 rounded-xl overflow-hidden">
-                                            <table className="w-full text-left border-collapse">
+                                    <div className="bg-black/20 border border-white/10 rounded-xl overflow-x-auto custom-scrollbar">
+                                            <table className="w-full text-left border-collapse min-w-[800px]">
                                                 <thead>
                                                     <tr className="border-b border-white/5 text-zinc-500 text-[10px] uppercase font-bold tracking-wider bg-black/40">
-                                                        <th className="px-6 py-4">Resource</th>
-                                                        <th className="px-6 py-4 text-center">System Avg</th>
-                                                        <th className="px-6 py-4 text-center">Local Price</th>
-                                                        <th className="px-6 py-4">Demand</th>
-                                                        <th className="px-6 py-4 text-center">My Cargo</th>
-                                                        <th className="px-6 py-4 text-right min-w-[280px]">Trade Actions</th>
+                                                        <th className="px-4 py-4">Resource</th>
+                                                        <th className="px-4 py-4 text-center">System Avg</th>
+                                                        <th className="px-4 py-4 text-center">Local Price</th>
+                                                        <th className="px-4 py-4">Demand</th>
+                                                        <th className="px-4 py-4 text-center">My Cargo</th>
+                                                        <th className="px-4 py-4 text-right pr-8 min-w-[300px]">Trade Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
