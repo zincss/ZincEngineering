@@ -10,7 +10,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 // --- DIRECT IMPORTS ---
 import { SimulationProvider, useSimulation, TimeKeeper, J2000_EPOCH, SPACESHIP_EXIT_EVENT } from './context';
-import { StarBackground, SolarWind, SpaceDust, AsteroidBelt } from './components/Scene/Environment';
+import { StarBackground, SolarWind, AsteroidBelt } from './components/Scene/Environment';
+import { GravityWellGrid } from './components/Scene/GravityWellGrid';
 import { Sun } from './components/Scene/StellarBodies';
 import { Planet } from './components/Scene/PlanetarySystem';
 import { SpaceshipController, SpaceshipHUD } from './components/Scene/Spaceship';
@@ -45,7 +46,7 @@ function PlanetariumContent() {
     
     const [showOrbits, setShowOrbits] = useState(true);
     const [showLabels, setShowLabels] = useState(true);
-    const [showSolarWind, setShowSolarWind] = useState(false);
+    const [viewMode, setViewMode] = useState<'standard' | 'wind' | 'gravity'>('standard');
     
     const [isCinematic, setIsCinematic] = useState(false);
     const [isSpaceshipMode, setIsSpaceshipMode] = useState(false);
@@ -266,7 +267,6 @@ function PlanetariumContent() {
                             />
                             
                             <StarBackground />
-                            {!isScaleMode && <SpaceDust />} 
                             {!isScaleMode && <AsteroidBelt />}
                             {!isScaleMode && (
                                 <>
@@ -278,7 +278,8 @@ function PlanetariumContent() {
                                     <AsteroidField count={40} minRadius={20} maxRadius={60} mode="local" />
                                 </>
                             )}
-                            {!isScaleMode && showSolarWind && <SolarWind />}
+                            {!isScaleMode && viewMode === 'wind' && <SolarWind />}
+                            {!isScaleMode && viewMode === 'gravity' && <GravityWellGrid />}
                             
                             <group position={sunScalePos}>
                                  <Sun onClick={() => handleSelect('sun')} />
@@ -375,7 +376,7 @@ function PlanetariumContent() {
                     <SpeedControls 
                         showOrbits={showOrbits} setShowOrbits={setShowOrbits}
                         showLabels={showLabels} setShowLabels={setShowLabels}
-                        showSolarWind={showSolarWind} setShowSolarWind={setShowSolarWind}
+                        viewMode={viewMode} setViewMode={setViewMode}
                         handleRecenter={handleRecenter}
                         isSpaceshipMode={isSpaceshipMode}
                         setIsSpaceshipMode={setIsSpaceshipMode}
