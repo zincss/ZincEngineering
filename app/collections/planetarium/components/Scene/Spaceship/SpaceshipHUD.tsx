@@ -768,7 +768,7 @@ const IgnitionSequence = ({ manufacturer, color, phase }: any) => {
                 </div>
             )}
             {manufacturer === "Marse Movement" && (
-                <div className="flex flex-col items-center justify-center w-full h-full bg-black">
+                <div className="flex flex-col items-center justify-center w-full h-full bg-black relative">
                     {/* Background Ambience */}
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.15)_0%,transparent_60%)] pointer-events-none" />
                     
@@ -782,49 +782,57 @@ const IgnitionSequence = ({ manufacturer, color, phase }: any) => {
                         />
                     )}
 
-                    {/* Phase 1: The Emblem Rise */}
-                    {phase >= 1 && (
-                        <motion.div 
-                            initial={{ y: 20, opacity: 0 }} 
-                            animate={{ y: 0, opacity: 1 }} 
-                            transition={{ duration: 1.2, ease: "easeOut" }}
-                            className="flex flex-col items-center z-10"
-                        >
-                            <div className="relative mb-6">
+                    {/* Unified Content Container - Layout prop ensures smooth shifting */}
+                    <motion.div layout className="flex flex-col items-center z-10">
+                        {/* Emblem (Gem) */}
+                        <AnimatePresence mode="popLayout">
+                            {phase >= 1 && (
                                 <motion.div 
-                                    animate={{ rotate: 180, scale: [1, 1.1, 1] }} 
-                                    transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                                    className="absolute inset-[-30px] border-[0.5px] border-[#D4AF37]/30 rounded-full border-dashed" 
-                                />
-                                <motion.div 
-                                    initial={{ scale: 0.8, rotate: -45 }}
-                                    animate={{ scale: 1, rotate: 0 }}
-                                    transition={{ duration: 1.5, ease: "backOut" }}
+                                    key="marse-emblem"
+                                    initial={{ y: 20, opacity: 0 }} 
+                                    animate={{ y: 0, opacity: 1 }} 
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 1.2, ease: "easeOut" }}
+                                    className="relative mb-8"
                                 >
-                                    <Gem size={48} fill="currentColor" className="text-[#D4AF37] drop-shadow-[0_0_30px_rgba(212,175,55,0.5)]" />
+                                    <motion.div 
+                                        animate={{ rotate: 180, scale: [1, 1.1, 1] }} 
+                                        transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                                        className="absolute inset-[-30px] border-[0.5px] border-[#D4AF37]/30 rounded-full border-dashed" 
+                                    />
+                                    <motion.div 
+                                        initial={{ scale: 0.8, rotate: -45 }}
+                                        animate={{ scale: 1, rotate: 0 }}
+                                        transition={{ duration: 1.5, ease: "backOut" }}
+                                    >
+                                        <Gem size={48} fill="currentColor" className="text-[#D4AF37] drop-shadow-[0_0_30px_rgba(212,175,55,0.5)]" />
+                                    </motion.div>
                                 </motion.div>
-                            </div>
-                        </motion.div>
-                    )}
+                            )}
+                        </AnimatePresence>
 
-                    {/* Phase 2: Typography */}
-                    {phase >= 2 && (
-                        <motion.div 
-                            initial={{ opacity: 0, letterSpacing: "0.5em" }} 
-                            animate={{ opacity: 1, letterSpacing: "0.2em" }} 
-                            transition={{ duration: 1.5, ease: "easeOut" }}
-                            className="flex flex-col items-center z-10 mt-4"
-                        >
-                            <h1 className="text-5xl font-serif text-white uppercase tracking-[0.2em] font-medium drop-shadow-lg">Marse</h1>
-                            <motion.div 
-                                initial={{ width: 0 }} 
-                                animate={{ width: "100px" }} 
-                                transition={{ delay: 0.5, duration: 1 }}
-                                className="h-[1px] bg-[#D4AF37]/50 mt-4 mb-2"
-                            />
-                            <span className="text-[10px] font-sans text-[#D4AF37] uppercase tracking-[0.4em] font-light">Movement</span>
-                        </motion.div>
-                    )}
+                        {/* Typography */}
+                        <AnimatePresence mode="popLayout">
+                            {phase >= 2 && (
+                                <motion.div 
+                                    key="marse-text"
+                                    initial={{ opacity: 0, y: 10 }} 
+                                    animate={{ opacity: 1, y: 0 }} 
+                                    transition={{ duration: 1.5, ease: "easeOut" }}
+                                    className="flex flex-col items-center"
+                                >
+                                    <h1 className="text-5xl font-serif text-white uppercase tracking-[0.2em] font-medium drop-shadow-lg leading-none">Marse</h1>
+                                    <motion.div 
+                                        initial={{ width: 0 }} 
+                                        animate={{ width: "100px" }} 
+                                        transition={{ delay: 0.5, duration: 1 }}
+                                        className="h-[1px] bg-[#D4AF37]/50 mt-4 mb-2"
+                                    />
+                                    <span className="text-[10px] font-sans text-[#D4AF37] uppercase tracking-[0.4em] font-light">Movement</span>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </motion.div>
 
                     {/* Phase 3: Systems Check (Subtle) */}
                     {phase >= 3 && (
