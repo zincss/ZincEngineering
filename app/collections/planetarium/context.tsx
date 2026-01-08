@@ -19,6 +19,8 @@ import {
     MINING_LOCATIONS
 } from './constants';
 
+export { PLANET_DATA } from './data';
+
 // Re-export constants for backwards compatibility
 export { 
     J2000_EPOCH, 
