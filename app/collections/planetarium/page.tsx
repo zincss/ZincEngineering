@@ -97,29 +97,12 @@ function PlanetariumContent() {
         return closestId;
     }, [currentData, getOrbitalPosition, timeRef]);
 
-    const [cinematicKey, setCinematicKey] = useState(0); 
-    const [cinematicOverlay, setCinematicOverlay] = useState<OverlayData>({ show: false });
-    const [flightData, setFlightData] = useState<FlightData>({ active: false });
-    const [currentTourId, setCurrentTourId] = useState('grand_tour');
-
-    const planetRefs = useRef<Record<string, THREE.Object3D>>({});
-    const initialLoadRef = useRef(false);
-    const prevDocked = useRef(!!dockedAt);
-
-    useEffect(() => {
-        setSelectedId(null);
-        setFinderOpen(false);
-    }, [activeSystem]);
-
     useEffect(() => {
         const handleOpenNav = () => setNavComputerOpen(true);
-        const handleExitShip = (e: any) => {
-            const closestId = e.detail?.closestBodyId;
-            handleModeSwitch(false, () => {
-                if (closestId) {
-                    setDockedAt(closestId);
-                }
-            });
+        
+        // EXIT: Spaceship (Space) -> Map View
+        const handleExitShip = () => {
+            handleModeSwitch(false); // Simply disconnect and return to map
         };
         
         window.addEventListener('spaceship-open-nav', handleOpenNav);
@@ -129,7 +112,7 @@ function PlanetariumContent() {
             window.removeEventListener('spaceship-open-nav', handleOpenNav);
             window.removeEventListener(SPACESHIP_EXIT_EVENT, handleExitShip);
         };
-    }, [handleModeSwitch, setDockedAt]);
+    }, [handleModeSwitch]);
 
     useEffect(() => {
         if (isCinematic) setIsSpaceshipMode(false);
@@ -157,21 +140,21 @@ function PlanetariumContent() {
                 setCinematicKey(k => k + 1);
                 setCinematicOverlay({ show: false });
                 setFlightData({ active: false });
-            } 
+            }
         }
         
-        // 2. Undocking Logic: If we just undocked manually, trigger flight transition
+        // 2. Launch/Undock Logic: Hub -> Spaceship
         if (user) {
             const wasDocked = prevDocked.current;
             const isDocked = !!dockedAt;
             
+            // If user just undocked manually (Launch from Hub)
             if (wasDocked && !isDocked && !isCinematic) {
-                // User clicked "Undock" or "Launch"
-                handleModeSwitch(true);
+                handleModeSwitch(true); // Establish link to cockpit
             }
             prevDocked.current = isDocked;
         }
-    }, [isLoadingSave, activeSystem, dockedAt, savedPosition, isCinematic, user, handleModeSwitch]);
+    }, [isLoadingSave, activeSystem, dockedAt, user, handleModeSwitch, isCinematic]);
 
 
     const handleSelect = useCallback((id: string | null) => {
@@ -180,19 +163,24 @@ function PlanetariumContent() {
         setFinderOpen(false);
     }, [isCinematic]);
 
-    // Update handleRocketClick logic via setIsSpaceshipMode prop
+    // MAP -> HUB (Rocket Icon Click)
     const handleRocketToggle = useCallback((targetMode: boolean) => {
         if (targetMode) {
-            // Entering flight: find closest body to saved position and dock there first
+            // Entering Hub: find closest body and dock there
             const closestId = findClosestBody(savedPosition);
-            handleModeSwitch(false, () => {
-                setDockedAt(closestId);
-            });
+            setTransitionText("Establishing Neural Link");
+            setIsTransitioning(true);
+            setTimeout(() => {
+                setDockedAt(closestId); // This opens the Hub UI
+                setTimeout(() => {
+                    setIsTransitioning(false);
+                }, 1200);
+            }, 1000);
         } else {
-            // Exiting flight: manual toggle (same as ESC)
+            // Manual toggle while flying (same as ESC)
             window.dispatchEvent(new CustomEvent(SPACESHIP_CONTROL_EVENT, { detail: { type: 'EXIT' } }));
         }
-    }, [findClosestBody, savedPosition, handleModeSwitch, setDockedAt]);
+    }, [findClosestBody, savedPosition, setDockedAt]);
 
     const handleBackgroundClick = useCallback(() => {
         if (isCinematic) return;
