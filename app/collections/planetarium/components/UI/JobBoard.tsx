@@ -5,12 +5,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Lock, Wifi, UploadCloud, ArrowUpCircle, Container, DollarSign, 
     Fuel, Zap, Briefcase, Pickaxe, ChevronDown, ChevronUp, Package, CheckCircle,
-    Shield, Hexagon, Anchor, Zap as Lightning, Globe, Fish, Hammer, Gem
+    Shield, Hexagon, Anchor, Zap as Lightning, Globe, Fish, Hammer, Gem, X
 } from 'lucide-react';
 import { useSimulation, HaulingJob, FulfillmentContract, MINING_RESOURCES } from '../../context';
 import { FUEL_COST_PER_UNIT, BOOST_COST_PER_UNIT } from '../../constants';
 import { Dealership } from '../Dealership';
 import { Hangar } from './Hangar';
+import { FACTION_LORE, FactionLore } from './FactionLore';
 
 // Manufacturer Colors
 const FACTION_THEMES: Record<string, string> = {
@@ -25,44 +26,46 @@ const FACTION_THEMES: Record<string, string> = {
     'Unknown': '#DFFF00'
 };
 
-const ManufacturerLogo = ({ owner, color, className = "" }: { owner: string, color: string, className?: string }) => {
+const ManufacturerLogo = ({ owner, color, className = "", onClick }: { owner: string, color: string, className?: string, onClick?: () => void }) => {
+    const baseClass = `cursor-pointer hover:scale-105 transition-transform active:scale-95 ${className}`;
+    
     if (owner === 'Zinc Aerospace') return (
-        <div className={`flex items-center gap-2 ${className}`}>
+        <div onClick={onClick} className={`flex items-center gap-2 ${baseClass}`}>
             <div className="w-8 h-8 border-2 border-[#DFFF00] rounded-lg flex items-center justify-center font-black text-white text-sm bg-[#DFFF00]/10 shadow-lg shadow-[#DFFF00]/10">Z</div>
             <div className="flex flex-col leading-none text-white font-bold uppercase text-[9px] tracking-widest"><span>Zinc</span><span className="text-[7px] text-[#DFFF00]">Aero</span></div>
         </div>
     );
     if (owner === 'Australian Dynamics') return (
-        <div className={`flex items-center gap-2 bg-zinc-900 border border-white/10 p-1.5 pr-4 rounded-lg ${className}`}>
+        <div onClick={onClick} className={`flex items-center gap-2 bg-zinc-900 border border-white/10 p-1.5 pr-4 rounded-lg ${baseClass}`}>
             <div className="w-6 h-6 bg-amber-500 rounded flex items-center justify-center text-black font-black text-[10px]">AD</div>
             <span className="text-[10px] font-black text-white tracking-widest uppercase">Aussie_Dyn</span>
         </div>
     );
     if (owner === 'Ares-Miltech') return (
-        <div className={`flex items-center gap-2 bg-black/40 p-1.5 pr-6 border border-red-600/30 skew-x-[-12deg] ${className}`}>
+        <div onClick={onClick} className={`flex items-center gap-2 bg-black/40 p-1.5 pr-6 border border-red-600/30 skew-x-[-12deg] ${baseClass}`}>
             <div className="w-7 h-7 bg-red-600 flex items-center justify-center text-white"><Shield size={14} fill="currentColor" /></div>
             <span className="text-[10px] font-black italic text-white tracking-tighter uppercase">Ares_Mil</span>
         </div>
     );
     if (owner === 'Titan Industries') return (
-        <div className={`flex items-center gap-2 bg-zinc-900/90 p-1.5 pr-6 border-l-4 border-orange-600 ${className}`}>
+        <div onClick={onClick} className={`flex items-center gap-2 bg-zinc-900/90 p-1.5 pr-6 border-l-4 border-orange-600 ${baseClass}`}>
             <div className="w-8 h-8 bg-orange-600 flex items-center justify-center text-black font-black italic text-sm">T</div>
             <span className="text-sm font-black uppercase text-white tracking-tighter">TITAN</span>
         </div>
     );
     if (owner === 'inTAKE racing') return (
-        <div className={`flex items-baseline gap-1 bg-black/40 p-2 px-6 rounded-full border border-white/10 shadow-2xl backdrop-blur-xl ${className}`}>
+        <div onClick={onClick} className={`flex items-baseline gap-1 bg-black/40 p-2 px-6 rounded-full border border-white/10 shadow-2xl backdrop-blur-xl ${baseClass}`}>
             <span className="text-xl font-black italic text-cyan-400">in</span><span className="text-xl font-black italic text-white">TAKE</span>
         </div>
     );
     if (owner === 'Orbital Mechanics') return (
-        <div className={`flex flex-col items-center bg-white/5 p-2 px-6 rounded-2xl border border-white/10 shadow-2xl ${className}`}>
+        <div onClick={onClick} className={`flex flex-col items-center bg-white/5 p-2 px-6 rounded-2xl border border-white/10 shadow-2xl ${baseClass}`}>
             <div className="w-8 h-4 border-t border-x border-purple-400 rounded-t-full" />
             <span className="text-[8px] font-serif italic tracking-[0.4em] text-purple-200 mt-1 uppercase leading-none">Orbital</span>
         </div>
     );
     if (owner === 'Fishworx Staryard') return (
-        <div className={`flex items-center gap-2 bg-slate-900/80 border border-yellow-500/30 p-1.5 pr-4 rounded-sm ${className}`}>
+        <div onClick={onClick} className={`flex items-center gap-2 bg-slate-900/80 border border-yellow-500/30 p-1.5 pr-4 rounded-sm ${baseClass}`}>
             <div className="w-7 h-7 bg-yellow-500 flex items-center justify-center text-black border border-yellow-600"><Hammer size={16} strokeWidth={2.5} /></div>
             <div className="flex flex-col leading-none">
                 <span className="text-[10px] font-black text-yellow-500 uppercase tracking-tight">FISHWORX</span>
@@ -71,7 +74,7 @@ const ManufacturerLogo = ({ owner, color, className = "" }: { owner: string, col
         </div>
     );
     if (owner === 'Marse Movement') return (
-        <div className={`flex items-center gap-3 bg-black border border-yellow-400/30 p-2 px-4 rounded-full ${className}`}>
+        <div onClick={onClick} className={`flex items-center gap-3 bg-black border border-yellow-400/30 p-2 px-4 rounded-full ${baseClass}`}>
             <Gem size={16} className="text-yellow-400" />
             <div className="flex flex-col items-start leading-none">
                 <span className="text-[10px] font-serif font-bold text-white tracking-wider">MARSE</span>
@@ -81,8 +84,116 @@ const ManufacturerLogo = ({ owner, color, className = "" }: { owner: string, col
     );
     
     // Default / Unknown
-    return <Hexagon size={24} color={color} className={className} />;
+    return <Hexagon onClick={onClick} size={24} color={color} className={baseClass} />;
 };
+
+const FactionDetailModal = ({ faction, onClose, accentColor }: { faction: FactionLore, onClose: () => void, accentColor: string }) => (
+    <motion.div 
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+        onClick={(e) => e.stopPropagation()}
+    >
+        <div className="bg-zinc-950 border border-white/10 rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col relative">
+            {/* Background Accent */}
+            <div className="absolute top-0 left-0 w-full h-1" style={{ backgroundColor: accentColor }} />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-24 blur-[80px] opacity-20 pointer-events-none" style={{ backgroundColor: accentColor }} />
+
+            {/* Header */}
+            <div className="p-8 border-b border-white/5 flex justify-between items-start shrink-0">
+                <div className="flex items-center gap-6">
+                    <ManufacturerLogo owner={faction.name} color={accentColor} className="scale-125" />
+                    <div>
+                        <h2 className="text-4xl font-black text-white uppercase tracking-tighter leading-none">{faction.name}</h2>
+                        <div className="flex items-center gap-2 mt-2 text-zinc-500 font-mono text-xs uppercase tracking-widest">
+                            <Anchor size={12} /> Established Port: {faction.origin}
+                        </div>
+                    </div>
+                </div>
+                <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-full">
+                    <X size={24} />
+                </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-8 grid grid-cols-1 md:grid-cols-3 gap-8 custom-scrollbar">
+                {/* Left Column: History & Description */}
+                <div className="md:col-span-2 space-y-8">
+                    <section>
+                        <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: accentColor }} />
+                            Organizational Narrative
+                        </h3>
+                        <p className="text-zinc-300 text-sm leading-relaxed mb-4">{faction.description}</p>
+                        <p className="text-zinc-400 text-sm leading-relaxed italic border-l-2 border-white/5 pl-4">{faction.history}</p>
+                    </section>
+
+                    <section>
+                        <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: accentColor }} />
+                            Strategic Assets & Territories
+                        </h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            {faction.territories.map((t, i) => (
+                                <div key={i} className="bg-white/5 border border-white/5 p-3 rounded-xl flex items-center gap-3 group hover:border-white/10 transition-colors">
+                                    <div className="w-8 h-8 rounded-lg bg-black/40 flex items-center justify-center text-zinc-500 group-hover:text-white transition-colors">
+                                        <Globe size={14} />
+                                    </div>
+                                    <span className="text-xs font-bold text-white uppercase tracking-wider">{t}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                </div>
+
+                {/* Right Column: Stats & Portfolio */}
+                <div className="space-y-8">
+                    <section className="bg-black/40 border border-white/5 rounded-2xl p-6">
+                        <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] mb-6">Fiscal Performance</h3>
+                        <div className="space-y-6">
+                            <div>
+                                <div className="text-[10px] text-zinc-600 uppercase tracking-widest mb-1">Annual Revenue</div>
+                                <div className="text-2xl font-mono font-bold text-white">{faction.stats.revenue}</div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <div className="text-[10px] text-zinc-600 uppercase tracking-widest mb-1">Market Share</div>
+                                    <div className="text-xl font-mono font-bold text-white">{faction.stats.marketShare}</div>
+                                </div>
+                                <div>
+                                    <div className="text-[10px] text-zinc-600 uppercase tracking-widest mb-1">Status</div>
+                                    <div className={`text-sm font-black uppercase tracking-wider ${
+                                        faction.stats.status === 'Bullish' ? 'text-emerald-400' : 
+                                        faction.stats.status === 'Bearish' ? 'text-rose-400' : 'text-blue-400'
+                                    }`}>
+                                        {faction.stats.status}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="pt-4 border-t border-white/5">
+                                <div className="text-[10px] text-zinc-600 uppercase tracking-widest mb-1">Total Workforce</div>
+                                <div className="text-white font-bold">{faction.stats.employees} Employees</div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] mb-4">Core Portfolio</h3>
+                        <div className="space-y-2">
+                            {faction.portfolio.map((p, i) => (
+                                <div key={i} className="flex items-center gap-3 text-zinc-400 hover:text-white transition-colors cursor-default">
+                                    <Package size={12} style={{ color: accentColor }} />
+                                    <span className="text-xs uppercase font-bold tracking-widest">{p}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </motion.div>
+);
 
 // --- MARKET ROW COMPONENT ---
 const MarketRow = ({ 
@@ -237,6 +348,7 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
 
     const [viewState, setViewState] = useState<'docking' | 'board' | 'accepting' | 'launching'>('docking');
     const [acceptedJobDetails, setAcceptedJobDetails] = useState<HaulingJob | null>(null);
+    const [selectedFaction, setSelectedFaction] = useState<FactionLore | null>(null);
 
     // Tab State
     const [activeTab, setActiveTab] = useState<'market' | 'contracts' | 'hangar' | 'dealership'>('market');
@@ -492,7 +604,11 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
                             <div>
                                 <div className="mb-8 border-b border-white/5 pb-6">
                                     <div className="flex items-center gap-3 mb-2">
-                                        <ManufacturerLogo owner={stationOwner} color={accentColor} />
+                                        <ManufacturerLogo 
+                                            owner={stationOwner} 
+                                            color={accentColor} 
+                                            onClick={() => setSelectedFaction(FACTION_LORE[stationOwner] || null)}
+                                        />
                                     </div>
                                     <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mt-4">
                                         Docked At
@@ -723,6 +839,16 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
                             </div>
                         </div>
                     </motion.div>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {selectedFaction && (
+                    <FactionDetailModal 
+                        faction={selectedFaction} 
+                        accentColor={accentColor} 
+                        onClose={() => setSelectedFaction(null)} 
+                    />
                 )}
             </AnimatePresence>
         </div>
