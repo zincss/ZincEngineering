@@ -11,7 +11,7 @@ import {
 } from 'framer-motion';
 import { 
   ArrowRight, Activity, ShieldCheck, Cpu,
-  Info, X, MoveRight, Rocket, Globe, Eye, Star, Terminal 
+  Info, X, MoveRight, Rocket, Globe, Eye, Star, Terminal, CloudRain 
 } from 'lucide-react';
 
 // --- CUSTOM ANIMATED ICONS ---
@@ -451,7 +451,14 @@ export default function Home() {
                   System Online v3.1
                 </span>
                 <div className="w-px h-3 bg-white/10 mx-1" />
-                <Info size={12} className="text-zinc-500" />
+                <Link href="/collections/weather" className="hover:text-[#DFFF00] transition-colors" title="View Weather">
+                  <motion.div
+                    whileHover={{ scale: 1.2 }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <CloudRain size={12} className="text-zinc-500 hover:text-[#DFFF00]" />
+                  </motion.div>
+                </Link>
               </motion.div>
 
               {/* Typography & Branding */}

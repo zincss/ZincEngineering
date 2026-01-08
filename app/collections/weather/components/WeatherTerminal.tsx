@@ -31,15 +31,21 @@ const itemVariants = {
 };
 
 // --- COMPONENT: ATMOSPHERIC BACKGROUND ---
-const AtmosphericBackground = ({ condition, isDay }: { condition: string, isDay: boolean }) => {
+const AtmosphericBackground = ({ condition, isDay, isMobile }: { condition: string, isDay: boolean, isMobile: boolean }) => {
   const isStorm = condition === 'STORMING' || condition === 'STORM';
   const isRain = condition === 'RAINING' || isStorm;
   const isSnow = condition === 'SNOWING' || condition === 'SNOW';
   const isWindy = condition === 'WINDY';
   const isCloudy = condition === 'CLOUDY';
 
+  const starCount = isMobile ? 15 : 30;
+  const cloudCount = isMobile ? (isCloudy || isStorm || !isDay ? 4 : 2) : (isCloudy || isStorm || !isDay ? 8 : 4);
+  const rainCount = isMobile ? (isStorm ? 30 : 15) : (isStorm ? 60 : 30);
+  const snowCount = isMobile ? 20 : 40;
+  const leafCount = isMobile ? 10 : 20;
+
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none select-none z-0">
+    <div className="fixed inset-0 overflow-hidden pointer-events-none select-none z-0">
       <AnimatePresence>
         <motion.div
           key={`${condition}-${isDay}`}
@@ -48,6 +54,7 @@ const AtmosphericBackground = ({ condition, isDay }: { condition: string, isDay:
           exit={{ opacity: 0 }}
           transition={{ duration: 1.5, ease: "easeInOut" }}
           className="absolute inset-0"
+          style={{ willChange: 'transform, opacity' }}
         >
           {/* Base Gradient Layer */}
           <div className={`absolute inset-0 transition-colors duration-[2000ms] ease-in-out
@@ -64,7 +71,7 @@ const AtmosphericBackground = ({ condition, isDay }: { condition: string, isDay:
             <div className="absolute inset-0 overflow-hidden">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(15,23,42,0.5)_0%,transparent_100%)]" />
               <div className="absolute inset-0">
-                {[...Array(30)].map((_, i) => (
+                {[...Array(starCount)].map((_, i) => (
                   <div 
                     key={`star-organic-${i}`}
                     className="absolute bg-white rounded-full"
@@ -92,12 +99,12 @@ const AtmosphericBackground = ({ condition, isDay }: { condition: string, isDay:
           )}
 
           {/* Cloud Layers (Optimized) */}
-          {[...Array(isCloudy || isStorm || !isDay ? 8 : 4)].map((_, i) => (
+          {[...Array(cloudCount)].map((_, i) => (
             <div key={`c-${i}`} className={`absolute bg-white rounded-full blur-[100px] animate-cloud transition-opacity duration-[2000ms]
               ${isCloudy ? 'opacity-20' : isStorm ? 'opacity-15' : 'opacity-10'}`} 
               style={{ 
-                width: `${400 + i * 150}px`, 
-                height: `${200 + i * 80}px`, 
+                width: `${isMobile ? 300 + i * 100 : 400 + i * 150}px`, 
+                height: `${isMobile ? 150 + i * 50 : 200 + i * 80}px`, 
                 top: `${5 + Math.random() * 70}%`, 
                 left: '-40%', 
                 animationDuration: `${100 + i * 40}s`, 
@@ -108,7 +115,7 @@ const AtmosphericBackground = ({ condition, isDay }: { condition: string, isDay:
           ))}
 
           {/* Rain Particles */}
-          {isRain && [...Array(isStorm ? 60 : 30)].map((_, i) => (
+          {isRain && [...Array(rainCount)].map((_, i) => (
             <div key={`r-${i}`} className="absolute bg-white/20 w-[1px] h-24 rounded-full animate-rain"
               style={{ 
                 left: `${Math.random() * 100}%`, 
@@ -145,7 +152,7 @@ const AtmosphericBackground = ({ condition, isDay }: { condition: string, isDay:
           )}
 
           {/* Snow Particles */}
-          {isSnow && [...Array(40)].map((_, i) => (
+          {isSnow && [...Array(snowCount)].map((_, i) => (
             <div key={`s-${i}`} className="absolute bg-white rounded-full animate-snow blur-[1.5px]"
               style={{ 
                 width: `${3 + Math.random() * 4}px`, 
@@ -160,14 +167,14 @@ const AtmosphericBackground = ({ condition, isDay }: { condition: string, isDay:
           ))}
 
           {/* Wind Gusts */}
-          {(isWindy || condition === 'CLEAR') && [...Array(3)].map((_, i) => (
+          {(isWindy || condition === 'CLEAR') && [...Array(isMobile ? 2 : 3)].map((_, i) => (
             <div key={`w-${i}`} className="absolute bg-white/5 w-[800px] h-[1px] blur-md animate-wind-gust"
               style={{ top: `${20 + i * 25}%`, left: '-50%', animationDuration: `${4 + i}s`, animationDelay: `${i * -2}s` }} 
             />
           ))}
 
           {/* Windy Particles (Leaves) */}
-          {isWindy && [...Array(20)].map((_, i) => (
+          {isWindy && [...Array(leafCount)].map((_, i) => (
             <div key={`l-${i}`} className="absolute bg-emerald-900/30 animate-leaf blur-[1px]"
               style={{ 
                 width: `${12 + Math.random() * 15}px`,
@@ -199,6 +206,14 @@ export default function WeatherTerminal() {
   const router = useRouter();
   const [step, setStep] = useState<'SEARCH' | 'RESULT'>('SEARCH');
   const [input, setInput] = useState('');
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
   const CloseButton = () => (
     <motion.button
@@ -338,12 +353,13 @@ export default function WeatherTerminal() {
   }
 
   return (
-    <div className="w-full min-h-screen flex flex-col relative select-none overflow-hidden bg-black text-white selection:bg-[#DFFF00] selection:text-black">
+    <div className="w-full h-screen flex flex-col relative select-none overflow-y-auto bg-black text-white selection:bg-[#DFFF00] selection:text-black">
       <CloseButton />
       {/* Background System */}
       <AtmosphericBackground 
         condition={step === 'SEARCH' ? activeMontageCondition : weather.condition} 
         isDay={step === 'SEARCH' ? isDayMontage : weather.isDay} 
+        isMobile={isMobile}
       />
 
       {/* Main Container */}
@@ -394,7 +410,8 @@ export default function WeatherTerminal() {
 
                       {/* SEARCH BAR */}
                       <div className="w-full max-w-2xl relative mt-[-2rem] flex flex-col items-center gap-8">
-                          <div className="w-full bg-white/10 backdrop-blur-3xl border border-white/10 rounded-full h-20 md:h-24 flex items-center px-4 md:px-6 shadow-2xl focus-within:border-white/30 transition-all">
+                                                        <div className="w-full bg-white/10 backdrop-blur-md md:backdrop-blur-3xl border border-white/10 rounded-full h-20 md:h-24 flex items-center px-4 md:px-6 shadow-2xl focus-within:border-white/30 transition-all">
+                          
                               <div className="pl-4 md:pl-6 text-white/20 shrink-0">
                                 {isSearchingGeo ? <Loader2 size={24} className="animate-spin" /> : <Search size={24} />}
                               </div>
@@ -421,7 +438,7 @@ export default function WeatherTerminal() {
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
                               onClick={() => executeFetch(homeLocation)}
-                              className="px-8 py-3 bg-white/5 hover:bg-white border border-white/10 text-white/60 hover:text-black rounded-full transition-all backdrop-blur-xl flex items-center gap-3 group"
+                              className="px-8 py-3 bg-white/5 hover:bg-white border border-white/10 text-white/60 hover:text-black rounded-full transition-all backdrop-blur-md md:backdrop-blur-xl flex items-center gap-3 group"
                             >
                               <Home size={16} className="text-[#DFFF00] group-hover:text-black transition-colors" />
                               <span className="text-xs font-bold tracking-widest">Go to {(homeLocation.name || homeLocation.location || 'home')}</span>
@@ -435,7 +452,7 @@ export default function WeatherTerminal() {
                                     initial={{ opacity: 0, y: 10, scale: 0.98 }}
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                     exit={{ opacity: 0, y: 10, scale: 0.98 }}
-                                    className="absolute top-full left-0 w-full mt-6 bg-white/10 backdrop-blur-3xl border border-white/10 rounded-[3rem] overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.5)] z-50 p-3"
+                                    className="absolute top-full left-0 w-full mt-6 bg-white/10 backdrop-blur-md md:backdrop-blur-3xl border border-white/10 rounded-[3rem] overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.5)] z-50 p-3"
                                 >
                                     <div className="max-h-[400px] overflow-y-auto pr-1 scrollbar-hide">
                                         {suggestions.map((loc, i) => (
@@ -473,7 +490,7 @@ export default function WeatherTerminal() {
                       <motion.div 
                         initial={{ y: -20, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
-                        className="w-full bg-white/5 backdrop-blur-3xl border border-white/10 rounded-full p-2 md:p-3 flex items-center justify-between px-4 md:px-6 shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+                        className="w-full bg-white/5 backdrop-blur-md md:backdrop-blur-3xl border border-white/10 rounded-full p-2 md:p-3 flex items-center justify-between px-4 md:px-6 shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
                       >
                           <div className="flex items-center gap-3 md:gap-6 flex-1">
                               <button onClick={reset} className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-white/5 flex items-center justify-center hover:bg-white hover:text-black transition-all shrink-0">
@@ -523,7 +540,7 @@ export default function WeatherTerminal() {
                                 initial={{ x: -20, opacity: 0 }}
                                 animate={{ x: 0, opacity: 1 }}
                                 transition={{ delay: 0.2 }}
-                                className="flex-1 bg-white/[0.03] backdrop-blur-3xl border border-white/5 rounded-[3rem] md:rounded-[4rem] p-8 md:p-20 relative overflow-hidden group min-h-[400px] md:min-h-0"
+                                className="flex-1 bg-white/[0.03] backdrop-blur-md md:backdrop-blur-3xl border border-white/5 rounded-[3rem] md:rounded-[4rem] p-8 md:p-20 relative overflow-hidden group min-h-[400px] md:min-h-0"
                               >
                                   {/* LIVE HERO BACKGROUND EFFECTS */}
                                   <div className="absolute inset-0 pointer-events-none opacity-30">
@@ -602,7 +619,7 @@ export default function WeatherTerminal() {
                                         initial={{ y: 20, opacity: 0 }}
                                         animate={{ y: 0, opacity: 1 }}
                                         transition={{ delay: 0.4 + (i * 0.1) }}
-                                        className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-8 flex flex-col justify-between hover:bg-white/10 transition-all cursor-default"
+                                        className="bg-white/5 backdrop-blur-md md:backdrop-blur-2xl border border-white/10 rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-8 flex flex-col justify-between hover:bg-white/10 transition-all cursor-default"
                                       >
                                           <div className="flex items-center gap-3 text-white/20 mb-4">
                                               {stat.icon}
@@ -622,7 +639,7 @@ export default function WeatherTerminal() {
                             initial={{ x: 20, opacity: 0 }}
                             animate={{ x: 0, opacity: 1 }}
                             transition={{ delay: 0.3 }}
-                            className="lg:col-span-4 bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[3rem] md:rounded-[4rem] p-8 md:p-10 flex flex-col"
+                            className="lg:col-span-4 bg-white/5 backdrop-blur-md md:backdrop-blur-3xl border border-white/10 rounded-[3rem] md:rounded-[4rem] p-8 md:p-10 flex flex-col"
                           >
                               <div className="flex items-center justify-between mb-8 md:mb-12">
                                   <span className="text-xs md:text-sm font-medium text-white/20">5-Day forecast</span>
