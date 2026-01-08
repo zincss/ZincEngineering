@@ -10,9 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 // --- DIRECT IMPORTS ---
 import { SimulationProvider, useSimulation, TimeKeeper, J2000_EPOCH, SPACESHIP_EXIT_EVENT } from './context';
-import { StarBackground, SolarWind, AsteroidBelt } from './components/Scene/Environment';
-import { DynamicSpaceDust } from './components/Scene/SpaceDust';
-import { TrafficSystem } from './components/Scene/TrafficSystem';
+import { StarBackground, SolarWind, SpaceDust, AsteroidBelt } from './components/Scene/Environment';
 import { Sun } from './components/Scene/StellarBodies';
 import { Planet } from './components/Scene/PlanetarySystem';
 import { SpaceshipController, SpaceshipHUD } from './components/Scene/Spaceship';
@@ -268,8 +266,7 @@ function PlanetariumContent() {
                             />
                             
                             <StarBackground />
-                            {!isScaleMode && <DynamicSpaceDust />} 
-                            {!isScaleMode && <TrafficSystem />}
+                            {!isScaleMode && <SpaceDust />} 
                             {!isScaleMode && <AsteroidBelt />}
                             {!isScaleMode && (
                                 <>
