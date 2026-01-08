@@ -456,6 +456,9 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
         if (isBooting.current) return;
 
         const dt = Math.min(delta, 0.1);
+        const precision = isPrecision.current;
+        const orbiting = isOrbiting.current;
+        const ap = autopilot.current;
 
         // --- MINING HEAT LOGIC ---
         if (miningState.isMining) {
