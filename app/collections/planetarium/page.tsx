@@ -96,14 +96,20 @@ function PlanetariumContent() {
         // 1. Initial Load Logic
         if (!initialLoadRef.current) {
             initialLoadRef.current = true;
-            // Removed auto-cinematic and auto-spaceship mode to start in Default View
+
+            // Always play Intro for Solar System on first entry
+            if (activeSystem === 'solar') {
+                setIsCinematic(true);
+                setCurrentTourId('intro_reveal');
+                setCinematicKey(k => k + 1);
+                setCinematicOverlay({ show: false });
+                setFlightData({ active: false });
+            } 
         }
         
-        // 2. Undocking Logic
+        // 2. Undocking Logic: Updated to be manual (default view)
         if (user) {
-            const wasDocked = prevDocked.current;
             const isDocked = !!dockedAt;
-            // No longer auto-engaging spaceship mode on undock
             prevDocked.current = isDocked;
         }
     }, [isLoadingSave, activeSystem, dockedAt, savedPosition, isCinematic, user]);
