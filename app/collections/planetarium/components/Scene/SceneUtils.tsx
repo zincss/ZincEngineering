@@ -78,6 +78,8 @@ export function EllipticalOrbit({ body, type = 'planet', isSelected = false, par
     );
 }
 
+import { SPACESHIP_UPDATE_EVENT } from '../../constants';
+
 // --- SMART LABEL (UPDATED FOR CLOSE-UP PROXIMITY) ---
 export function SmartLabel({ 
     id,
@@ -99,11 +101,23 @@ export function SmartLabel({
     const { camera } = useThree();
     const { activeJob } = useSimulation(); 
     
+    const [manualTargetId, setManualTargetId] = React.useState<string | null>(null);
     const groupRef = useRef<THREE.Group>(null);
     const scalerRef = useRef<HTMLDivElement>(null);
     
     const isMajor = type === 'Star' || type === 'Black Hole' || type === 'Planet' || type === 'Dwarf Planet';
     const isMinor = type === 'Moon' || type === 'Station';
+
+    // Listen for manual target changes from Spaceship Controller
+    React.useEffect(() => {
+        const handleUpdate = (e: CustomEvent) => {
+            if (e.detail.targetId !== undefined) {
+                setManualTargetId(e.detail.targetId);
+            }
+        };
+        window.addEventListener(SPACESHIP_UPDATE_EVENT as any, handleUpdate);
+        return () => window.removeEventListener(SPACESHIP_UPDATE_EVENT as any, handleUpdate);
+    }, []);
 
     const isParentOfDestination = (myId: string, destId: string) => {
         const parent = PLANET_DATA.find(p => p.moons?.some(m => m.id === destId));
@@ -113,54 +127,99 @@ export function SmartLabel({
     useFrame(() => {
         if (!scalerRef.current || !visible || !groupRef.current) return;
         
-        if (activeJob && id) {
-            const destId = activeJob.destId;
-            const isDestination = id === destId;
-            const isParent = isParentOfDestination(id, destId);
+        // 1. DETERMINE EFFECTIVE TARGET
+        // Prioritize active job destination, then manual nav target
+        const effectiveTargetId = activeJob?.destId || manualTargetId;
+
+        // 2. EXCLUSIVE VISIBILITY MODE (Target Active)
+        if (effectiveTargetId && id) {
+            const isDestination = id === effectiveTargetId;
+            // Optionally show parent of destination to help orientation, but user asked to "show only the selected"
+            // We'll stick to strict exclusivity for cleanliness as requested, 
+            // but maybe allow parent if destination is a moon so you know where to fly.
+            // User said: "remove them and show only the selected planet,moon,station" -> Strict.
             
-            if (!isDestination && !isParent) {
+            if (!isDestination) {
                 scalerRef.current.style.opacity = '0';
                 scalerRef.current.style.pointerEvents = 'none';
                 return;
             }
+
+            // If we are the target, ensure full visibility regardless of distance (within reason)
+            const worldPos = new THREE.Vector3();
+            groupRef.current.getWorldPosition(worldPos);
+            
+            // Still update position
+            let currentOffset = offset;
+            const dist = camera.position.distanceTo(worldPos);
+            
+            // Pull closer logic for target
+            if (dist < 100) {
+                 const proximityFactor = Math.max(0, (dist - 10) / 90); 
+                 currentOffset = offset * (0.3 + 0.7 * proximityFactor);
+            }
+
+            groupRef.current.position.set(position[0], position[1] + currentOffset, position[2]);
+            scalerRef.current.style.transform = `scale(1.2) translateY(-60%)`; 
+            scalerRef.current.style.opacity = '1';
+            scalerRef.current.style.visibility = 'visible';
+            return;
         }
 
+        // 3. FREE FLIGHT MODE (Adaptive Visibility)
         const worldPos = new THREE.Vector3();
         groupRef.current.getWorldPosition(worldPos);
         const dist = camera.position.distanceTo(worldPos);
         
         let scale = 1;
-        let opacity = 1;
+        let opacity = 0;
         let currentOffset = offset;
 
-        // --- DISTANCE LOGIC ---
         if (isMinor) {
-             const FADE_START = 120;
-             const FADE_END = 200;
+             // Smoother fade for minor bodies
+             // Visible range: 0 -> 300 units
+             const FADE_START = 150;
+             const FADE_END = 300;
              
              if (isSelected) {
                  opacity = 1;
-             } else if (dist > FADE_END) opacity = 0;
-             else if (dist > FADE_START) opacity = 1 - (dist - FADE_START) / (FADE_END - FADE_START);
-             else opacity = 1;
+             } else if (dist > FADE_END) {
+                 opacity = 0;
+             } else if (dist > FADE_START) {
+                 // Smooth ease-out fade
+                 const t = (dist - FADE_START) / (FADE_END - FADE_START);
+                 opacity = 1 - t * t; // Quadratic easing
+             } else {
+                 opacity = 1;
+             }
 
-             scale = Math.max(0.6, 1 - (dist / FADE_END) * 0.3);
+             scale = Math.max(0.7, 1 - (dist / FADE_END) * 0.3);
 
              // Pull label closer when very near
              if (dist < 50) {
-                 // Linearly interpolate offset from 100% to 30% as distance drops
                  const proximityFactor = Math.max(0, (dist - 10) / 40); 
                  currentOffset = offset * (0.3 + 0.7 * proximityFactor);
              }
 
         } else {
-             // Major bodies fade out at extreme range
-             if (dist > 15000) opacity = Math.max(0, 1 - (dist - 15000) / 5000);
-             if (dist > 500) scale = 1.1;
+             // Major bodies visible from much further
+             const MAJOR_FADE_START = 20000;
+             const MAJOR_FADE_END = 40000;
+
+             if (dist > MAJOR_FADE_END) opacity = 0;
+             else if (dist > MAJOR_FADE_START) {
+                 const t = (dist - MAJOR_FADE_START) / (MAJOR_FADE_END - MAJOR_FADE_START);
+                 opacity = 1 - t;
+             } else {
+                 opacity = 1;
+             }
              
-             // Pull label closer for major bodies too
-             if (dist < 100) {
-                 const proximityFactor = Math.max(0, (dist - 20) / 80);
+             if (dist > 1000) scale = 1.0;
+             else scale = 1.1; // Slight highlight when close
+             
+             // Pull label closer
+             if (dist < 200) {
+                 const proximityFactor = Math.max(0, (dist - 30) / 170);
                  currentOffset = offset * (0.4 + 0.6 * proximityFactor);
              }
         }
