@@ -6,9 +6,10 @@ import {
   CloudRain, Wind, Search, Globe, MapPin, Loader2, 
   Droplets, Gauge, Navigation, Calendar, CloudSnow, 
   CloudLightning, Sun, Crosshair, ArrowRight, ChevronLeft,
-  Info, Sunrise, Sunset, Home
+  Info, Sunrise, Sunset, Home, X
 } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
+import { useRouter } from 'next/navigation';
 
 // --- ANIMATION VARIANTS ---
 const containerVariants = {
@@ -31,9 +32,9 @@ const itemVariants = {
 
 // --- COMPONENT: ATMOSPHERIC BACKGROUND ---
 const AtmosphericBackground = ({ condition, isDay }: { condition: string, isDay: boolean }) => {
-  const isStorm = condition === 'STORM';
+  const isStorm = condition === 'STORMING' || condition === 'STORM';
   const isRain = condition === 'RAINING' || isStorm;
-  const isSnow = condition === 'SNOW';
+  const isSnow = condition === 'SNOWING' || condition === 'SNOW';
   const isWindy = condition === 'WINDY';
   const isCloudy = condition === 'CLOUDY';
 
@@ -195,8 +196,20 @@ const AtmosphericBackground = ({ condition, isDay }: { condition: string, isDay:
 
 export default function WeatherTerminal() {
   const { user } = useAuth();
+  const router = useRouter();
   const [step, setStep] = useState<'SEARCH' | 'RESULT'>('SEARCH');
   const [input, setInput] = useState('');
+  
+  const CloseButton = () => (
+    <motion.button
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      onClick={() => router.push('/')}
+      className="fixed top-8 right-8 z-[100] h-12 w-12 rounded-full bg-white/5 hover:bg-white border border-white/10 text-white/40 hover:text-black transition-all flex items-center justify-center backdrop-blur-xl"
+    >
+      <X size={24} />
+    </motion.button>
+  );
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isSearchingGeo, setIsSearchingGeo] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -207,7 +220,7 @@ export default function WeatherTerminal() {
   // Montage Logic
   const [montageIndex, setMontageIndex] = useState(0);
   const [isDayMontage, setIsDayMontage] = useState(true);
-  const conditions = ['CLEAR', 'RAINING', 'WINDY', 'CLOUDY', 'SNOW', 'STORM'];
+  const conditions = ['CLEAR', 'RAINING', 'WINDY', 'CLOUDY', 'SNOWING', 'STORMING'];
 
   useEffect(() => {
     const homeKey = user ? `zinc_weather_home_${user.id}` : 'zinc_weather_home_guest';
@@ -326,6 +339,7 @@ export default function WeatherTerminal() {
 
   return (
     <div className="w-full min-h-screen flex flex-col relative select-none overflow-hidden bg-black text-white selection:bg-[#DFFF00] selection:text-black">
+      <CloseButton />
       {/* Background System */}
       <AtmosphericBackground 
         condition={step === 'SEARCH' ? activeMontageCondition : weather.condition} 
@@ -341,38 +355,37 @@ export default function WeatherTerminal() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0, scale: 0.95, filter: 'blur(20px)' }}
-                    className="w-full min-h-screen flex flex-col items-center pt-24 md:pt-32 px-6"
+                    className="w-full min-h-screen flex flex-col items-center justify-start pt-[15vh] md:pt-[25vh] px-6 relative z-10"
                   >
                       {/* CYCLING HEADER */}
-                      <div className="text-center mb-12 md:mb-16">
-                          <motion.div 
-                            initial={{ y: 10, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            className="text-xs md:text-sm font-medium text-[#DFFF00] mb-4 md:mb-6 animate-pulse drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
-                          >
-                            what's it like outside?
-                          </motion.div>
-                          
-                          <div className="w-full flex items-baseline justify-center">
-                              <div className="w-1/2 flex justify-end pr-2 md:pr-4">
-                                  <h1 className="text-5xl md:text-[10rem] font-bold tracking-tight leading-none drop-shadow-[0_10px_30px_rgba(0,0,0,0.3)]">
-                                    weather
-                                  </h1>
-                              </div>
-                              <div className="w-1/2 flex justify-start pl-2 md:pl-4 relative h-[1em]">
+                      <div className="text-center mb-[12vh] md:mb-[18vh] w-full max-w-[90vw]">
+                          <div className="flex flex-col items-center justify-center gap-8 md:gap-16">
+                              <h1 className="text-3xl md:text-5xl font-medium tracking-tight opacity-40">
+                                Check if it's going to
+                              </h1>
+                              <div className="relative h-[1.2em] flex items-center justify-center w-full">
                                   <AnimatePresence>
                                       <motion.span
                                         key={activeMontageCondition}
-                                        initial={{ opacity: 0, filter: 'blur(10px)' }}
-                                        animate={{ opacity: 0.3, filter: 'blur(0px)' }}
-                                        exit={{ opacity: 0, filter: 'blur(10px)', position: 'absolute' }}
+                                        initial={{ opacity: 0, filter: 'blur(40px)', scale: 0.9, y: 20 }}
+                                        animate={{ opacity: 0.4, filter: 'blur(0px)', scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, filter: 'blur(40px)', scale: 1.1, y: -20, position: 'absolute' }}
                                         transition={{ 
-                                          opacity: { duration: 1.5, ease: "easeInOut" },
-                                          filter: { duration: 1.5, ease: "easeInOut" }
+                                          duration: 2.5, 
+                                          ease: [0.4, 0, 0.2, 1]
                                         }}
-                                        className="text-5xl md:text-[10rem] font-bold tracking-tight leading-none text-white block whitespace-nowrap drop-shadow-[0_10px_30px_rgba(0,0,0,0.2)]"
+                                        className="text-6xl md:text-[12rem] font-bold tracking-tight leading-none text-white block whitespace-nowrap drop-shadow-[0_10px_30px_rgba(0,0,0,0.3)] mix-blend-screen"
                                       >
-                                        {activeMontageCondition.toLowerCase()}
+                                        {(() => {
+                                            const c = activeMontageCondition;
+                                            if (c === 'CLEAR') return 'be clear';
+                                            if (c === 'RAINING') return 'rain';
+                                            if (c === 'WINDY') return 'be windy';
+                                            if (c === 'CLOUDY') return 'be cloudy';
+                                            if (c === 'SNOWING') return 'snow';
+                                            if (c === 'STORMING') return 'storm';
+                                            return c.toLowerCase();
+                                        })()}
                                       </motion.span>
                                   </AnimatePresence>
                               </div>
@@ -389,7 +402,7 @@ export default function WeatherTerminal() {
                                 type="text"
                                 value={input}
                                 onChange={handleInputChange}
-                                placeholder="search for a city..."
+                                placeholder="Search for a city..."
                                 className="flex-1 bg-transparent border-none outline-none px-6 text-xl md:text-2xl font-medium text-white placeholder:text-white/30"
                               />
                               <button 
@@ -411,7 +424,7 @@ export default function WeatherTerminal() {
                               className="px-8 py-3 bg-white/5 hover:bg-white border border-white/10 text-white/60 hover:text-black rounded-full transition-all backdrop-blur-xl flex items-center gap-3 group"
                             >
                               <Home size={16} className="text-[#DFFF00] group-hover:text-black transition-colors" />
-                              <span className="text-xs font-bold lowercase tracking-widest">go to {(homeLocation.name || homeLocation.location || 'home').toLowerCase()}</span>
+                              <span className="text-xs font-bold tracking-widest">Go to {(homeLocation.name || homeLocation.location || 'home')}</span>
                             </motion.button>
                           )}
 
@@ -468,9 +481,9 @@ export default function WeatherTerminal() {
                               </button>
                               
                               <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-4 overflow-hidden">
-                                  <span className="text-[10px] md:text-xs font-medium text-white/40 lowercase whitespace-nowrap">location</span>
-                                  <span className="text-sm md:text-base font-bold text-white lowercase truncate">
-                                    {(weather?.location || '').toLowerCase()}
+                                  <span className="text-[10px] md:text-xs font-medium text-white/40 whitespace-nowrap">Location</span>
+                                  <span className="text-sm md:text-base font-bold text-white truncate">
+                                    {weather?.location || ''}
                                   </span>
                               </div>
                           </div>
@@ -478,7 +491,7 @@ export default function WeatherTerminal() {
                           <div className="flex items-center gap-3 md:gap-8">
                               <div className="hidden md:flex items-center gap-3 text-xs font-medium text-[#DFFF00]">
                                   <span className="animate-pulse text-[8px]">●</span>
-                                  <span className="lowercase whitespace-nowrap">it's {weather.condition.toLowerCase()} right now</span>
+                                  <span>It's {weather.condition.toLowerCase()} right now</span>
                               </div>
 
                               <div className="h-8 w-px bg-white/10 hidden md:block" />
@@ -493,10 +506,10 @@ export default function WeatherTerminal() {
                                 `}
                               >
                                 {isSavingHome ? <Loader2 size={12} className="animate-spin" /> : <Home size={12} />}
-                                <span>
-                                  {isSavingHome ? 'saving...' : 
-                                   homeLocation?.name === (weather?.location || weather?.name) ? 'current home' : 
-                                   'set as home'}
+                                <span className="capitalize">
+                                  {isSavingHome ? 'Saving...' : 
+                                   homeLocation?.name === (weather?.location || weather?.name) ? 'Current home' : 
+                                   'Set as home'}
                                 </span>
                               </button>
                           </div>
@@ -552,7 +565,7 @@ export default function WeatherTerminal() {
                                   
                                   <div className="relative z-10 flex flex-col h-full justify-between">
                                       <div>
-                                          <span className="text-xs md:text-sm font-medium text-white/20 lowercase mb-2 md:mb-4 block">temperature</span>
+                                          <span className="text-xs md:text-sm font-medium text-white/20 mb-2 md:mb-4 block">Temperature</span>
                                           <h1 className="text-[10rem] md:text-[22rem] font-bold leading-none tracking-tighter text-white drop-shadow-[0_20px_100px_rgba(0,0,0,0.8)] [text-shadow:_0_10px_50px_rgb(0_0_0_/_50%)]">
                                               {Math.round(weather.temp)}<span className="text-[4rem] md:text-[6rem] text-white/10 align-top mt-6 md:mt-12 inline-block">°</span>
                                           </h1>
@@ -560,17 +573,17 @@ export default function WeatherTerminal() {
                                       
                                       <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 md:gap-0">
                                           <div className="flex flex-col gap-2">
-                                              <span className="text-xs md:text-sm font-medium text-white/20 lowercase">conditions</span>
+                                              <span className="text-xs md:text-sm font-medium text-white/20">Conditions</span>
                                               <div className="flex items-center gap-4">
                                                   <div className="text-white/80">
                                                       {getIcon(weather.condition, 28)}
                                                   </div>
-                                                  <span className="text-4xl md:text-5xl font-bold tracking-tight lowercase drop-shadow-md">{weather.condition.toLowerCase()}</span>
+                                                  <span className="text-4xl md:text-5xl font-bold tracking-tight drop-shadow-md">{weather.condition.charAt(0) + weather.condition.slice(1).toLowerCase()}</span>
                                               </div>
                                           </div>
                                           <div className="flex flex-col md:items-end text-left md:text-right">
-                                              <span className="text-xs md:text-sm font-medium text-white/20 lowercase">thermal index</span>
-                                              <span className="text-2xl md:text-4xl font-bold text-white/40 tracking-tight lowercase">feels like {Math.round(weather.feelsLike)}°</span>
+                                              <span className="text-xs md:text-sm font-medium text-white/20">Thermal index</span>
+                                              <span className="text-2xl md:text-4xl font-bold text-white/40 tracking-tight">Feels like {Math.round(weather.feelsLike)}°</span>
                                           </div>
                                       </div>
                                   </div>
@@ -579,10 +592,10 @@ export default function WeatherTerminal() {
                               {/* QUICK STATS */}
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                                   {[
-                                      { label: 'wind speed', value: Math.round(weather.windSpeed), unit: 'km/h', icon: <Wind size={18} /> },
-                                      { label: 'humidity', value: weather.humidity, unit: '%', icon: <Droplets size={18} /> },
-                                      { label: 'uv index', value: weather.uvIndex.toFixed(1), unit: 'level', icon: <Gauge size={18} /> },
-                                      { label: 'visibility', value: '10.0', unit: 'km', icon: <Navigation size={18} /> }
+                                      { label: 'Wind speed', value: Math.round(weather.windSpeed), unit: 'km/h', icon: <Wind size={18} /> },
+                                      { label: 'Humidity', value: weather.humidity, unit: '%', icon: <Droplets size={18} /> },
+                                      { label: 'UV index', value: weather.uvIndex.toFixed(1), unit: 'Level', icon: <Gauge size={18} /> },
+                                      { label: 'Visibility', value: '10.0', unit: 'km', icon: <Navigation size={18} /> }
                                   ].map((stat, i) => (
                                       <motion.div 
                                         key={i} 
@@ -593,11 +606,11 @@ export default function WeatherTerminal() {
                                       >
                                           <div className="flex items-center gap-3 text-white/20 mb-4">
                                               {stat.icon}
-                                              <span className="text-[10px] md:text-xs font-medium lowercase">{stat.label}</span>
+                                              <span className="text-[10px] md:text-xs font-medium">{stat.label}</span>
                                           </div>
                                           <div>
                                               <div className="text-3xl md:text-4xl font-bold tracking-tight mb-1">{stat.value}</div>
-                                              <div className="text-[10px] font-medium text-white/20 lowercase">{stat.unit}</div>
+                                              <div className="text-[10px] font-medium text-white/20">{stat.unit}</div>
                                           </div>
                                       </motion.div>
                                   ))}
@@ -612,7 +625,7 @@ export default function WeatherTerminal() {
                             className="lg:col-span-4 bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[3rem] md:rounded-[4rem] p-8 md:p-10 flex flex-col"
                           >
                               <div className="flex items-center justify-between mb-8 md:mb-12">
-                                  <span className="text-xs md:text-sm font-medium text-white/20 lowercase">5-day forecast</span>
+                                  <span className="text-xs md:text-sm font-medium text-white/20">5-Day forecast</span>
                                   <div className="h-px flex-1 mx-4 md:mx-6 bg-white/5" />
                                   <Calendar size={16} className="text-white/20" />
                               </div>
@@ -636,14 +649,14 @@ export default function WeatherTerminal() {
                                           >
                                               {isOutlier && (
                                                   <div className="absolute -top-2 -right-2 px-3 py-1 bg-[#DFFF00] text-black text-[8px] font-bold rounded-full uppercase tracking-widest shadow-lg">
-                                                      {isStormy ? 'alert' : isHottest ? 'warmest' : 'coldest'}
+                                                      {isStormy ? 'Alert' : isHottest ? 'Warmest' : 'Coldest'}
                                                   </div>
                                               )}
                                               <div className="flex flex-col">
-                                                  <span className="text-xs md:text-sm font-bold text-white lowercase">
-                                                      {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase()}
+                                                  <span className="text-xs md:text-sm font-bold text-white capitalize">
+                                                      {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}
                                                   </span>
-                                                  <span className="text-[10px] md:text-xs font-medium text-white/20 lowercase">{day.condition.toLowerCase()}</span>
+                                                  <span className="text-[10px] md:text-xs font-medium text-white/20 capitalize">{day.condition.toLowerCase()}</span>
                                               </div>
                                               <div className="flex items-center gap-4 md:gap-8">
                                                   {getIcon(day.condition, 20)}
@@ -663,9 +676,9 @@ export default function WeatherTerminal() {
                                   {/* INTEGRATED SOLAR ORBIT TRACKER */}
                                   <div className="w-full px-2">
                                       <div className="flex items-center justify-between mb-6 opacity-40">
-                                          <span className="text-[10px] font-bold lowercase tracking-widest">celestial position</span>
-                                          <span className="text-[10px] font-bold lowercase tracking-widest">
-                                              {weather.isDay ? 'daylight cycle' : 'lunar cycle'}
+                                          <span className="text-[10px] font-bold tracking-widest">Celestial position</span>
+                                          <span className="text-[10px] font-bold tracking-widest">
+                                              {weather.isDay ? 'Daylight cycle' : 'Lunar cycle'}
                                           </span>
                                       </div>
 
@@ -699,7 +712,7 @@ export default function WeatherTerminal() {
                                           </motion.div>
 
                                           <div className="flex flex-col items-start gap-1 relative z-20">
-                                              <span className="text-[8px] font-black text-white/20 uppercase">sunrise</span>
+                                              <span className="text-[8px] font-black text-white/20 uppercase">Sunrise</span>
                                               <div className="flex items-center gap-2">
                                                   <Sunrise size={14} className="text-orange-400/60" />
                                                   <span className="text-[10px] font-bold">{new Date(weather.sunrise).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }).toLowerCase()}</span>
@@ -707,12 +720,12 @@ export default function WeatherTerminal() {
                                           </div>
 
                                           <div className="flex flex-col items-center gap-1 relative z-20 mt-12">
-                                              <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">zenith</span>
+                                              <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Zenith</span>
                                               <div className="h-4 w-px bg-white/10" />
                                           </div>
 
                                           <div className="flex flex-col items-end gap-1 relative z-20">
-                                              <span className="text-[8px] font-black text-white/20 uppercase">sunset</span>
+                                              <span className="text-[8px] font-black text-white/20 uppercase">Sunset</span>
                                               <div className="flex items-center gap-2">
                                                   <span className="text-[10px] font-bold">{new Date(weather.sunset).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }).toLowerCase()}</span>
                                                   <Sunset size={14} className="text-blue-400/60" />
@@ -737,16 +750,16 @@ export default function WeatherTerminal() {
                                           />
                                       </div>
                                       <div className="flex justify-between mt-2 px-1">
-                                          <span className="text-[8px] font-bold text-white/20 uppercase">cycle start</span>
+                                          <span className="text-[8px] font-bold text-white/20 uppercase">Cycle start</span>
                                           <span className="text-[8px] font-bold text-[#DFFF00] uppercase animate-pulse">
-                                              {weather.isDay ? 'solar active' : 'lunar active'}
+                                              {weather.isDay ? 'Solar active' : 'Lunar active'}
                                           </span>
-                                          <span className="text-[8px] font-bold text-white/20 uppercase">cycle end</span>
+                                          <span className="text-[8px] font-bold text-white/20 uppercase">Cycle end</span>
                                       </div>
                                   </div>
 
                                   <div className="text-[8px] md:text-[10px] font-mono text-white/10 text-center uppercase tracking-widest pb-2">
-                                      sync status: nominal // {weather.latitude.toFixed(2)}n {weather.longitude.toFixed(2)}e
+                                      Sync status: nominal // {weather.latitude.toFixed(2)}n {weather.longitude.toFixed(2)}e
                                   </div>
                               </div>
                           </motion.div>
@@ -765,18 +778,18 @@ export default function WeatherTerminal() {
 
       <style jsx global>{`
         @keyframes rain { 
-          0% { transform: translateY(-100%); } 
-          100% { transform: translateY(120vh); } 
+          0% { transform: translateY(-100%) translateZ(0); } 
+          100% { transform: translateY(120vh) translateZ(0); } 
         }
         @keyframes snow { 
-          0% { transform: translateY(-10vh) translateX(0); opacity: 0; }
+          0% { transform: translateY(-10vh) translateX(0) translateZ(0); opacity: 0; }
           10% { opacity: 1; }
           90% { opacity: 1; }
-          100% { transform: translateY(110vh) translateX(20px); opacity: 0; }
+          100% { transform: translateY(110vh) translateX(20px) translateZ(0); opacity: 0; }
         }
         @keyframes cloud { 
-          0% { transform: translateX(-100%) scale(0.8); }
-          100% { transform: translateX(200vw) scale(1.2); }
+          0% { transform: translateX(-100%) scale(0.8) translateZ(0); }
+          100% { transform: translateX(200vw) scale(1.2) translateZ(0); }
         }
         @keyframes leaf {
           0% { transform: translate3d(-10vw, -10vh, 0) rotate(0deg); opacity: 0; }
@@ -803,13 +816,15 @@ export default function WeatherTerminal() {
           50% { opacity: 0.2; }
           100% { transform: translateX(200vw) scaleX(2); opacity: 0; }
         }
-        .animate-rain { animation: rain linear infinite; }
-        .animate-snow { animation: snow linear infinite; }
-        .animate-leaf { animation: leaf linear infinite; }
-        .animate-cloud { animation: cloud linear infinite; }
+        .animate-rain { animation: rain linear infinite; will-change: transform; }
+        .animate-snow { animation: snow linear infinite; will-change: transform; }
+        .animate-leaf { animation: leaf linear infinite; will-change: transform; }
+        .animate-cloud { animation: cloud linear infinite; will-change: transform; }
         .animate-lightning { animation: lightning 8s linear infinite; }
         .animate-spin-slow { animation: spin-slow 12s linear infinite; }
         .animate-wind-gust { animation: wind-gust 5s linear infinite; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
     </div>
   );
