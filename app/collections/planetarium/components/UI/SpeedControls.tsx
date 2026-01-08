@@ -34,7 +34,20 @@ export function SpeedControls({
     const { speed, setSpeed, resetTime, setTime, simulationTime, user, miningState, startMining, stopMining, findBody, activeSystem, currentShip, timeRef, currentData } = useSimulation();
     const [dateInputOpen, setDateInputOpen] = useState(false);
     const [viewMenuOpen, setViewMenuOpen] = useState(false);
+    const [menuPosition, setMenuPosition] = useState({ left: 0, bottom: 0 });
+    const layersBtnRef = React.useRef<HTMLButtonElement>(null);
     const [showLoginHint, setShowLoginHint] = useState(false);
+
+    const toggleViewMenu = () => {
+        if (!viewMenuOpen && layersBtnRef.current) {
+            const rect = layersBtnRef.current.getBoundingClientRect();
+            setMenuPosition({
+                left: rect.left + rect.width / 2,
+                bottom: window.innerHeight - rect.top + 10
+            });
+        }
+        setViewMenuOpen(!viewMenuOpen);
+    };
     const [showMiningHint, setShowMiningHint] = useState(false);
     
     const [canMine, setCanMine] = useState(false);
@@ -175,7 +188,8 @@ export function SpeedControls({
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
-                        className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-zinc-900 border border-white/20 p-1 rounded-xl shadow-2xl flex flex-col gap-1 min-w-[120px] z-[100]"
+                        style={{ left: menuPosition.left, bottom: menuPosition.bottom }}
+                        className="fixed -translate-x-1/2 bg-zinc-900 border border-white/20 p-1 rounded-xl shadow-2xl flex flex-col gap-1 min-w-[120px] z-[100]"
                     >
                         <div className="px-3 py-1 text-[9px] text-zinc-500 uppercase font-bold tracking-widest border-b border-white/10 mb-1 text-center">View Mode</div>
                         <button 
@@ -278,7 +292,8 @@ export function SpeedControls({
                             <Tag size={18} />
                         </button>
                         <button
-                            onClick={() => setViewMenuOpen(!viewMenuOpen)}
+                            ref={layersBtnRef}
+                            onClick={toggleViewMenu}
                             className={`p-3 rounded-full transition-all ${viewMode !== 'standard' ? 'bg-[#DFFF00] text-black shadow-[0_0_15px_rgba(223,255,0,0.5)]' : 'text-zinc-400 hover:text-[#DFFF00] hover:bg-white/10'}`}
                         >
                             <Layers size={18} />

@@ -11,14 +11,14 @@ export function GravityWellGrid() {
     const geometryRef = useRef<THREE.PlaneGeometry>(null);
 
     // Grid Parameters
-    const size = 2000;
-    const segments = 100;
+    const size = 4000;
+    const segments = 256;
 
     // Filter massive bodies for gravity influence
     const bodies = useMemo(() => {
         return PLANET_DATA.filter(p => p.radius > 5).map(p => ({
             id: p.id,
-            mass: p.id === 'sun' ? 500 : p.radius * 3, // Boost sun mass visual
+            mass: p.id === 'sun' ? 800 : p.radius * 8, // Boost mass visual
             data: p
         }));
     }, []);
@@ -40,19 +40,22 @@ export function GravityWellGrid() {
             const z = positions.getZ(i);
             
             // Original Y is 0 (plane)
-            let y = -20; // Base level below the orbital plane
+            let y = -30; // Base level below the orbital plane
 
             // Calculate deflection
             for (let j = 0; j < bodies.length; j++) {
                 const bodyPos = bodyPositions[j];
                 const dx = x - bodyPos.x;
                 const dz = z - bodyPos.z;
-                const distSq = dx * dx + dz * dz;
-                const dist = Math.sqrt(distSq);
+                const dist = Math.sqrt(dx * dx + dz * dz);
 
-                // Simple gravity well formula: - Mass / Distance
-                // Clamped to avoid infinite spikes
-                const influence = bodies[j].mass * 150 / (distSq + 500); 
+                // Deep funnel formula: - Mass * exp(-distance / spread)
+                // This creates a sharp "well" look
+                const spread = bodies[j].id === 'sun' ? 150 : 40;
+                const depth = bodies[j].mass * 2.5;
+                
+                // Gaussian-like curve for smooth but deep wells
+                const influence = depth * Math.exp(-dist / spread);
                 y -= influence;
             }
 
@@ -66,13 +69,11 @@ export function GravityWellGrid() {
     return (
         <mesh ref={meshRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, -50, 0]}>
             <planeGeometry ref={geometryRef} args={[size, size, segments, segments]} />
-            <meshStandardMaterial 
-                color="#4444ff" 
+            <meshBasicMaterial 
+                color="#00FF41" 
                 wireframe 
                 transparent 
-                opacity={0.3} 
-                emissive="#2222aa"
-                emissiveIntensity={0.5}
+                opacity={0.15} 
             />
         </mesh>
     );
