@@ -44,6 +44,16 @@ export interface HaulingJob {
     tier: number;
 }
 
+export interface FulfillmentContract {
+    id: string;
+    title: string;
+    description: string;
+    requirements: { [resourceId: string]: number };
+    reward: number;
+    issuer: string;
+    deadline?: number;
+}
+
 export interface Inventory {
     [resourceId: string]: number;
 }
@@ -124,6 +134,7 @@ interface SimulationContextType {
     
     activeJob: HaulingJob | null;
     availableJobs: HaulingJob[];
+    contracts: FulfillmentContract[];
     dockedAt: string | null;
     lastDockedNode: string | null;
     lastDockVector: { x: number, y: number, z: number } | null;
@@ -135,6 +146,8 @@ interface SimulationContextType {
     completeJob: () => void;
     clearCompletedJob: () => void;
     generateJobsForLocation: (locationId: string) => void;
+    generateContractsForLocation: (locationId: string) => void;
+    fulfillContract: (contractId: string) => void;
     updateFuel: (newAmount: number) => void;
     buyFuel: () => void;
     updateBoost: (newAmount: number) => void;
@@ -195,10 +208,11 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
     const [shipTransfers, setShipTransfers] = useState<{ [shipId: string]: { destination: string, arrivalTime: number, totalTime: number } }>({});
     
     const [activeJob, setActiveJob] = useState<HaulingJob | null>(null);
+    const [availableJobs, setAvailableJobs] = useState<HaulingJob[]>([]);
+    const [contracts, setContracts] = useState<FulfillmentContract[]>([]);
     const [dockedAt, _setDockedAt] = useState<string | null>(null);
     const [lastDockedNode, setLastDockedNode] = useState<string | null>(null);
     const [lastDockVector, setLastDockVector] = useState<{ x: number, y: number, z: number } | null>(null);
-    const [availableJobs, setAvailableJobs] = useState<HaulingJob[]>([]);
     const [lastCompletedJob, setLastCompletedJob] = useState<HaulingJob | null>(null);
     const [savedPosition, setSavedPosition] = useState<{ x: number, y: number, z: number } | null>(null);
 
@@ -628,6 +642,70 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
         setAvailableJobs(newJobs);
     }, [currentData, findBody, currentShip]);
 
+    const generateContractsForLocation = useCallback((locationId: string) => {
+        const newContracts: FulfillmentContract[] = [];
+        const resources = Object.keys(MINING_RESOURCES);
+        
+        // Generate 2-4 contracts
+        const count = 2 + Math.floor(Math.random() * 3);
+        
+        for (let i = 0; i < count; i++) {
+            const numReqs = 1 + Math.floor(Math.random() * 2); // 1 or 2 required items
+            const requirements: {[key:string]: number} = {};
+            let totalValue = 0;
+            
+            for(let j=0; j<numReqs; j++) {
+                const res = resources[Math.floor(Math.random() * resources.length)];
+                const meta = (MINING_RESOURCES as any)[res];
+                const qty = 5 + Math.floor(Math.random() * 45); // 5 to 50
+                requirements[res] = (requirements[res] || 0) + qty;
+                totalValue += (meta?.price || 10) * qty;
+            }
+            
+            // 1.5x Premium Reward
+            const reward = Math.floor(totalValue * 1.5);
+            
+            newContracts.push({
+                id: Math.random().toString(36).substr(2, 9),
+                title: `Supply Request: ${Object.keys(requirements).map(k => k).join(' & ')}`,
+                description: `Station requires immediate delivery of refined materials.`,
+                requirements,
+                reward,
+                issuer: 'Local Refinery'
+            });
+        }
+        
+        setContracts(newContracts);
+    }, []);
+
+    const fulfillContract = useCallback((contractId: string) => {
+        const contract = contracts.find(c => c.id === contractId);
+        if (!contract) return;
+        
+        // Check requirements
+        for (const [res, qty] of Object.entries(contract.requirements)) {
+            if ((inventory[res] || 0) < qty) return; // Not enough
+        }
+        
+        // Deduct Items
+        const newInv = { ...inventory };
+        for (const [res, qty] of Object.entries(contract.requirements)) {
+            newInv[res] -= qty;
+            if (newInv[res] <= 0) delete newInv[res];
+        }
+        setInventory(newInv);
+        
+        // Pay Reward
+        const newCredits = credits + contract.reward;
+        setCredits(newCredits);
+        
+        // Remove Contract
+        setContracts(prev => prev.filter(c => c.id !== contractId));
+        
+        // Save
+        saveGame(undefined, newCredits, newInv);
+    }, [contracts, inventory, credits, saveGame]);
+
     const acceptJob = useCallback((job: HaulingJob) => {
         setActiveJob(job);
         setAvailableJobs([]); 
@@ -839,14 +917,14 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
     const value = useMemo(() => ({ 
         timeRef, speedRef, simulationTime: simTimeState, speed, setSpeed, resetTime, setTime,
         activeSystem, setActiveSystem, currentData, findBody, getOrbitalPosition, getOrbitPoints,
-        credits, fuel, boost, activeJob, availableJobs, dockedAt, lastDockedNode, lastDockVector, lastCompletedJob, savedPosition,
+        credits, fuel, boost, activeJob, availableJobs, contracts, dockedAt, lastDockedNode, lastDockVector, lastCompletedJob, savedPosition,
         currentShip, ownedShips, purchaseShip, equipShip, 
-        setDockedAt, acceptJob, completeJob, clearCompletedJob, generateJobsForLocation, 
+        setDockedAt, acceptJob, completeJob, clearCompletedJob, generateJobsForLocation, generateContractsForLocation, fulfillContract,
         updateFuel, buyFuel, updateBoost, buyBoost, saveGame, user, isLoadingSave,
         inventory, miningState, startMining, stopMining, mineAsteroid, sellResource, buyResource,
         marketState, getMarketForStation,
         shipLocations, shipTransfers, recallShip
-    }), [speed, simTimeState, activeSystem, currentData, findBody, resetTime, setTime, credits, fuel, boost, activeJob, availableJobs, dockedAt, lastDockedNode, lastDockVector, lastCompletedJob, savedPosition, currentShip, ownedShips, updateFuel, buyFuel, updateBoost, buyBoost, saveGame, user, isLoadingSave, purchaseShip, equipShip, inventory, miningState, startMining, stopMining, mineAsteroid, sellResource, buyResource, marketState, getMarketForStation, shipLocations, shipTransfers, recallShip]);
+    }), [speed, simTimeState, activeSystem, currentData, findBody, resetTime, setTime, credits, fuel, boost, activeJob, availableJobs, contracts, dockedAt, lastDockedNode, lastDockVector, lastCompletedJob, savedPosition, currentShip, ownedShips, updateFuel, buyFuel, updateBoost, buyBoost, saveGame, user, isLoadingSave, purchaseShip, equipShip, inventory, miningState, startMining, stopMining, mineAsteroid, sellResource, buyResource, marketState, getMarketForStation, shipLocations, shipTransfers, recallShip, generateContractsForLocation, fulfillContract]);
 
 
     return (

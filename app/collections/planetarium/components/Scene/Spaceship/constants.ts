@@ -65,6 +65,7 @@ export const MOVEMENT_KEYS = {
     FLIGHT_ASSIST: ['KeyZ'], 
     AUTOPILOT: ['KeyC'], 
     MINING: ['KeyM'],
+    COCKPIT_MODE: ['KeyV'],
     EXIT: ['Escape'] 
 };
 

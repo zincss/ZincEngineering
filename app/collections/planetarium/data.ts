@@ -26,6 +26,7 @@ export interface CelestialBody {
     day: string;
     year: string;
   };
+  owner?: string; // Faction/Manufacturer Owner
   moons?: CelestialBody[];
 }
 
@@ -43,6 +44,7 @@ export const PLANET_DATA: CelestialBody[] = [
     axialTilt: 0,
     textureUrl: "/textures/8k_sun.jpg",
     color: "#FDB813",
+    owner: "Zinc Aerospace",
     stats: { temp: "5,500°C", day: "25 Days", year: "230M Years" }
   },
   {
@@ -62,6 +64,7 @@ export const PLANET_DATA: CelestialBody[] = [
     periapsis: 29.12,
     textureUrl: "/textures/8k_mercury.jpg",
     color: "#A5A5A5",
+    owner: "Zinc Aerospace",
     stats: { temp: "430°C", day: "59 Days", year: "88 Days" },
     moons: [
       {
@@ -77,6 +80,7 @@ export const PLANET_DATA: CelestialBody[] = [
         axialTilt: 0,
         textureUrl: "",
         color: "#FFD700",
+        owner: "Zinc Aerospace",
         stats: { temp: "400°C", day: "-", year: "-" }
       }
     ]
@@ -100,6 +104,7 @@ export const PLANET_DATA: CelestialBody[] = [
     cloudTextureUrl: "/textures/4k_venus_atmosphere.jpg",
     atmosphere: true,
     color: "#E3BB76",
+    owner: "Zinc Aerospace",
     stats: { temp: "462°C", day: "243 Days", year: "225 Days" },
     moons: [
       {
@@ -115,6 +120,7 @@ export const PLANET_DATA: CelestialBody[] = [
         axialTilt: 0,
         textureUrl: "",
         color: "#E3BB76",
+        owner: "Zinc Aerospace",
         stats: { temp: "25°C", day: "-", year: "-" }
       }
     ]
@@ -138,6 +144,7 @@ export const PLANET_DATA: CelestialBody[] = [
     cloudTextureUrl: "/textures/8k_earth_clouds.jpg",
     atmosphere: true,
     color: "#2233FF",
+    owner: "Zinc Aerospace",
     stats: { temp: "14°C", day: "24 Hours", year: "365 Days" },
     moons: [
       {
@@ -157,6 +164,7 @@ export const PLANET_DATA: CelestialBody[] = [
         periapsis: 318.15,
         textureUrl: "/textures/8k_moon.jpg",
         color: "#CCCCCC",
+        owner: "Zinc Aerospace",
         stats: { temp: "-53°C", day: "27 Days", year: "-" }
       },
       {
@@ -172,6 +180,7 @@ export const PLANET_DATA: CelestialBody[] = [
         axialTilt: 0,
         textureUrl: "",
         color: "#00FFFF",
+        owner: "Zinc Aerospace",
         stats: { temp: "20°C", day: "90 Mins", year: "-" }
       },
       {
@@ -187,6 +196,7 @@ export const PLANET_DATA: CelestialBody[] = [
         axialTilt: 0,
         textureUrl: "",
         color: "#FFFFFF",
+        owner: "Zinc Aerospace",
         stats: { temp: "20°C", day: "90 Mins", year: "-" }
       }
     ]
@@ -209,6 +219,7 @@ export const PLANET_DATA: CelestialBody[] = [
     textureUrl: "/textures/8k_mars.jpg",
     atmosphere: true,
     color: "#E27B58",
+    owner: "Ares-Miltech",
     stats: { temp: "-63°C", day: "25 Hours", year: "687 Days" },
     moons: [
       {
@@ -224,6 +235,7 @@ export const PLANET_DATA: CelestialBody[] = [
         axialTilt: 0,
         textureUrl: "/textures/phobos.jpg",
         color: "#BFA393",
+        owner: "Ares-Miltech",
         stats: { temp: "-4°C", day: "8 Hours", year: "-" }
       },
       {
@@ -239,6 +251,7 @@ export const PLANET_DATA: CelestialBody[] = [
         axialTilt: 0,
         textureUrl: "",
         color: "#FF4500",
+        owner: "Ares-Miltech",
         stats: { temp: "-20°C", day: "-", year: "-" }
       }
     ]
@@ -260,6 +273,7 @@ export const PLANET_DATA: CelestialBody[] = [
     periapsis: 73.0,
     textureUrl: "/textures/8k_ceres_fictional.jpg",
     color: "#8c8c8c",
+    owner: "Zinc Aerospace",
     stats: { temp: "-105°C", day: "9 Hours", year: "4.6 Years" },
     moons: [] 
   },
@@ -280,6 +294,7 @@ export const PLANET_DATA: CelestialBody[] = [
     periapsis: 273.8,
     textureUrl: "/textures/8k_jupiter.jpg",
     color: "#C99039",
+    owner: "Titan Industries",
     stats: { temp: "-108°C", day: "10 Hours", year: "12 Years" },
     moons: [
       {
@@ -297,6 +312,7 @@ export const PLANET_DATA: CelestialBody[] = [
          inclination: 0.05,
          textureUrl: "/textures/io_texture.jpg",
          color: "#F4E07F",
+         owner: "Titan Industries",
          stats: { temp: "-143°C", day: "1.8 Days", year: "-" }
       },
       {
@@ -312,6 +328,7 @@ export const PLANET_DATA: CelestialBody[] = [
          axialTilt: 0,
          textureUrl: "/textures/europa.jpg",
          color: "#C4A88F",
+         owner: "Titan Industries",
          stats: { temp: "-160°C", day: "3.5 Days", year: "-" }
       },
       {
@@ -327,6 +344,7 @@ export const PLANET_DATA: CelestialBody[] = [
          axialTilt: 0,
          textureUrl: "/textures/ganymede.jpg",
          color: "#8B7D6E",
+         owner: "Titan Industries",
          stats: { temp: "-163°C", day: "7 Days", year: "-" }
       },
       {
@@ -342,6 +360,7 @@ export const PLANET_DATA: CelestialBody[] = [
          axialTilt: 0,
          textureUrl: "",
          color: "#FFFFFF",
+         owner: "Titan Industries",
          stats: { temp: "-100°C", day: "-", year: "-" }
       }
     ]
@@ -364,6 +383,7 @@ export const PLANET_DATA: CelestialBody[] = [
     textureUrl: "/textures/8k_saturn.jpg",
     ringTextureUrl: "/textures/8k_saturn_ring_alpha.png",
     color: "#D4BC8C",
+    owner: "Titan Industries",
     stats: { temp: "-139°C", day: "10.7 Hours", year: "29 Years" },
     moons: [
         {
@@ -379,6 +399,7 @@ export const PLANET_DATA: CelestialBody[] = [
           axialTilt: 0,
           textureUrl: "/textures/titan_texture.jpg",
           color: "#E5C163",
+          owner: "Titan Industries",
           stats: { temp: "-179°C", day: "16 Days", year: "-" }
         },
         {
@@ -394,6 +415,7 @@ export const PLANET_DATA: CelestialBody[] = [
           axialTilt: 0,
           textureUrl: "/textures/enceladus_texture.jpg",
           color: "#EEEEEE",
+          owner: "Titan Industries",
           stats: { temp: "-200°C", day: "1.4 Days", year: "-" }
         },
         {
@@ -409,6 +431,7 @@ export const PLANET_DATA: CelestialBody[] = [
           axialTilt: 0,
           textureUrl: "",
           color: "#5c4f3d", // Darker hive-like color
+          owner: "Orbital Mechanics",
           stats: { temp: "Cold", day: "-", year: "-" }
         },
         {
@@ -424,6 +447,7 @@ export const PLANET_DATA: CelestialBody[] = [
           axialTilt: 0,
           textureUrl: "",
           color: "#00FF00",
+          owner: "Titan Industries",
           stats: { temp: "-170°C", day: "-", year: "-" }
         }
     ]
@@ -445,6 +469,7 @@ export const PLANET_DATA: CelestialBody[] = [
     periapsis: 96.9,
     textureUrl: "/textures/2k_uranus.jpg",
     color: "#93B8BE",
+    owner: "inTAKE racing",
     stats: { temp: "-197°C", day: "17 Hours", year: "84 Years" },
     moons: [
       {
@@ -460,6 +485,7 @@ export const PLANET_DATA: CelestialBody[] = [
          axialTilt: 0,
          textureUrl: "",
          color: "#A0E0FF",
+         owner: "inTAKE racing",
          stats: { temp: "-180°C", day: "-", year: "-" }
       }
     ]
@@ -481,6 +507,7 @@ export const PLANET_DATA: CelestialBody[] = [
     periapsis: 273.2,
     textureUrl: "/textures/2k_neptune.jpg",
     color: "#4b70dd",
+    owner: "inTAKE racing",
     stats: { temp: "-201°C", day: "16 Hours", year: "165 Years" },
     moons: [
       {
@@ -496,6 +523,7 @@ export const PLANET_DATA: CelestialBody[] = [
          axialTilt: 0,
          textureUrl: "",
          color: "#5555FF",
+         owner: "inTAKE racing",
          stats: { temp: "-200°C", day: "-", year: "-" }
       }
     ]
@@ -517,6 +545,7 @@ export const PLANET_DATA: CelestialBody[] = [
     periapsis: 113.7,
     textureUrl: "/textures/pluto.jpg",
     color: "#E3C2A6",
+    owner: "Australian Dynamics",
     stats: { temp: "-229°C", day: "153 Hours", year: "248 Years" },
     moons: [
       {
@@ -532,6 +561,7 @@ export const PLANET_DATA: CelestialBody[] = [
          axialTilt: 0,
          textureUrl: "",
          color: "#888888",
+         owner: "Australian Dynamics",
          stats: { temp: "-230°C", day: "-", year: "-" }
       }
     ]
@@ -551,8 +581,26 @@ export const PLANET_DATA: CelestialBody[] = [
     inclination: 44.0, 
     textureUrl: "/textures/eris.jpg",
     color: "#DDDDDD",
+    owner: "Australian Dynamics",
     stats: { temp: "-240°C", day: "25.9 Hours", year: "558 Years" },
     moons: [] 
+  },
+  {
+    id: "fishworx_staryard",
+    name: "Fishworx Staryard",
+    type: "Station",
+    description: "An industrial military contractor facility specializing in heavy utility vessels.",
+    radius: 0.06,
+    distance: 6200,
+    orbitalPeriod: 95000,
+    rotationPeriod: 48,
+    meanLongitude: 180,
+    axialTilt: 0,
+    textureUrl: "",
+    color: "#2dd4bf",
+    owner: "Fishworx Staryard",
+    stats: { temp: "-230°C", day: "Artificial", year: "248 Years" },
+    moons: []
   },
   {
     id: "deep_space_99",
@@ -567,6 +615,7 @@ export const PLANET_DATA: CelestialBody[] = [
     axialTilt: 0,
     textureUrl: "",
     color: "#DFFF00",
+    owner: "Zinc Aerospace",
     stats: { temp: "-80°C", day: "24 Hours", year: "4.1 Years" },
     moons: []
   },
@@ -583,6 +632,7 @@ export const PLANET_DATA: CelestialBody[] = [
     axialTilt: 0,
     textureUrl: "",
     color: "#FF00FF",
+    owner: "Australian Dynamics",
     stats: { temp: "-235°C", day: "12 Hours", year: "273 Years" },
     moons: []
   },
@@ -599,6 +649,7 @@ export const PLANET_DATA: CelestialBody[] = [
     axialTilt: 60,
     textureUrl: "",
     color: "#000000",
+    owner: "Orbital Mechanics",
     stats: { temp: "∞", day: "Singularity", year: "Eternal" },
     moons: []
   }

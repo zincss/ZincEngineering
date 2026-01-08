@@ -31,6 +31,8 @@ export interface ShipStats {
     // Mining Capabilities
     miningCap: number;      // Cargo space for ore
     miningLaserPower: number; // Speed of mining (1 = standard)
+    miningHeatGen: number; // Heat generated per second while firing
+    miningCoolingRate: number; // Heat dissipated per second while idle
     
     // Visual/Flavor
     color: string;
@@ -44,6 +46,8 @@ const HUD_ARES: ShipHUDConfig = { primary: '#ef4444', secondary: '#ffffff', aler
 const HUD_TITAN: ShipHUDConfig = { primary: '#f59e0b', secondary: '#a1a1aa', alert: '#ef4444', shape: 'blocky', fontParams: 'tracking-tight' };
 const HUD_INTAKE: ShipHUDConfig = { primary: '#06b6d4', secondary: '#ec4899', alert: '#ef4444', shape: 'rounded', fontParams: 'italic' };
 const HUD_ORBITAL: ShipHUDConfig = { primary: '#d8b4fe', secondary: '#ffffff', alert: '#ef4444', shape: 'rounded', fontParams: 'tracking-widest' };
+const HUD_FISH: ShipHUDConfig = { primary: '#EAB308', secondary: '#a16207', alert: '#f43f5e', shape: 'rounded', fontParams: 'font-sans' };
+const HUD_MARSE: ShipHUDConfig = { primary: '#D4AF37', secondary: '#000000', alert: '#ef4444', shape: 'rounded', fontParams: 'font-serif tracking-widest' };
 
 export const SHIP_CATALOG: ShipStats[] = [
     // --- TIER 1: ENTRY LEVEL ---
@@ -64,6 +68,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         cruiseSpeed: 0.6,
         miningCap: 150,
         miningLaserPower: 1.0,
+        miningHeatGen: 20,
+        miningCoolingRate: 20,
         color: "#71717a",
         hud: HUD_AUSSIE
     },
@@ -84,6 +90,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         cruiseSpeed: 0.8,
         miningCap: 80,
         miningLaserPower: 0.8,
+        miningHeatGen: 25,
+        miningCoolingRate: 35,
         color: "#DFFF00",
         hud: HUD_ZINC
     },
@@ -104,8 +112,32 @@ export const SHIP_CATALOG: ShipStats[] = [
         cruiseSpeed: 0.5,
         miningCap: 400,
         miningLaserPower: 1.5,
+        miningHeatGen: 18,
+        miningCoolingRate: 15,
         color: "#92400e",
         hud: HUD_AUSSIE
+    },
+    {
+        id: "fish_guppy",
+        name: "Guppy",
+        description: "A nimble utility tug from Fishworx. Perfect for tight maneuvering in asteroid fields.",
+        manufacturer: "Fishworx Staryard",
+        price: 15000,
+        tier: 1,
+        maxFuel: 1500,
+        maxBoost: 80,
+        fuelBurnRate: 2.0,
+        boostBurnRate: 18.0,
+        acceleration: 7.0,
+        turnSpeed: 1.5,
+        boostMultiplier: 6.0,
+        cruiseSpeed: 0.9,
+        miningCap: 200,
+        miningLaserPower: 1.2,
+        miningHeatGen: 15,
+        miningCoolingRate: 40,
+        color: "#EAB308",
+        hud: HUD_FISH
     },
 
     // --- TIER 2: STANDARD ---
@@ -126,6 +158,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         cruiseSpeed: 1.0,
         miningCap: 120,
         miningLaserPower: 1.2,
+        miningHeatGen: 25,
+        miningCoolingRate: 40,
         color: "#DFFF00",
         hud: HUD_ZINC
     },
@@ -146,6 +180,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         cruiseSpeed: 1.2,
         miningCap: 60,
         miningLaserPower: 1.0,
+        miningHeatGen: 30,
+        miningCoolingRate: 25,
         color: "#f59e0b",
         hud: HUD_AUSSIE
     },
@@ -166,6 +202,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         cruiseSpeed: 0.7,
         miningCap: 1200,
         miningLaserPower: 2.5,
+        miningHeatGen: 15,
+        miningCoolingRate: 50,
         color: "#4b5563",
         hud: HUD_TITAN
     },
@@ -186,6 +224,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         cruiseSpeed: 1.3,
         miningCap: 20,
         miningLaserPower: 0.5,
+        miningHeatGen: 50,
+        miningCoolingRate: 30,
         color: "#ef4444",
         hud: HUD_ARES
     },
@@ -208,6 +248,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         cruiseSpeed: 1.5,
         miningCap: 30,
         miningLaserPower: 0.4,
+        miningHeatGen: 60,
+        miningCoolingRate: 40,
         color: "#991b1b",
         hud: HUD_ARES
     },
@@ -228,6 +270,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         cruiseSpeed: 0.8,
         miningCap: 5000,
         miningLaserPower: 4.0,
+        miningHeatGen: 10,
+        miningCoolingRate: 60,
         color: "#d97706",
         hud: HUD_TITAN
     },
@@ -248,6 +292,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         cruiseSpeed: 1.1,
         miningCap: 800,
         miningLaserPower: 2.2,
+        miningHeatGen: 20,
+        miningCoolingRate: 25,
         color: "#b45309",
         hud: HUD_AUSSIE
     },
@@ -268,6 +314,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         cruiseSpeed: 1.8,
         miningCap: 0,
         miningLaserPower: 0,
+        miningHeatGen: 100,
+        miningCoolingRate: 5,
         color: "#06b6d4",
         hud: HUD_INTAKE
     },
@@ -288,6 +336,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         cruiseSpeed: 1.0,
         miningCap: 200,
         miningLaserPower: 1.8,
+        miningHeatGen: 20,
+        miningCoolingRate: 45,
         color: "#3b82f6",
         hud: HUD_ORBITAL
     },
@@ -308,8 +358,32 @@ export const SHIP_CATALOG: ShipStats[] = [
         cruiseSpeed: 1.2,
         miningCap: 500,
         miningLaserPower: 2.0,
+        miningHeatGen: 25,
+        miningCoolingRate: 40,
         color: "#DFFF00",
         hud: HUD_ZINC
+    },
+    {
+        id: "fish_barracuda",
+        name: "Barracuda",
+        description: "Industrial-grade military contractor vessel. Fast, durable, and equipped for deep space operations.",
+        manufacturer: "Fishworx Staryard",
+        price: 135000,
+        tier: 3,
+        maxFuel: 4000,
+        maxBoost: 120,
+        fuelBurnRate: 1.4,
+        boostBurnRate: 20.0,
+        acceleration: 11.0,
+        turnSpeed: 1.4,
+        boostMultiplier: 10.0,
+        cruiseSpeed: 1.1,
+        miningCap: 1500,
+        miningLaserPower: 3.5,
+        miningHeatGen: 12,
+        miningCoolingRate: 50,
+        color: "#EAB308",
+        hud: HUD_FISH
     },
 
     // --- TIER 4: ADVANCED ---
@@ -330,6 +404,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         cruiseSpeed: 1.3,
         miningCap: 150,
         miningLaserPower: 1.5,
+        miningHeatGen: 30,
+        miningCoolingRate: 50,
         color: "#18181b",
         hud: HUD_ZINC
     },
@@ -350,6 +426,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         cruiseSpeed: 2.5,
         miningCap: 0,
         miningLaserPower: 0,
+        miningHeatGen: 100,
+        miningCoolingRate: 5,
         color: "#ec4899",
         hud: HUD_INTAKE
     },
@@ -370,6 +448,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         cruiseSpeed: 0.9,
         miningCap: 15000,
         miningLaserPower: 8.0,
+        miningHeatGen: 8,
+        miningCoolingRate: 70,
         color: "#ea580c",
         hud: HUD_TITAN
     },
@@ -390,6 +470,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         cruiseSpeed: 1.5,
         miningCap: 2500,
         miningLaserPower: 5.0,
+        miningHeatGen: 18,
+        miningCoolingRate: 30,
         color: "#78350f",
         hud: HUD_AUSSIE
     },
@@ -410,6 +492,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         cruiseSpeed: 1.8,
         miningCap: 50,
         miningLaserPower: 0.2,
+        miningHeatGen: 55,
+        miningCoolingRate: 35,
         color: "#b91c1c",
         hud: HUD_ARES
     },
@@ -430,8 +514,32 @@ export const SHIP_CATALOG: ShipStats[] = [
         cruiseSpeed: 1.4,
         miningCap: 1200,
         miningLaserPower: 3.5,
+        miningHeatGen: 15,
+        miningCoolingRate: 50,
         color: "#e879f9",
         hud: HUD_ORBITAL
+    },
+    {
+        id: "marse_ganda",
+        name: "Ganda",
+        description: "A vision of elegance. The Ganda is a high-fashion luxury tourer for the elite.",
+        manufacturer: "Marse Movement",
+        price: 950000,
+        tier: 4,
+        maxFuel: 4000,
+        maxBoost: 150,
+        fuelBurnRate: 1.0,
+        boostBurnRate: 15.0,
+        acceleration: 14.0,
+        turnSpeed: 2.0,
+        boostMultiplier: 12.0,
+        cruiseSpeed: 1.6,
+        miningCap: 500,
+        miningLaserPower: 1.5,
+        miningHeatGen: 15,
+        miningCoolingRate: 50,
+        color: "#D4AF37",
+        hud: HUD_MARSE
     },
 
     // --- TIER 5: ENDGAME ---
@@ -452,6 +560,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         cruiseSpeed: 2.0,
         miningCap: 5000,
         miningLaserPower: 6.0,
+        miningHeatGen: 20,
+        miningCoolingRate: 60,
         color: "#DFFF00",
         hud: HUD_ZINC
     },
@@ -472,6 +582,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         cruiseSpeed: 1.6,
         miningCap: 10000,
         miningLaserPower: 12.0,
+        miningHeatGen: 12,
+        miningCoolingRate: 40,
         color: "#166534",
         hud: HUD_AUSSIE
     },
@@ -492,6 +604,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         cruiseSpeed: 1.2,
         miningCap: 100000,
         miningLaserPower: 25.0,
+        miningHeatGen: 5,
+        miningCoolingRate: 100,
         color: "#431407",
         hud: HUD_TITAN
     },
@@ -512,6 +626,8 @@ export const SHIP_CATALOG: ShipStats[] = [
         cruiseSpeed: 3.0,
         miningCap: 100,
         miningLaserPower: 0.1,
+        miningHeatGen: 80,
+        miningCoolingRate: 40,
         color: "#450a0a",
         hud: HUD_ARES
     },
@@ -532,8 +648,32 @@ export const SHIP_CATALOG: ShipStats[] = [
         cruiseSpeed: 5.0,
         miningCap: 0,
         miningLaserPower: 0,
+        miningHeatGen: 100,
+        miningCoolingRate: 5,
         color: "#a21caf",
         hud: HUD_INTAKE
+    },
+    {
+        id: "fish_leviathan",
+        name: "Leviathan",
+        description: "A mobile shipyard and heavy refinery. The pride of the Fishworx fleet.",
+        manufacturer: "Fishworx Staryard",
+        price: 4500000,
+        tier: 5,
+        maxFuel: 60000,
+        maxBoost: 300,
+        fuelBurnRate: 0.5,
+        boostBurnRate: 40.0,
+        acceleration: 6.0,
+        turnSpeed: 0.8,
+        boostMultiplier: 6.0,
+        cruiseSpeed: 1.0,
+        miningCap: 80000,
+        miningLaserPower: 20.0,
+        miningHeatGen: 8,
+        miningCoolingRate: 80,
+        color: "#EAB308",
+        hud: HUD_FISH
     },
     {
         id: "endgame_dread",
@@ -552,8 +692,32 @@ export const SHIP_CATALOG: ShipStats[] = [
         cruiseSpeed: 2.5,
         miningCap: 50000,
         miningLaserPower: 50.0,
+        miningHeatGen: 5,
+        miningCoolingRate: 100,
         color: "#5c4f3d",
         hud: HUD_ORBITAL
+    },
+    {
+        id: "marse_gwapo",
+        name: "Gwapo",
+        description: "Unmatched performance wrapped in pure luxury. The Marse Movement flagship.",
+        manufacturer: "Marse Movement",
+        price: 8500000,
+        tier: 5,
+        maxFuel: 8000,
+        maxBoost: 800,
+        fuelBurnRate: 1.5,
+        boostBurnRate: 10.0,
+        acceleration: 35.0,
+        turnSpeed: 4.0,
+        boostMultiplier: 30.0,
+        cruiseSpeed: 3.5,
+        miningCap: 200,
+        miningLaserPower: 2.0,
+        miningHeatGen: 20,
+        miningCoolingRate: 60,
+        color: "#D4AF37",
+        hud: HUD_MARSE
     }
 ];
 

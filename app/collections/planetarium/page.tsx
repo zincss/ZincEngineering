@@ -291,6 +291,7 @@ function PlanetariumContent() {
                                     data={planet} 
                                     isSelected={selectedId === planet.id}
                                     selectedId={selectedId}
+                                    isSpaceshipMode={isSpaceshipMode}
                                     isCinematic={isCinematic}
                                     showOrbits={showOrbits}
                                     showLabels={showLabels}

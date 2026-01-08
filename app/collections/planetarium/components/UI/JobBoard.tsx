@@ -1,47 +1,117 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Lock, Wifi, UploadCloud, ArrowUpCircle, Container, DollarSign, 
-    Fuel, Zap, Briefcase, Pickaxe, ChevronDown, ChevronUp
+    Fuel, Zap, Briefcase, Pickaxe, ChevronDown, ChevronUp, Package, CheckCircle,
+    Shield, Hexagon, Anchor, Zap as Lightning, Globe, Fish, Hammer, Gem
 } from 'lucide-react';
-import { useSimulation, HaulingJob, MINING_RESOURCES } from '../../context';
+import { useSimulation, HaulingJob, FulfillmentContract, MINING_RESOURCES } from '../../context';
 import { FUEL_COST_PER_UNIT, BOOST_COST_PER_UNIT } from '../../constants';
 import { Dealership } from '../Dealership';
 import { Hangar } from './Hangar';
+
+// Manufacturer Colors
+const FACTION_THEMES: Record<string, string> = {
+    'Zinc Aerospace': '#DFFF00',
+    'Australian Dynamics': '#fbbf24',
+    'Ares-Miltech': '#ef4444',
+    'Titan Industries': '#f59e0b',
+    'inTAKE racing': '#06b6d4',
+    'Orbital Mechanics': '#d8b4fe',
+    'Fishworx Staryard': '#EAB308',
+    'Marse Movement': '#D4AF37',
+    'Unknown': '#DFFF00'
+};
+
+const ManufacturerLogo = ({ owner, color, className = "" }: { owner: string, color: string, className?: string }) => {
+    if (owner === 'Zinc Aerospace') return (
+        <div className={`flex items-center gap-2 ${className}`}>
+            <div className="w-8 h-8 border-2 border-[#DFFF00] rounded-lg flex items-center justify-center font-black text-white text-sm bg-[#DFFF00]/10 shadow-lg shadow-[#DFFF00]/10">Z</div>
+            <div className="flex flex-col leading-none text-white font-bold uppercase text-[9px] tracking-widest"><span>Zinc</span><span className="text-[7px] text-[#DFFF00]">Aero</span></div>
+        </div>
+    );
+    if (owner === 'Australian Dynamics') return (
+        <div className={`flex items-center gap-2 bg-zinc-900 border border-white/10 p-1.5 pr-4 rounded-lg ${className}`}>
+            <div className="w-6 h-6 bg-amber-500 rounded flex items-center justify-center text-black font-black text-[10px]">AD</div>
+            <span className="text-[10px] font-black text-white tracking-widest uppercase">Aussie_Dyn</span>
+        </div>
+    );
+    if (owner === 'Ares-Miltech') return (
+        <div className={`flex items-center gap-2 bg-black/40 p-1.5 pr-6 border border-red-600/30 skew-x-[-12deg] ${className}`}>
+            <div className="w-7 h-7 bg-red-600 flex items-center justify-center text-white"><Shield size={14} fill="currentColor" /></div>
+            <span className="text-[10px] font-black italic text-white tracking-tighter uppercase">Ares_Mil</span>
+        </div>
+    );
+    if (owner === 'Titan Industries') return (
+        <div className={`flex items-center gap-2 bg-zinc-900/90 p-1.5 pr-6 border-l-4 border-orange-600 ${className}`}>
+            <div className="w-8 h-8 bg-orange-600 flex items-center justify-center text-black font-black italic text-sm">T</div>
+            <span className="text-sm font-black uppercase text-white tracking-tighter">TITAN</span>
+        </div>
+    );
+    if (owner === 'inTAKE racing') return (
+        <div className={`flex items-baseline gap-1 bg-black/40 p-2 px-6 rounded-full border border-white/10 shadow-2xl backdrop-blur-xl ${className}`}>
+            <span className="text-xl font-black italic text-cyan-400">in</span><span className="text-xl font-black italic text-white">TAKE</span>
+        </div>
+    );
+    if (owner === 'Orbital Mechanics') return (
+        <div className={`flex flex-col items-center bg-white/5 p-2 px-6 rounded-2xl border border-white/10 shadow-2xl ${className}`}>
+            <div className="w-8 h-4 border-t border-x border-purple-400 rounded-t-full" />
+            <span className="text-[8px] font-serif italic tracking-[0.4em] text-purple-200 mt-1 uppercase leading-none">Orbital</span>
+        </div>
+    );
+    if (owner === 'Fishworx Staryard') return (
+        <div className={`flex items-center gap-2 bg-slate-900/80 border border-yellow-500/30 p-1.5 pr-4 rounded-sm ${className}`}>
+            <div className="w-7 h-7 bg-yellow-500 flex items-center justify-center text-black border border-yellow-600"><Hammer size={16} strokeWidth={2.5} /></div>
+            <div className="flex flex-col leading-none">
+                <span className="text-[10px] font-black text-yellow-500 uppercase tracking-tight">FISHWORX</span>
+                <span className="text-[7px] font-bold text-zinc-400 uppercase tracking-[0.1em]">HEAVY IND.</span>
+            </div>
+        </div>
+    );
+    if (owner === 'Marse Movement') return (
+        <div className={`flex items-center gap-3 bg-black border border-yellow-400/30 p-2 px-4 rounded-full ${className}`}>
+            <Gem size={16} className="text-yellow-400" />
+            <div className="flex flex-col items-start leading-none">
+                <span className="text-[10px] font-serif font-bold text-white tracking-wider">MARSE</span>
+                <span className="text-[5px] font-sans font-light text-yellow-400 tracking-[0.3em] uppercase">MOVEMENT</span>
+            </div>
+        </div>
+    );
+    
+    // Default / Unknown
+    return <Hexagon size={24} color={color} className={className} />;
+};
 
 export function JobBoard({ onClose }: { onClose: () => void }) {
     const {
         availableJobs, acceptJob, activeJob, completeJob, credits, dockedAt, 
         findBody, fuel, buyFuel, boost, buyBoost, currentShip,
-        inventory, sellResource, buyResource, getMarketForStation
+        inventory, sellResource, buyResource, getMarketForStation,
+        contracts, generateContractsForLocation, fulfillContract
     } = useSimulation();
     
     const locationBody = findBody(dockedAt);
     const marketData = dockedAt ? getMarketForStation(dockedAt) : null;
+    
+    // Determine Station Theme
+    const stationOwner = locationBody?.owner || 'Unknown';
+    const accentColor = FACTION_THEMES[stationOwner] || FACTION_THEMES['Unknown'];
 
     const [viewState, setViewState] = useState<'docking' | 'board' | 'accepting' | 'launching'>('docking');
     const [acceptedJobDetails, setAcceptedJobDetails] = useState<HaulingJob | null>(null);
 
     // Tab State
-    const [activeTab, setActiveTab] = useState<'jobs' | 'hangar' | 'dealership'>('jobs');
-    const isDealershipAvailable = dockedAt === 'dreadnaught';
+    const [activeTab, setActiveTab] = useState<'market' | 'contracts' | 'hangar' | 'dealership'>('market');
+    const isDealershipAvailable = dockedAt === 'dreadnaught' || dockedAt === 'earth' || dockedAt === 'mars' || dockedAt === 'fishworx_staryard';
 
-    // Market UI State
-    const [isMarketOpen, setIsMarketOpen] = useState(false);
-    const [tradeRowId, setTradeRowId] = useState<string | null>(null);
-    const [tradeQty, setTradeQty] = useState<number>(1);
-
-    const toggleTradeRow = (resId: string) => {
-        if (tradeRowId === resId) {
-            setTradeRowId(null);
-            setTradeQty(1);
-        } else {
-            setTradeRowId(resId);
-            setTradeQty(1);
+    // Generate contracts when docking
+    useEffect(() => {
+        if (dockedAt && contracts.length === 0) {
+            generateContractsForLocation(dockedAt);
         }
-    };
+    }, [dockedAt, contracts.length, generateContractsForLocation]);
 
     useEffect(() => {
         if (viewState === 'docking') {
@@ -82,6 +152,79 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
 
     const canDeliverActiveJob = activeJob && activeJob.destId === dockedAt;
 
+    // --- SUB-COMPONENTS ---
+
+    const SidebarItem = ({ id, label, icon: Icon, active }: any) => (
+        <button 
+            onClick={() => setActiveTab(id)}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-sm uppercase font-bold tracking-wider mb-1 group relative overflow-hidden ${
+                active 
+                ? 'text-black shadow-lg' 
+                : 'text-zinc-500 hover:text-white'
+            }`}
+            style={active ? { backgroundColor: accentColor, boxShadow: `0 10px 15px -3px ${accentColor}20` } : {}}
+        >
+            {!active && <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />}
+            <Icon size={16} /> {label}
+        </button>
+    );
+
+    const ContractCard = ({ contract }: { contract: FulfillmentContract }) => {
+        const canFulfill = Object.entries(contract.requirements).every(([res, qty]) => (inventory[res] || 0) >= qty);
+        
+        return (
+            <div className="bg-black/40 border border-white/10 rounded-xl p-5 hover:bg-white/5 transition-colors relative overflow-hidden group">
+                {/* Subtle hover glow based on faction color */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity pointer-events-none" style={{ backgroundColor: accentColor }} />
+                
+                <div className="flex justify-between items-start mb-4 relative z-10">
+                    <div>
+                        <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-1">{contract.issuer}</div>
+                        <h3 className="text-white font-bold text-lg">{contract.title}</h3>
+                        <p className="text-zinc-400 text-xs mt-1 max-w-sm">{contract.description}</p>
+                    </div>
+                    <div className="text-right">
+                        <div className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">Reward</div>
+                        <div className="font-mono font-bold text-xl" style={{ color: accentColor }}>{contract.reward.toLocaleString()} CR</div>
+                    </div>
+                </div>
+
+                <div className="bg-black/40 rounded-lg p-3 border border-white/5 mb-4 relative z-10">
+                    <div className="text-[10px] text-zinc-500 uppercase tracking-widest mb-2 font-bold">Required Resources</div>
+                    <div className="flex flex-wrap gap-2">
+                        {Object.entries(contract.requirements).map(([res, qty]) => {
+                            const have = inventory[res] || 0;
+                            const isMet = have >= qty;
+                            const meta = (MINING_RESOURCES as any)[res];
+                            return (
+                                <div key={res} className={`flex items-center gap-2 px-2 py-1 rounded text-xs font-mono border ${isMet ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
+                                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: meta?.color || '#fff' }} />
+                                    <span>{res}: {have}/{qty}</span>
+                                    {isMet && <CheckCircle size={10} />}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                <div className="flex justify-end relative z-10">
+                    <button 
+                        onClick={() => fulfillContract(contract.id)}
+                        disabled={!canFulfill}
+                        className={`px-6 py-2 rounded-lg font-bold text-xs uppercase tracking-widest transition-all flex items-center gap-2 ${
+                            canFulfill 
+                            ? 'text-black hover:bg-white' 
+                            : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                        }`}
+                        style={canFulfill ? { backgroundColor: accentColor, boxShadow: `0 0 15px ${accentColor}40` } : {}}
+                    >
+                        {canFulfill ? 'Fulfill Contract' : 'Missing Resources'}
+                    </button>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-xl flex items-center justify-center p-4">
             <AnimatePresence mode="wait">
@@ -95,14 +238,17 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
                         exit={{ opacity: 0, scale: 1.1, filter: "blur(10px)" }}
                         className="flex flex-col items-center justify-center text-center max-w-md w-full"
                     >
-                        <div className="w-24 h-24 border-2 border-dashed border-[#DFFF00] rounded-full flex items-center justify-center animate-spin-slow mb-6 relative">
-                            <div className="absolute inset-2 border border-[#DFFF00]/30 rounded-full animate-ping-slow" />
-                            <Lock size={32} className="text-[#DFFF00]" />
+                        <div 
+                            className="w-24 h-24 border-2 border-dashed rounded-full flex items-center justify-center animate-spin-slow mb-6 relative"
+                            style={{ borderColor: accentColor }}
+                        >
+                            <div className="absolute inset-2 border rounded-full animate-ping-slow" style={{ borderColor: `${accentColor}40` }} />
+                            <Lock size={32} style={{ color: accentColor }} />
                         </div>
                         <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-2 animate-pulse">
                             Docking Sequence
                         </h2>
-                        <div className="text-[#DFFF00] font-mono text-sm uppercase tracking-widest flex items-center gap-2">
+                        <div className="font-mono text-sm uppercase tracking-widest flex items-center gap-2" style={{ color: accentColor }}>
                             <Wifi size={14} className="animate-pulse" />
                             Handshake Complete
                         </div>
@@ -111,7 +257,8 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
                                 initial={{ width: 0 }}
                                 animate={{ width: "100%" }}
                                 transition={{ duration: 1.8, ease: "easeInOut" }}
-                                className="h-full bg-[#DFFF00]"
+                                className="h-full"
+                                style={{ backgroundColor: accentColor }}
                             />
                         </div>
                     </motion.div>
@@ -124,13 +271,14 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 1.1, filter: "blur(10px)" }}
-                        className="bg-zinc-900 border border-[#DFFF00] rounded-2xl p-10 flex flex-col items-center text-center max-w-lg w-full shadow-[0_0_50px_rgba(223,255,0,0.2)]"
+                        className="bg-zinc-900 border rounded-2xl p-10 flex flex-col items-center text-center max-w-lg w-full shadow-2xl"
+                        style={{ borderColor: accentColor, boxShadow: `0 0 50px ${accentColor}20` }}
                     >
-                        <div className="w-16 h-16 bg-[#DFFF00] text-black rounded-full flex items-center justify-center mb-6 shadow-lg animate-bounce">
+                        <div className="w-16 h-16 text-black rounded-full flex items-center justify-center mb-6 shadow-lg animate-bounce" style={{ backgroundColor: accentColor }}>
                             <UploadCloud size={32} />
                         </div>
                         <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-1">
-                            Contract <span className="text-[#DFFF00]">Secured</span>
+                            Contract <span style={{ color: accentColor }}>Secured</span>
                         </h2>
                         <p className="text-zinc-400 text-sm font-mono uppercase tracking-widest mb-8">
                             Upload Complete // Manifest Updated
@@ -143,7 +291,7 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
                             </div>
                             <div className="flex justify-between items-center mb-4">
                                 <span className="text-zinc-500 text-xs uppercase font-bold tracking-wider">Destination</span>
-                                <span className="text-[#DFFF00] font-mono font-bold text-lg">
+                                <span className="font-mono font-bold text-lg" style={{ color: accentColor }}>
                                     {findBody(acceptedJobDetails.destId)?.name || "Unknown"}
                                 </span>
                             </div>
@@ -153,8 +301,8 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-3 text-[#DFFF00] font-mono text-xs uppercase tracking-widest opacity-80 animate-pulse">
-                            <div className="w-2 h-2 bg-[#DFFF00] rounded-full" />
+                        <div className="flex items-center gap-3 font-mono text-xs uppercase tracking-widest opacity-80 animate-pulse" style={{ color: accentColor }}>
+                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: accentColor }} />
                             Preparing for Departure...
                         </div>
                     </motion.div>
@@ -170,13 +318,13 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
                         className="flex flex-col items-center justify-center text-center max-w-md w-full"
                     >
                         <div className="mb-6 relative">
-                            <ArrowUpCircle size={64} className="text-[#DFFF00] animate-bounce" />
-                            <div className="absolute inset-0 bg-[#DFFF00] blur-xl opacity-30 animate-pulse" />
+                            <ArrowUpCircle size={64} className="animate-bounce" style={{ color: accentColor }} />
+                            <div className="absolute inset-0 blur-xl opacity-30 animate-pulse" style={{ backgroundColor: accentColor }} />
                         </div>
                         <h2 className="text-4xl font-black text-white uppercase tracking-tighter mb-2">
                             Launching
                         </h2>
-                        <div className="flex flex-col gap-1 text-[#DFFF00] font-mono text-xs uppercase tracking-widest opacity-80">
+                        <div className="flex flex-col gap-1 font-mono text-xs uppercase tracking-widest opacity-80" style={{ color: accentColor }}>
                             <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>Releasing Clamps...</motion.span>
                             <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>Pressurizing Thrusters...</motion.span>
                             <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.4 }}>Guidance Internal...</motion.span>
@@ -186,7 +334,8 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
                                 initial={{ width: 0 }}
                                 animate={{ width: "100%" }}
                                 transition={{ duration: 2.5, ease: "linear" }}
-                                className="h-full bg-[#DFFF00]"
+                                className="h-full"
+                                style={{ backgroundColor: accentColor }}
                             />
                         </div>
                     </motion.div>
@@ -200,286 +349,144 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95 }}
                         transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-                        className="bg-zinc-900 border border-white/20 rounded-2xl w-full max-w-4xl overflow-hidden shadow-2xl relative flex flex-col h-[80vh]"
+                        className="bg-zinc-950 border border-white/10 rounded-2xl w-full max-w-6xl h-[85vh] overflow-hidden shadow-2xl flex relative"
                     >
-                        <div className="bg-zinc-800 p-6 flex justify-between items-center border-b border-white/10 shrink-0">
+                        {/* SIDEBAR */}
+                        <div className="w-64 bg-zinc-900/80 backdrop-blur-md border-r border-white/10 p-6 flex flex-col justify-between shrink-0 relative z-10">
                             <div>
-                                <div className="text-[#DFFF00] font-mono text-xs uppercase tracking-widest mb-1 flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-[#DFFF00] rounded-full animate-pulse" />
-                                    Trading Terminal Online
+                                <div className="mb-8 border-b border-white/5 pb-6">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <ManufacturerLogo owner={stationOwner} color={accentColor} />
+                                    </div>
+                                    <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mt-4">
+                                        Docked At
+                                    </div>
+                                    <h2 className="text-2xl font-black text-white leading-tight uppercase mb-1">{locationBody?.name}</h2>
+                                    <div className="text-xs font-bold flex items-center gap-2" style={{ color: accentColor }}>
+                                        {stationOwner} Station
+                                    </div>
                                 </div>
-                                <h2 className="text-2xl font-black text-white uppercase">
-                                    {locationBody?.name} <span className="text-zinc-500">Logistics</span>
-                                </h2>
+
+                                <nav>
+                                    <div className="text-[10px] font-bold text-zinc-600 uppercase tracking-wider mb-3 px-2">Services</div>
+                                    <SidebarItem id="market" label="Commodities" icon={Pickaxe} active={activeTab === 'market'} />
+                                    <SidebarItem id="contracts" label="Contracts" icon={Briefcase} active={activeTab === 'contracts'} />
+                                    <SidebarItem id="hangar" label="Hangar Bay" icon={Container} active={activeTab === 'hangar'} />
+                                    {isDealershipAvailable && (
+                                        <SidebarItem id="dealership" label="Shipyard" icon={Rocket} active={activeTab === 'dealership'} />
+                                    )}
+                                </nav>
                             </div>
 
-                            <div className="flex items-center gap-6">
-                                {/* TABS */}
-                                <div className="flex bg-black/40 rounded-lg p-1 border border-white/5">
-                                    <button
-                                        onClick={() => setActiveTab('jobs')}
-                                        className={`px-4 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'jobs' ? 'bg-zinc-700 text-white shadow' : 'text-zinc-500 hover:text-zinc-300'}`}
-                                    >
-                                        Market
-                                    </button>
-                                    <button
-                                        onClick={() => setActiveTab('hangar')}
-                                        className={`px-4 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'hangar' ? 'bg-zinc-700 text-white shadow' : 'text-zinc-500 hover:text-zinc-300'}`}
-                                    >
-                                        Hangar
-                                    </button>
-                                    {isDealershipAvailable && (
-                                        <button
-                                            onClick={() => setActiveTab('dealership')}
-                                            className={`px-4 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${activeTab === 'dealership' ? 'bg-[#DFFF00] text-black shadow' : 'text-zinc-500 hover:text-zinc-300'}`}
-                                        >
-                                            <Container size={12} /> Shipyard
+                            <div className="space-y-4">
+                                {/* Mini Status Cards */}
+                                <div className="bg-black/40 rounded-lg p-3 border border-white/5">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <span className="text-[9px] text-zinc-500 font-bold uppercase">Fuel</span>
+                                        <span className={`text-[10px] font-mono ${isFuelLow ? 'text-red-500' : 'text-emerald-500'}`}>{Math.floor((fuel/currentShip.maxFuel)*100)}%</span>
+                                    </div>
+                                    <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
+                                        <div className={`h-full ${isFuelLow ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${(fuel/currentShip.maxFuel)*100}%` }} />
+                                    </div>
+                                    {fuelMissing > 10 && (
+                                        <button onClick={buyFuel} disabled={!canAffordFuel} className="w-full mt-2 text-[9px] font-bold bg-white/5 hover:bg-white/10 text-zinc-300 py-1 rounded transition-colors">
+                                            Refuel (-{refuelCost})
                                         </button>
                                     )}
                                 </div>
 
-                                <div className="text-right pl-6 border-l border-white/10">
-                                    <div className="text-zinc-500 text-xs uppercase tracking-wider">Account Balance</div>
-                                    <div className="text-xl font-mono text-[#DFFF00] flex items-center gap-1 justify-end">
-                                        <DollarSign size={16} /> {credits.toLocaleString()}
+                                <div className="bg-black/40 rounded-lg p-3 border border-white/5">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <span className="text-[9px] text-zinc-500 font-bold uppercase">Boost</span>
+                                        <span className={`text-[10px] font-mono ${isBoostLow ? 'text-orange-500' : 'text-blue-500'}`}>{Math.floor((boost/currentShip.maxBoost)*100)}%</span>
+                                    </div>
+                                    <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
+                                        <div className={`h-full ${isBoostLow ? 'bg-orange-500' : 'bg-blue-500'}`} style={{ width: `${(boost/currentShip.maxBoost)*100}%` }} />
+                                    </div>
+                                    {boostMissing > 5 && (
+                                        <button onClick={buyBoost} disabled={!canAffordBoost} className="w-full mt-2 text-[9px] font-bold bg-white/5 hover:bg-white/10 text-zinc-300 py-1 rounded transition-colors">
+                                            Recharge (-{boostCost})
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div className="bg-black/40 rounded-lg p-3 border border-white/5">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <span className="text-[9px] text-zinc-500 font-bold uppercase">Balance</span>
+                                        <span className="text-[10px] font-mono" style={{ color: accentColor }}>{credits.toLocaleString()} CR</span>
                                     </div>
                                 </div>
+
+                                <button onClick={handleLaunch} className="w-full bg-red-600 hover:bg-red-500 text-white font-bold text-xs uppercase tracking-wider py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
+                                    <ArrowUpCircle size={14} /> Undock
+                                </button>
                             </div>
                         </div>
 
-                        {/* CONTENT AREA */}
-                        <div className="flex-1 overflow-y-auto custom-scrollbar bg-black/20">
+                        {/* MAIN CONTENT */}
+                        <div className="flex-1 overflow-hidden flex flex-col bg-zinc-950/50 relative z-10">
+                            {/* Header / Top Bar */}
+                            <div className="h-16 border-b border-white/5 flex items-center justify-between px-8 bg-zinc-900/50 backdrop-blur-md">
+                                <div className="flex items-center gap-3">
+                                    {activeTab === 'market' && <h1 className="text-xl font-bold text-white uppercase tracking-widest">Marketplace</h1>}
+                                    {activeTab === 'contracts' && <h1 className="text-xl font-bold text-white uppercase tracking-widest">Fulfillment Contracts</h1>}
+                                    {activeTab === 'hangar' && <h1 className="text-xl font-bold text-white uppercase tracking-widest">My Hangar</h1>}
+                                    {activeTab === 'dealership' && <h1 className="text-xl font-bold text-white uppercase tracking-widest">Ship Dealership</h1>}
+                                </div>
+                                <div className="text-zinc-500 font-mono text-xs">
+                                    System Time: {new Date().toLocaleTimeString()}
+                                </div>
+                            </div>
 
-                            {activeTab === 'dealership' && isDealershipAvailable ? (
-                                <Dealership onClose={onClose} />
-                            ) : activeTab === 'hangar' ? (
-                                <Hangar onClose={onClose} />
-                            ) : (
-                                <div className="p-6 space-y-6">
-                                    {/* Active Job Section */}
-                                    {canDeliverActiveJob && (
-                                        <div className="animate-in slide-in-from-left duration-500">
-                                            <div className="text-[#DFFF00] text-xs uppercase tracking-widest font-bold mb-3 flex items-center gap-2">
-                                                <Briefcase size={14} className="animate-bounce" /> Incoming Delivery
-                                            </div>
-                                            <div className="bg-[#DFFF00]/10 border border-[#DFFF00] rounded-xl p-6 flex items-center justify-between">
+                            {/* Scrollable Area */}
+                            <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
+                                
+                                {activeTab === 'dealership' && isDealershipAvailable ? (
+                                    <Dealership onClose={onClose} />
+                                ) : activeTab === 'hangar' ? (
+                                    <Hangar onClose={onClose} />
+                                ) : activeTab === 'contracts' ? (
+                                    <div className="space-y-4 max-w-3xl mx-auto">
+                                        {canDeliverActiveJob && (
+                                            <div className="bg-opacity-10 border rounded-xl p-6 flex items-center justify-between mb-8 animate-in slide-in-from-top duration-500" style={{ backgroundColor: `${accentColor}10`, borderColor: accentColor }}>
                                                 <div>
+                                                    <div className="text-xs uppercase tracking-widest font-bold mb-1 flex items-center gap-2" style={{ color: accentColor }}>
+                                                        <Briefcase size={14} className="animate-bounce" /> Active Hauling Job
+                                                    </div>
                                                     <div className="text-2xl font-black text-white uppercase">{activeJob?.description}</div>
-                                                    <div className="text-[#DFFF00] font-mono text-sm mt-1">Cargo: {activeJob?.cargo}</div>
+                                                    <div className="text-zinc-400 font-mono text-sm mt-1">Cargo: {activeJob?.cargo}</div>
                                                 </div>
                                                 <button
                                                     onClick={() => { completeJob(); onClose(); }}
-                                                    className="px-8 py-4 bg-[#DFFF00] hover:bg-white text-black font-black uppercase tracking-widest text-sm rounded-xl shadow-[0_0_30px_rgba(223,255,0,0.3)] transition-all hover:scale-105 active:scale-95"
+                                                    className="px-8 py-3 hover:bg-white text-black font-black uppercase tracking-widest text-sm rounded-lg shadow-lg transition-all hover:scale-105 active:scale-95"
+                                                    style={{ backgroundColor: accentColor, boxShadow: `0 0 30px ${accentColor}30` }}
                                                 >
-                                                    Complete Contract
+                                                    Complete Delivery
                                                 </button>
                                             </div>
-                                        </div>
-                                    )}
+                                        )}
 
-                                    {/* REFUEL & REPAIR GRID */}
-                                    <div className="grid grid-cols-2 gap-4">
-                                        {/* Fuel Card */}
-                                        <div className="bg-black/20 border border-white/10 rounded-xl p-4 flex justify-between items-center">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isFuelLow ? 'bg-red-500/20 text-red-500' : 'bg-emerald-500/20 text-emerald-500'}`}>
-                                                    <Fuel size={20} />
+                                        <div className="grid gap-4">
+                                            {contracts.length > 0 ? contracts.map(c => (
+                                                <ContractCard key={c.id} contract={c} />
+                                            )) : (
+                                                <div className="text-center py-12 text-zinc-600 font-mono uppercase">
+                                                    No contracts available at this time.
                                                 </div>
-                                                <div>
-                                                    <div className="text-white font-bold text-sm">Reactor Fuel</div>
-                                                    <div className="text-zinc-500 text-xs font-mono">
-                                                        Level: <span className={isFuelLow ? "text-red-400" : "text-emerald-400"}>{Math.floor((fuel / currentShip.maxFuel) * 100)}%</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            {fuelMissing > 10 ? (
-                                                <button onClick={buyFuel} disabled={!canAffordFuel} className={`px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all ${canAffordFuel ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}`}>Refuel (-{refuelCost} CR)</button>
-                                            ) : (
-                                                <div className="text-emerald-500 text-xs font-bold uppercase tracking-widest opacity-60 px-4">Full</div>
                                             )}
                                         </div>
 
-                                        {/* Boost Card */}
-                                        <div className="bg-black/20 border border-white/10 rounded-xl p-4 flex justify-between items-center">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isBoostLow ? 'bg-orange-500/20 text-orange-500' : 'bg-blue-500/20 text-blue-500'}`}>
-                                                    <Zap size={20} />
-                                                </div>
-                                                <div>
-                                                    <div className="text-white font-bold text-sm">Injector Fluid</div>
-                                                    <div className="text-zinc-500 text-xs font-mono">
-                                                        Level: <span className={isBoostLow ? "text-orange-400" : "text-blue-400"}>{Math.floor((boost / currentShip.maxBoost) * 100)}%</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            {boostMissing > 5 ? (
-                                                <button onClick={buyBoost} disabled={!canAffordBoost} className={`px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all ${canAffordBoost ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}`}>Refill (-{boostCost} CR)</button>
-                                            ) : (
-                                                <div className="text-blue-500 text-xs font-bold uppercase tracking-widest opacity-60 px-4">Full</div>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* DYNAMIC MARKET TABLE */}
-                                    <div className="bg-black/20 border border-white/10 rounded-xl overflow-hidden">
-                                        <div className="bg-white/5 px-6 py-3 border-b border-white/10 flex justify-between items-center">
-                                            <div className="flex items-center gap-6">
-                                                <div className="text-zinc-400 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
-                                                    <Pickaxe size={14} /> Local Commodities Market
-                                                </div>
-                                                <button 
-                                                    onClick={() => {
-                                                        const el = document.getElementById('contracts-section');
-                                                        el?.scrollIntoView({ behavior: 'smooth' });
-                                                    }}
-                                                    className="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-[10px] text-[#DFFF00] font-bold uppercase tracking-widest transition-colors flex items-center gap-2"
-                                                >
-                                                    <Briefcase size={12} /> Contracts Available
-                                                </button>
-                                            </div>
-                                            <div className="flex items-center gap-4">
-                                                <div className="text-right">
-                                                    <div className="text-[10px] text-zinc-500 uppercase font-bold">Cargo Hold</div>
-                                                    <div className="text-xs font-mono text-white">
-                                                        {Object.values(inventory).reduce((a,b) => a+b, 0)} / {currentShip.miningCap} Units
-                                                    </div>
-                                                </div>
-                                                <div className="text-[10px] text-zinc-600 font-mono uppercase">Prices update every 30m</div>
-                                            </div>
-                                        </div>
-                                        
-                                        <table className="w-full text-left">
-                                            <thead>
-                                                <tr className="border-b border-white/5 text-zinc-500 text-[10px] uppercase font-bold tracking-wider">
-                                                    <th className="px-6 py-3">Resource</th>
-                                                    <th className="px-6 py-3 text-right">Market Price</th>
-                                                    <th className="px-6 py-3">Saturation / Trend</th>
-                                                    <th className="px-6 py-3 text-right">My Cargo</th>
-                                                    <th className="px-6 py-3 text-right">Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {Object.entries(MINING_RESOURCES).map(([resId, meta]: [string, any]) => {
-                                                    const marketItem = marketData?.[resId];
-                                                    const basePrice = meta.price;
-                                                    const currentPrice = marketItem?.price || basePrice;
-                                                    const saturation = marketItem?.saturation || 0;
-                                                    const myQty = inventory[resId] || 0;
-                                                    
-                                                    const isHighPrice = currentPrice > basePrice;
-                                                    const isSaturated = saturation >= 100;
-
-                                                    const currentLoad = Object.values(inventory).reduce((a, b) => a + b, 0);
-                                                    const maxLoad = currentShip.miningCap || 0;
-                                                    const canFitMore = currentLoad < maxLoad;
-                                                    
-                                                    return (
-                                                        <tr key={resId} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                                            <td className="px-6 py-3">
-                                                                <div className="flex items-center gap-3">
-                                                                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: meta.color }} />
-                                                                    <span className="text-white font-bold text-sm">{meta.name}</span>
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-6 py-3 text-right font-mono">
-                                                                <div className={isHighPrice ? "text-emerald-400" : "text-rose-400"}>
-                                                                    {currentPrice} CR
-                                                                </div>
-                                                                <div className="text-[10px] text-zinc-600 uppercase tracking-tighter">
-                                                                    Avg: {basePrice}
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-6 py-3">
-                                                                <div className="flex items-center gap-3">
-                                                                    <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden min-w-[60px]">
-                                                                        <div 
-                                                                            className={`h-full ${isSaturated ? 'bg-red-500' : 'bg-blue-500'}`} 
-                                                                            style={{ width: `${Math.min(100, saturation)}%` }} 
-                                                                        />
-                                                                    </div>
-                                                                    <div className="text-[10px] font-mono whitespace-nowrap">
-                                                                        {isHighPrice ? (
-                                                                            <span className="text-emerald-500 flex items-center gap-0.5"><ChevronUp size={10} /> +{Math.round(((currentPrice-basePrice)/basePrice)*100)}%</span>
-                                                                        ) : (
-                                                                            <span className="text-rose-500 flex items-center gap-0.5"><ChevronDown size={10} /> {Math.round(((currentPrice-basePrice)/basePrice)*100)}%</span>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-6 py-3 text-right">
-                                                                {myQty > 0 ? (
-                                                                    <span className="text-white font-bold">{myQty}</span>
-                                                                ) : (
-                                                                    <span className="text-zinc-600">-</span>
-                                                                )}
-                                                            </td>
-                                                            <td className="px-6 py-3">
-                                                                <div className="flex items-center justify-end gap-3">
-                                                                    {/* BUY TOOLS */}
-                                                                    <div className="flex bg-black/40 rounded overflow-hidden border border-white/5">
-                                                                        <button
-                                                                            onClick={() => buyResource(resId, 1)}
-                                                                            disabled={credits < currentPrice || !canFitMore}
-                                                                            className="px-2 py-1 text-[9px] font-bold text-emerald-500 hover:bg-emerald-500/10 disabled:opacity-30 disabled:hover:bg-transparent"
-                                                                        >
-                                                                            BUY 1
-                                                                        </button>
-                                                                        <button
-                                                                            onClick={() => buyResource(resId, 10)}
-                                                                            disabled={credits < currentPrice * 10 || currentLoad + 10 > maxLoad}
-                                                                            className="px-2 py-1 text-[9px] font-bold text-emerald-500 hover:bg-emerald-500/10 border-l border-white/5 disabled:opacity-30 disabled:hover:bg-transparent"
-                                                                        >
-                                                                            10
-                                                                        </button>
-                                                                    </div>
-
-                                                                    {/* SELL TOOLS */}
-                                                                    <div className="flex bg-black/40 rounded overflow-hidden border border-white/5">
-                                                                        <button
-                                                                            onClick={() => sellResource(resId, 1)}
-                                                                            disabled={myQty < 1 || isSaturated}
-                                                                            className="px-2 py-1 text-[9px] font-bold text-purple-400 hover:bg-purple-500/10 disabled:opacity-30 disabled:hover:bg-transparent"
-                                                                        >
-                                                                            SELL 1
-                                                                        </button>
-                                                                        <button
-                                                                            onClick={() => sellResource(resId, 10)}
-                                                                            disabled={myQty < 10 || isSaturated}
-                                                                            className="px-2 py-1 text-[9px] font-bold text-purple-400 hover:bg-purple-500/10 border-l border-white/5 disabled:opacity-30 disabled:hover:bg-transparent"
-                                                                        >
-                                                                            10
-                                                                        </button>
-                                                                        <button
-                                                                            onClick={() => sellResource(resId, myQty)}
-                                                                            disabled={myQty <= 0 || isSaturated}
-                                                                            className="px-2 py-1 text-[9px] font-bold text-white bg-purple-600 hover:bg-purple-500 border-l border-white/5 disabled:opacity-30 disabled:hover:bg-transparent"
-                                                                        >
-                                                                            ALL
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                            </tbody>
-                                        </table>
-                                    </div>
-
-                                    {!canDeliverActiveJob && availableJobs.length > 0 && (
-                                        <div id="contracts-section">
-                                            <div className="text-zinc-500 text-xs uppercase tracking-widest font-bold mt-8 mb-3">
-                                                <span>Hauling Contracts</span>
-                                            </div>
+                                        <div className="mt-12 pt-8 border-t border-white/10">
+                                            <h3 className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-4">Available Hauling Jobs (Transport)</h3>
                                             <div className="grid gap-3">
                                                 {availableJobs.map(job => (
                                                     <div key={job.id} className="bg-black/40 border border-white/10 rounded-xl p-4 flex justify-between items-center hover:bg-white/5 transition-colors group">
                                                         <div className="flex items-center gap-4">
-                                                            <div className="w-10 h-10 rounded-full bg-[#DFFF00]/10 flex items-center justify-center text-[#DFFF00]">
-                                                                <Briefcase size={18} />
+                                                            <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-white transition-colors">
+                                                                <Package size={18} />
                                                             </div>
                                                             <div>
-                                                                <div className="text-white font-bold text-sm group-hover:text-[#DFFF00] transition-colors">{job.description}</div>
+                                                                <div className="text-white font-bold text-sm group-hover:text-opacity-100 transition-colors" style={{ color: 'white' }}>{job.description}</div>
                                                                 <div className="text-zinc-500 text-xs font-mono uppercase mt-1">Cargo: {job.cargo}</div>
                                                             </div>
                                                         </div>
@@ -490,7 +497,8 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
                                                             </div>
                                                             <button
                                                                 onClick={() => handleAccept(job)}
-                                                                className="bg-[#DFFF00] hover:bg-white text-black font-bold uppercase text-xs px-4 py-2 rounded-lg transition-colors shadow-[0_0_15px_rgba(223,255,0,0.1)]"
+                                                                className="hover:bg-white text-black font-bold uppercase text-xs px-4 py-2 rounded-lg transition-colors"
+                                                                style={{ backgroundColor: accentColor }}
                                                             >
                                                                 Accept
                                                             </button>
@@ -499,15 +507,110 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
                                                 ))}
                                             </div>
                                         </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                                    </div>
+                                ) : (
+                                    // MARKET TAB
+                                    <div className="max-w-5xl mx-auto">
+                                        <div className="bg-black/20 border border-white/10 rounded-xl overflow-hidden">
+                                            <table className="w-full text-left">
+                                                <thead>
+                                                    <tr className="border-b border-white/5 text-zinc-500 text-[10px] uppercase font-bold tracking-wider bg-black/40">
+                                                        <th className="px-6 py-4">Resource</th>
+                                                        <th className="px-6 py-4 text-right">Market Price</th>
+                                                        <th className="px-6 py-4">Demand</th>
+                                                        <th className="px-6 py-4 text-right">My Cargo</th>
+                                                        <th className="px-6 py-4 text-right">Trade</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {Object.entries(MINING_RESOURCES).map(([resId, meta]: [string, any]) => {
+                                                        const marketItem = marketData?.[resId];
+                                                        const basePrice = meta.price;
+                                                        const currentPrice = marketItem?.price || basePrice;
+                                                        const saturation = marketItem?.saturation || 0;
+                                                        const myQty = inventory[resId] || 0;
+                                                        
+                                                        const isHighPrice = currentPrice > basePrice;
+                                                        const isSaturated = saturation >= 100;
 
-                        <div className="bg-zinc-800/50 p-4 border-t border-white/10 flex justify-end gap-3 shrink-0">
-                            <button onClick={handleLaunch} className="bg-white/10 hover:bg-white hover:text-black text-white border border-white/20 text-sm font-bold uppercase tracking-wider px-6 py-2 rounded-lg transition-all">
-                                Undock & Launch
-                            </button>
+                                                        const currentLoad = Object.values(inventory).reduce((a, b) => a + b, 0);
+                                                        const maxLoad = currentShip.miningCap || 0;
+                                                        const canFitMore = currentLoad < maxLoad;
+                                                        
+                                                        return (
+                                                            <tr key={resId} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                                                <td className="px-6 py-3">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]" style={{ backgroundColor: meta.color, color: meta.color }} />
+                                                                        <span className="text-white font-bold text-sm">{meta.name}</span>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-6 py-3 text-right font-mono">
+                                                                    <div className={isHighPrice ? "text-emerald-400" : "text-rose-400"}>
+                                                                        {currentPrice} CR
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-6 py-3">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="flex-1 h-1 bg-zinc-800 rounded-full overflow-hidden min-w-[60px]">
+                                                                            <div 
+                                                                                className={`h-full ${isSaturated ? 'bg-red-500' : 'bg-blue-500'}`} 
+                                                                                style={{ width: `${Math.min(100, saturation)}%` }} 
+                                                                            />
+                                                                        </div>
+                                                                        <div className="text-[10px] font-mono text-zinc-500">
+                                                                            {saturation}%
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-6 py-3 text-right">
+                                                                    {myQty > 0 ? (
+                                                                        <span className="text-white font-bold">{myQty}</span>
+                                                                    ) : (
+                                                                        <span className="text-zinc-700">-</span>
+                                                                    )}
+                                                                </td>
+                                                                <td className="px-6 py-3">
+                                                                    <div className="flex items-center justify-end gap-2">
+                                                                        {/* BUY TOOLS */}
+                                                                        <div className="flex bg-black/40 rounded overflow-hidden border border-white/10">
+                                                                            <button
+                                                                                onClick={() => buyResource(resId, 1)}
+                                                                                disabled={credits < currentPrice || !canFitMore}
+                                                                                className="px-3 py-1 text-[9px] font-bold text-emerald-500 hover:bg-emerald-500/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                                                                            >
+                                                                                BUY
+                                                                            </button>
+                                                                        </div>
+
+                                                                        {/* SELL TOOLS */}
+                                                                        <div className="flex bg-black/40 rounded overflow-hidden border border-white/10">
+                                                                            <button
+                                                                                onClick={() => sellResource(resId, 1)}
+                                                                                disabled={myQty < 1 || isSaturated}
+                                                                                className="px-3 py-1 text-[9px] font-bold text-purple-400 hover:bg-purple-500/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                                                                            >
+                                                                                SELL
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={() => sellResource(resId, myQty)}
+                                                                                disabled={myQty <= 0 || isSaturated}
+                                                                                className="px-3 py-1 text-[9px] font-bold text-white bg-purple-600 hover:bg-purple-500 border-l border-white/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                                                                            >
+                                                                                ALL
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </motion.div>
                 )}
@@ -515,3 +618,8 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
         </div>
     );
 }
+
+// Helper icon component since 'Rocket' was missing in imports
+const Rocket = ({ size, className }: any) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
+);
