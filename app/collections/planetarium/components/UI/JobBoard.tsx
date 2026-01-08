@@ -154,9 +154,9 @@ const MarketRow = ({
                 )}
             </td>
             <td className="px-6 py-4">
-                <div className="flex items-center justify-end gap-4">
+                <div className="flex items-center justify-end gap-3">
                     {/* QUANTITY PICKER */}
-                    <div className="flex items-center bg-black/60 border border-white/10 rounded-lg p-1 px-2 group-hover:border-white/20 transition-colors">
+                    <div className="flex items-center bg-black/60 border border-white/10 rounded-lg p-1 group-hover:border-white/20 transition-colors">
                         <button 
                             onClick={() => adjustQty(-1)} 
                             className="w-6 h-6 flex items-center justify-center text-zinc-500 hover:text-white transition-colors"
@@ -178,19 +178,19 @@ const MarketRow = ({
                         <div className="w-px h-4 bg-white/10 mx-1" />
                         <button 
                             onClick={() => setTradeQty(Math.max(1, Math.max(maxBuy, myQty)))}
-                            className="text-[8px] font-bold text-zinc-500 hover:text-[#DFFF00] transition-colors px-1"
+                            className="text-[8px] font-bold text-zinc-500 hover:text-[#DFFF00] transition-colors px-2"
                         >
                             MAX
                         </button>
                     </div>
 
                     {/* TRADE BUTTONS */}
-                    <div className="flex flex-col items-end gap-1">
-                        <div className="flex gap-1.5">
+                    <div className="flex flex-col items-end gap-1 min-w-[120px]">
+                        <div className="flex gap-1.5 w-full">
                             <button
                                 onClick={() => { buyResource(resId, tradeQty); setTradeQty(1); }}
                                 disabled={credits < currentPrice * tradeQty || freeSpace < tradeQty}
-                                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                                className={`flex-1 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
                                     credits >= currentPrice * tradeQty && freeSpace >= tradeQty
                                     ? 'bg-emerald-500 text-black hover:bg-white shadow-lg shadow-emerald-500/10'
                                     : 'bg-zinc-900 text-zinc-600 cursor-not-allowed border border-white/5'
@@ -201,7 +201,7 @@ const MarketRow = ({
                             <button
                                 onClick={() => { sellResource(resId, tradeQty); setTradeQty(1); }}
                                 disabled={myQty < tradeQty || isSaturated}
-                                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                                className={`flex-1 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
                                     myQty >= tradeQty && !isSaturated
                                     ? 'bg-purple-600 text-white hover:bg-purple-500 shadow-lg shadow-purple-500/10'
                                     : 'bg-zinc-900 text-zinc-600 cursor-not-allowed border border-white/5'
@@ -210,8 +210,8 @@ const MarketRow = ({
                                 Sell
                             </button>
                         </div>
-                        <div className="text-[9px] font-mono text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                            Total: {(currentPrice * tradeQty).toLocaleString()} CR
+                        <div className="text-[8px] font-mono text-zinc-500 uppercase tracking-tighter">
+                            Total: <span className="text-zinc-300">{(currentPrice * tradeQty).toLocaleString()} CR</span>
                         </div>
                     </div>
                 </div>
@@ -686,7 +686,7 @@ export function JobBoard({ onClose }: { onClose: () => void }) {
                                                         <th className="px-6 py-4 text-center">Local Price</th>
                                                         <th className="px-6 py-4">Demand</th>
                                                         <th className="px-6 py-4 text-center">My Cargo</th>
-                                                        <th className="px-6 py-4 text-right min-w-[240px]">Trade Actions</th>
+                                                        <th className="px-6 py-4 text-right min-w-[280px]">Trade Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
