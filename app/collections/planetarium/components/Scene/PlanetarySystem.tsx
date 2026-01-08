@@ -125,6 +125,7 @@ function SaturnRings({ innerRadius, outerRadius, dreadnaughtData, onSelectRef, o
                         position={[0, dreadnaughtData.radius * 2, 0]} 
                         offset={0} 
                         visible={!isCinematic && showLabels}
+                        mode={isSpaceshipMode ? 'spaceship' : 'default'}
                         isSelected={isSelected} 
                     />
                 </group>
@@ -230,6 +231,7 @@ function Moon({ data, parentRadius, onSelectRef, onClick, onHover, showLabels, i
                     position={[0, data.radius, 0]} 
                     offset={labelOffset} 
                     visible={!isCinematic && showLabels}
+                        mode={isSpaceshipMode ? 'spaceship' : 'default'}
                     isSelected={isSelected} 
                 />
             </group>
@@ -266,6 +268,7 @@ function Moon({ data, parentRadius, onSelectRef, onClick, onHover, showLabels, i
                 position={[0, data.radius, 0]} 
                 offset={labelOffset} 
                 visible={!isCinematic && showLabels}
+                        mode={isSpaceshipMode ? 'spaceship' : 'default'}
                 isSelected={isSelected} 
              />
         </group>
@@ -444,6 +447,7 @@ export function Planet({ data, isSelected, selectedId, onClick, onSelectRef, isC
                     position={[0, data.radius, 0]} 
                     offset={planetLabelOffset} 
                     visible={!isCinematic && showLabels}
+                        mode={isSpaceshipMode ? 'spaceship' : 'default'}
                     isSelected={isSelected} 
                 />
 
