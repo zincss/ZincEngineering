@@ -723,20 +723,34 @@ export default function Home() {
           <section id="system-logs" className="relative z-20 max-w-[1600px] mx-auto px-4 md:px-6 pb-32">
             <SectionHeader title="System Terminal" icon={<Terminal size={16} />} />
             
-            <div className="relative rounded-[3rem] bg-zinc-950 border border-zinc-800 overflow-hidden shadow-2xl">
-               <div className="h-12 bg-zinc-900/50 border-b border-white/5 flex items-center px-6 gap-2 backdrop-blur-md">
-                  <div className="flex gap-2">
-                     <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50" />
-                     <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50" />
-                     <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50" />
+            <div className="relative rounded-[3rem] bg-black/40 border border-white/10 backdrop-blur-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+               {/* Terminal Header - Refined Glass Look */}
+               <div className="h-14 bg-white/[0.03] border-b border-white/5 flex items-center justify-between px-8 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#DFFF00]/5 to-transparent pointer-events-none" />
+                  
+                  <div className="flex items-center gap-6 relative z-10">
+                     <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#DFFF00] shadow-[0_0_10px_#DFFF00]" />
+                        <span className="text-[10px] font-mono font-bold text-[#DFFF00] uppercase tracking-[0.2em]">Console_Active</span>
+                     </div>
+                     <div className="h-4 w-px bg-white/10" />
+                     <div className="flex items-center gap-2 opacity-40">
+                        <Terminal size={12} className="text-zinc-400" />
+                        <span className="text-[10px] font-mono text-zinc-400 tracking-wider">root/users/public/logs</span>
+                     </div>
                   </div>
-                  <div className="ml-4 flex items-center gap-2 opacity-30">
-                     <Terminal size={12} />
-                     <span className="text-[10px] font-mono">root/users/public/logs</span>
+
+                  <div className="flex items-center gap-4 opacity-30 relative z-10">
+                     <div className="flex gap-1">
+                        {[0,1,2].map(i => <div key={i} className="w-1 h-1 bg-white rounded-full" />)}
+                     </div>
+                     <span className="text-[9px] font-mono uppercase tracking-widest text-white">Zinc_OS_v3.1</span>
                   </div>
                </div>
                
-               <div className="p-4 md:p-12 bg-zinc-950">
+               <div className="p-4 md:p-12 relative">
+                  {/* Subtle Grid Background Pattern */}
+                  <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
                   <PersonalLogs />
                </div>
             </div>
