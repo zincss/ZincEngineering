@@ -67,6 +67,36 @@ function PlanetariumContent() {
         }, 1000);
     }, []);
 
+    const { timeRef, getOrbitalPosition } = useSimulation();
+
+    // Helper to find closest body to a position
+    const findClosestBody = useCallback((pos: {x: number, y: number, z: number} | null) => {
+        if (!pos) return 'earth';
+        let closestId = 'earth';
+        let minSelfDist = Infinity;
+        const currentPos = new THREE.Vector3(pos.x, pos.y, pos.z);
+        
+        currentData.forEach(body => {
+            let bPos = getOrbitalPosition(body, timeRef.current);
+            const d = currentPos.distanceTo(bPos);
+            if (d < minSelfDist) {
+                minSelfDist = d;
+                closestId = body.id;
+            }
+            if (body.moons) {
+                body.moons.forEach((m: any) => {
+                    const mPos = getOrbitalPosition(m, timeRef.current).add(bPos);
+                    const md = currentPos.distanceTo(mPos);
+                    if (md < minSelfDist) {
+                        minSelfDist = md;
+                        closestId = m.id;
+                    }
+                });
+            }
+        });
+        return closestId;
+    }, [currentData, getOrbitalPosition, timeRef]);
+
     const [cinematicKey, setCinematicKey] = useState(0); 
     const [cinematicOverlay, setCinematicOverlay] = useState<OverlayData>({ show: false });
     const [flightData, setFlightData] = useState<FlightData>({ active: false });
@@ -99,7 +129,7 @@ function PlanetariumContent() {
             window.removeEventListener('spaceship-open-nav', handleOpenNav);
             window.removeEventListener(SPACESHIP_EXIT_EVENT, handleExitShip);
         };
-    }, []);
+    }, [handleModeSwitch, setDockedAt]);
 
     useEffect(() => {
         if (isCinematic) setIsSpaceshipMode(false);
@@ -130,12 +160,18 @@ function PlanetariumContent() {
             } 
         }
         
-        // 2. Undocking Logic: Updated to be manual (default view)
+        // 2. Undocking Logic: If we just undocked manually, trigger flight transition
         if (user) {
+            const wasDocked = prevDocked.current;
             const isDocked = !!dockedAt;
+            
+            if (wasDocked && !isDocked && !isCinematic) {
+                // User clicked "Undock" or "Launch"
+                handleModeSwitch(true);
+            }
             prevDocked.current = isDocked;
         }
-    }, [isLoadingSave, activeSystem, dockedAt, savedPosition, isCinematic, user]);
+    }, [isLoadingSave, activeSystem, dockedAt, savedPosition, isCinematic, user, handleModeSwitch]);
 
 
     const handleSelect = useCallback((id: string | null) => {
@@ -143,6 +179,20 @@ function PlanetariumContent() {
         setSelectedId(id);
         setFinderOpen(false);
     }, [isCinematic]);
+
+    // Update handleRocketClick logic via setIsSpaceshipMode prop
+    const handleRocketToggle = useCallback((targetMode: boolean) => {
+        if (targetMode) {
+            // Entering flight: find closest body to saved position and dock there first
+            const closestId = findClosestBody(savedPosition);
+            handleModeSwitch(false, () => {
+                setDockedAt(closestId);
+            });
+        } else {
+            // Exiting flight: manual toggle (same as ESC)
+            window.dispatchEvent(new CustomEvent(SPACESHIP_CONTROL_EVENT, { detail: { type: 'EXIT' } }));
+        }
+    }, [findClosestBody, savedPosition, handleModeSwitch, setDockedAt]);
 
     const handleBackgroundClick = useCallback(() => {
         if (isCinematic) return;
@@ -387,7 +437,7 @@ function PlanetariumContent() {
                         viewMode={viewMode} setViewMode={setViewMode}
                         handleRecenter={handleRecenter}
                         isSpaceshipMode={isSpaceshipMode}
-                        setIsSpaceshipMode={handleModeSwitch}
+                        setIsSpaceshipMode={handleRocketToggle}
                     />
                 </>
             )}
