@@ -1,862 +1,815 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import dynamic from 'next/dynamic'; // Import dynamic for the map
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  CloudRain, Wind, Search, Skull, Globe, Map,
-  MapPin, Loader2, Smile, Frown, Zap, Baby, Briefcase, RefreshCcw, 
-  Cpu, Droplets, Gauge, Navigation, Calendar, Radio, CloudSnow, CloudLightning, Sun, Crosshair, History, X,
-  CloudHail, ArrowRight
+  CloudRain, Wind, Search, Globe, MapPin, Loader2, 
+  Droplets, Gauge, Navigation, Calendar, CloudSnow, 
+  CloudLightning, Sun, Crosshair, ArrowRight, ChevronLeft,
+  Info, Sunrise, Sunset, Home
 } from 'lucide-react';
+import { useAuth } from '@/app/context/AuthContext';
 
-// Import the massive commentary database
-import { COMMENTARY_DB, PersonalityMode } from '../lib/commentary';
-
-// --- DYNAMIC IMPORTS ---
-// We must dynamically import the map picker to avoid SSR issues with Leaflet
-const WeatherMapPicker = dynamic(() => import('./WeatherMapPicker'), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-[400px] bg-zinc-900/50 rounded-[2rem] border border-zinc-800 flex flex-col items-center justify-center text-zinc-500 gap-4">
-       <Loader2 className="animate-spin" size={32} />
-       <span className="font-mono text-xs uppercase tracking-widest">Loading Cartography...</span>
-    </div>
-  )
-});
-
-// --- SUB-COMPONENT: ROBUST TYPEWRITER ---
-const Typewriter = ({ text, speed = 30 }: { text: string; speed?: number }) => {
-  const [displayLength, setDisplayLength] = useState(0);
-
-  useEffect(() => {
-    setDisplayLength(0);
-    const timer = setInterval(() => {
-      setDisplayLength((prev) => {
-        if (prev < text.length) {
-          return prev + 1;
-        }
-        clearInterval(timer);
-        return prev;
-      });
-    }, speed);
-
-    return () => clearInterval(timer);
-  }, [text, speed]);
-
-  return (
-    <span>
-      {text.slice(0, displayLength)}
-      <span className="inline-block w-1.5 h-4 md:w-2 md:h-6 align-middle bg-[#DFFF00] animate-pulse ml-1" />
-    </span>
-  );
+// --- ANIMATION VARIANTS ---
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { 
+    opacity: 1,
+    transition: { staggerChildren: 0.1, delayChildren: 0.2 }
+  }
 };
 
-// --- SUB-COMPONENT: WEATHER ANIMATION LAYER ---
-const WeatherBackground = ({ condition, isDay }: { condition: string, isDay: number }) => {
-  if (condition === 'RAINING') {
-    return (
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 bg-blue-950/20 mix-blend-overlay" />
-        {[...Array(20)].map((_, i) => (
-          <div 
-            key={i}
-            className="absolute bg-blue-400/30 w-[1px] h-12 md:h-24 rounded-full animate-rain"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `-${Math.random() * 20}%`,
-              animationDuration: `${0.5 + Math.random() * 0.5}s`,
-              animationDelay: `${Math.random() * 1}s`
-            }}
-          />
-        ))}
-      </div>
-    );
+const itemVariants = {
+  hidden: { opacity: 0, y: 20, filter: 'blur(10px)' },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    filter: 'blur(0px)',
+    transition: { type: "spring", stiffness: 100, damping: 15 }
   }
+};
 
-  if (condition === 'SNOW') {
-    return (
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 bg-white/5 mix-blend-overlay" />
-        {[...Array(30)].map((_, i) => (
-          <div 
-            key={i}
-            className="absolute bg-white/60 w-1 h-1 rounded-full animate-snow"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `-${Math.random() * 20}%`,
-              animationDuration: `${3 + Math.random() * 4}s`,
-              animationDelay: `${Math.random() * 2}s`
-            }}
-          />
-        ))}
-      </div>
-    );
-  }
-
-  if (condition === 'CLOUDY') {
-    return (
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(3)].map((_, i) => (
-          <div 
-            key={i}
-            className="absolute bg-zinc-400/10 w-96 h-48 rounded-full blur-[60px] animate-cloud"
-            style={{
-              top: `${10 + Math.random() * 40}%`,
-              left: `-20%`,
-              animationDuration: `${25 + i * 10}s`,
-              animationDelay: `${i * -5}s`,
-              transform: `scale(${0.8 + Math.random() * 0.5})`
-            }}
-          />
-        ))}
-      </div>
-    );
-  }
-
-  if (condition === 'STORM') {
-    return (
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 bg-purple-950/20 mix-blend-overlay" />
-        {[...Array(3)].map((_, i) => (
-          <div 
-            key={i}
-            className="absolute bg-zinc-900/30 w-[500px] h-[200px] rounded-full blur-[80px] animate-cloud-fast"
-            style={{
-              top: `${Math.random() * 30}%`,
-              left: `-20%`,
-              animationDuration: `${10 + i * 2}s`,
-              animationDelay: `${i * -2}s`
-            }}
-          />
-        ))}
-        <div className="absolute inset-0 bg-white/10 animate-lightning opacity-0" />
-      </div>
-    );
-  }
+// --- COMPONENT: ATMOSPHERIC BACKGROUND ---
+const AtmosphericBackground = ({ condition, isDay }: { condition: string, isDay: boolean }) => {
+  const isStorm = condition === 'STORM';
+  const isRain = condition === 'RAINING' || isStorm;
+  const isSnow = condition === 'SNOW';
+  const isWindy = condition === 'WINDY';
+  const isCloudy = condition === 'CLOUDY';
 
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {isDay ? (
-            <div className="absolute -top-1/2 -right-1/2 w-[150%] h-[150%] bg-orange-400/5 rounded-full blur-[100px] animate-pulse-slow" />
-        ) : (
-            <div className="absolute -top-1/2 -right-1/2 w-[150%] h-[150%] bg-blue-400/5 rounded-full blur-[100px] animate-pulse-slow" />
-        )}
+    <div className="absolute inset-0 overflow-hidden pointer-events-none select-none z-0">
+      <AnimatePresence>
+        <motion.div
+          key={`${condition}-${isDay}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 1.5, ease: "easeInOut" }}
+          className="absolute inset-0"
+        >
+          {/* Base Gradient Layer */}
+          <div className={`absolute inset-0 transition-colors duration-[2000ms] ease-in-out
+            ${isStorm ? 'bg-zinc-950' : 
+              isRain ? 'bg-gradient-to-b from-zinc-900 to-black' : 
+              isSnow ? 'bg-gradient-to-b from-slate-200 to-zinc-400' :
+              isWindy ? 'bg-gradient-to-b from-sky-400 via-sky-200 to-sky-100' :
+              isCloudy ? 'bg-gradient-to-b from-zinc-700 via-zinc-800 to-black' :
+              isDay ? 'bg-gradient-to-b from-sky-400 via-sky-300 to-sky-100' : 'bg-gradient-to-b from-[#020617] via-[#0f172a] to-black'}
+          `} />
+          
+          {/* Celestial Layer (Moon/Stars for Night) */}
+          {!isDay && (
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(15,23,42,0.5)_0%,transparent_100%)]" />
+              <div className="absolute inset-0">
+                {[...Array(30)].map((_, i) => (
+                  <div 
+                    key={`star-organic-${i}`}
+                    className="absolute bg-white rounded-full"
+                    style={{
+                      width: '1px',
+                      height: '1px',
+                      left: `${Math.random() * 100}%`,
+                      top: `${Math.random() * 100}%`,
+                      opacity: 0.1 + Math.random() * 0.5,
+                      animation: `twinkle ${2 + Math.random() * 4}s ease-in-out infinite alternate`,
+                      animationDelay: `${Math.random() * 5}s`
+                    }}
+                  />
+                ))}
+              </div>
+              <motion.div 
+                initial={{ x: '100%', y: '15%' }}
+                animate={{ x: '-10%', y: '10%' }}
+                transition={{ duration: 600, repeat: Infinity, ease: "linear" }}
+                className="absolute w-64 h-64 rounded-full bg-white/5 blur-[60px]"
+              >
+                <div className="absolute inset-12 rounded-full bg-slate-100/20 blur-3xl shadow-[0_0_100px_rgba(255,255,255,0.1)]" />
+              </motion.div>
+            </div>
+          )}
+
+          {/* Cloud Layers (Optimized) */}
+          {[...Array(isCloudy || isStorm || !isDay ? 8 : 4)].map((_, i) => (
+            <div key={`c-${i}`} className={`absolute bg-white rounded-full blur-[100px] animate-cloud transition-opacity duration-[2000ms]
+              ${isCloudy ? 'opacity-20' : isStorm ? 'opacity-15' : 'opacity-10'}`} 
+              style={{ 
+                width: `${400 + i * 150}px`, 
+                height: `${200 + i * 80}px`, 
+                top: `${5 + Math.random() * 70}%`, 
+                left: '-40%', 
+                animationDuration: `${100 + i * 40}s`, 
+                animationDelay: `${i * -25}s`,
+                opacity: isDay ? undefined : 0.05
+              }} 
+            />
+          ))}
+
+          {/* Rain Particles */}
+          {isRain && [...Array(isStorm ? 60 : 30)].map((_, i) => (
+            <div key={`r-${i}`} className="absolute bg-white/20 w-[1px] h-24 rounded-full animate-rain"
+              style={{ 
+                left: `${Math.random() * 100}%`, 
+                top: `-${Math.random() * 20}%`, 
+                animationDuration: `${isStorm ? 0.4 : 0.7}s`, 
+                animationDelay: `${Math.random() * -2}s`,
+                transform: `rotate(${isStorm ? '15deg' : '5deg'})`
+              }} 
+            />
+          ))}
+
+          {/* Lightning */}
+          {isStorm && (
+            <div className="absolute inset-0 bg-white/10 animate-lightning opacity-0 z-10 pointer-events-none" />
+          )}
+
+          {/* Solar Flare (Clear Day) */}
+          {condition === 'CLEAR' && isDay && (
+            <div className="absolute top-[-10%] right-[-10%] w-[60%] aspect-square pointer-events-none">
+                <motion.div 
+                    animate={{ 
+                        scale: [1, 1.1, 1],
+                        opacity: [0.2, 0.3, 0.2] 
+                    }}
+                    transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                    className="w-full h-full bg-orange-400/20 rounded-full blur-[120px]"
+                />
+            </div>
+          )}
+
+          {/* Mist / Fog Layer */}
+          {(isRain || condition === 'CLOUDY') && (
+            <div className="absolute inset-0 bg-gradient-to-t from-white/5 via-transparent to-transparent opacity-40 mix-blend-overlay pointer-events-none" />
+          )}
+
+          {/* Snow Particles */}
+          {isSnow && [...Array(40)].map((_, i) => (
+            <div key={`s-${i}`} className="absolute bg-white rounded-full animate-snow blur-[1.5px]"
+              style={{ 
+                width: `${3 + Math.random() * 4}px`, 
+                height: `${3 + Math.random() * 4}px`, 
+                left: `${Math.random() * 100}%`, 
+                top: `-${Math.random() * 20}%`, 
+                animationDuration: `${8 + Math.random() * 8}s`, 
+                animationDelay: `${Math.random() * -10}s`, 
+                opacity: 0.2 + Math.random() * 0.4 
+              }} 
+            />
+          ))}
+
+          {/* Wind Gusts */}
+          {(isWindy || condition === 'CLEAR') && [...Array(3)].map((_, i) => (
+            <div key={`w-${i}`} className="absolute bg-white/5 w-[800px] h-[1px] blur-md animate-wind-gust"
+              style={{ top: `${20 + i * 25}%`, left: '-50%', animationDuration: `${4 + i}s`, animationDelay: `${i * -2}s` }} 
+            />
+          ))}
+
+          {/* Windy Particles (Leaves) */}
+          {isWindy && [...Array(20)].map((_, i) => (
+            <div key={`l-${i}`} className="absolute bg-emerald-900/30 animate-leaf blur-[1px]"
+              style={{ 
+                width: `${12 + Math.random() * 15}px`,
+                height: `${6 + Math.random() * 10}px`,
+                left: `${Math.random() * 100}%`, 
+                top: `${Math.random() * 100}%`, 
+                animationDuration: `${3 + Math.random() * 3}s`, 
+                animationDelay: `${Math.random() * -5}s`,
+                opacity: 0.2 + Math.random() * 0.3,
+                borderRadius: '2px 100% 2px 100%',
+                transform: `rotate(${Math.random() * 360}deg)`
+              }} 
+            />
+          ))}
+
+
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Global Grain/Noise */}
+      <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay"
+           style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} />
     </div>
   );
 };
-
-// --- TYPES ---
-interface DailyForecast {
-  date: string;
-  maxTemp: number;
-  minTemp: number;
-  code: number;
-  condition: string;
-}
-
-interface WeatherData {
-  temp: number;
-  feelsLike: number;
-  minTemp: number;
-  maxTemp: number;
-  condition: string;
-  windSpeed: number;
-  humidity: number;
-  uvIndex: number;
-  location: string;
-  code: number;
-  isDay: number;
-  forecast: DailyForecast[]; 
-}
-
-interface GeocodingResult {
-  id: number;
-  name: string;
-  admin1?: string;
-  country?: string;
-  latitude: number;
-  longitude: number;
-}
-
-const PERSONALITIES: { id: PersonalityMode; label: string; icon: any; desc: string; color: string; bg: string; border: string; shadow: string }[] = [
-  { id: 'HOSTILE', label: 'HOSTILITY', icon: Skull, desc: 'Rude. Blunt. Hurtful.', color: 'text-red-500', bg: 'bg-red-950/10', border: 'border-red-500/20', shadow: 'shadow-red-500/10' },
-  { id: 'SARCASTIC', label: 'SASS_MODULE', icon: Zap, desc: 'Passive aggressive.', color: 'text-yellow-400', bg: 'bg-yellow-950/10', border: 'border-yellow-500/20', shadow: 'shadow-yellow-500/10' },
-  { id: 'BABY', label: 'BABY_MODE', icon: Baby, desc: 'Explained like you are 5.', color: 'text-pink-400', bg: 'bg-pink-950/10', border: 'border-pink-500/20', shadow: 'shadow-pink-500/10' },
-  { id: 'DOOMER', label: 'NIHILIST', icon: Frown, desc: 'Everything is hopeless.', color: 'text-zinc-500', bg: 'bg-zinc-900/50', border: 'border-zinc-500/20', shadow: 'shadow-zinc-500/10' },
-  { id: 'GLAZER', label: 'SYCOPHANT', icon: Smile, desc: 'Overly complimentary.', color: 'text-[#DFFF00]', bg: 'bg-[#DFFF00]/5', border: 'border-[#DFFF00]/20', shadow: 'shadow-[#DFFF00]/10' },
-  { id: 'PROFESSIONAL', label: 'STANDARD', icon: Briefcase, desc: 'Boring. Just the facts.', color: 'text-blue-400', bg: 'bg-blue-950/10', border: 'border-blue-500/20', shadow: 'shadow-blue-500/10' },
-];
 
 export default function WeatherTerminal() {
-  // --- STATE ---
+  const { user } = useAuth();
   const [step, setStep] = useState<'SEARCH' | 'RESULT'>('SEARCH');
-  const [searchMode, setSearchMode] = useState<'TEXT' | 'MAP'>('TEXT'); // New State for Tab Switching
-  
   const [input, setInput] = useState('');
-  const [suggestions, setSuggestions] = useState<GeocodingResult[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isSearchingGeo, setIsSearchingGeo] = useState(false);
-  const [showWarning, setShowWarning] = useState(true); 
-  
-  const [selectedGeo, setSelectedGeo] = useState<GeocodingResult | null>(null);
-  const [selectedMode, setSelectedMode] = useState<PersonalityMode>('HOSTILE');
   const [loading, setLoading] = useState(false);
-  const [weather, setWeather] = useState<WeatherData | null>(null);
-  const [commentary, setCommentary] = useState<string>('');
-  const [error, setError] = useState('');
+  const [weather, setWeather] = useState<any | null>(null);
+  const [homeLocation, setHomeLocation] = useState<any | null>(null);
+  const [isSavingHome, setIsSavingHome] = useState(false);
   
-  // Recent Searches State
-  const [recentSearches, setRecentSearches] = useState<GeocodingResult[]>([]);
+  // Montage Logic
+  const [montageIndex, setMontageIndex] = useState(0);
+  const [isDayMontage, setIsDayMontage] = useState(true);
+  const conditions = ['CLEAR', 'RAINING', 'WINDY', 'CLOUDY', 'SNOW', 'STORM'];
 
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // --- PERSISTENCE ---
   useEffect(() => {
-    // History Persistence
-    const savedHistory = localStorage.getItem('zinc_weather_history');
-    if (savedHistory) {
+    const homeKey = user ? `zinc_weather_home_${user.id}` : 'zinc_weather_home_guest';
+    const savedHome = localStorage.getItem(homeKey);
+    if (savedHome) {
       try {
-        setRecentSearches(JSON.parse(savedHistory));
-      } catch (e) { console.error("History load error", e); }
+        const parsedHome = JSON.parse(savedHome);
+        setHomeLocation(parsedHome);
+        if (step === 'SEARCH') {
+          executeFetch(parsedHome);
+        }
+      } catch (e) {}
     }
+  }, [user]);
 
-    // Warning Persistence
-    const warningDismissed = localStorage.getItem('zinc_weather_warning_dismissed');
-    if (warningDismissed === 'true') {
-        setShowWarning(false);
-    }
-  }, []);
-
-  const saveRecentSearch = (loc: GeocodingResult) => {
-    const newList = [loc, ...recentSearches.filter(i => i.id !== loc.id)].slice(0, 5);
-    setRecentSearches(newList);
-    localStorage.setItem('zinc_weather_history', JSON.stringify(newList));
-  };
-
-  const removeRecentSearch = (id: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const newList = recentSearches.filter(item => item.id !== id);
-    setRecentSearches(newList);
-    localStorage.setItem('zinc_weather_history', JSON.stringify(newList));
-  };
-
-  const dismissWarning = () => {
-    setShowWarning(false);
-    localStorage.setItem('zinc_weather_warning_dismissed', 'true');
-  };
-
-  // --- LOGIC: SEARCH ---
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setShowSuggestions(false);
-      }
+  const saveHomeLocation = (loc: any) => {
+    setIsSavingHome(true);
+    const homeKey = user ? `zinc_weather_home_${user.id}` : 'zinc_weather_home_guest';
+    const dataToSave = {
+      ...loc,
+      name: loc.name || loc.location
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    localStorage.setItem(homeKey, JSON.stringify(dataToSave));
+    setHomeLocation(dataToSave);
+    setTimeout(() => setIsSavingHome(false), 1500);
+  };
+
+  useEffect(() => {
+    if (step !== 'SEARCH') return;
+    const interval = setInterval(() => {
+      setMontageIndex((prev) => {
+        const next = (prev + 1) % conditions.length;
+        if (next === 0) setIsDayMontage(d => !d);
+        return next;
+      });
+    }, 4500);
+    return () => clearInterval(interval);
+  }, [step]);
+
+  const activeMontageCondition = conditions[montageIndex];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setInput(val);
-    setError('');
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (val.length < 3) {
-      setSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
+    if (val.length < 3) { setSuggestions([]); return; }
+    
     setIsSearchingGeo(true);
-    debounceRef.current = setTimeout(async () => {
+    const debounce = setTimeout(async () => {
       try {
         const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(val)}&count=5&language=en&format=json`);
         const data = await res.json();
         setSuggestions(data.results || []);
-        setShowSuggestions(true);
-      } catch (err) { console.error(err); } 
-      finally { setIsSearchingGeo(false); }
+      } catch (err) {} finally { setIsSearchingGeo(false); }
     }, 400);
+    return () => clearTimeout(debounce);
   };
 
-  const handleLocationSelect = (loc: GeocodingResult) => {
-    setSelectedGeo(loc);
-    setInput(`${loc.name}, ${loc.country || ''}`);
-    setShowSuggestions(false);
-    saveRecentSearch(loc);
-    const randomPersonality = PERSONALITIES[Math.floor(Math.random() * PERSONALITIES.length)];
-    executeFetch(loc, randomPersonality.id);
-  };
-  
-  // Handler for Map Picker
-  const handleMapSelection = (loc: { lat: number, lon: number, name: string, country: string }) => {
-      const geoResult: GeocodingResult = {
-          id: Date.now(),
-          name: loc.name,
-          country: loc.country,
-          latitude: loc.lat,
-          longitude: loc.lon
-      };
-      handleLocationSelect(geoResult);
-  };
-
-  const handleCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      setError("GEOLOCATION UNAVAILABLE");
-      return;
-    }
-    setLoading(true); 
-    setIsSearchingGeo(true);
-    
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const loc: GeocodingResult = {
-          id: 0,
-          name: "LOCAL SECTOR",
-          country: "DETECTED",
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude
-        };
-        setIsSearchingGeo(false);
-        setLoading(false);
-        handleLocationSelect(loc);
-      },
-      (err) => {
-        console.error(err);
-        setError("LOCATION SIGNAL LOST");
-        setIsSearchingGeo(false);
-        setLoading(false);
-      }
-    );
-  };
-
-  // --- LOGIC: WEATHER & PERSONALITY ---
-  const getRandomLine = (mode: PersonalityMode, category: string) => {
-    const lines = COMMENTARY_DB[mode][category] || COMMENTARY_DB[mode]['DEFAULT'];
-    return lines[Math.floor(Math.random() * lines.length)];
-  };
-
-  const generateCommentary = (w: WeatherData, mode: PersonalityMode) => {
-    let category = 'DEFAULT';
-    
-    if (w.condition === 'STORM') category = 'STORM';
-    else if (w.condition === 'SNOW') category = 'SNOW';
-    else if (w.condition === 'RAINING') category = 'RAIN';
-    else if (w.temp > 35) category = 'EXTREME_HEAT';
-    else if (w.temp > 28) category = 'HEAT';
-    else if (w.temp < 0) category = 'FREEZING';
-    else if (w.temp < 10) category = 'COLD';
-    else if (w.temp >= 18 && w.temp <= 25) category = 'NICE';
-    
-    return getRandomLine(mode, category);
-  };
-
-  const getConditionText = (code: number) => {
-    let text = "CLEAR";
-    if (code > 2) text = "CLOUDY";
-    if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) text = "RAINING";
-    if (code >= 95) text = "STORM";
-    if ([71, 73, 75, 85, 86].includes(code)) text = "SNOW";
-    return text;
-  };
-
-  const executeFetch = async (loc: GeocodingResult, mode: PersonalityMode) => {
+  const executeFetch = async (loc: any) => {
     setLoading(true);
-    setSelectedMode(mode);
-    setStep('RESULT');
-
     try {
-        const weatherRes = await fetch(
-            `https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,is_day&hourly=uv_index&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=auto&forecast_days=6`
-        );
-        const wData = await weatherRes.json();
-        const current = wData.current;
-        const daily = wData.daily;
-
-        const timeString = current.time;
-        const hourString = timeString.split('T')[1].split(':')[0];
-        const currentHourIndex = parseInt(hourString, 10);
-        const uvIndex = wData.hourly?.uv_index?.[currentHourIndex] ?? 0;
-
-        const conditionText = getConditionText(current.weather_code);
-
-        const forecastData: DailyForecast[] = daily.time.map((t: string, i: number) => ({
-            date: t,
-            maxTemp: daily.temperature_2m_max[i],
-            minTemp: daily.temperature_2m_min[i],
-            code: daily.weather_code[i],
-            condition: getConditionText(daily.weather_code[i])
-        })).slice(1);
-
-        const newWeather: WeatherData = {
-            temp: current.temperature_2m,
-            feelsLike: current.apparent_temperature,
-            minTemp: daily.temperature_2m_min[0],
-            maxTemp: daily.temperature_2m_max[0],
-            condition: conditionText,
-            windSpeed: current.wind_speed_10m,
-            humidity: current.relative_humidity_2m,
-            uvIndex: uvIndex,
-            location: `${loc.name}, ${loc.country || ''}`,
-            code: current.weather_code,
-            isDay: current.is_day,
-            forecast: forecastData
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,is_day&hourly=uv_index&daily=temperature_2m_max,temperature_2m_min,weather_code,sunrise,sunset&timezone=auto&forecast_days=6`);
+        const d = await res.json();
+        
+        const getCond = (c: number) => {
+            if (c === 0) return 'CLEAR';
+            if (c <= 3) return 'CLOUDY';
+            if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(c)) return 'RAINING';
+            if (c >= 95) return 'STORM';
+            if ([71, 73, 75, 85, 86].includes(c)) return 'SNOW';
+            return 'CLOUDY';
         };
 
-        setWeather(newWeather);
-        setCommentary(generateCommentary(newWeather, mode));
+        setWeather({
+            temp: d.current.temperature_2m,
+            feelsLike: d.current.apparent_temperature,
+            minTemp: d.daily.temperature_2m_min[0],
+            maxTemp: d.daily.temperature_2m_max[0],
+            condition: getCond(d.current.weather_code),
+            windSpeed: d.current.wind_speed_10m,
+            humidity: d.current.relative_humidity_2m,
+            uvIndex: d.hourly.uv_index[new Date().getHours()] || 0,
+            location: loc.name,
+            isDay: !!d.current.is_day,
+            sunrise: d.daily.sunrise[0],
+            sunset: d.daily.sunset[0],
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            forecast: d.daily.time.map((t: any, i: number) => ({
+                date: t,
+                maxTemp: d.daily.temperature_2m_max[i],
+                minTemp: d.daily.temperature_2m_min[i],
+                condition: getCond(d.daily.weather_code[i])
+            })).slice(1)
+        });
+        setStep('RESULT');
     } catch (e) {
         console.error(e);
-        setError("SYSTEM FAILURE");
-        setStep('SEARCH');
     } finally {
         setLoading(false);
     }
   };
 
   const reset = () => {
-      setStep('SEARCH');
-      setWeather(null);
-      setCommentary('');
-      setInput('');
-      setSelectedGeo(null);
+    setStep('SEARCH');
+    setWeather(null);
+    setInput('');
   };
 
-  const activePersonality = PERSONALITIES.find(p => p.id === selectedMode) || PERSONALITIES[0];
-  
-  const getUvColor = (uv: number) => {
-      if (uv <= 2) return 'bg-blue-500';
-      if (uv <= 5) return 'bg-yellow-500';
-      if (uv <= 7) return 'bg-orange-500';
-      if (uv <= 10) return 'bg-red-500';
-      return 'bg-purple-500';
-  };
-
-  const getUvLabel = (uv: number) => {
-      if (uv <= 2) return 'LOW';
-      if (uv <= 5) return 'MODERATE';
-      if (uv <= 7) return 'HIGH';
-      if (uv <= 10) return 'VERY HIGH';
-      return 'EXTREME';
-  };
-
-  const getForecastIcon = (condition: string, size: number = 20) => {
-      switch (condition) {
-          case 'RAINING': return <CloudRain size={size} className="text-blue-400" />;
-          case 'STORM': return <CloudLightning size={size} className="text-purple-400" />;
-          case 'SNOW': return <CloudSnow size={size} className="text-white" />;
-          case 'CLOUDY': return <CloudHail size={size} className="text-zinc-400" />; 
-          default: return <Sun size={size} className="text-orange-400" />;
-      }
-  };
+  function getIcon(cond: string, size = 24) {
+      if (cond === 'RAINING') return <CloudRain size={size} strokeWidth={1} className="text-blue-300" />;
+      if (cond === 'STORM') return <CloudLightning size={size} strokeWidth={1} className="text-purple-300" />;
+      if (cond === 'SNOW') return <CloudSnow size={size} strokeWidth={1} className="text-white" />;
+      if (cond === 'CLOUDY') return <CloudRain size={size} strokeWidth={1} className="text-zinc-400" opacity={0.5} />;
+      return <Sun size={size} strokeWidth={1} className="text-orange-300" />;
+  }
 
   return (
-    <div className="max-w-5xl mx-auto min-h-[500px] flex flex-col" ref={containerRef}>
-      
-      {/* --- HEADER (MOVED HERE TO COLLAPSE ON SEARCH) --- */}
-      {step === 'SEARCH' && (
-        <div className="pt-20 pb-8 px-6 border-b border-zinc-800 mb-8 animate-in fade-in slide-in-from-top-4 duration-700">
-            <div className="flex flex-col md:flex-row justify-between items-end gap-6">
-                <div>
-                    <div className="flex items-center gap-2 text-[#DFFF00] font-mono text-[10px] font-black tracking-widest uppercase mb-2">
-                        <span>ATMOSPHERIC_SENSORS</span>
-                        <span className="text-zinc-600">/</span>
-                        <span>PERSONALITY_MATRIX</span>
-                    </div>
-                    <h1 className="text-5xl md:text-8xl font-black uppercase tracking-tighter">
-                        Weather <span className="text-zinc-800 text-stroke-white">Station</span>
-                    </h1>
-                    <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest mt-2 flex items-center gap-2">
-                        <CloudHail size={12} /> Live Environment Analysis
-                    </p>
-                </div>
-            </div>
-        </div>
-      )}
+    <div className="w-full min-h-screen flex flex-col relative select-none overflow-hidden bg-black text-white selection:bg-[#DFFF00] selection:text-black">
+      {/* Background System */}
+      <AtmosphericBackground 
+        condition={step === 'SEARCH' ? activeMontageCondition : weather.condition} 
+        isDay={step === 'SEARCH' ? isDayMontage : weather.isDay} 
+      />
 
-      {/* --- STEP 1: SEARCH --- */}
-      {step === 'SEARCH' && (
-          <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 max-w-2xl mx-auto w-full px-4 md:px-0">
-             
-             {/* WARNING CARD (NOW DISMISSIBLE) */}
-             {showWarning && (
-                <div className="relative bg-zinc-900/50 backdrop-blur-xl border border-zinc-800/60 rounded-3xl p-4 md:p-6 mb-6 md:mb-8 flex gap-4 items-start shadow-xl group">
-                    <button 
-                        onClick={dismissWarning}
-                        className="absolute top-2 right-2 p-2 text-zinc-600 hover:text-white transition-colors"
-                    >
-                        <X size={16} />
-                    </button>
-                    <div className="p-2 md:p-3 bg-red-500/10 rounded-2xl shrink-0">
-                        <Cpu size={20} className="text-red-500" />
-                    </div>
-                    <div>
-                        <h3 className="text-white font-bold text-base md:text-lg mb-1">Personality Warning</h3>
-                        <p className="text-zinc-400 text-xs md:text-sm leading-relaxed pr-6">
-                            The weather module's personality function is currently faulty and it may say some obscene and rude things.
-                        </p>
-                    </div>
-                </div>
-             )}
+      {/* Main Container */}
+      <div className="relative z-10 w-full flex-1 flex flex-col">
+          <AnimatePresence mode="wait">
+              {step === 'SEARCH' ? (
+                  <motion.div 
+                    key="search-view"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, scale: 0.95, filter: 'blur(20px)' }}
+                    className="w-full min-h-screen flex flex-col items-center pt-24 md:pt-32 px-6"
+                  >
+                      {/* CYCLING HEADER */}
+                      <div className="text-center mb-12 md:mb-16">
+                          <motion.div 
+                            initial={{ y: 10, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            className="text-xs md:text-sm font-medium text-[#DFFF00] mb-4 md:mb-6 animate-pulse drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
+                          >
+                            what's it like outside?
+                          </motion.div>
+                          
+                          <div className="w-full flex items-baseline justify-center">
+                              <div className="w-1/2 flex justify-end pr-2 md:pr-4">
+                                  <h1 className="text-5xl md:text-[10rem] font-bold tracking-tight leading-none drop-shadow-[0_10px_30px_rgba(0,0,0,0.3)]">
+                                    weather
+                                  </h1>
+                              </div>
+                              <div className="w-1/2 flex justify-start pl-2 md:pl-4 relative h-[1em]">
+                                  <AnimatePresence>
+                                      <motion.span
+                                        key={activeMontageCondition}
+                                        initial={{ opacity: 0, filter: 'blur(10px)' }}
+                                        animate={{ opacity: 0.3, filter: 'blur(0px)' }}
+                                        exit={{ opacity: 0, filter: 'blur(10px)', position: 'absolute' }}
+                                        transition={{ 
+                                          opacity: { duration: 1.5, ease: "easeInOut" },
+                                          filter: { duration: 1.5, ease: "easeInOut" }
+                                        }}
+                                        className="text-5xl md:text-[10rem] font-bold tracking-tight leading-none text-white block whitespace-nowrap drop-shadow-[0_10px_30px_rgba(0,0,0,0.2)]"
+                                      >
+                                        {activeMontageCondition.toLowerCase()}
+                                      </motion.span>
+                                  </AnimatePresence>
+                              </div>
+                          </div>
+                      </div>
 
-             {/* TABS SWITCHER */}
-             <div className="flex justify-center mb-6">
-                <div className="bg-zinc-900 p-1 rounded-full border border-zinc-800 flex items-center">
-                    <button 
-                        onClick={() => setSearchMode('TEXT')}
-                        className={`flex items-center gap-2 px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${searchMode === 'TEXT' ? 'bg-[#DFFF00] text-black shadow-lg' : 'text-zinc-500 hover:text-white'}`}
-                    >
-                        <Search size={14} /> Text Search
-                    </button>
-                    <button 
-                        onClick={() => setSearchMode('MAP')}
-                        className={`flex items-center gap-2 px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${searchMode === 'MAP' ? 'bg-[#DFFF00] text-black shadow-lg' : 'text-zinc-500 hover:text-white'}`}
-                    >
-                        <Globe size={14} /> World Map
-                    </button>
-                </div>
-             </div>
+                      {/* SEARCH BAR */}
+                      <div className="w-full max-w-2xl relative mt-[-2rem] flex flex-col items-center gap-8">
+                          <div className="w-full bg-white/10 backdrop-blur-3xl border border-white/10 rounded-full h-20 md:h-24 flex items-center px-4 md:px-6 shadow-2xl focus-within:border-white/30 transition-all">
+                              <div className="pl-4 md:pl-6 text-white/20 shrink-0">
+                                {isSearchingGeo ? <Loader2 size={24} className="animate-spin" /> : <Search size={24} />}
+                              </div>
+                              <input 
+                                type="text"
+                                value={input}
+                                onChange={handleInputChange}
+                                placeholder="search for a city..."
+                                className="flex-1 bg-transparent border-none outline-none px-6 text-xl md:text-2xl font-medium text-white placeholder:text-white/30"
+                              />
+                              <button 
+                                onClick={(e) => { 
+                                  e.preventDefault();
+                                  if(navigator.geolocation) navigator.geolocation.getCurrentPosition(pos => executeFetch({ name: 'current sector', latitude: pos.coords.latitude, longitude: pos.coords.longitude })) 
+                                }}
+                                className="h-14 w-14 md:h-16 md:w-16 bg-white/5 hover:bg-[#DFFF00] text-white/60 hover:text-black rounded-full transition-all flex items-center justify-center shrink-0 active:scale-90 border border-white/5 group/loc"
+                              >
+                                <Crosshair size={28} className="group-hover/loc:rotate-90 transition-transform duration-700" />
+                              </button>
+                          </div>
 
-             {/* MODE A: TEXT SEARCH WIDGET */}
-             {searchMode === 'TEXT' && (
-                <div className="bg-zinc-950/80 backdrop-blur-lg border border-zinc-800 rounded-[2rem] p-2 shadow-2xl relative z-20 mb-8 animate-in fade-in slide-in-from-left-4">
-                    <div className="relative flex items-center">
-                        <div className="absolute left-4 md:left-5 text-zinc-500 pointer-events-none z-10">
-                            {isSearchingGeo ? <Loader2 size={20} className="animate-spin" /> : <Search size={20} />}
-                        </div>
-                        
-                        <input 
-                            type="text" 
-                            value={input}
-                            onChange={handleInputChange}
-                            placeholder="Enter city name..."
-                            className="w-full bg-zinc-900/50 rounded-3xl py-4 md:py-6 pl-12 md:pl-14 pr-16 text-base md:text-xl text-white outline-none focus:bg-zinc-900 transition-colors placeholder:text-zinc-600 font-medium appearance-none touch-manipulation"
-                            autoComplete="off"
-                            style={{ fontSize: '16px' }} 
-                        />
+                          {homeLocation && (
+                            <motion.button
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              onClick={() => executeFetch(homeLocation)}
+                              className="px-8 py-3 bg-white/5 hover:bg-white border border-white/10 text-white/60 hover:text-black rounded-full transition-all backdrop-blur-xl flex items-center gap-3 group"
+                            >
+                              <Home size={16} className="text-[#DFFF00] group-hover:text-black transition-colors" />
+                              <span className="text-xs font-bold lowercase tracking-widest">go to {(homeLocation.name || homeLocation.location || 'home').toLowerCase()}</span>
+                            </motion.button>
+                          )}
 
-                        <button 
-                            onClick={handleCurrentLocation}
-                            className="absolute right-2 p-3 md:p-4 bg-zinc-800 hover:bg-[#DFFF00] hover:text-black text-zinc-400 rounded-2xl transition-colors group touch-manipulation"
-                            title="Use Current Location"
-                        >
-                            <Crosshair size={20} className="group-hover:rotate-90 transition-transform duration-500" />
-                        </button>
-                    </div>
-
-                    {/* SUGGESTIONS */}
-                    {showSuggestions && suggestions.length > 0 && (
-                        <div className="absolute top-full left-0 w-full bg-zinc-900 border border-zinc-800 rounded-3xl shadow-xl mt-2 overflow-hidden animate-in fade-in slide-in-from-top-2 p-2 z-50">
-                            {suggestions.map((loc) => (
-                                <button
-                                    key={loc.id}
-                                    onClick={() => handleLocationSelect(loc)}
-                                    className="w-full text-left p-3 md:p-4 hover:bg-zinc-800 rounded-2xl flex items-center justify-between group transition-colors touch-manipulation"
+                          {/* SUGGESTIONS */}
+                          <AnimatePresence>
+                            {input.length >= 3 && suggestions.length > 0 && (
+                                <motion.div 
+                                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 10, scale: 0.98 }}
+                                    className="absolute top-full left-0 w-full mt-6 bg-white/10 backdrop-blur-3xl border border-white/10 rounded-[3rem] overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.5)] z-50 p-3"
                                 >
-                                    <div className="flex flex-col">
-                                        <span className="font-bold text-white group-hover:text-[#DFFF00] transition-colors">{loc.name}</span>
-                                        <span className="text-[10px] md:text-xs text-zinc-500 font-medium uppercase">
-                                            {loc.admin1 ? `${loc.admin1}, ` : ''}{loc.country}
-                                        </span>
+                                    <div className="max-h-[400px] overflow-y-auto pr-1 scrollbar-hide">
+                                        {suggestions.map((loc, i) => (
+                                            <button
+                                                key={i}
+                                                onClick={() => executeFetch(loc)}
+                                                className="w-full flex items-center justify-between p-6 hover:bg-white/10 rounded-[2.5rem] transition-all group text-left mb-1 last:mb-0"
+                                            >
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="text-xl font-bold text-white group-hover:pl-2 transition-all drop-shadow-md">{loc.name.toLowerCase()}</span>
+                                                    <span className="text-sm font-medium text-white/50 lowercase bg-black/20 backdrop-blur-sm px-3 py-0.5 rounded-full w-fit">
+                                                        {loc.country.toLowerCase()}
+                                                    </span>
+                                                </div>
+                                                <div className="h-14 w-14 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-[#DFFF00] group-hover:text-black transition-all">
+                                                    <ArrowRight size={24} className="group-hover:translate-x-1 transition-transform" />
+                                                </div>
+                                            </button>
+                                        ))}
                                     </div>
-                                    <Navigation size={14} className="text-zinc-600 group-hover:text-[#DFFF00] -rotate-45" />
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                </div>
-             )}
+                                </motion.div>
+                            )}
+                          </AnimatePresence>
+                      </div>
+                  </motion.div>
+              ) : (
+                  <motion.div 
+                    key="result-view"
+                    initial={{ opacity: 0, scale: 1.02 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                    className="flex-1 w-full max-w-[1600px] mx-auto px-6 md:px-16 py-8 md:py-12 flex flex-col gap-8"
+                  >
+                      {/* STATUS BAR */}
+                      <motion.div 
+                        initial={{ y: -20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        className="w-full bg-white/5 backdrop-blur-3xl border border-white/10 rounded-full p-2 md:p-3 flex items-center justify-between px-4 md:px-6 shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+                      >
+                          <div className="flex items-center gap-3 md:gap-6 flex-1">
+                              <button onClick={reset} className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-white/5 flex items-center justify-center hover:bg-white hover:text-black transition-all shrink-0">
+                                  <ChevronLeft size={20} />
+                              </button>
+                              
+                              <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-4 overflow-hidden">
+                                  <span className="text-[10px] md:text-xs font-medium text-white/40 lowercase whitespace-nowrap">location</span>
+                                  <span className="text-sm md:text-base font-bold text-white lowercase truncate">
+                                    {(weather?.location || '').toLowerCase()}
+                                  </span>
+                              </div>
+                          </div>
 
-             {/* MODE B: MAP PICKER */}
-             {searchMode === 'MAP' && (
-                 <div className="animate-in fade-in slide-in-from-right-4 mb-8">
-                     <WeatherMapPicker onSelectLocation={handleMapSelection} />
-                 </div>
-             )}
+                          <div className="flex items-center gap-3 md:gap-8">
+                              <div className="hidden md:flex items-center gap-3 text-xs font-medium text-[#DFFF00]">
+                                  <span className="animate-pulse text-[8px]">●</span>
+                                  <span className="lowercase whitespace-nowrap">it's {weather.condition.toLowerCase()} right now</span>
+                              </div>
 
-             {/* RECENT SEARCHES */}
-             {recentSearches.length > 0 && (
-                 <div className="animate-in fade-in slide-in-from-bottom-4 delay-300">
-                     <h3 className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-3 pl-2 flex items-center gap-2">
-                         <History size={12} /> Recent Targets
-                     </h3>
-                     <div className="flex flex-wrap gap-2">
-                         {recentSearches.map((loc) => (
-                             <div key={loc.id} className="relative group">
-                                <button
-                                    onClick={() => handleLocationSelect(loc)}
-                                    className="px-4 py-2 bg-zinc-900/50 hover:bg-zinc-900 border border-zinc-800 hover:border-[#DFFF00]/50 rounded-full transition-all flex items-center gap-2"
-                                >
-                                    <span className="font-bold text-xs text-zinc-300 group-hover:text-white truncate max-w-[120px]">{loc.name}</span>
-                                </button>
-                                <button 
-                                    onClick={(e) => removeRecentSearch(loc.id, e)}
-                                    className="absolute -top-1 -right-1 bg-zinc-800 text-zinc-400 hover:text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                    <X size={10} />
-                                </button>
-                             </div>
-                         ))}
-                     </div>
-                 </div>
-             )}
-          </div>
-      )}
+                              <div className="h-8 w-px bg-white/10 hidden md:block" />
 
-      {/* --- STEP 2: RESULT DASHBOARD (UNIFIED CARD) --- */}
-      {step === 'RESULT' && (
-          <div className="animate-in zoom-in-95 duration-500 pt-8">
-             
-             {loading ? (
-                 <div className="flex flex-col items-center justify-center py-20 md:py-32">
-                     <div className="relative">
-                        <div className="absolute inset-0 bg-[#DFFF00] blur-xl opacity-20 animate-pulse" />
-                        <Loader2 size={48} className="animate-spin text-[#DFFF00] relative z-10" />
-                     </div>
-                     <div className="mt-8 text-zinc-500 font-mono text-xs uppercase tracking-widest">
-                         Calibrating Sensors...
-                     </div>
-                 </div>
-             ) : weather ? (
-                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
-                    
-                    {/* 1. LOCATION & DATE */}
-                    <div className="col-span-2 md:col-span-3 lg:col-span-4 flex flex-col md:flex-row justify-between items-start md:items-end p-2 mb-2">
-                        <div>
-                            <div className="flex items-center gap-2 text-zinc-500 text-[10px] md:text-xs font-bold uppercase tracking-widest mb-1">
-                                <MapPin size={12} /> Target Sector
-                            </div>
-                            <h2 className="text-3xl md:text-5xl font-black text-white uppercase tracking-tight leading-none">{weather.location}</h2>
-                        </div>
-                        <div className="mt-2 md:mt-0 flex items-center gap-2 text-zinc-600 text-xs md:text-sm font-mono bg-zinc-900/50 px-3 py-1.5 md:px-4 md:py-2 rounded-full border border-zinc-800">
-                            <Calendar size={12} />
-                            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-                        </div>
-                    </div>
-
-                    {/* 2. UNIFIED COMMAND CENTER CARD */}
-                    <div className={`col-span-2 md:col-span-3 lg:col-span-4 bg-zinc-900 border rounded-[2.5rem] p-6 md:p-12 relative overflow-hidden group shadow-2xl transition-all duration-500 ${activePersonality.border} ${activePersonality.shadow}`}>
-                        
-                        {/* ANIMATED WEATHER BACKGROUND */}
-                        <WeatherBackground condition={weather.condition} isDay={weather.isDay} />
-
-                        {/* Tech Wave Animation (Bottom Right) */}
-                        <div className="absolute bottom-0 right-8 opacity-20 flex gap-1 h-12 items-end pointer-events-none">
-                             {[...Array(10)].map((_, i) => (
-                                 <div 
-                                    key={i} 
-                                    className={`w-1 rounded-t-full ${activePersonality.color.replace('text-', 'bg-')} animate-pulse`} 
-                                    style={{ 
-                                        height: `${Math.random() * 100}%`,
-                                        animationDuration: '1s',
-                                        animationDelay: `${i * 100}ms` 
-                                    }} 
-                                 />
-                             ))}
-                        </div>
-                        
-                        {/* Content Grid */}
-                        <div className="relative z-10 flex flex-col md:flex-row gap-8 md:gap-12">
-                            
-                            {/* Left: Telemetry */}
-                            <div className="flex-1 flex flex-col justify-center">
-                                <span className="bg-black/40 backdrop-blur-md text-white text-[10px] md:text-xs font-bold px-3 py-1.5 rounded-full border border-white/10 mb-4 inline-block shadow-lg self-start">
-                                    LIVE TELEMETRY
+                              <button 
+                                onClick={() => saveHomeLocation(weather)}
+                                disabled={isSavingHome}
+                                className={`flex items-center gap-2 px-5 py-2 md:px-6 md:py-2.5 rounded-full border transition-all text-[10px] font-bold lowercase tracking-[0.1em] shrink-0
+                                  ${isSavingHome ? 'bg-[#DFFF00] border-[#DFFF00] text-black' : 
+                                    homeLocation?.name === (weather?.location || weather?.name) ? 'bg-white/10 border-white/20 text-[#DFFF00]' : 
+                                    'bg-white/5 border-white/10 text-white/60 hover:bg-white hover:text-black'}
+                                `}
+                              >
+                                {isSavingHome ? <Loader2 size={12} className="animate-spin" /> : <Home size={12} />}
+                                <span>
+                                  {isSavingHome ? 'saving...' : 
+                                   homeLocation?.name === (weather?.location || weather?.name) ? 'current home' : 
+                                   'set as home'}
                                 </span>
-                                <div className="text-7xl md:text-9xl font-black text-white tracking-tighter leading-none mb-2 drop-shadow-2xl">
-                                    {Math.round(weather.temp)}°
-                                </div>
-                                <div className="text-xl md:text-2xl font-medium text-white/80 uppercase tracking-widest flex items-center gap-3 drop-shadow-md mb-6">
-                                    {weather.condition}
-                                    {weather.condition === 'RAINING' && <CloudRain size={24} className="text-blue-400" />}
-                                    {weather.condition === 'STORM' && <CloudLightning size={24} className="text-purple-400" />}
-                                    {weather.condition === 'SNOW' && <CloudSnow size={24} className="text-white" />}
-                                    {!['RAINING', 'STORM', 'SNOW'].includes(weather.condition) && <Sun size={24} className={weather.isDay ? "text-orange-400" : "text-blue-300"} />}
-                                </div>
+                              </button>
+                          </div>
+                      </motion.div>
 
-                                {/* Feels Like / High / Low Grid */}
-                                <div className="flex items-center gap-4 md:gap-8 bg-black/20 rounded-2xl p-3 md:p-4 border border-white/5 backdrop-blur-sm self-start">
-                                    <div className="flex flex-col gap-0.5">
-                                        <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Feels Like</span>
-                                        <span className="text-lg md:text-xl font-bold text-white">{Math.round(weather.feelsLike)}°</span>
-                                    </div>
-                                    <div className="w-px h-8 bg-white/10" />
-                                    <div className="flex flex-col gap-0.5">
-                                        <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Low</span>
-                                        <span className="text-lg md:text-xl font-bold text-blue-200">{Math.round(weather.minTemp)}°</span>
-                                    </div>
-                                    <div className="w-px h-8 bg-white/10" />
-                                    <div className="flex flex-col gap-0.5">
-                                        <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">High</span>
-                                        <span className="text-lg md:text-xl font-bold text-orange-200">{Math.round(weather.maxTemp)}°</span>
-                                    </div>
-                                </div>
-                            </div>
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8 flex-1">
+                          
+                          {/* HERO MODULE */}
+                          <div className="lg:col-span-8 flex flex-col gap-6 md:gap-8">
+                              <motion.div 
+                                initial={{ x: -20, opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                transition={{ delay: 0.2 }}
+                                className="flex-1 bg-white/[0.03] backdrop-blur-3xl border border-white/5 rounded-[3rem] md:rounded-[4rem] p-8 md:p-20 relative overflow-hidden group min-h-[400px] md:min-h-0"
+                              >
+                                  {/* LIVE HERO BACKGROUND EFFECTS */}
+                                  <div className="absolute inset-0 pointer-events-none opacity-30">
+                                      {weather.condition === 'RAINING' && [...Array(20)].map((_, i) => (
+                                          <motion.div 
+                                            key={i}
+                                            initial={{ y: -100, x: `${Math.random() * 100}%` }}
+                                            animate={{ y: 600 }}
+                                            transition={{ duration: 0.5 + Math.random() * 0.5, repeat: Infinity, ease: "linear", delay: Math.random() * 2 }}
+                                            className="absolute w-[1px] h-20 bg-white/20"
+                                          />
+                                      ))}
+                                      {weather.condition === 'SNOW' && [...Array(30)].map((_, i) => (
+                                          <motion.div 
+                                            key={i}
+                                            initial={{ y: -20, x: `${Math.random() * 100}%` }}
+                                            animate={{ y: 600, x: `${Math.random() * 100 + 20}%` }}
+                                            transition={{ duration: 4 + Math.random() * 4, repeat: Infinity, ease: "linear", delay: Math.random() * 5 }}
+                                            className="absolute w-2 h-2 rounded-full bg-white/40 blur-[1px]"
+                                          />
+                                      ))}
+                                      {weather.condition === 'CLEAR' && (
+                                          <motion.div 
+                                            animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+                                            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+                                            className="absolute -top-20 -right-20 w-[400px] h-[400px] bg-orange-400/20 rounded-full blur-[100px]"
+                                          />
+                                      )}
+                                      {(weather.condition === 'CLOUDY' || weather.condition === 'WINDY') && [...Array(4)].map((_, i) => (
+                                          <motion.div 
+                                            key={i}
+                                            animate={{ x: ['-100%', '200%'] }}
+                                            transition={{ duration: 30 + i * 10, repeat: Infinity, ease: "linear", delay: i * -10 }}
+                                            className="absolute bg-white/10 w-96 h-48 rounded-full blur-[80px]"
+                                            style={{ top: `${20 + i * 20}%` }}
+                                          />
+                                      ))}
+                                  </div>
+                                  
+                                  <div className="relative z-10 flex flex-col h-full justify-between">
+                                      <div>
+                                          <span className="text-xs md:text-sm font-medium text-white/20 lowercase mb-2 md:mb-4 block">temperature</span>
+                                          <h1 className="text-[10rem] md:text-[22rem] font-bold leading-none tracking-tighter text-white drop-shadow-[0_20px_100px_rgba(0,0,0,0.8)] [text-shadow:_0_10px_50px_rgb(0_0_0_/_50%)]">
+                                              {Math.round(weather.temp)}<span className="text-[4rem] md:text-[6rem] text-white/10 align-top mt-6 md:mt-12 inline-block">°</span>
+                                          </h1>
+                                      </div>
+                                      
+                                      <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 md:gap-0">
+                                          <div className="flex flex-col gap-2">
+                                              <span className="text-xs md:text-sm font-medium text-white/20 lowercase">conditions</span>
+                                              <div className="flex items-center gap-4">
+                                                  <div className="text-white/80">
+                                                      {getIcon(weather.condition, 28)}
+                                                  </div>
+                                                  <span className="text-4xl md:text-5xl font-bold tracking-tight lowercase drop-shadow-md">{weather.condition.toLowerCase()}</span>
+                                              </div>
+                                          </div>
+                                          <div className="flex flex-col md:items-end text-left md:text-right">
+                                              <span className="text-xs md:text-sm font-medium text-white/20 lowercase">thermal index</span>
+                                              <span className="text-2xl md:text-4xl font-bold text-white/40 tracking-tight lowercase">feels like {Math.round(weather.feelsLike)}°</span>
+                                          </div>
+                                      </div>
+                                  </div>
+                              </motion.div>
 
-                            {/* Divider (Desktop Only) */}
-                            <div className="hidden md:block w-px bg-white/10 self-stretch relative overflow-hidden">
-                                <div className={`absolute top-0 w-full h-1/2 bg-gradient-to-b from-transparent ${activePersonality.color.replace('text-', 'via-')} to-transparent opacity-50 animate-pulse`} />
-                            </div>
+                              {/* QUICK STATS */}
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                                  {[
+                                      { label: 'wind speed', value: Math.round(weather.windSpeed), unit: 'km/h', icon: <Wind size={18} /> },
+                                      { label: 'humidity', value: weather.humidity, unit: '%', icon: <Droplets size={18} /> },
+                                      { label: 'uv index', value: weather.uvIndex.toFixed(1), unit: 'level', icon: <Gauge size={18} /> },
+                                      { label: 'visibility', value: '10.0', unit: 'km', icon: <Navigation size={18} /> }
+                                  ].map((stat, i) => (
+                                      <motion.div 
+                                        key={i} 
+                                        initial={{ y: 20, opacity: 0 }}
+                                        animate={{ y: 0, opacity: 1 }}
+                                        transition={{ delay: 0.4 + (i * 0.1) }}
+                                        className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-8 flex flex-col justify-between hover:bg-white/10 transition-all cursor-default"
+                                      >
+                                          <div className="flex items-center gap-3 text-white/20 mb-4">
+                                              {stat.icon}
+                                              <span className="text-[10px] md:text-xs font-medium lowercase">{stat.label}</span>
+                                          </div>
+                                          <div>
+                                              <div className="text-3xl md:text-4xl font-bold tracking-tight mb-1">{stat.value}</div>
+                                              <div className="text-[10px] font-medium text-white/20 lowercase">{stat.unit}</div>
+                                          </div>
+                                      </motion.div>
+                                  ))}
+                              </div>
+                          </div>
 
-                            {/* Right: Personality Interface */}
-                            <div className="flex-1 flex flex-col justify-end">
-                                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-xl text-[10px] font-bold uppercase tracking-widest self-start mb-4 ${activePersonality.color} border border-white/5`}>
-                                    <Radio size={12} className="animate-pulse" />
-                                    {activePersonality.label} CHANNEL
-                                </div>
-                                
-                                <blockquote className="text-lg md:text-2xl font-black text-white leading-tight uppercase min-h-[80px] md:min-h-[100px] drop-shadow-xl">
-                                    "<Typewriter text={commentary} speed={40} />"
-                                </blockquote>
-                            </div>
+                          {/* FORECAST COLUMN */}
+                          <motion.div 
+                            initial={{ x: 20, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            transition={{ delay: 0.3 }}
+                            className="lg:col-span-4 bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[3rem] md:rounded-[4rem] p-8 md:p-10 flex flex-col"
+                          >
+                              <div className="flex items-center justify-between mb-8 md:mb-12">
+                                  <span className="text-xs md:text-sm font-medium text-white/20 lowercase">5-day forecast</span>
+                                  <div className="h-px flex-1 mx-4 md:mx-6 bg-white/5" />
+                                  <Calendar size={16} className="text-white/20" />
+                              </div>
 
-                        </div>
-                    </div>
+                              <div className="flex-1 flex flex-col gap-3 md:gap-4">
+                                  {weather.forecast.map((day: any, i: number) => {
+                                      const allTemps = weather.forecast.map((d: any) => d.maxTemp);
+                                      const avgTemp = allTemps.reduce((a: number, b: number) => a + b, 0) / allTemps.length;
+                                      const isHottest = day.maxTemp === Math.max(...allTemps) && day.maxTemp > avgTemp + 3;
+                                      const isColdest = day.maxTemp === Math.min(...allTemps) && day.maxTemp < avgTemp - 3;
+                                      const isStormy = day.condition === 'STORM';
+                                      const isOutlier = isHottest || isColdest || isStormy;
 
-                    {/* 4. STAT GRID (2x2 on Mobile) */}
-                    
-                    {/* WIND CARD with Animation */}
-                    <div className="col-span-1 bg-zinc-900/50 backdrop-blur-md border border-zinc-800 rounded-[2rem] p-5 md:p-6 flex flex-col justify-between aspect-square hover:bg-zinc-900 transition-colors relative overflow-hidden group">
-                        {/* Wind Animation Lines */}
-                        <div className="absolute inset-0 opacity-10 pointer-events-none">
-                            <div className="absolute top-1/4 -left-10 w-full h-0.5 bg-white animate-[wind_3s_linear_infinite]" />
-                            <div className="absolute top-1/2 -left-10 w-full h-0.5 bg-white animate-[wind_2s_linear_infinite_0.5s]" />
-                            <div className="absolute top-3/4 -left-10 w-full h-0.5 bg-white animate-[wind_4s_linear_infinite_1s]" />
-                        </div>
-                        <div className="flex justify-between text-zinc-500 relative z-10">
-                            <Wind size={20} className="md:w-6 md:h-6" />
-                            <span className="text-[10px] md:text-xs font-bold">WIND</span>
-                        </div>
-                        <div className="relative z-10">
-                            <span className="text-2xl md:text-3xl font-black text-white">{weather.windSpeed}</span>
-                            <span className="text-xs md:text-sm text-zinc-500 ml-1">km/h</span>
-                        </div>
-                    </div>
+                                      return (
+                                          <motion.div 
+                                            key={i}
+                                            whileHover={{ x: 10 }}
+                                            className={`flex items-center justify-between p-4 md:p-6 rounded-[2rem] md:rounded-[2.5rem] transition-all group relative
+                                              ${isOutlier ? 'bg-white/10 border border-[#DFFF00]/30 shadow-[0_0_30px_rgba(223,255,0,0.1)]' : 'bg-white/5 border border-transparent hover:bg-white/10'}
+                                            `}
+                                          >
+                                              {isOutlier && (
+                                                  <div className="absolute -top-2 -right-2 px-3 py-1 bg-[#DFFF00] text-black text-[8px] font-bold rounded-full uppercase tracking-widest shadow-lg">
+                                                      {isStormy ? 'alert' : isHottest ? 'warmest' : 'coldest'}
+                                                  </div>
+                                              )}
+                                              <div className="flex flex-col">
+                                                  <span className="text-xs md:text-sm font-bold text-white lowercase">
+                                                      {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase()}
+                                                  </span>
+                                                  <span className="text-[10px] md:text-xs font-medium text-white/20 lowercase">{day.condition.toLowerCase()}</span>
+                                              </div>
+                                              <div className="flex items-center gap-4 md:gap-8">
+                                                  {getIcon(day.condition, 20)}
+                                                  <div className="flex flex-col items-end min-w-[50px] md:min-w-[60px]">
+                                                      <span className={`text-lg md:text-xl font-bold ${isHottest ? 'text-orange-400' : isColdest ? 'text-blue-400' : 'text-white'}`}>
+                                                          {Math.round(day.maxTemp)}°
+                                                      </span>
+                                                      <span className="text-[10px] md:text-xs font-medium text-white/20">{Math.round(day.minTemp)}°</span>
+                                                  </div>
+                                              </div>
+                                          </motion.div>
+                                      );
+                                  })}
+                              </div>
 
-                    {/* HUMIDITY CARD with Water Level */}
-                    <div className="col-span-1 bg-zinc-900/50 backdrop-blur-md border border-zinc-800 rounded-[2rem] relative overflow-hidden flex flex-col justify-between aspect-square hover:bg-zinc-900 transition-colors group">
-                         {/* Water Fill Background */}
-                         <div 
-                            className="absolute bottom-0 left-0 right-0 bg-blue-500/20 transition-all duration-1000 ease-out"
-                            style={{ height: `${weather.humidity}%` }}
-                         >
-                             {/* Top Wave Border */}
-                             <div className="absolute top-0 left-0 right-0 h-px bg-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
-                         </div>
+                              <div className="mt-8 md:mt-12 pt-10 border-t border-white/5 flex flex-col gap-10">
+                                  {/* INTEGRATED SOLAR ORBIT TRACKER */}
+                                  <div className="w-full px-2">
+                                      <div className="flex items-center justify-between mb-6 opacity-40">
+                                          <span className="text-[10px] font-bold lowercase tracking-widest">celestial position</span>
+                                          <span className="text-[10px] font-bold lowercase tracking-widest">
+                                              {weather.isDay ? 'daylight cycle' : 'lunar cycle'}
+                                          </span>
+                                      </div>
 
-                         <div className="flex justify-between text-zinc-500 p-5 md:p-6 relative z-10">
-                            <Droplets size={20} className="md:w-6 md:h-6 group-hover:text-blue-400 transition-colors" />
-                            <span className="text-[10px] md:text-xs font-bold">HUMIDITY</span>
-                        </div>
-                        <div className="p-5 md:p-6 pt-0 relative z-10">
-                            <span className="text-2xl md:text-3xl font-black text-white">{weather.humidity}</span>
-                            <span className="text-xs md:text-sm text-zinc-500 ml-1">%</span>
-                        </div>
-                    </div>
+                                      <div className="relative h-20 w-full flex items-center justify-between px-2 mb-8">
+                                          {/* THE ORBIT PATH */}
+                                          <div className="absolute inset-0 overflow-hidden">
+                                              <svg className="w-full h-full opacity-10" preserveAspectRatio="none">
+                                                  <path d="M 0 80 Q 50% -20 100% 80" fill="none" stroke="white" strokeWidth="1.5" strokeDasharray="6 6" />
+                                              </svg>
+                                          </div>
+                                          
+                                          {/* THE SUN/MOON INDICATOR */}
+                                          <motion.div 
+                                            className="absolute bottom-0 z-10"
+                                            style={{
+                                                left: `${(() => {
+                                                    const now = new Date().getTime();
+                                                    const start = new Date(weather.sunrise).getTime();
+                                                    const end = new Date(weather.sunset).getTime();
+                                                    const progress = Math.max(0, Math.min(1, (now - start) / (end - start)));
+                                                    return progress * 100;
+                                                })()}%`,
+                                                transform: 'translate(-50%, 50%)'
+                                            }}
+                                          >
+                                              <div className="relative">
+                                                  <div className={`h-4 w-4 rounded-full shadow-[0_0_20px_rgba(255,255,255,0.5)] ${weather.isDay ? 'bg-orange-400' : 'bg-blue-200'}`} />
+                                                  <div className={`absolute inset-[-8px] h-10 w-10 rounded-full border border-white/10 animate-spin-slow`} />
+                                                  <div className={`absolute inset-0 h-4 w-4 rounded-full animate-ping opacity-20 ${weather.isDay ? 'bg-orange-400' : 'bg-blue-200'}`} />
+                                              </div>
+                                          </motion.div>
 
-                    {/* INDEX CARD with Color Scale */}
-                    <div className="col-span-1 bg-zinc-900/50 backdrop-blur-md border border-zinc-800 rounded-[2rem] p-5 md:p-6 flex flex-col justify-between aspect-square hover:bg-zinc-900 transition-colors relative overflow-hidden">
-                         {/* UV Gradient Background */}
-                         <div className={`absolute inset-0 opacity-10 ${getUvColor(weather.uvIndex)} transition-colors duration-1000`} />
-                         
-                         <div className="flex justify-between text-zinc-500 relative z-10">
-                            <Gauge size={20} className="md:w-6 md:h-6" />
-                            <span className="text-[10px] md:text-xs font-bold">INDEX</span>
-                        </div>
-                        <div className="relative z-10">
-                            <span className="text-2xl md:text-3xl font-black text-white">{weather.uvIndex.toFixed(1)}</span>
-                            <div className="text-[10px] font-bold tracking-widest mt-1 opacity-80">
-                                {getUvLabel(weather.uvIndex)}
-                            </div>
-                        </div>
-                    </div>
+                                          <div className="flex flex-col items-start gap-1 relative z-20">
+                                              <span className="text-[8px] font-black text-white/20 uppercase">sunrise</span>
+                                              <div className="flex items-center gap-2">
+                                                  <Sunrise size={14} className="text-orange-400/60" />
+                                                  <span className="text-[10px] font-bold">{new Date(weather.sunrise).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }).toLowerCase()}</span>
+                                              </div>
+                                          </div>
 
-                    {/* RESET ACTION */}
-                    <button 
-                        onClick={reset}
-                        className="col-span-1 bg-[#DFFF00] hover:bg-white rounded-[2rem] p-5 md:p-6 flex flex-col justify-center items-center gap-2 aspect-square transition-colors group cursor-pointer"
-                    >
-                        <RefreshCcw size={28} className="text-black group-hover:rotate-180 transition-transform duration-500 md:w-8 md:h-8" />
-                        <span className="text-black font-black text-[10px] md:text-xs uppercase tracking-widest">RESET</span>
-                    </button>
+                                          <div className="flex flex-col items-center gap-1 relative z-20 mt-12">
+                                              <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">zenith</span>
+                                              <div className="h-4 w-px bg-white/10" />
+                                          </div>
 
-                    {/* 5. FORECAST ROW */}
-                    <div className="col-span-2 md:col-span-3 lg:col-span-4 mt-2">
-                        <div className="bg-zinc-900/50 border border-zinc-800 rounded-[2rem] p-4 md:p-6">
-                            <div className="flex items-center gap-2 mb-4 px-2">
-                                <Calendar size={14} className="text-zinc-500" />
-                                <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">5-Day Outlook</span>
-                            </div>
-                            
-                            <div className="grid grid-cols-5 gap-2 md:gap-4">
-                                {weather.forecast.map((day, idx) => (
-                                    <div key={idx} className="bg-zinc-900/80 rounded-2xl p-2 md:p-4 flex flex-col items-center justify-between text-center gap-2 border border-zinc-800/50 hover:bg-zinc-800 hover:border-zinc-700 transition-colors">
-                                        <span className="text-[10px] md:text-xs font-bold text-zinc-500 uppercase">
-                                            {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}
-                                        </span>
-                                        
-                                        <div className="my-1">
-                                            {getForecastIcon(day.condition, 24)}
-                                        </div>
-                                        
-                                        <div className="flex flex-col gap-0.5">
-                                            <span className="text-sm md:text-lg font-bold text-white">{Math.round(day.maxTemp)}°</span>
-                                            <span className="text-[10px] md:text-xs font-bold text-zinc-600">{Math.round(day.minTemp)}°</span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
+                                          <div className="flex flex-col items-end gap-1 relative z-20">
+                                              <span className="text-[8px] font-black text-white/20 uppercase">sunset</span>
+                                              <div className="flex items-center gap-2">
+                                                  <span className="text-[10px] font-bold">{new Date(weather.sunset).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }).toLowerCase()}</span>
+                                                  <Sunset size={14} className="text-blue-400/60" />
+                                              </div>
+                                          </div>
+                                      </div>
 
-                 </div>
-             ) : null}
-          </div>
-      )}
-      
-      {/* Global Style for Animations */}
+                                      {/* PROGRESS BAR */}
+                                      <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden relative border border-white/5">
+                                          <motion.div 
+                                            initial={{ width: 0 }}
+                                            animate={{ 
+                                                width: `${(() => {
+                                                    const now = new Date().getTime();
+                                                    const start = new Date(weather.sunrise).getTime();
+                                                    const end = new Date(weather.sunset).getTime();
+                                                    return Math.max(0, Math.min(1, (now - start) / (end - start))) * 100;
+                                                })()}%` 
+                                            }}
+                                            transition={{ duration: 2, ease: "easeOut" }}
+                                            className={`h-full ${weather.isDay ? 'bg-gradient-to-r from-orange-500/40 to-orange-400' : 'bg-gradient-to-r from-blue-500/40 to-blue-200'}`}
+                                          />
+                                      </div>
+                                      <div className="flex justify-between mt-2 px-1">
+                                          <span className="text-[8px] font-bold text-white/20 uppercase">cycle start</span>
+                                          <span className="text-[8px] font-bold text-[#DFFF00] uppercase animate-pulse">
+                                              {weather.isDay ? 'solar active' : 'lunar active'}
+                                          </span>
+                                          <span className="text-[8px] font-bold text-white/20 uppercase">cycle end</span>
+                                      </div>
+                                  </div>
+
+                                  <div className="text-[8px] md:text-[10px] font-mono text-white/10 text-center uppercase tracking-widest pb-2">
+                                      sync status: nominal // {weather.latitude.toFixed(2)}n {weather.longitude.toFixed(2)}e
+                                  </div>
+                              </div>
+                          </motion.div>
+                      </div>
+
+                      {/* DATA FOOTER - SIMPLIFIED */}
+                      <footer className="mt-12 md:mt-16 flex justify-center opacity-20 hover:opacity-40 transition-opacity duration-500">
+                          <div className="text-xs font-medium lowercase tracking-tight text-center">
+                              updated just now // high confidence // data source: open-meteo
+                          </div>
+                      </footer>
+                  </motion.div>
+              )}
+          </AnimatePresence>
+      </div>
+
       <style jsx global>{`
-        @keyframes wind {
-          0% { transform: translateX(-100%); opacity: 0; }
-          50% { opacity: 0.5; }
-          100% { transform: translateX(200%); opacity: 0; }
+        @keyframes rain { 
+          0% { transform: translateY(-100%); } 
+          100% { transform: translateY(120vh); } 
         }
-        @keyframes rain {
-          0% { transform: translateY(-100%); }
-          100% { transform: translateY(1200%); }
-        }
-        @keyframes snow {
-          0% { transform: translateY(-20%) translateX(0); opacity: 0; }
-          20% { opacity: 1; }
-          100% { transform: translateY(120%) translateX(20px); opacity: 0; }
-        }
-        @keyframes cloud {
-          0% { transform: translateX(-100%) scale(0.8); opacity: 0; }
+        @keyframes snow { 
+          0% { transform: translateY(-10vh) translateX(0); opacity: 0; }
           10% { opacity: 1; }
           90% { opacity: 1; }
-          100% { transform: translateX(200%) scale(1.2); opacity: 0; }
+          100% { transform: translateY(110vh) translateX(20px); opacity: 0; }
         }
-        @keyframes cloud-fast {
-          0% { transform: translateX(-100%); opacity: 0; }
-          50% { opacity: 1; }
-          100% { transform: translateX(300%); opacity: 0; }
+        @keyframes cloud { 
+          0% { transform: translateX(-100%) scale(0.8); }
+          100% { transform: translateX(200vw) scale(1.2); }
+        }
+        @keyframes leaf {
+          0% { transform: translate3d(-10vw, -10vh, 0) rotate(0deg); opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { transform: translate3d(110vw, 110vh, 0) rotate(1080deg); opacity: 0; }
         }
         @keyframes lightning {
           0%, 90%, 100% { opacity: 0; }
           92% { opacity: 1; }
           94% { opacity: 0; }
-          96% { opacity: 0.8; }
+          96% { opacity: 0.5; }
         }
-        @keyframes pulse-slow {
-          0%, 100% { transform: scale(1); opacity: 0.2; }
-          50% { transform: scale(1.1); opacity: 0.3; }
+        @keyframes twinkle {
+          0%, 100% { opacity: 0.3; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.1); }
         }
-        .animate-rain { animation: rain 1s linear infinite; }
-        .animate-snow { animation: snow 3s linear infinite; }
-        .animate-cloud { animation: cloud 20s linear infinite; }
-        .animate-cloud-fast { animation: cloud-fast 5s linear infinite; }
-        .animate-lightning { animation: lightning 5s linear infinite; }
-        .animate-pulse-slow { animation: pulse-slow 4s ease-in-out infinite; }
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes wind-gust {
+          0% { transform: translateX(-100%) scaleX(0.5); opacity: 0; }
+          50% { opacity: 0.2; }
+          100% { transform: translateX(200vw) scaleX(2); opacity: 0; }
+        }
+        .animate-rain { animation: rain linear infinite; }
+        .animate-snow { animation: snow linear infinite; }
+        .animate-leaf { animation: leaf linear infinite; }
+        .animate-cloud { animation: cloud linear infinite; }
+        .animate-lightning { animation: lightning 8s linear infinite; }
+        .animate-spin-slow { animation: spin-slow 12s linear infinite; }
+        .animate-wind-gust { animation: wind-gust 5s linear infinite; }
       `}</style>
     </div>
   );
