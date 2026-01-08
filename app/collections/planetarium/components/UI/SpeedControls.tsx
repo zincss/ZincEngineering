@@ -169,6 +169,36 @@ export function SpeedControls({
                     </motion.div>
                 )}
 
+                {/* View Mode Menu */}
+                {viewMenuOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-zinc-900 border border-white/20 p-1 rounded-xl shadow-2xl flex flex-col gap-1 min-w-[120px] z-[100]"
+                    >
+                        <div className="px-3 py-1 text-[9px] text-zinc-500 uppercase font-bold tracking-widest border-b border-white/10 mb-1 text-center">View Mode</div>
+                        <button 
+                            onClick={() => { setViewMode('standard'); setViewMenuOpen(false); }}
+                            className={`px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider text-left hover:bg-white/10 transition-colors ${viewMode === 'standard' ? 'text-[#DFFF00]' : 'text-white'}`}
+                        >
+                            Standard
+                        </button>
+                        <button 
+                            onClick={() => { setViewMode('wind'); setViewMenuOpen(false); }}
+                            className={`px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider text-left hover:bg-white/10 transition-colors ${viewMode === 'wind' ? 'text-[#DFFF00]' : 'text-white'}`}
+                        >
+                            Solar Wind
+                        </button>
+                        <button 
+                            onClick={() => { setViewMode('gravity'); setViewMenuOpen(false); }}
+                            className={`px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider text-left hover:bg-white/10 transition-colors ${viewMode === 'gravity' ? 'text-[#DFFF00]' : 'text-white'}`}
+                        >
+                            Gravity Wells
+                        </button>
+                    </motion.div>
+                )}
+
                 {/* Login Required Tooltip */}
                 {showLoginHint && (
                     <motion.div
@@ -247,44 +277,12 @@ export function SpeedControls({
                         >
                             <Tag size={18} />
                         </button>
-                        <div className="relative">
-                            <button
-                                onClick={() => setViewMenuOpen(!viewMenuOpen)}
-                                className={`p-3 rounded-full transition-all ${viewMode !== 'standard' ? 'bg-[#DFFF00] text-black shadow-[0_0_15px_rgba(223,255,0,0.5)]' : 'text-zinc-400 hover:text-[#DFFF00] hover:bg-white/10'}`}
-                            >
-                                <Layers size={18} />
-                            </button>
-                            <AnimatePresence>
-                                {viewMenuOpen && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: 10 }}
-                                        className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-zinc-900 border border-white/20 p-1 rounded-xl shadow-2xl flex flex-col gap-1 min-w-[120px] z-[100]"
-                                    >
-                                        <div className="px-3 py-1 text-[9px] text-zinc-500 uppercase font-bold tracking-widest border-b border-white/10 mb-1 text-center">View Mode</div>
-                                        <button 
-                                            onClick={() => { setViewMode('standard'); setViewMenuOpen(false); }}
-                                            className={`px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider text-left hover:bg-white/10 transition-colors ${viewMode === 'standard' ? 'text-[#DFFF00]' : 'text-white'}`}
-                                        >
-                                            Standard
-                                        </button>
-                                        <button 
-                                            onClick={() => { setViewMode('wind'); setViewMenuOpen(false); }}
-                                            className={`px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider text-left hover:bg-white/10 transition-colors ${viewMode === 'wind' ? 'text-[#DFFF00]' : 'text-white'}`}
-                                        >
-                                            Solar Wind
-                                        </button>
-                                        <button 
-                                            onClick={() => { setViewMode('gravity'); setViewMenuOpen(false); }}
-                                            className={`px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider text-left hover:bg-white/10 transition-colors ${viewMode === 'gravity' ? 'text-[#DFFF00]' : 'text-white'}`}
-                                        >
-                                            Gravity Wells
-                                        </button>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
+                        <button
+                            onClick={() => setViewMenuOpen(!viewMenuOpen)}
+                            className={`p-3 rounded-full transition-all ${viewMode !== 'standard' ? 'bg-[#DFFF00] text-black shadow-[0_0_15px_rgba(223,255,0,0.5)]' : 'text-zinc-400 hover:text-[#DFFF00] hover:bg-white/10'}`}
+                        >
+                            <Layers size={18} />
+                        </button>
                         <button
                             onClick={handleRecenter}
                             className="p-3 text-zinc-400 hover:text-white hover:bg-white/10 rounded-full transition-all"
