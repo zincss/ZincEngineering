@@ -54,6 +54,7 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
     const flightAssist = useRef(true); 
     const autopilot = useRef(false); 
     const initialized = useRef(false);
+    const isBooting = useRef(false);
     
     // Mining State
     const miningHeat = useRef(0);
@@ -125,6 +126,9 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
     useEffect(() => {
         if (active && !isLoadingSave && !initialized.current) {
             initialized.current = true;
+            isBooting.current = true;
+            setTimeout(() => { isBooting.current = false; }, 4000); // Blocks input during HUD ignition sequence
+
             velocity.current.set(0, 0, 0); 
             cruiseThrottle.current = 0;
             autopilot.current = false; 
@@ -260,6 +264,7 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
         if (!active) return;
         
         const handleControlEvent = (e: any) => {
+            if (isBooting.current) return;
             if (e.detail.type === 'TOGGLE_PRECISION') isPrecision.current = !isPrecision.current;
             if (e.detail.type === 'ENGAGE_ORBIT') engageOrbit();
             if (e.detail.type === 'TOGGLE_FA') flightAssist.current = !flightAssist.current;
@@ -300,6 +305,7 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
         };
 
         const handleWheel = (e: WheelEvent) => {
+            if (isBooting.current) return;
             const sensitivity = 0.05;
             const delta = -Math.sign(e.deltaY) * sensitivity;
             const maxCruise = currentShip.cruiseSpeed;
@@ -317,6 +323,7 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
         };
 
         const handleKey = (e: KeyboardEvent, isDown: boolean) => {
+            if (isBooting.current) return;
             if (MOVEMENT_KEYS.FORWARD.includes(e.code)) keys.current.forward = isDown;
             if (MOVEMENT_KEYS.BACKWARD.includes(e.code)) keys.current.backward = isDown;
             if (MOVEMENT_KEYS.LEFT.includes(e.code)) keys.current.left = isDown;
@@ -439,16 +446,16 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
 
     useFrame((state, delta) => {
         if (!active) return;
-        const dt = Math.min(delta, 0.1);
-        const precision = isPrecision.current;
-        const orbiting = isOrbiting.current;
-        const ap = autopilot.current;
-
-        // --- UPDATE SHIP GROUP (VISUALS) ---
+        
+        // Update ship group visuals even during booting to ensure they are correctly positioned
         if (shipGroupRef.current) {
             shipGroupRef.current.position.copy(camera.position);
             shipGroupRef.current.quaternion.copy(camera.quaternion);
         }
+
+        if (isBooting.current) return;
+
+        const dt = Math.min(delta, 0.1);
 
         // --- MINING HEAT LOGIC ---
         if (miningState.isMining) {

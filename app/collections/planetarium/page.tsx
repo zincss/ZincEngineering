@@ -25,7 +25,7 @@ import { FlightComputer } from './components/Cinematic/FlightComputer';
 import { generateCommercialFlight } from './components/Cinematic/utils';
 import type { OverlayData, FlightData } from './components/Cinematic/types';
 
-import { DetailPanel, SystemFinder, SpeedControls, CinematicMenu, JobBoard, MissionHUD, JobCompleteOverlay, NavigationComputer, MiningOverlay } from './components/UI';
+import { DetailPanel, SystemFinder, SpeedControls, CinematicMenu, JobBoard, MissionHUD, JobCompleteOverlay, NavigationComputer, MiningOverlay, SceneTransition } from './components/UI';
 
 function TimeDisplay() {
     const { simulationTime, activeSystem } = useSimulation();
@@ -50,6 +50,18 @@ function PlanetariumContent() {
     
     const [isCinematic, setIsCinematic] = useState(false);
     const [isSpaceshipMode, setIsSpaceshipMode] = useState(false);
+    const [isTransitioning, setIsTransitioning] = useState(false);
+
+    const handleModeSwitch = useCallback((targetMode: boolean) => {
+        setIsTransitioning(true);
+        // Switch state halfway through transition
+        setTimeout(() => {
+            setIsSpaceshipMode(targetMode);
+            setTimeout(() => {
+                setIsTransitioning(false);
+            }, 800);
+        }, 600);
+    }, []);
 
     const [cinematicKey, setCinematicKey] = useState(0); 
     const [cinematicOverlay, setCinematicOverlay] = useState<OverlayData>({ show: false });
@@ -364,10 +376,12 @@ function PlanetariumContent() {
                         viewMode={viewMode} setViewMode={setViewMode}
                         handleRecenter={handleRecenter}
                         isSpaceshipMode={isSpaceshipMode}
-                        setIsSpaceshipMode={setIsSpaceshipMode}
+                        setIsSpaceshipMode={handleModeSwitch}
                     />
                 </>
             )}
+
+            <SceneTransition active={isTransitioning} text={isSpaceshipMode ? "Disconnecting Link" : "Establishing Link"} />
 
             <DetailPanel id={isSpaceshipMode ? null : selectedId} onClose={() => setSelectedId(null)} />
             <SystemFinder isOpen={finderOpen} onClose={() => setFinderOpen(false)} onSelect={handleSelect} />

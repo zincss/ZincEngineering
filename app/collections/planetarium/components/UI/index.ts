@@ -10,3 +10,4 @@ export { SystemFinder } from './SystemFinder';
 export { SpeedControls } from './SpeedControls';
 export { NavigationComputer } from './NavigationComputer';
 export { MiningOverlay } from './MiningOverlay';
+export { SceneTransition } from './SceneTransition';
