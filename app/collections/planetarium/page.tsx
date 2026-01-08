@@ -53,17 +53,18 @@ function PlanetariumContent() {
     const [isTransitioning, setIsTransitioning] = useState(false);
     const [transitionText, setTransitionText] = useState("");
 
-    const handleModeSwitch = useCallback((targetMode: boolean) => {
+    const handleModeSwitch = useCallback((targetMode: boolean, onComplete?: () => void) => {
         setTransitionText(targetMode ? "Establishing Neural Link" : "Disconnecting Link");
         setIsTransitioning(true);
         
-        // Slower, more cinematic timing
         setTimeout(() => {
             setIsSpaceshipMode(targetMode);
+            if (onComplete) onComplete();
+            
             setTimeout(() => {
                 setIsTransitioning(false);
-            }, 1200); // Wait for scene to settle
-        }, 1000); // Duration of the 'shutter closed' phase
+            }, 1200);
+        }, 1000);
     }, []);
 
     const [cinematicKey, setCinematicKey] = useState(0); 
@@ -82,7 +83,14 @@ function PlanetariumContent() {
 
     useEffect(() => {
         const handleOpenNav = () => setNavComputerOpen(true);
-        const handleExitShip = () => setIsSpaceshipMode(false);
+        const handleExitShip = (e: any) => {
+            const closestId = e.detail?.closestBodyId;
+            handleModeSwitch(false, () => {
+                if (closestId) {
+                    setDockedAt(closestId);
+                }
+            });
+        };
         
         window.addEventListener('spaceship-open-nav', handleOpenNav);
         window.addEventListener(SPACESHIP_EXIT_EVENT, handleExitShip);

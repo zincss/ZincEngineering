@@ -297,7 +297,23 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
                 updateFuel(fuelRef.current); 
                 updateBoost(boostRef.current);
                 saveGame(camera.position.clone());
-                window.dispatchEvent(new CustomEvent(SPACESHIP_EXIT_EVENT));
+
+                // Find closest body to dock at upon exit
+                let closestId = 'earth';
+                let minSelfDist = Infinity;
+                const physicsTime = timeRef.current;
+                
+                allBodies.forEach(body => {
+                    let bPos = getOrbitalPosition(body, physicsTime);
+                    if (parentMap[body.id]) bPos.add(getOrbitalPosition(parentMap[body.id], physicsTime));
+                    const d = camera.position.distanceTo(bPos);
+                    if (d < minSelfDist) {
+                        minSelfDist = d;
+                        closestId = body.id;
+                    }
+                });
+
+                window.dispatchEvent(new CustomEvent(SPACESHIP_EXIT_EVENT, { detail: { closestBodyId: closestId } }));
             }
             if (e.detail.type === 'SET_TARGET') {
                 lockedTargetRef.current = e.detail.targetId;
@@ -398,7 +414,23 @@ export function SpaceshipController({ active, lockedTargetId, hoveredTargetId }:
                     updateFuel(fuelRef.current); 
                     updateBoost(boostRef.current);
                     saveGame(camera.position.clone());
-                    window.dispatchEvent(new CustomEvent(SPACESHIP_EXIT_EVENT));
+
+                    // Find closest body to dock at upon exit
+                    let closestId = 'earth';
+                    let minSelfDist = Infinity;
+                    const physicsTime = timeRef.current;
+                    
+                    allBodies.forEach(body => {
+                        let bPos = getOrbitalPosition(body, physicsTime);
+                        if (parentMap[body.id]) bPos.add(getOrbitalPosition(parentMap[body.id], physicsTime));
+                        const d = camera.position.distanceTo(bPos);
+                        if (d < minSelfDist) {
+                            minSelfDist = d;
+                            closestId = body.id;
+                        }
+                    });
+
+                    window.dispatchEvent(new CustomEvent(SPACESHIP_EXIT_EVENT, { detail: { closestBodyId: closestId } }));
                 }
                 if (MOVEMENT_KEYS.FORWARD.includes(e.code) || MOVEMENT_KEYS.BACKWARD.includes(e.code)) {
                     cruiseThrottle.current = 0;
