@@ -585,65 +585,84 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
             {/* --- STAGE: IDLE --- */}
             <AnimatePresence>
                 {stage === 'IDLE' && (
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, filter: 'blur(10px)' }} className="w-full max-w-4xl flex flex-col items-center z-10">
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, filter: 'blur(10px)' }} className="w-full max-w-5xl flex flex-col items-center z-10">
                         {/* PACK SELECTION SCROLL - OPTIMIZED FOR MOBILE */}
                         <div 
                             ref={scrollContainerRef}
-                            className="flex items-center gap-8 mb-8 md:mb-12 h-[350px] w-full overflow-x-auto no-scrollbar snap-x snap-mandatory px-[calc(50%-6rem)] md:px-4 md:justify-center scroll-smooth"
+                            className="flex items-center gap-10 mb-12 md:mb-16 h-[400px] w-full overflow-x-auto no-scrollbar snap-x snap-mandatory px-[calc(50%-6rem)] md:px-8 md:justify-center scroll-smooth pb-4"
                         >
                             {['BASE', 'CARS', 'GRIDIRON', 'TEST'].map((packId) => (
                                 <div 
                                     key={packId} 
                                     id={`pack-${packId}`}
                                     onClick={() => selectPack(packId as any)} 
-                                    className="cursor-pointer snap-center shrink-0 transition-transform duration-300 active:scale-95"
+                                    className="cursor-pointer snap-center shrink-0 transition-all duration-500 active:scale-95"
                                 >
                                     <FoilPack config={PACK_CONFIG[packId as keyof typeof PACK_CONFIG]} isSelected={selectedPack === packId} />
                                 </div>
                             ))}
                         </div>
 
-                        <div className="w-full max-w-md bg-zinc-900/50 backdrop-blur-md rounded-2xl border border-zinc-800 p-6 shadow-xl">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-white font-black uppercase italic tracking-tighter text-xl">{currentConfig.name}</h3>
-                                <div className="flex gap-2">
-                                    <button onClick={() => setShowInfo(!showInfo)} className="p-2 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors">
-                                        {showInfo ? <X size={18} /> : <Info size={18} />}
-                                    </button>
+                        <div className="w-full max-w-xl bg-white/[0.02] backdrop-blur-3xl rounded-[2.5rem] border border-white/5 p-8 sm:p-10 shadow-2xl relative overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+                            
+                            <div className="flex justify-between items-start mb-8 relative z-10">
+                                <div>
+                                    <div className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-[0.3em] mb-2 flex items-center gap-2">
+                                        Collection Series
+                                        <div className="w-1.5 h-1.5 rounded-full bg-[#DFFF00] animate-pulse" />
+                                    </div>
+                                    <h3 className="text-3xl font-sans font-black tracking-tighter text-white leading-none uppercase">{currentConfig.name}</h3>
                                 </div>
+                                <button onClick={() => setShowInfo(!showInfo)} className="p-3 bg-white/5 rounded-full text-zinc-400 hover:text-white transition-all hover:bg-white/10 border border-white/5">
+                                    {showInfo ? <X size={20} /> : <Info size={20} />}
+                                </button>
                             </div>
 
                             <AnimatePresence>
                                 {showInfo && currentConfig.desc && (
-                                    <motion.div initial={{ height: 0, opacity: 0, marginBottom: 0 }} animate={{ height: 'auto', opacity: 1, marginBottom: 24 }} exit={{ height: 0, opacity: 0, marginBottom: 0 }} className="overflow-hidden bg-zinc-950/50 rounded-xl border border-zinc-700/50">
-                                        <div className="p-4 text-xs font-mono text-zinc-300 leading-relaxed">{currentConfig.desc}</div>
+                                    <motion.div 
+                                        initial={{ height: 0, opacity: 0, marginBottom: 0 }} 
+                                        animate={{ height: 'auto', opacity: 1, marginBottom: 32 }} 
+                                        exit={{ height: 0, opacity: 0, marginBottom: 0 }} 
+                                        className="overflow-hidden bg-black/40 rounded-2xl border border-white/5 relative z-10"
+                                    >
+                                        <div className="p-5 text-xs font-mono text-zinc-400 leading-relaxed italic">{currentConfig.desc}</div>
                                     </motion.div>
                                 )}
                             </AnimatePresence>
 
-                            <div className="grid grid-cols-2 gap-x-4 gap-y-1 mb-6 text-[10px] font-mono uppercase bg-black/40 p-4 rounded-xl border border-white/5">
+                            <div className="grid grid-cols-2 gap-x-8 gap-y-3 mb-10 text-[10px] font-mono uppercase bg-white/[0.02] p-6 rounded-2xl border border-white/5 relative z-10">
                                 {RARITY_ODDS.map((odd, i) => (
-                                    <div key={i} className="flex justify-between items-center">
-                                        <span className={`font-bold ${odd.color}`}>{odd.label}</span>
-                                        <span className="text-zinc-500">{odd.chance}</span>
+                                    <div key={i} className="flex justify-between items-center border-b border-white/[0.03] pb-1">
+                                        <span className={`font-bold tracking-widest ${odd.color}`}>{odd.label}</span>
+                                        <span className="text-zinc-500 tabular-nums">{odd.chance}</span>
                                     </div>
                                 ))}
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3 mb-6">
+                            <div className="grid grid-cols-2 gap-4 mb-8 relative z-10">
                                 {[1, 3].map(qty => (
-                                    <button key={qty} onClick={() => setPackQuantity(qty as 1|3)} className={`p-3 rounded-xl border flex items-center justify-center gap-2 transition-all ${packQuantity === qty ? 'bg-zinc-800 border-white/20 text-white shadow-lg' : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}>
-                                        {qty === 1 ? <Layers size={16} /> : <Grid3X3 size={16} />}
-                                        <span className="font-bold text-xs">{qty === 1 ? '1 PACK' : '3 PACKS'}</span>
+                                    <button 
+                                        key={qty} 
+                                        onClick={() => setPackQuantity(qty as 1|3)} 
+                                        className={`p-4 rounded-2xl border flex items-center justify-center gap-3 transition-all duration-300 ${packQuantity === qty ? 'bg-white text-black border-white shadow-[0_10px_30px_rgba(255,255,255,0.1)] scale-[1.02]' : 'bg-white/[0.03] border-white/5 text-zinc-500 hover:text-white hover:border-white/10'}`}
+                                    >
+                                        {qty === 1 ? <Layers size={18} /> : <Grid3X3 size={18} />}
+                                        <span className="font-black text-[10px] uppercase tracking-[0.2em]">{qty === 1 ? 'Single Unit' : 'Triple Stack'}</span>
                                     </button>
                                 ))}
                             </div>
 
-                            <button onClick={handleOpenPack} disabled={!isReady || !canAfford || currentConfig.comingSoon} className={`w-full py-4 rounded-xl font-black uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-3 ${currentConfig.comingSoon ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' : 'bg-white text-black hover:bg-[#DFFF00]'}`}>
-                                {authLoading ? <Loader2 size={18} className="animate-spin" /> : <Zap size={18} fill="currentColor" />}
+                            <button 
+                                onClick={handleOpenPack} 
+                                disabled={!isReady || !canAfford || currentConfig.comingSoon} 
+                                className={`w-full py-5 rounded-[2rem] font-black uppercase tracking-[0.3em] transition-all shadow-2xl flex items-center justify-center gap-4 relative z-10 text-xs active:scale-[0.98] ${currentConfig.comingSoon ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' : 'bg-white text-black hover:bg-[#DFFF00] hover:shadow-[#DFFF00]/20'}`}
+                            >
+                                {authLoading ? <Loader2 size={20} className="animate-spin" /> : <Zap size={20} fill="currentColor" />}
                                 <span>{buttonText}</span>
                             </button>
-                            {error && <div className="text-red-500 text-center text-xs font-mono mt-4">{error}</div>}
+                            {error && <div className="text-red-500 text-center text-[10px] font-mono mt-6 uppercase tracking-widest animate-pulse">{error}</div>}
                         </div>
                     </motion.div>
                 )}
