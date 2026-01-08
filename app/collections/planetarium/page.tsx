@@ -96,28 +96,14 @@ function PlanetariumContent() {
         // 1. Initial Load Logic
         if (!initialLoadRef.current) {
             initialLoadRef.current = true;
-
-            // Play Intro for Solar System
-            if (activeSystem === 'solar') {
-                setIsCinematic(true);
-                setCurrentTourId('intro_reveal');
-                setCinematicKey(k => k + 1);
-                setCinematicOverlay({ show: false });
-                setFlightData({ active: false });
-            } 
-            // Otherwise (Fantasy System or specific override), standard resume
-            else if (user && !dockedAt && savedPosition) {
-                setIsSpaceshipMode(true);
-            }
+            // Removed auto-cinematic and auto-spaceship mode to start in Default View
         }
         
-        // 2. Undocking: If we just undocked, jump to ship (only for logged in users)
+        // 2. Undocking Logic
         if (user) {
             const wasDocked = prevDocked.current;
             const isDocked = !!dockedAt;
-            if (wasDocked && !isDocked && !isCinematic) {
-                setIsSpaceshipMode(true);
-            }
+            // No longer auto-engaging spaceship mode on undock
             prevDocked.current = isDocked;
         }
     }, [isLoadingSave, activeSystem, dockedAt, savedPosition, isCinematic, user]);
@@ -176,16 +162,9 @@ function PlanetariumContent() {
     };
 
     const stopCinematic = () => {
-        const wasIntro = currentTourId === 'intro_reveal';
-        
         setIsCinematic(false);
         setCinematicOverlay({ show: false });
         setFlightData({ active: false });
-
-        // If we just finished the intro and the user is logged in/ready to fly, engage spaceship mode
-        if (wasIntro && user && !dockedAt && savedPosition) {
-            setIsSpaceshipMode(true);
-        }
     };
 
     const scalePositions = useMemo(() => {
