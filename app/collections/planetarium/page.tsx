@@ -51,16 +51,19 @@ function PlanetariumContent() {
     const [isCinematic, setIsCinematic] = useState(false);
     const [isSpaceshipMode, setIsSpaceshipMode] = useState(false);
     const [isTransitioning, setIsTransitioning] = useState(false);
+    const [transitionText, setTransitionText] = useState("");
 
     const handleModeSwitch = useCallback((targetMode: boolean) => {
+        setTransitionText(targetMode ? "Establishing Neural Link" : "Disconnecting Link");
         setIsTransitioning(true);
-        // Switch state halfway through transition
+        
+        // Slower, more cinematic timing
         setTimeout(() => {
             setIsSpaceshipMode(targetMode);
             setTimeout(() => {
                 setIsTransitioning(false);
-            }, 800);
-        }, 600);
+            }, 1200); // Wait for scene to settle
+        }, 1000); // Duration of the 'shutter closed' phase
     }, []);
 
     const [cinematicKey, setCinematicKey] = useState(0); 
@@ -381,7 +384,7 @@ function PlanetariumContent() {
                 </>
             )}
 
-            <SceneTransition active={isTransitioning} text={isSpaceshipMode ? "Disconnecting Link" : "Establishing Link"} />
+            <SceneTransition active={isTransitioning} text={transitionText} />
 
             <DetailPanel id={isSpaceshipMode ? null : selectedId} onClose={() => setSelectedId(null)} />
             <SystemFinder isOpen={finderOpen} onClose={() => setFinderOpen(false)} onSelect={handleSelect} />

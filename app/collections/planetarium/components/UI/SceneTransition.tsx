@@ -11,7 +11,7 @@ export function SceneTransition({ active, text = "Initializing Link" }: { active
                     initial={{ scaleY: 0, opacity: 0 }}
                     animate={{ scaleY: 1, opacity: 1 }}
                     exit={{ scaleY: 0, opacity: 0 }}
-                    transition={{ duration: 0.6, ease: [0.43, 0.13, 0.23, 0.96] }}
+                    transition={{ duration: 1.0, ease: [0.76, 0, 0.24, 1] }}
                     className="fixed inset-0 z-[200] bg-[#050505] origin-center flex items-center justify-center overflow-hidden pointer-events-none"
                 >
                     {/* Background Texture */}
@@ -40,10 +40,10 @@ export function SceneTransition({ active, text = "Initializing Link" }: { active
                         />
                         
                         <motion.span 
-                            initial={{ opacity: 0, letterSpacing: "0.5em" }}
-                            animate={{ opacity: 1, letterSpacing: "1.2em" }}
-                            transition={{ delay: 0.3, duration: 1 }}
-                            className="text-[10px] font-mono text-[#DFFF00] uppercase font-bold pl-[1.2em]"
+                            initial={{ opacity: 0, scale: 0.9, letterSpacing: "0.5em" }}
+                            animate={{ opacity: 1, scale: 1, letterSpacing: "1.2em" }}
+                            transition={{ delay: 0.4, duration: 1.2, ease: "easeOut" }}
+                            className="text-[11px] font-mono text-[#DFFF00] uppercase font-black pl-[1.2em] drop-shadow-[0_0_10px_rgba(223,255,0,0.5)]"
                         >
                             {text}
                         </motion.span>
