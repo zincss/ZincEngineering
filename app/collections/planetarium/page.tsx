@@ -39,6 +39,7 @@ function TimeDisplay() {
 function PlanetariumContent() {
     const { setTime, setSpeed, activeSystem, currentData, dockedAt, setDockedAt, lastCompletedJob, isLoadingSave, savedPosition, user } = useSimulation();
     
+    // --- 1. STATE DECLARATIONS (TOP LEVEL) ---
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [hoveredId, setHoveredId] = useState<string | null>(null); 
     const [finderOpen, setFinderOpen] = useState(false);
@@ -52,6 +53,17 @@ function PlanetariumContent() {
     const [isSpaceshipMode, setIsSpaceshipMode] = useState(false);
     const [isTransitioning, setIsTransitioning] = useState(false);
     const [transitionText, setTransitionText] = useState("");
+
+    const [cinematicKey, setCinematicKey] = useState(0); 
+    const [cinematicOverlay, setCinematicOverlay] = useState<OverlayData>({ show: false });
+    const [flightData, setFlightData] = useState<FlightData>({ active: false });
+    const [currentTourId, setCurrentTourId] = useState('grand_tour');
+
+    const planetRefs = useRef<Record<string, THREE.Object3D>>({});
+    const initialLoadRef = useRef(false);
+    const prevDocked = useRef(!!dockedAt);
+
+    // --- 2. LOGIC & CALLBACKS ---
 
     const handleModeSwitch = useCallback((targetMode: boolean, onComplete?: () => void) => {
         setTransitionText(targetMode ? "Establishing Neural Link" : "Disconnecting Link");
@@ -140,7 +152,7 @@ function PlanetariumContent() {
                 setCinematicKey(k => k + 1);
                 setCinematicOverlay({ show: false });
                 setFlightData({ active: false });
-            }
+            } 
         }
         
         // 2. Launch/Undock Logic: Hub -> Spaceship
@@ -150,11 +162,12 @@ function PlanetariumContent() {
             
             // If user just undocked manually (Launch from Hub)
             if (wasDocked && !isDocked && !isCinematic) {
-                handleModeSwitch(true); // Establish link to cockpit
+                // FIXED: Direct state change, no transition for undocking as requested
+                setIsSpaceshipMode(true); 
             }
             prevDocked.current = isDocked;
         }
-    }, [isLoadingSave, activeSystem, dockedAt, user, handleModeSwitch, isCinematic]);
+    }, [isLoadingSave, activeSystem, dockedAt, user, isCinematic]);
 
 
     const handleSelect = useCallback((id: string | null) => {
