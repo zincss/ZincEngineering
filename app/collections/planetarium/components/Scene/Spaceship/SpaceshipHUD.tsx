@@ -999,6 +999,190 @@ const NavigationUI = ({ onClose, currentData, manufacturer, hudColor, onSetTarge
     );
 };
 
+// --- 6. MARSE LUXURY HUD (Integrated Dashboard) ---
+
+const MarseLuxuryHUD = ({ 
+    active, isBooting, bootPhase, isNavOpen, setIsNavOpen, dispatchControl, 
+    speed, fuel, maxFuel, boost, maxBoost, isBoosting, 
+    shipName, targetName, isOrbiting, canOrbit, inDockingRange, 
+    handleDock, credits, miningState, flightAssist, isPrecision, 
+    autopilot, getEta, manufacturer, hud, handleExit,
+    miningHeat, isOverheated, reticlePos, isCockpitMode, currentData, onSetTarget
+}: any) => {
+
+    return (
+        <div className={`fixed inset-0 z-[100] flex flex-col justify-between overflow-hidden font-sans ${isNavOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}>
+            <AnimatePresence>
+                {isBooting && <IgnitionSequence manufacturer={manufacturer} color={hud.primary} phase={bootPhase} />}
+                {isNavOpen && (
+                    <NavigationUI 
+                        onClose={() => setIsNavOpen(false)}
+                        currentData={currentData}
+                        manufacturer={manufacturer}
+                        hudColor={hud.primary}
+                        onSetTarget={onSetTarget}
+                    />
+                )}
+            </AnimatePresence>
+
+            {/* MARSE TOP BAR - Minimalist */}
+            {!isBooting && !isNavOpen && (
+                <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="w-full flex justify-between items-start p-8 pointer-events-none">
+                    <BrandedLogo manufacturer={manufacturer} />
+                    <div className="flex flex-col items-center gap-2">
+                        {/* Status Pillars */}
+                        <div className="flex gap-4">
+                             <div className={`px-4 py-1 rounded-full border border-white/10 backdrop-blur-md transition-all ${isPrecision ? 'bg-[#D4AF37]/20 border-[#D4AF37]/50 text-[#D4AF37]' : 'bg-black/40 text-zinc-600'}`}>
+                                <span className="text-[9px] font-serif uppercase tracking-[0.2em]">Precision</span>
+                             </div>
+                             <div className={`px-4 py-1 rounded-full border border-white/10 backdrop-blur-md transition-all ${!flightAssist ? 'bg-red-900/20 border-red-500/50 text-red-400' : 'bg-black/40 text-zinc-600'}`}>
+                                <span className="text-[9px] font-serif uppercase tracking-[0.2em]">{!flightAssist ? 'Drift Active' : 'Assist On'}</span>
+                             </div>
+                        </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2 pointer-events-auto">
+                         <div className="flex items-center gap-3 bg-[#050505]/80 backdrop-blur-xl p-2 px-6 rounded-full border border-[#D4AF37]/20 shadow-xl">
+                            <span className="text-[10px] font-serif text-[#D4AF37] uppercase tracking-widest">Liquid Assets</span>
+                            <span className="text-lg font-serif text-white tabular-nums">{credits.toLocaleString()}</span>
+                         </div>
+                         <div className="flex gap-2 mt-2">
+                            <button onClick={() => setIsNavOpen(true)} className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors text-zinc-400 hover:text-white">
+                                <Navigation size={14} />
+                            </button>
+                            <button onClick={handleExit} className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center hover:bg-red-900/20 hover:border-red-500/50 transition-colors text-zinc-400 hover:text-red-400">
+                                <LogOut size={14} />
+                            </button>
+                         </div>
+                    </div>
+                </motion.div>
+            )}
+
+            {/* CENTER RETICLE (Marse Custom) */}
+            {!isBooting && !isNavOpen && (
+                <div className="absolute pointer-events-none" style={{ left: '50%', top: '50%', transform: `translate(calc(-50% + ${reticlePos.x * 50}vw), calc(-50% + ${-reticlePos.y * 50}vh))` }}>
+                    <div className="w-12 h-12 flex items-center justify-center relative opacity-60">
+                         <div className="absolute w-[1px] h-full bg-white/20" />
+                         <div className="absolute w-full h-[1px] bg-white/20" />
+                         <div className="w-1.5 h-1.5 bg-[#D4AF37] rounded-full shadow-[0_0_10px_#D4AF37]" />
+                    </div>
+                </div>
+            )}
+            
+            {/* MARSE DASHBOARD - The "Golden Arc" */}
+            {!isBooting && !isNavOpen && !isCockpitMode && (
+                <motion.div 
+                    initial={{ y: 100, opacity: 0 }} 
+                    animate={{ y: 0, opacity: 1 }} 
+                    transition={{ delay: 0.2, type: "spring", stiffness: 50 }}
+                    className="w-full flex justify-center items-end pb-8 pointer-events-auto"
+                >
+                    <div className="relative w-[90%] max-w-6xl h-32 bg-[#050505]/90 backdrop-blur-2xl rounded-[3rem] border border-[#D4AF37]/20 shadow-[0_20px_60px_-10px_rgba(0,0,0,0.9)] flex items-center justify-between px-12 overflow-hidden">
+                        
+                        {/* Background Luxury Grain/Gradient */}
+                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(212,175,55,0.05)_0%,transparent_70%)] pointer-events-none" />
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-[1px] bg-gradient-to-r from-transparent via-[#D4AF37]/60 to-transparent shadow-[0_0_15px_#D4AF37]" />
+
+                        {/* LEFT: Guidance & Nav */}
+                        <div className="flex-1 flex flex-col gap-2 items-start z-10">
+                            <div className="flex items-center gap-3">
+                                <Target size={14} className="text-[#D4AF37]" />
+                                <span className="text-[9px] font-sans font-medium text-[#D4AF37] uppercase tracking-[0.3em] opacity-80">Guidance System</span>
+                            </div>
+                            <span className="text-2xl font-serif text-white uppercase tracking-widest truncate max-w-[250px]">{targetName}</span>
+                            
+                            <div className="flex gap-3 mt-1">
+                                {isOrbiting ? (
+                                    <button onClick={handleDock} disabled={!inDockingRange} className="flex items-center gap-2 px-4 py-1 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/30 hover:bg-[#D4AF37]/20 transition-all text-white text-[9px] uppercase tracking-widest font-bold disabled:opacity-30">
+                                        Arrive <ArrowRightCircle size={10} />
+                                    </button>
+                                ) : canOrbit ? (
+                                    <button onClick={() => dispatchControl('ENGAGE_ORBIT')} className="flex items-center gap-2 px-4 py-1 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-white text-[9px] uppercase tracking-widest font-bold">
+                                        Align Orbit <RefreshCw size={10} />
+                                    </button>
+                                ) : (
+                                     <button onClick={() => setIsNavOpen(true)} className="flex items-center gap-2 px-4 py-1 rounded-full bg-transparent border border-white/10 hover:border-[#D4AF37]/50 transition-all text-zinc-400 hover:text-[#D4AF37] text-[9px] uppercase tracking-widest">
+                                        Set Dest
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* CENTER: Chronograph Speedometer */}
+                        <div className="flex flex-col items-center justify-center z-20 relative px-12">
+                            <div className="absolute inset-0 border-x border-white/5 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
+                            <span className="text-[9px] font-serif text-[#D4AF37] uppercase tracking-[0.4em] mb-2 opacity-60">Vitesse</span>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-7xl font-serif font-light text-white tabular-nums tracking-tighter drop-shadow-2xl">{speed.toFixed(0)}</span>
+                                <span className="text-xs font-sans font-bold text-zinc-600 uppercase tracking-widest">km/s</span>
+                            </div>
+                            {/* Speed Arc */}
+                            <div className="w-48 h-1 bg-zinc-900 rounded-full mt-4 overflow-hidden relative">
+                                <div className="absolute inset-0 bg-[#D4AF37]/20" />
+                                <motion.div 
+                                    className="h-full bg-[#D4AF37] shadow-[0_0_15px_#D4AF37]" 
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${Math.min(100, (speed/40)*100)}%` }}
+                                    transition={{ type: "spring", stiffness: 100 }}
+                                />
+                            </div>
+                        </div>
+
+                        {/* RIGHT: Systems & Diagnostics */}
+                        <div className="flex-1 flex flex-col gap-4 items-end z-10 text-right">
+                            {/* Fuel Line */}
+                            <div className="w-full max-w-[200px] flex flex-col gap-1">
+                                <div className="flex justify-between items-baseline">
+                                    <span className="text-[9px] font-sans font-medium text-white uppercase tracking-[0.2em] opacity-40">Essence</span>
+                                    <span className="text-[10px] font-serif text-[#D4AF37] tabular-nums">{Math.floor(fuel)}</span>
+                                </div>
+                                <div className="w-full h-[1px] bg-zinc-800">
+                                    <div className="h-full bg-white transition-all duration-500" style={{ width: `${(fuel/maxFuel)*100}%` }} />
+                                </div>
+                            </div>
+                            
+                            {/* Boost Line */}
+                            <div className="w-full max-w-[200px] flex flex-col gap-1">
+                                <div className="flex justify-between items-baseline">
+                                    <span className="text-[9px] font-sans font-medium text-white uppercase tracking-[0.2em] opacity-40">Force</span>
+                                    <span className="text-[10px] font-serif text-[#D4AF37] tabular-nums">{Math.floor(boost)}</span>
+                                </div>
+                                <div className="w-full h-[1px] bg-zinc-800">
+                                    <div className={`h-full bg-[#D4AF37] transition-all duration-300 shadow-[0_0_10px_#D4AF37] ${isBoosting ? 'brightness-150' : ''}`} style={{ width: `${(boost/maxBoost)*100}%` }} />
+                                </div>
+                            </div>
+
+                            {/* Controls Row */}
+                            <div className="flex gap-2 mt-1">
+                                <button onClick={() => dispatchControl('TOGGLE_PRECISION')} className={`w-6 h-6 rounded-full border flex items-center justify-center transition-all ${isPrecision ? 'bg-[#D4AF37] border-[#D4AF37] text-black' : 'border-zinc-800 text-zinc-600 hover:border-zinc-600'}`}>
+                                    <Crosshair size={10} />
+                                </button>
+                                <button onClick={() => dispatchControl('TOGGLE_FA')} className={`w-6 h-6 rounded-full border flex items-center justify-center transition-all ${!flightAssist ? 'bg-red-500 border-red-500 text-black' : 'border-zinc-800 text-zinc-600 hover:border-zinc-600'}`}>
+                                    <Plane size={10} />
+                                </button>
+                                <button onClick={() => dispatchControl('TOGGLE_AUTOPILOT')} className={`w-6 h-6 rounded-full border flex items-center justify-center transition-all ${autopilot ? 'bg-blue-500 border-blue-500 text-black' : 'border-zinc-800 text-zinc-600 hover:border-zinc-600'}`}>
+                                    <Activity size={10} />
+                                </button>
+                                <button onClick={() => dispatchControl('MINING')} className={`w-6 h-6 rounded-full border flex items-center justify-center transition-all ${miningState.isMining ? 'bg-purple-500 border-purple-500 text-black' : 'border-zinc-800 text-zinc-600 hover:border-zinc-600'}`}>
+                                    <Pickaxe size={10} />
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </motion.div>
+            )}
+
+            {/* HEAT ALERT (Subtle for Marse) */}
+            {!isCockpitMode && isOverheated && (
+                 <div className="absolute bottom-40 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 bg-red-950/80 border border-red-500/30 rounded-full animate-pulse">
+                     <AlertTriangle size={14} className="text-red-400" />
+                     <span className="text-[9px] font-serif uppercase tracking-widest text-red-200">Thermal Critical</span>
+                 </div>
+            )}
+        </div>
+    );
+};
+
 // --- 5. MAIN HUD COMPONENT ---
 
 export function SpaceshipHUD({ active }: SpaceshipHUDProps) {
@@ -1130,6 +1314,25 @@ export function SpaceshipHUD({ active }: SpaceshipHUDProps) {
     const handleExit = useCallback(() => dispatchControl('EXIT'), [dispatchControl]);
 
     if (!active) return null;
+
+    // --- MARSE CUSTOM RENDER PATH ---
+    if (manufacturer === "Marse Movement") {
+        return (
+            <MarseLuxuryHUD 
+                active={active} isBooting={isBooting} bootPhase={bootPhase}
+                isNavOpen={isNavOpen} setIsNavOpen={setIsNavOpen} dispatchControl={dispatchControl}
+                speed={speed} fuel={fuel} maxFuel={maxFuel} boost={boost} maxBoost={maxBoost}
+                isBoosting={isBoosting} shipName={shipName} targetName={targetName}
+                isOrbiting={isOrbiting} canOrbit={canOrbit} inDockingRange={inDockingRange}
+                handleDock={handleDock} credits={credits} miningState={miningState}
+                flightAssist={flightAssist} isPrecision={isPrecision} autopilot={autopilot}
+                getEta={getEta} manufacturer={manufacturer} hud={hud} handleExit={handleExit}
+                miningHeat={miningHeat} isOverheated={isOverheated} reticlePos={reticlePos}
+                isCockpitMode={isCockpitMode} currentData={currentData}
+                onSetTarget={(id: string) => dispatchControl('SET_TARGET', { targetId: id })}
+            />
+        );
+    }
 
     return (
         <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-between p-6 pb-8 overflow-hidden font-sans ${isFreeLook || isNavOpen ? 'pointer-events-auto cursor-default' : 'pointer-events-none'}`}>
