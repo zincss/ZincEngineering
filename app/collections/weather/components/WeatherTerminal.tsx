@@ -652,16 +652,16 @@ export default function WeatherTerminal() {
 
                       {/* SEARCH BAR */}
                       <div className="w-full max-w-2xl relative mt-[-2rem] flex flex-col items-center gap-8">
-                          <div className="w-full bg-black/40 md:bg-white/10 backdrop-blur-md md:backdrop-blur-3xl border border-white/20 rounded-full h-16 md:h-24 flex items-center px-4 md:px-6 shadow-2xl focus-within:border-[var(--accent)] transition-all" style={{ borderColor: `${accentColor}33` }}>
+                          <div className="w-full bg-black/40 md:bg-white/10 backdrop-blur-md md:backdrop-blur-3xl border border-white/20 rounded-full h-14 md:h-24 flex items-center px-3 md:px-6 shadow-2xl focus-within:border-[var(--accent)] transition-all" style={{ borderColor: `${accentColor}33` }}>
                               <div className="pl-2 md:pl-6 text-white/40 shrink-0">
-                                {isSearchingGeo ? <Loader2 size={20} className="animate-spin" /> : <Search size={20} className="md:w-6 md:h-6" />}
+                                {isSearchingGeo ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} className="md:w-6 md:h-6" />}
                               </div>
                               <input 
                                 type="text"
                                 value={input}
                                 onChange={handleInputChange}
                                 placeholder="Search for a city..."
-                                className="flex-1 bg-transparent border-none outline-none px-4 md:px-6 text-lg md:text-2xl font-medium text-white placeholder:text-white/40"
+                                className="flex-1 bg-transparent border-none outline-none px-4 md:px-6 text-base md:text-2xl font-medium text-white placeholder:text-white/40"
                               />
                               <button 
                                 onClick={(e) => { 
@@ -744,37 +744,37 @@ export default function WeatherTerminal() {
                       <motion.div 
                         initial={{ y: -20, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
-                        className="w-full bg-white/5 backdrop-blur-md md:backdrop-blur-3xl border border-white/10 rounded-full p-2 md:p-3 flex items-center justify-between px-4 md:px-6 shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+                        className="w-full bg-white/5 backdrop-blur-md md:backdrop-blur-3xl border border-white/10 rounded-2xl md:rounded-full p-2 md:p-3 flex flex-col md:flex-row items-center justify-between gap-3 md:px-6 shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
                       >
-                          <div className="flex items-center gap-2 md:gap-4 flex-1">
+                          <div className="flex items-center gap-2 md:gap-4 w-full md:w-auto">
                               <button 
                                 onClick={reset} 
                                 title="Back to Search"
-                                className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-white/5 flex items-center justify-center hover:bg-white hover:text-black transition-all shrink-0 border border-white/10"
+                                className="h-9 w-9 md:h-12 md:w-12 rounded-full bg-white/5 flex items-center justify-center hover:bg-white hover:text-black transition-all shrink-0 border border-white/10"
                               >
-                                  <ChevronLeft size={20} />
+                                  <ChevronLeft size={18} />
                               </button>
                               
                               <button 
                                 onClick={() => router.push('/')} 
                                 title="Exit Weather"
-                                className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-white/5 flex items-center justify-center hover:bg-red-500/20 hover:text-red-500 transition-all shrink-0 border border-white/10 group"
+                                className="h-9 w-9 md:h-12 md:w-12 rounded-full bg-white/5 flex items-center justify-center hover:bg-red-500/20 hover:text-red-500 transition-all shrink-0 border border-white/10 group"
                               >
-                                  <X size={18} className="group-hover:rotate-90 transition-transform" />
+                                  <X size={16} className="group-hover:rotate-90 transition-transform" />
                               </button>
 
-                              <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-4 overflow-hidden ml-2">
-                                  <span className="text-[10px] md:text-xs font-black text-white/40 uppercase tracking-widest whitespace-nowrap drop-shadow-sm">Location</span>
-                                  <span className="text-sm md:text-base font-bold text-white truncate drop-shadow-md">
+                              <div className="flex flex-col md:flex-row md:items-center gap-0.5 md:gap-4 overflow-hidden ml-1">
+                                  <span className="text-[8px] md:text-xs font-black text-white/40 uppercase tracking-widest whitespace-nowrap drop-shadow-sm">Location</span>
+                                  <span className="text-xs md:text-base font-bold text-white truncate drop-shadow-md">
                                     {weather?.location || ''}
                                   </span>
                               </div>
                           </div>
 
-                          <div className="flex items-center gap-3 md:gap-8">
+                          <div className="flex items-center justify-between md:justify-end gap-2 md:gap-8 w-full md:w-auto border-t border-white/5 md:border-none pt-2 md:pt-0">
                               <button 
                                 onClick={toggleUnit}
-                                className="h-10 px-4 md:h-12 md:px-6 rounded-full bg-white/5 border border-white/10 hover:bg-white hover:text-black transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
+                                className="h-9 px-3 md:h-12 md:px-6 rounded-full bg-white/5 border border-white/10 hover:bg-white hover:text-black transition-all flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-widest"
                               >
                                 <span style={{ color: unit === 'C' ? accentColor : undefined }} className={unit !== 'C' ? 'text-white/40' : ''}>°C</span>
                                 <div className="w-px h-3 bg-white/10" />
@@ -786,12 +786,10 @@ export default function WeatherTerminal() {
                                   <span>It's {weather.condition.toLowerCase()} right now</span>
                               </div>
 
-                              <div className="h-8 w-px bg-white/10 hidden md:block" />
-
                               <button 
                                 onClick={() => saveHomeLocation(weather)}
                                 disabled={isSavingHome}
-                                className={`flex items-center gap-2 px-5 py-2 md:px-6 md:py-2.5 rounded-full border transition-all text-[10px] font-bold lowercase tracking-[0.1em] shrink-0
+                                className={`flex items-center justify-center md:justify-start gap-2 h-9 px-4 md:h-12 md:px-6 rounded-full border transition-all text-[9px] md:text-[10px] font-bold lowercase tracking-[0.1em] shrink-0
                                   ${isSavingHome ? 'bg-[var(--accent)] border-[var(--accent)] text-black' : 
                                     homeLocation?.name === (weather?.location || weather?.name) ? 'bg-white/10 border-white/20' : 
                                     'bg-white/5 border-white/10 text-white/60 hover:bg-white hover:text-black'}
@@ -804,9 +802,9 @@ export default function WeatherTerminal() {
                               >
                                 {isSavingHome ? <Loader2 size={12} className="animate-spin" /> : <Home size={12} />}
                                 <span className="capitalize">
-                                  {isSavingHome ? 'Saving...' : 
-                                   homeLocation?.name === (weather?.location || weather?.name) ? 'Current home' : 
-                                   'Set as home'}
+                                  {isSavingHome ? 'Saving' : 
+                                   homeLocation?.name === (weather?.location || weather?.name) ? (isMobile ? 'Home' : 'Current home') : 
+                                   (isMobile ? 'Set Home' : 'Set as home')}
                                 </span>
                               </button>
                           </div>
