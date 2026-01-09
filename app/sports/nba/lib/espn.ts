@@ -282,6 +282,11 @@ export async function fetchPlayerProfile(id: string) {
             return 'Unknown';
         };
 
+        let experience = 'R';
+        if (ath.experience && ath.experience.years !== undefined) {
+            experience = ath.experience.years === 0 ? 'R' : ath.experience.years.toString();
+        }
+
         return {
             id: ath.id,
             name: ath.displayName,
@@ -292,7 +297,7 @@ export async function fetchPlayerProfile(id: string) {
             pos: ath.position?.abbreviation,
             height: ath.displayHeight,
             weight: ath.displayWeight,
-            experience: ath.experience?.years || 'R',
+            experience: experience,
             age: ath.age || '-',
             birthPlace: getBirthPlace(),
             college: ath.college?.name || ath.displayCollege || 'None',

@@ -2,48 +2,29 @@
 'use server'
 
 import { getOrFetchResource } from '@/lib/data-manager';
-import * as ESPN from './lib/espn';
+import * as ESPN from '@/app/sports/services/espn';
+import { revalidatePath } from 'next/cache';
 
-// CONFIG: How long (in hours) do we trust the DB snapshot?
 const CACHE_CONFIG = {
   SCORES: 0.05,    
   STANDINGS: 1,    
-  LEADERS: 12,     
+  LEADERS: 6,      
   PROFILES: 24     
 };
-
-export async function searchPlayers(query: string) {
-    if (!query || query.length < 2) return [];
-    try {
-        const res = await fetch(`https://site.web.api.espn.com/apis/common/v3/search?region=us&lang=en&query=${encodeURIComponent(query)}&limit=5&mode=prefix&type=player&sport=basketball&league=nba`);
-        const data = await res.json();
-
-        return (data.items || []).map((item: any) => ({
-            id: item.id,
-            name: item.displayName,
-            team: item.team?.abbreviation || 'NBA',
-            sport: 'NBA',
-            url: `/sports/nba/player/${item.id}`,
-            image: item.images?.[0]?.url || null
-        }));
-    } catch (e) {
-        return [];
-    }
-}
 
 export async function getDashboardData() {
   const [scores, standings, leaders] = await Promise.all([
     getOrFetchResource({
-      table: 'nba_snapshots', keyField: 'key', id: 'live_scores', expirationHours: CACHE_CONFIG.SCORES
-    }, ESPN.fetchLiveScoreboard),
+      table: 'nba_snapshots', keyField: 'key', id: 'live_scores_v3', expirationHours: CACHE_CONFIG.SCORES
+    }, () => ESPN.getScoreboard('nba')),
 
     getOrFetchResource({
-      table: 'nba_snapshots', keyField: 'key', id: 'season_standings', expirationHours: CACHE_CONFIG.STANDINGS
-    }, ESPN.fetchStandings),
+      table: 'nba_snapshots', keyField: 'key', id: 'season_standings_v15', expirationHours: CACHE_CONFIG.STANDINGS
+    }, () => ESPN.getStandings('nba')),
 
     getOrFetchResource({
-      table: 'nba_snapshots', keyField: 'key', id: 'season_leaders_v2', expirationHours: CACHE_CONFIG.LEADERS
-    }, ESPN.fetchDailyLeaders),
+      table: 'nba_snapshots', keyField: 'key', id: 'season_leaders_v15', expirationHours: CACHE_CONFIG.LEADERS
+    }, () => ESPN.getLeaders('nba')),
   ]);
 
   return { scores, standings, leaders };
@@ -51,35 +32,31 @@ export async function getDashboardData() {
 
 export async function getLiveScores() {
     return await getOrFetchResource({
-      table: 'nba_snapshots', keyField: 'key', id: 'live_scores', expirationHours: CACHE_CONFIG.SCORES
-    }, ESPN.fetchLiveScoreboard);
-}
-
-// FIX: Updated ID to 'team_v3_' to force fresh roster fetch
-export async function getTeamSnapshot(teamId: string) {
-  return await getOrFetchResource({
-    table: 'nba_snapshots', keyField: 'key', id: `team_v3_${teamId}`, expirationHours: CACHE_CONFIG.PROFILES
-  }, () => ESPN.fetchTeamProfile(teamId));
+      table: 'nba_snapshots', keyField: 'key', id: 'live_scores_v2', expirationHours: CACHE_CONFIG.SCORES
+    }, () => ESPN.getScoreboard('nba'));
 }
 
 export async function getPlayerProfile(playerId: string) {
     return await getOrFetchResource({
-        table: 'nba_snapshots',
-        keyField: 'key',
-        id: `player_v6_${playerId}`, 
-        expirationHours: CACHE_CONFIG.PROFILES
-    }, () => ESPN.fetchPlayerProfile(playerId));
+        table: 'nba_snapshots', keyField: 'key', id: `player_bio_v11_${playerId}`, expirationHours: CACHE_CONFIG.PROFILES
+    }, () => ESPN.getPlayer('nba', playerId));
 }
 
 export async function getPlayerGameLog(playerId: string) {
-    return await ESPN.fetchPlayerGameLog(playerId);
+    return await ESPN.getPlayerLogs('nba', playerId);
+}
+
+export async function searchPlayers(query: string) {
+    return await ESPN.searchAthletes('nba', query);
 }
 
 export async function getGameSummary(gameId: string) {
-    // UPDATED: Changed from fetchGameSummary to fetchGameAnalysis to match lib/espn.ts export
-    return await ESPN.fetchGameAnalysis(gameId);
+    // Basic implementation or stub
+    return null; 
 }
 
-export async function forceRefreshDashboard() {
-  return { success: true, message: "Snapshots Queued" };
+export async function getTeamSnapshot(teamId: string) {
+    return await getOrFetchResource({
+        table: 'nba_snapshots', keyField: 'key', id: `team_v2_${teamId}`, expirationHours: CACHE_CONFIG.PROFILES
+    }, () => ESPN.getTeam('nba', teamId));
 }

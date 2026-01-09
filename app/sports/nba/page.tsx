@@ -6,6 +6,9 @@ import { getDashboardData } from './actions';
 import GameTicker from './components/GameTicker';
 import NBASearch from './components/NBASearch';
 import ConferenceStandings from './components/ConferenceStandings';
+import LeaderSlideshow from '../components/LeaderSlideshow';
+import MVPPredictor from '../components/MVPPredictor';
+import { getPlayerProfile } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,109 +16,96 @@ export default async function NBAHub() {
   const { scores, standings, leaders } = await getDashboardData();
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-white pb-20 selection:bg-[#DFFF00] selection:text-black">
+    <main className="min-h-screen bg-zinc-950 text-white pb-20 selection:bg-[#DFFF00] selection:text-black font-sans">
       
-      {/* HERO SECTION */}
-      <section className="relative pt-24 pb-12 px-6 border-b border-zinc-800 z-40">
-        
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-             <div className="absolute top-0 right-0 w-1/3 h-full bg-[#DFFF00]/5 -skew-x-12" />
-        </div>
-        
-        <div className="max-w-[1600px] mx-auto relative z-10">
-          <div className="flex items-center gap-2 text-[#DFFF00] font-mono text-[10px] uppercase tracking-widest mb-4">
-             <Activity size={12} className="animate-pulse" />
-             <span>System Status: Monitoring</span>
-          </div>
-          
-          <div className="flex flex-col xl:flex-row justify-between items-end gap-12">
-            <div>
-              <h1 className="text-6xl md:text-8xl font-black uppercase tracking-tighter text-white leading-none mb-2">
-                NBA <span className="text-zinc-800 text-stroke-white">NEXUS</span>
-              </h1>
-              <p className="font-mono text-zinc-500 text-sm max-w-xl mb-8">
-                /// LIVE OPERATIONS DASHBOARD<br/>
-                Real-time ingestion of league telemetry, performance metrics, and tactical data snapshots.
-              </p>
-              
-              {/* SEARCH MODULE INTEGRATION */}
-              <div className="flex flex-col gap-2 relative z-50">
-                 <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest flex items-center gap-2">
-                    <SearchIcon size={10} /> Database Access
-                 </div>
-                 <NBASearch />
-              </div>
+      {/* HEADER */}
+      <div className="relative z-50 pt-24 pb-8 px-6 max-w-[1600px] mx-auto w-full border-b border-zinc-800">
+        <div className="flex flex-col xl:flex-row justify-between items-center xl:items-end gap-4 sm:gap-12 mb-6 sm:mb-12">
+            <div className="flex items-center gap-6">
+                <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center border border-zinc-800 shadow-2xl">
+                    <Activity size={24} className="text-[#DFFF00]" />
+                </div>
+                <div>
+                    <div className="flex items-center gap-3 text-zinc-500 font-mono text-[10px] font-bold tracking-[0.3em] uppercase mb-2">
+                        <span>LEAGUE_OPS // NBA</span>
+                    </div>
+                    <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter leading-none italic text-white">
+                        BASKET<span className="text-[#DFFF00]">BALL</span>
+                    </h1>
+                </div>
             </div>
 
-            {/* QUICK STATS */}
-            <div className="flex gap-4">
-              <div className="bg-zinc-900/50 border border-zinc-800 p-4 min-w-[140px]">
-                 <div className="text-[10px] text-zinc-500 font-mono uppercase">Active Games</div>
-                 <div className="text-3xl font-black text-white">{scores?.length || 0}</div>
-              </div>
-              <div className="bg-zinc-900/50 border border-zinc-800 p-4 min-w-[140px]">
-                 <div className="text-[10px] text-zinc-500 font-mono uppercase">Season Phase</div>
-                 <div className="text-3xl font-black text-[#DFFF00]">REG</div>
-              </div>
-            </div>
-          </div>
+            <LeaderSlideshow leaders={leaders} league="nba" />
         </div>
-      </section>
+
+        {/* SEARCH BAR */}
+        <div className="max-w-xl">
+            <NBASearch />
+        </div>
+      </div>
 
       {/* --- LIVE TICKER --- */}
       <GameTicker scores={scores || []} />
 
       {/* --- MAIN GRID --- */}
-      <div className="max-w-[1600px] mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* COL 1: STANDINGS (8 Spans) */}
-        <div className="lg:col-span-8">
-            <ConferenceStandings east={standings?.east || []} west={standings?.west || []} />
-        </div>
-
-        {/* COL 2: LEADERS (4 Spans) */}
-        <div className="lg:col-span-4">
-            <div className="flex items-center gap-2 mb-6">
-                <TrendingUp size={16} className="text-[#DFFF00]" />
-                <h3 className="text-lg font-black uppercase text-white tracking-tight">Daily Leaders</h3>
-            </div>
+      <div className="max-w-[1600px] mx-auto px-6 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-[1px] bg-zinc-800 border border-zinc-800 rounded-[2rem] overflow-hidden shadow-2xl">
             
-            <div className="space-y-6">
-                <LeaderModule title="Points" icon="PTS" players={leaders?.pts || []} />
-                <LeaderModule title="Assists" icon="AST" players={leaders?.ast || []} />
-                <LeaderModule title="Rebounds" icon="REB" players={leaders?.reb || []} />
-            </div>
-        </div>
+            {/* COL 1: STANDINGS (8 Spans) */}
+            <div className="lg:col-span-8 bg-zinc-950 p-8">
+                {/* Redundant header removed */}
+                <ConferenceStandings east={standings?.groupA || []} west={standings?.groupB || []} />
 
+                <MVPPredictor leaders={leaders} league="nba" standings={standings} getProfile={getPlayerProfile} />
+            </div>
+
+            {/* COL 2: LEADERS (4 Spans) */}
+            <div className="lg:col-span-4 bg-zinc-950 p-8 border-l border-zinc-800">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 bg-zinc-900 rounded-lg text-[#DFFF00]">
+                        <Activity size={18} />
+                    </div>
+                    <h3 className="text-xl font-black uppercase text-white tracking-tight">Daily Leaders</h3>
+                </div>
+                
+                <div className="space-y-6">
+                    <LeaderModule title="Points" icon="PTS" players={leaders?.pts || []} />
+                    <LeaderModule title="Assists" icon="AST" players={leaders?.ast || []} />
+                    <LeaderModule title="Rebounds" icon="REB" players={leaders?.reb || []} />
+                    <LeaderModule title="Steals" icon="STL" players={leaders?.stl || []} />
+                    <LeaderModule title="Blocks" icon="BLK" players={leaders?.blk || []} />
+                </div>
+            </div>
+
+        </div>
       </div>
     </main>
   );
 }
 
-// ... LeaderModule component stays the same
 function LeaderModule({ title, icon, players }: { title: string, icon: string, players: any[] }) {
     if (!players || players.length === 0) return null;
     const top = players[0];
     const rest = players.slice(1, 5);
 
     return (
-        <div className="border border-zinc-800 bg-zinc-900/20 mb-4">
-            <Link href={`/sports/nba/player/${top.id}`} className="flex p-4 items-center gap-4 bg-zinc-900/40 border-b border-zinc-800 relative overflow-hidden group hover:bg-zinc-900 transition-colors">
-                <div className="absolute top-0 right-0 p-2 opacity-10 font-black text-6xl text-white select-none">{icon}</div>
-                <img src={top.headshot} className="w-16 h-16 rounded-full bg-zinc-800 object-cover border border-zinc-700 relative z-10" alt={top.name} />
-                <div className="relative z-10">
-                    <div className="text-[#DFFF00] font-mono text-xs mb-1">{title} Leader</div>
-                    <div className="text-lg font-black uppercase leading-none text-white">{top.name}</div>
-                    <div className="text-xs font-bold text-zinc-500 mt-1">{top.team} • <span className="text-white">{top.value}</span></div>
+        <div className="border border-zinc-800 bg-zinc-900 rounded-2xl overflow-hidden">
+            <Link href={`/sports/nba/player/${top.id}`} className="group block relative bg-zinc-950 hover:bg-[#DFFF00] transition-colors p-6 border-b border-zinc-800">
+                <div className="flex items-center gap-4 relative z-10">
+                    <img src={top.headshot} className="w-16 h-16 rounded-2xl bg-zinc-900 object-cover border border-zinc-800 group-hover:border-black/20" alt={top.name} />
+                    <div>
+                        <div className="text-zinc-500 font-mono text-[9px] uppercase tracking-widest mb-1 group-hover:text-black/60">{title} Leader</div>
+                        <div className="text-lg font-black uppercase leading-none text-white group-hover:text-black mb-1">{top.name}</div>
+                        <div className="text-xs font-bold text-zinc-600 group-hover:text-black/70">{top.team} • <span className="text-white group-hover:text-black">{top.value}</span></div>
+                    </div>
                 </div>
             </Link>
-            <div className="divide-y divide-zinc-800">
+            <div className="divide-y divide-zinc-800/50 bg-zinc-900/50">
                 {rest.map((p, i) => (
-                    <Link href={`/sports/nba/player/${p.id}`} key={i} className="flex items-center justify-between p-3 text-xs hover:bg-zinc-900 transition-colors group">
-                        <div className="flex items-center gap-2">
-                             <span className="font-mono text-zinc-600">{i+2}</span>
-                             <span className="font-bold text-zinc-400 group-hover:text-white transition-colors">{p.name}</span>
-                             <span className="text-[9px] text-zinc-600 font-mono">{p.team}</span>
+                    <Link href={`/sports/nba/player/${p.id}`} key={i} className="flex items-center justify-between p-3 px-4 text-xs hover:bg-zinc-800 transition-colors group">
+                        <div className="flex items-center gap-3">
+                             <span className="font-mono text-zinc-600 w-4">{i+2}</span>
+                             <span className="font-bold text-zinc-400 group-hover:text-white transition-colors uppercase">{p.name}</span>
                         </div>
                         <div className="font-mono text-white">{p.value}</div>
                     </Link>

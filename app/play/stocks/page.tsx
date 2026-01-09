@@ -171,54 +171,49 @@ export default function StockMarketPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-4 pb-32 relative overflow-x-hidden font-mono">
-      {/* BACKGROUND FIX: pointer-events-none allows clicks to pass through */}
-      <div className="bg-grid-pattern opacity-5 absolute inset-0 fixed pointer-events-none" />
-      
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute top-0 left-0 w-full h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay" />
+      </div>
       
       {/* HEADER SECTION */}
-      <div className="max-w-[1600px] mx-auto pt-20 mb-8">
-        <div className="flex flex-col xl:flex-row justify-between items-end border-b border-zinc-800/50 pb-8 gap-8">
+      <div className="max-w-[1600px] mx-auto pt-20 mb-12">
+        <div className="flex flex-col xl:flex-row justify-between items-end border-b border-zinc-800 pb-12 gap-8">
             
             {/* BRANDING */}
-            <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                    <div className="p-3 bg-[#DFFF00]/10 rounded-xl border border-[#DFFF00]/20">
-                        <Activity className="text-[#DFFF00]" size={32} />
-                    </div>
-                    <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-white">
-                        Zinc <span className="text-zinc-600">Exchange</span>
-                    </h1>
+            <div className="flex items-center gap-6">
+                <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center border border-zinc-800 shadow-2xl">
+                    <Activity size={24} className="text-[#DFFF00]" />
                 </div>
-                <div className="flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-zinc-500">
-                    <span className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-[#DFFF00] animate-pulse shadow-[0_0_10px_#DFFF00]" />
-                        Market Live
-                    </span>
-                    <span>|</span>
-                    <span>Volatile Simulation Protocol</span>
+                <div>
+                    <div className="flex items-center gap-3 text-zinc-500 font-mono text-[10px] font-bold tracking-[0.3em] uppercase mb-2">
+                        <span>MARKET_PROTOCOL // v2.0</span>
+                    </div>
+                    <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter leading-none italic text-white">
+                        Zinc <span className="text-zinc-800">Exchange</span>
+                    </h1>
                 </div>
             </div>
 
             {/* GLOBAL STATS CARDS */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full xl:w-auto">
-                <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-xl backdrop-blur-sm">
-                    <div className="text-[10px] font-bold text-zinc-500 uppercase mb-1">Liquid Capital</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-zinc-800 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl w-full xl:w-auto">
+                <div className="bg-zinc-900 p-6 flex flex-col justify-center">
+                    <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Liquid Capital</div>
                     <div className="text-lg font-black text-[#DFFF00]">{profile?.credits.toLocaleString()}</div>
                 </div>
-                <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-xl backdrop-blur-sm">
-                    <div className="text-[10px] font-bold text-zinc-500 uppercase mb-1">Net Worth</div>
+                <div className="bg-zinc-900 p-6 flex flex-col justify-center">
+                    <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Net Worth</div>
                     <div className="text-lg font-black text-white">{netWorth.toLocaleString()}</div>
                 </div>
-                <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-xl backdrop-blur-sm col-span-2 md:col-span-2 relative overflow-hidden group">
+                <div className="bg-zinc-900 p-6 col-span-2 md:col-span-2 relative overflow-hidden group">
                     <div className={`absolute inset-0 opacity-10 transition-colors ${isProfitable ? 'bg-[#DFFF00]' : 'bg-red-500'}`} />
-                    <div className="relative z-10 flex justify-between items-end">
+                    <div className="relative z-10 flex justify-between items-center h-full">
                         <div>
-                            <div className="text-[10px] font-bold text-zinc-500 uppercase mb-1">Lifetime P/L</div>
+                            <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Lifetime P/L</div>
                             <div className={`text-xl font-black ${isProfitable ? 'text-[#DFFF00]' : 'text-red-500'}`}>
                                 {isProfitable ? '+' : ''}{totalPL.toLocaleString()} <span className="text-xs opacity-70">({percentPL.toFixed(2)}%)</span>
                             </div>
                         </div>
-                        <PieChart className={`opacity-20 ${isProfitable ? 'text-[#DFFF00]' : 'text-red-500'}`} size={40} />
+                        <PieChart className={`opacity-20 ${isProfitable ? 'text-[#DFFF00]' : 'text-red-500'}`} size={32} />
                     </div>
                 </div>
             </div>
@@ -226,37 +221,37 @@ export default function StockMarketPage() {
 
         {/* MARKET HIGHLIGHTS */}
         {marketHighlights && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
                 {/* Top Gainer */}
-                <div className="group bg-zinc-900/30 border border-zinc-800 hover:border-[#DFFF00]/50 p-4 rounded-xl flex items-center justify-between transition-all cursor-pointer" onClick={() => setSelectedStock(marketHighlights.topGainer)}>
+                <div className="group bg-zinc-900 border border-zinc-800 hover:border-[#DFFF00] p-6 rounded-2xl flex items-center justify-between transition-all cursor-pointer shadow-lg" onClick={() => setSelectedStock(marketHighlights.topGainer)}>
                     <div className="flex items-center gap-4">
-                        <div className="bg-zinc-950 p-2 rounded-lg text-[#DFFF00]">
+                        <div className="bg-zinc-950 p-3 rounded-xl text-[#DFFF00] border border-zinc-800">
                             <TrendingUp size={20} />
                         </div>
                         <div>
-                            <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Top Gainer</div>
-                            <div className="font-black text-lg text-white">{marketHighlights.topGainer.ticker} <span className="text-zinc-500 font-normal text-xs">{marketHighlights.topGainer.name}</span></div>
+                            <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Top Gainer</div>
+                            <div className="font-black text-2xl text-white tracking-tight">{marketHighlights.topGainer.ticker} <span className="text-zinc-600 font-medium text-xs tracking-normal ml-2">{marketHighlights.topGainer.name}</span></div>
                         </div>
                     </div>
                     <div className="text-right">
-                        <div className="text-[#DFFF00] font-bold text-xl">+{marketHighlights.topGainer.change.toFixed(2)}%</div>
+                        <div className="text-[#DFFF00] font-black text-xl tracking-tighter">+{marketHighlights.topGainer.change.toFixed(2)}%</div>
                         <div className="text-zinc-500 text-xs font-mono">{marketHighlights.topGainer.currentPrice} CR</div>
                     </div>
                 </div>
 
                 {/* Top Loser */}
-                <div className="group bg-zinc-900/30 border border-zinc-800 hover:border-red-900/50 p-4 rounded-xl flex items-center justify-between transition-all cursor-pointer" onClick={() => setSelectedStock(marketHighlights.topLoser)}>
+                <div className="group bg-zinc-900 border border-zinc-800 hover:border-red-500 p-6 rounded-2xl flex items-center justify-between transition-all cursor-pointer shadow-lg" onClick={() => setSelectedStock(marketHighlights.topLoser)}>
                     <div className="flex items-center gap-4">
-                        <div className="bg-zinc-950 p-2 rounded-lg text-red-500">
+                        <div className="bg-zinc-950 p-3 rounded-xl text-red-500 border border-zinc-800">
                             <TrendingDown size={20} />
                         </div>
                         <div>
-                            <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Top Loser</div>
-                            <div className="font-black text-lg text-white">{marketHighlights.topLoser.ticker} <span className="text-zinc-500 font-normal text-xs">{marketHighlights.topLoser.name}</span></div>
+                            <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Top Loser</div>
+                            <div className="font-black text-2xl text-white tracking-tight">{marketHighlights.topLoser.ticker} <span className="text-zinc-600 font-medium text-xs tracking-normal ml-2">{marketHighlights.topLoser.name}</span></div>
                         </div>
                     </div>
                     <div className="text-right">
-                        <div className="text-red-500 font-bold text-xl">{marketHighlights.topLoser.change.toFixed(2)}%</div>
+                        <div className="text-red-500 font-black text-xl tracking-tighter">{marketHighlights.topLoser.change.toFixed(2)}%</div>
                         <div className="text-zinc-500 text-xs font-mono">{marketHighlights.topLoser.currentPrice} CR</div>
                     </div>
                 </div>
@@ -264,16 +259,16 @@ export default function StockMarketPage() {
         )}
 
         {/* NAVIGATION TABS */}
-        <div className="flex overflow-x-auto gap-2 py-8 custom-scrollbar">
+        <div className="flex overflow-x-auto gap-2 py-8 custom-scrollbar no-scrollbar">
             {categories.map(cat => (
                 <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat as any)}
                     className={`
-                        px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border
+                        px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap transition-all border
                         ${selectedCategory === cat 
-                            ? 'bg-zinc-100 text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)]' 
-                            : 'bg-zinc-900/50 border-zinc-800 text-zinc-500 hover:text-white hover:bg-zinc-800 hover:border-zinc-600'}
+                            ? 'bg-[#DFFF00] text-black border-[#DFFF00] shadow-[0_0_20px_rgba(223,255,0,0.3)]' 
+                            : 'bg-zinc-900/50 border-zinc-800 text-zinc-500 hover:text-white hover:border-zinc-600'}
                     `}
                 >
                     {cat}
@@ -286,10 +281,10 @@ export default function StockMarketPage() {
       {loading ? (
         <div className="flex flex-col items-center justify-center h-64 text-[#DFFF00] gap-4">
              <RefreshCw className="animate-spin" size={32} />
-             <span className="text-sm tracking-widest font-bold">ESTABLISHING SECURE UPLINK...</span>
+             <span className="text-xs font-mono uppercase tracking-widest">ESTABLISHING SECURE UPLINK...</span>
         </div>
       ) : (
-        <div className="max-w-[1600px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+        <div className="max-w-[1600px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-[1px] bg-zinc-800 border border-zinc-800 rounded-[2rem] overflow-hidden shadow-2xl">
           {displayedStocks.map((stock) => {
              const isPositive = stock.change >= 0;
              const owned = portfolio.find(p => p.ticker === stock.ticker);
@@ -298,30 +293,29 @@ export default function StockMarketPage() {
                <button 
                   key={stock.ticker}
                   onClick={() => setSelectedStock(stock)}
-                  className="group relative bg-zinc-900/40 border border-zinc-800 hover:border-zinc-600 hover:bg-zinc-900 p-5 rounded-2xl text-left transition-all hover:-translate-y-1 hover:shadow-2xl overflow-hidden backdrop-blur-sm"
+                  className="group relative bg-zinc-950 hover:bg-[#DFFF00] p-6 text-left transition-colors duration-200 overflow-hidden"
                >
-                  <div className="flex justify-between items-start mb-3 relative z-10">
+                  <div className="flex justify-between items-start mb-4 relative z-10">
                       <div className="flex flex-col">
-                          <div className="flex items-center gap-2">
-                              <span className="text-lg font-black text-white group-hover:text-[#DFFF00] transition-colors">{stock.ticker}</span>
+                          <div className="flex items-center gap-2 mb-1">
+                              <span className="text-2xl font-black text-white group-hover:text-black transition-colors tracking-tighter">{stock.ticker}</span>
                               {owned && <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_5px_#3b82f6]" />}
                           </div>
-                          <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider truncate max-w-[120px]">{stock.name}</span>
+                          <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest truncate max-w-[120px] group-hover:text-black/60">{stock.name}</span>
                       </div>
-                      <div className={`flex flex-col items-end ${isPositive ? 'text-[#DFFF00]' : 'text-red-500'}`}>
-                          <span className="text-lg font-black">{stock.currentPrice}</span>
-                          <div className="flex items-center gap-1 text-[10px] font-bold bg-black/40 px-1.5 py-0.5 rounded">
+                      <div className={`flex flex-col items-end ${isPositive ? 'text-[#DFFF00] group-hover:text-black' : 'text-red-500 group-hover:text-red-700'}`}>
+                          <span className="text-xl font-black tracking-tighter">{stock.currentPrice}</span>
+                          <div className="flex items-center gap-1 text-[9px] font-bold bg-zinc-900/50 px-1.5 py-0.5 rounded group-hover:bg-black/10 transition-colors">
                               {isPositive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
                               {stock.change.toFixed(2)}%
                           </div>
                       </div>
                   </div>
 
-                  {/* REPLACED MINI CHART WITH CANDLESTICK */}
-                  <CandlestickChart data={stock.history} />
-
-                  {/* Hover Effect */}
-                  <div className={`absolute bottom-0 left-0 h-[2px] transition-all duration-300 w-0 group-hover:w-full ${isPositive ? 'bg-[#DFFF00]' : 'bg-red-500'}`} />
+                  {/* CANDLESTICK CHART */}
+                  <div className="opacity-50 group-hover:opacity-100 transition-opacity group-hover:invert group-hover:filter">
+                     <CandlestickChart data={stock.history} />
+                  </div>
                </button>
              );
           })}

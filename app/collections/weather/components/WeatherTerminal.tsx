@@ -581,7 +581,11 @@ export default function WeatherTerminal() {
   return (
     <div 
       className="w-full h-screen flex flex-col relative select-none overflow-y-auto bg-black text-white"
-      style={{ '--accent': accentColor } as React.CSSProperties}
+      style={{ 
+        '--accent': accentColor,
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)'
+      } as React.CSSProperties}
     >
       {/* Background System */}
       <AtmosphericBackground 

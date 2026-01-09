@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { motion, useAnimation, useMotionTemplate, useMotionValue } from 'framer-motion';
 import { ArrowRight, Zap, Radio, Microscope, Shield, Flag } from 'lucide-react';
 import GlobalTicker from '../components/GlobalTicker';
+import PersonalNexus from './components/PersonalNexus';
 
 // --- CUSTOM ANIMATED ICONS ---
 
@@ -58,144 +59,133 @@ function SpotlightCard({ children, className = "", spotlightColor = "rgba(223, 2
 
 export default function SportsHub() {
   return (
-    <main className="min-h-screen bg-zinc-950 text-white selection:bg-[#DFFF00] selection:text-black pb-20 relative overflow-x-hidden">
-      <div className="fixed inset-0 z-0"><div className="absolute inset-0 bg-zinc-950/80 z-10" /><div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 z-10 mix-blend-overlay pointer-events-none" /><div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1522778119026-d647f0565c6a?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 grayscale mix-blend-overlay" /></div>
+    <main className="min-h-screen bg-zinc-950 text-white pb-20 relative overflow-x-hidden selection:bg-[#DFFF00] selection:text-black font-sans">
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute top-0 left-0 w-full h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay" />
+      </div>
 
-      <section className="relative min-h-[60vh] flex flex-col items-center justify-center overflow-hidden py-20 border-b border-white/5">
-        <div className="relative z-20 w-full max-w-[1600px] mx-auto px-6 flex flex-col items-center text-center">
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1 }} className="mb-8">
-             <div className="inline-flex items-center gap-3 px-4 py-1.5 bg-zinc-900/60 border border-white/10 backdrop-blur-xl rounded-full shadow-2xl"><span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#DFFF00] opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-[#DFFF00]"></span></span><span className="text-[10px] font-mono font-bold text-zinc-300 tracking-[0.2em] uppercase">Athletics Uplink</span></div>
-          </motion.div>
-          <motion.h1 initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 1, ease: "circOut" }} className="text-[12vw] md:text-[9rem] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 uppercase leading-[0.8] select-none">LEAGUE <span className="text-stroke-3 text-transparent bg-clip-text bg-gradient-to-b from-zinc-700 to-zinc-900">INFO</span></motion.h1>
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.8 }} className="mt-12 max-w-2xl text-center"><div className="flex items-center justify-center gap-3 text-zinc-400 font-mono text-sm md:text-base leading-relaxed tracking-widest uppercase"><span className="text-[#DFFF00] font-black">///</span><span>Real-time Telemetry & Archives</span></div></motion.div>
+      <div className="relative z-10 pt-24 pb-8 px-6 max-w-[1600px] mx-auto w-full">
+        {/* HEADER */}
+        <div className="flex items-center justify-between mb-12">
+           <div className="flex items-center gap-6">
+              <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center border border-zinc-800 shadow-2xl">
+                 <Radio size={24} className="text-[#DFFF00]" />
+              </div>
+              <div>
+                 <div className="flex items-center gap-3 text-zinc-500 font-mono text-[10px] font-bold tracking-[0.3em] uppercase mb-2">
+                    <span>SPORTS_TELEMETRY // LIVE</span>
+                 </div>
+                 <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter leading-none italic text-white">
+                    League <span className="text-zinc-800">Info</span>
+                 </h1>
+              </div>
+           </div>
+           <div className="hidden md:flex items-center gap-2 text-zinc-600 bg-zinc-900/50 px-4 py-2 rounded-full border border-zinc-800">
+              <div className="w-2 h-2 rounded-full bg-[#DFFF00] animate-pulse" />
+              <span className="font-mono text-[10px] uppercase tracking-widest">Receiving Data</span>
+           </div>
         </div>
-      </section>
 
-      <GlobalTicker />
+        <GlobalTicker />
 
-      <section className="relative z-10 max-w-[1600px] mx-auto px-4 md:px-6 py-20">
-        <div className="flex items-center gap-4 mb-12 px-2"><div className="w-2 h-2 bg-[#DFFF00] rounded-full shadow-[0_0_10px_#DFFF00]" /><div className="h-px flex-1 bg-gradient-to-r from-zinc-800 to-transparent" /><div className="flex items-center gap-2 bg-zinc-900/50 px-4 py-2 rounded-full border border-white/5 backdrop-blur-md"><Radio size={16} className="text-[#DFFF00]" /><span className="text-xs font-mono font-bold text-zinc-400 uppercase tracking-widest">Active Frequencies</span></div></div>
+        <PersonalNexus />
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-fr">
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-12 auto-rows-[300px] gap-[1px] bg-zinc-800 border border-zinc-800 rounded-[2rem] overflow-hidden shadow-2xl">
             
-            {/* BREAKDOWN CARD */}
-            <SpotlightCard className="md:col-span-12 rounded-[2.5rem]">
-               <Link href="/sports/breakdown" className="block h-full w-full group overflow-hidden relative">
-                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1631194758628-71ec7c35137e?q=80&w=2532&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:opacity-40 transition-all duration-700 grayscale mix-blend-luminosity z-0" />
-                    <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/80 to-transparent z-0" />
-                    
-                    <div className="absolute top-0 right-0 p-8 z-20">
-                       <div className="bg-[#DFFF00] text-black px-4 py-1.5 rounded-full font-black text-xs uppercase tracking-widest shadow-lg animate-pulse">
-                          New Uplink
-                       </div>
+            {/* BREAKDOWN CARD (8) */}
+            <Link href="/sports/breakdown" className="group md:col-span-8 relative bg-zinc-950 hover:bg-[#DFFF00] transition-colors duration-300 p-8 flex flex-col justify-between overflow-hidden">
+                <div className="relative z-10 flex justify-between items-start">
+                    <span className="font-mono text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-black/60 transition-colors">01_Analysis</span>
+                    <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-black/10 transition-colors text-[#DFFF00] group-hover:text-black">
+                        <Microscope size={18} />
                     </div>
-
-                    <div className="relative z-10 flex flex-col justify-center p-10 md:p-16 max-w-4xl h-full min-h-[300px]">
-                        <div className="flex items-center gap-3 text-[#DFFF00] mb-4">
-                            <Microscope size={24} />
-                            <span className="font-mono text-sm uppercase tracking-[0.3em]">Deep Analysis Protocol</span>
-                        </div>
-                        <h2 className="text-5xl md:text-7xl font-black uppercase text-white mb-6 tracking-tighter italic">
-                           The <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#DFFF00] to-zinc-500">Breakdown</span>
-                        </h2>
-                        <p className="text-zinc-400 font-mono text-sm md:text-lg leading-relaxed max-w-xl border-l-2 border-[#DFFF00] pl-6">
-                            Comprehensive offensive & defensive matchup analysis. 
-                            Win probability, historical telemetry, and real-time tactical overlays.
-                        </p>
-                        <div className="mt-8 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white group-hover:translate-x-4 transition-transform">
-                             <span>Initialize Scan</span>
-                             <ArrowRight size={16} className="text-[#DFFF00]" />
-                        </div>
-                    </div>
-               </Link>
-            </SpotlightCard>
+                </div>
+                <div className="relative z-10">
+                    <h3 className="text-4xl md:text-5xl font-black uppercase text-white mb-4 tracking-tighter italic group-hover:text-black transition-colors">The Breakdown</h3>
+                    <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest max-w-md group-hover:text-black/60">
+                        Comprehensive offensive & defensive matchup analysis. Win probability and historical telemetry.
+                    </p>
+                </div>
+            </Link>
             
-            {/* NFL CARD */}
-            <SpotlightCard className="md:col-span-8 rounded-[2.5rem]">
-                <Link href="/sports/nfl" className="block h-full w-full group overflow-hidden relative">
-                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1566577739112-5180d4bf9390?q=80&w=2626&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:opacity-20 grayscale transition-all duration-700 group-hover:scale-105 z-0" />
-                    <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/60 to-transparent z-0" />
-                    
-                    <div className="absolute top-8 right-8 bg-black/40 backdrop-blur-xl p-4 rounded-2xl border border-white/10 group-hover:border-[#DFFF00] transition-colors z-20">
-                        <Zap className="text-[#DFFF00]" size={24} />
+            {/* NFL CARD (4) */}
+            <Link href="/sports/nfl" className="group md:col-span-4 relative bg-zinc-950 hover:bg-[#DFFF00] transition-colors duration-300 p-8 flex flex-col justify-between overflow-hidden">
+                <div className="relative z-10 flex justify-between items-start">
+                    <span className="font-mono text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-black/60 transition-colors">02_Gridiron</span>
+                    <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-black/10 transition-colors text-[#DFFF00] group-hover:text-black">
+                        <Zap size={18} />
                     </div>
+                </div>
+                <div className="relative z-10">
+                    <h3 className="text-4xl font-black uppercase text-white mb-2 tracking-tighter italic group-hover:text-black transition-colors">NFL</h3>
+                    <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest group-hover:text-black/60">Playoff Picture //</p>
+                </div>
+            </Link>
 
-                    <div className="relative z-10 flex flex-col justify-end p-10 md:p-12 w-full max-w-3xl h-full min-h-[360px]">
-                        <h2 className="text-4xl md:text-6xl font-black uppercase text-white mb-4 italic tracking-tight">NFL</h2>
-                        <p className="text-zinc-400 font-mono text-sm md:text-base leading-relaxed max-w-xl group-hover:text-zinc-200 transition-colors">
-                            National Football League. Playoff picture, roster depth charts, and live scoring telemetry.
-                        </p>
+            {/* NBA CARD (4) */}
+            <Link href="/sports/nba" className="group md:col-span-4 relative bg-zinc-950 hover:bg-[#DFFF00] transition-colors duration-300 p-8 flex flex-col justify-between overflow-hidden">
+                <div className="relative z-10 flex justify-between items-start">
+                    <span className="font-mono text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-black/60 transition-colors">03_Hardwood</span>
+                    <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-black/10 transition-colors text-[#DFFF00] group-hover:text-black">
+                        <AnimatedTrophy /> 
                     </div>
-                </Link>
-            </SpotlightCard>
+                </div>
+                <div className="relative z-10">
+                    <h3 className="text-4xl font-black uppercase text-white mb-2 tracking-tighter italic group-hover:text-black transition-colors">NBA</h3>
+                    <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest group-hover:text-black/60">Live Scoring //</p>
+                </div>
+            </Link>
 
-            {/* NBA CARD (Fixed Trophy & Opacity) */}
-            <SpotlightCard className="md:col-span-4 md:row-span-2 rounded-[2.5rem]">
-                <Link href="/sports/nba" className="block h-full w-full group overflow-hidden relative">
-                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1546519638-68e109498ffc?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105 z-0" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/50 to-transparent z-0" />
-                    
-                    <div className="absolute top-8 right-8 z-20">
-                       <ArrowRight size={24} className="text-zinc-600 -rotate-45 group-hover:text-[#DFFF00] group-hover:rotate-0 transition-all duration-500" />
+            {/* F1 CARD (4) */}
+            <Link href="/sports/f1" className="group md:col-span-4 relative bg-zinc-950 hover:bg-[#DFFF00] transition-colors duration-300 p-8 flex flex-col justify-between overflow-hidden">
+                <div className="relative z-10 flex justify-between items-start">
+                    <span className="font-mono text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-black/60 transition-colors">04_Velocity</span>
+                    <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-black/10 transition-colors text-[#DFFF00] group-hover:text-black">
+                        <Flag size={18} />
                     </div>
+                </div>
+                <div className="relative z-10">
+                    <h3 className="text-4xl font-black uppercase text-white mb-2 tracking-tighter italic group-hover:text-black transition-colors">Formula 1</h3>
+                    <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest group-hover:text-black/60">Global Circuit //</p>
+                </div>
+            </Link>
 
-                    <div className="relative z-10 flex flex-col justify-end p-10 w-full h-full min-h-[400px]">
-                        <div className="text-zinc-600 group-hover:text-[#DFFF00] mb-6 transition-colors duration-500">
-                            <AnimatedTrophy /> 
-                        </div>
-                        <h2 className="text-4xl font-black uppercase text-white mb-2">NBA</h2>
-                        <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest mb-6 group-hover:text-zinc-300 transition-colors">
-                            Hardwood<br/>Analytics
-                        </p>
-                        <div className="h-0.5 w-12 bg-[#DFFF00] group-hover:w-full transition-all duration-700" />
+            {/* NRL CARD (4) */}
+            <Link href="/sports/nrl" className="group md:col-span-4 relative bg-zinc-950 hover:bg-[#DFFF00] transition-colors duration-300 p-8 flex flex-col justify-between overflow-hidden">
+                <div className="relative z-10 flex justify-between items-start">
+                    <span className="font-mono text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-black/60 transition-colors">05_Rugby</span>
+                    <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-black/10 transition-colors text-[#DFFF00] group-hover:text-black">
+                        <Shield size={18} />
                     </div>
-                </Link>
-            </SpotlightCard>
+                </div>
+                <div className="relative z-10">
+                    <h3 className="text-4xl font-black uppercase text-white mb-2 tracking-tighter italic group-hover:text-black transition-colors">NRL</h3>
+                    <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest group-hover:text-black/60">Premiership //</p>
+                </div>
+            </Link>
 
-            {/* F1 CARD */}
-            <SpotlightCard className="md:col-span-4 rounded-[2.5rem]">
-                <Link href="/sports/f1" className="block h-full w-full group overflow-hidden relative">
-                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1517672651691-24622a91b550?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105 z-0" />
-                    <div className="absolute inset-0 bg-zinc-950/50 z-0" />
-                    
-                    <div className="relative z-10 flex flex-col justify-end p-8 w-full h-full min-h-[300px]">
-                        <h2 className="text-3xl font-black uppercase text-white mb-2 leading-none">Formula 1<br/>Telemetry</h2>
-                    </div>
-                </Link>
-            </SpotlightCard>
-
-            {/* NRL & GOLF CARDS */}
-            <div className="md:col-span-4 flex flex-col gap-6">
-                <SpotlightCard className="flex-1 min-h-[160px] rounded-[2.5rem]">
-                    <Link href="/sports/nrl" className="relative flex items-center justify-between h-full p-8 group overflow-hidden">
-                        <div className="absolute inset-0 bg-[url('https://www.rlpa.com.au/wp-content/themes/yootheme/cache/5a/Erin-Clark-Named-2025-RLPA-NRL-Recruit-of-the-Year-5a22c256.jpeg')] bg-cover bg-center opacity-20 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105 z-0" />
-                        <div className="absolute inset-0 bg-zinc-950/60 z-0" />
-                        <div className="relative z-10">
-                            <h3 className="text-2xl font-black uppercase text-white italic">NRL</h3>
-                            <span className="text-zinc-500 text-[10px] font-mono uppercase tracking-widest">Premiership</span>
-                        </div>
-                        <div className="relative z-10">
-                            <Shield size={24} className="text-zinc-600 group-hover:text-[#DFFF00] transition-colors" />
-                        </div>
-                    </Link>
-                </SpotlightCard>
-
-                 <SpotlightCard className="flex-1 min-h-[160px] rounded-[2.5rem]">
-                    <Link href="/sports/golf" className="relative flex items-center justify-between h-full p-8 group overflow-hidden">
-                        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1535131749006-b7f58c99034b?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-20 group-hover:opacity-10 grayscale transition-all duration-700 group-hover:scale-105 z-0" />
-                        <div className="absolute inset-0 bg-zinc-950/60 z-0" />
-                        <div className="relative z-10">
-                            <h3 className="text-2xl font-black uppercase text-white italic">PGA Golf</h3>
-                            <span className="text-zinc-500 text-[10px] font-mono uppercase tracking-widest">Tour Rankings</span>
-                        </div>
-                        <div className="relative z-10">
+            {/* GOLF CARD (12) */}
+            <Link href="/sports/golf" className="group md:col-span-12 relative bg-zinc-950 hover:bg-[#DFFF00] transition-colors duration-300 p-8 flex flex-row items-center justify-between overflow-hidden">
+                <div className="relative z-10 flex flex-col justify-center h-full">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-black/10 transition-colors text-[#DFFF00] group-hover:text-black">
                             <AnimatedFlag />
                         </div>
-                    </Link>
-                </SpotlightCard>
-            </div>
+                        <span className="font-mono text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-black/60 transition-colors">06_PGA_Tour</span>
+                    </div>
+                    <h3 className="text-5xl md:text-7xl font-black uppercase text-white tracking-tighter italic group-hover:text-black transition-colors">Golf</h3>
+                </div>
+                <div className="relative z-10 hidden md:flex items-center gap-4">
+                    <div className="text-right">
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 group-hover:text-black/60">Tour Rankings</div>
+                        <div className="text-2xl font-black text-white group-hover:text-black">ACTIVE</div>
+                    </div>
+                    <ArrowRight size={32} className="text-zinc-600 group-hover:text-black -rotate-45 group-hover:rotate-0 transition-all duration-500" />
+                </div>
+            </Link>
+
         </div>
-      </section>
+      </div>
       
       <footer className="relative z-10 pt-20 pb-12 px-6 text-center border-t border-white/5 bg-zinc-950">
         <div className="max-w-[1600px] mx-auto flex flex-col items-center gap-8">

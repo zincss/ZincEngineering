@@ -21,23 +21,45 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({
+
   children,
+
 }: {
+
   children: React.ReactNode
+
 }) {
+
   const supabase = createClient();
+
   const { data: { user } } = await supabase.auth.getUser();
 
+
+
   return (
+
     <html lang="en" suppressHydrationWarning>
+
       <body className="font-sans bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50 min-h-screen flex flex-col selection:bg-[#DFFF00] selection:text-black">
+
         <Providers initialUser={user}>
+
           <Header /> 
+
           <PageWrapper>
+
             {children}
+
           </PageWrapper>
+
         </Providers>
+
       </body>
+
     </html>
+
   )
+
 }
+
+

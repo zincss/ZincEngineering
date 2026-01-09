@@ -1,7 +1,7 @@
 'use client';
-
-import React, { useState, useMemo } from 'react';
-import { X, Loader2, BarChart2, Clock, MapPin, Activity } from 'lucide-react';
+import React, { useState } from 'react';
+import Marquee from 'react-fast-marquee';
+import { X, Loader2, MapPin, Clock, BarChart2 } from 'lucide-react';
 import { getGameSummary } from '../actions';
 
 export default function GameTicker({ scores }: { scores: any[] }) {
@@ -22,74 +22,44 @@ export default function GameTicker({ scores }: { scores: any[] }) {
         setGameData(null);
     };
 
-    const tickerItems = useMemo(() => {
-        if (!scores || scores.length === 0) return [];
-        
-        let baseList = [...scores];
-        while (baseList.length < 10) {
-            baseList = [...baseList, ...scores];
-        }
-        
-        return [...baseList, ...baseList];
-    }, [scores]);
-
     if (!scores || scores.length === 0) return null;
 
     return (
-        <>
-            {/* Ticker Container */}
-            <div className="w-full bg-black/80 backdrop-blur-md border-b border-zinc-800 h-16 flex items-center z-20 relative">
-                
-                {/* 1. STATIC LABEL: Responsive Width */}
-                <div className="h-full bg-black px-3 md:px-6 flex items-center border-r border-zinc-800 shadow-[10px_0_20px_rgba(0,0,0,1)] z-30 shrink-0">
-                    <div className="flex items-center gap-2 text-[#DFFF00] font-black text-[10px] uppercase tracking-widest">
-                        <Activity size={14} className={scores.some(s => s.isLive) ? "animate-pulse" : ""} />
-                        <span className="hidden md:inline">LIVE WIRE</span>
-                    </div>
-                </div>
+      <>
+      <div className="relative w-full bg-[#DFFF00] py-1.5 overflow-hidden flex items-center z-30 shadow-2xl">
+        <div className="w-full">
+          <Marquee gradient={false} speed={50} className="flex items-center h-full" pauseOnHover>
+             {scores.map((game, i) => (
+               <button key={`${game.id}-${i}`} onClick={() => handleGameClick(game.id)} className="flex items-center gap-4 mx-6 select-none group cursor-pointer">
+                  <span className="text-black/30 text-[10px] font-black italic">//</span>
+                  <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.2em] text-black italic group-hover:underline decoration-black/50 underline-offset-4 transition-all">
+                        <span className="flex gap-3 items-center">
+                           <span className="opacity-40">{game.status}</span>
+                           <span className="flex items-center gap-2">
+                               <img src={game.home.logo} className="w-4 h-4 object-contain" alt={game.home.name}/>
+                               {game.home.score}
+                           </span>
+                           <span className="opacity-40">-</span>
+                           <span className="flex items-center gap-2">
+                               {game.away.score}
+                               <img src={game.away.logo} className="w-4 h-4 object-contain" alt={game.away.name}/>
+                           </span>
+                           {game.isLive && (
+                              <span className="flex items-center gap-1.5 bg-black text-[#DFFF00] px-2 py-0.5 rounded-sm scale-90 origin-left not-italic tracking-normal">
+                                 <div className="w-1 h-1 rounded-full bg-red-500 animate-pulse" />
+                                 LIVE
+                              </span>
+                           )}
+                        </span>
+                  </div>
+               </button>
+             ))}
+          </Marquee>
+        </div>
+      </div>
 
-                {/* 2. SCROLLING AREA */}
-                <div className="flex-1 overflow-hidden h-full flex items-center relative z-10">
-                    
-                    {/* 3. MOVING TRACK */}
-                    <div className="flex animate-ticker hover:[animation-play-state:paused]">
-                        {tickerItems.map((game, i) => (
-                            <button 
-                                key={`${game.id}-${i}`}
-                                onClick={() => handleGameClick(game.id)}
-                                // Responsive padding and gap
-                                className="flex items-center gap-3 md:gap-6 px-4 md:px-8 border-r border-zinc-900 h-16 hover:bg-zinc-900/50 transition-colors shrink-0 group/item text-left whitespace-nowrap"
-                            >
-                                <div className="flex flex-col items-center min-w-[50px] md:min-w-[60px]">
-                                    <span className={`text-[9px] font-mono font-bold uppercase tracking-widest ${game.isLive ? 'text-red-500 animate-pulse' : 'text-zinc-500'}`}>
-                                        {game.status}
-                                    </span>
-                                    {game.isLive && <span className="text-[9px] font-mono text-zinc-300">{game.clock}</span>}
-                                </div>
-
-                                <div className="flex items-center gap-3 md:gap-4">
-                                    <div className="flex items-center gap-2">
-                                        <img src={game.home.logo} className="w-6 h-6 object-contain" alt={game.home.name}/>
-                                        <span className={`font-black text-sm ${parseInt(game.home.score) > parseInt(game.away.score) ? 'text-white' : 'text-zinc-400'}`}>
-                                            {game.home.score}
-                                        </span>
-                                    </div>
-                                    <span className="text-zinc-700 font-mono text-xs">vs</span>
-                                    <div className="flex items-center gap-2">
-                                        <span className={`font-black text-sm ${parseInt(game.away.score) > parseInt(game.home.score) ? 'text-white' : 'text-zinc-400'}`}>
-                                            {game.away.score}
-                                        </span>
-                                        <img src={game.away.logo} className="w-6 h-6 object-contain" alt={game.away.name}/>
-                                    </div>
-                                </div>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-            {/* GAME DETAILS POPOUT (Unchanged) */}
-            {selectedGameId && (
+      {/* GAME DETAILS POPOUT */}
+      {selectedGameId && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" onClick={closePopout}>
                     <div className="bg-zinc-950 border-2 border-[#DFFF00] w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-[0_0_50px_rgba(223,255,0,0.1)] relative" onClick={e => e.stopPropagation()}>
                         
@@ -195,6 +165,6 @@ export default function GameTicker({ scores }: { scores: any[] }) {
                     </div>
                 </div>
             )}
-        </>
+      </>
     );
 }

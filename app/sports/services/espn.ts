@@ -1,0 +1,400 @@
+// app/sports/services/espn.ts
+import * as cheerio from 'cheerio';
+
+const HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Accept': 'application/json',
+};
+
+const BASE_API = 'https://site.api.espn.com/apis/site/v2/sports';
+const COMMON_API = 'https://site.web.api.espn.com/apis/common/v3/sports';
+
+type League = 'nfl' | 'nba';
+
+const ENDPOINTS = {
+  nfl: {
+    scoreboard: `${BASE_API}/football/nfl/scoreboard`,
+    standings: `https://site.api.espn.com/apis/v2/sports/football/nfl/standings`,
+    teams: `${BASE_API}/football/nfl/teams`,
+    athletes: `${COMMON_API}/football/nfl/athletes`,
+    leaders: `${COMMON_API}/football/nfl/statistics/byathlete`,
+    web_player: (id: string) => `https://www.espn.com/nfl/player/_/id/${id}`
+  },
+  nba: {
+    scoreboard: `${BASE_API}/basketball/nba/scoreboard`,
+    standings: `https://site.api.espn.com/apis/v2/sports/basketball/nba/standings`,
+    teams: `${BASE_API}/basketball/nba/teams`,
+    athletes: `${COMMON_API}/basketball/nba/athletes`,
+    leaders: `${COMMON_API}/basketball/nba/statistics/byathlete`,
+    web_player: (id: string) => `https://www.espn.com/nba/player/_/id/${id}`
+  }
+};
+
+// --- DATA NORMALIZERS ---
+
+const formatExperience = (exp: any) => {
+    if (!exp) return 'Rookie';
+    if (typeof exp === 'object' && exp.years !== undefined) {
+        return exp.years === 0 ? 'Rookie' : `${exp.years} Yrs`;
+    }
+    if (exp === 0 || exp === '0') return 'Rookie';
+    return `${exp} Yrs`;
+};
+
+const formatStatValue = (val: any) => {
+    if (val === undefined || val === null || val === '') return '-';
+    return val.toString();
+};
+
+// --- SCRAPER ENGINE (LAYER 2) ---
+
+async function scrapePlayerBio(league: League, id: string) {
+    try {
+        const url = ENDPOINTS[league].web_player(id);
+        const res = await fetch(url, { headers: { ...HEADERS, 'Accept': 'text/html' }, next: { revalidate: 3600 } });
+        if (!res.ok) return null;
+        
+        const html = await res.text();
+        const $ = cheerio.load(html);
+        
+        const bio: any = {};
+        
+        $('.PlayerHeader__Bio_List li').each((_, el) => {
+            const text = $(el).text();
+            if (text.includes('Experience')) {
+                const parts = text.split('Experience');
+                bio.experience = parts[1]?.trim();
+            }
+            if (text.includes('College')) {
+                const parts = text.split('College');
+                bio.college = parts[1]?.trim();
+            }
+            if (text.includes('Draft')) {
+                const parts = text.split('Draft');
+                bio.draft = parts[1]?.trim();
+            }
+            if (text.includes('HT/WT')) {
+                const parts = text.split('HT/WT');
+                const val = parts[1]?.trim();
+                if(val) {
+                    const [h, w] = val.split(', ');
+                    bio.height = h;
+                    bio.weight = w;
+                }
+            }
+            if (text.includes('Birthplace')) {
+                const parts = text.split('Birthplace');
+                bio.birthPlace = parts[1]?.trim();
+            }
+        });
+
+        return bio;
+    } catch (e) {
+        console.error("Scraper Failed", e);
+        return null;
+    }
+}
+
+// --- API FETCHERS ---
+
+export const getScoreboard = async (league: League) => {
+    try {
+        const res = await fetch(ENDPOINTS[league].scoreboard, { headers: HEADERS, next: { revalidate: 30 } });
+        if (!res.ok) return [];
+        const data = await res.json();
+        
+        return data.events?.map((e: any) => {
+            const c = e.competitions[0];
+            return {
+                id: e.id,
+                date: c.date,
+                name: e.name,
+                status: e.status.type.state === 'in' ? 'LIVE' : e.status.type.shortDetail,
+                clock: e.status.displayClock,
+                period: e.status.period,
+                isLive: e.status.type.state === 'in',
+                venue: c.venue?.fullName || 'Unknown Venue',
+                home: {
+                    code: c.competitors[0].team.abbreviation,
+                    name: c.competitors[0].team.displayName,
+                    logo: c.competitors[0].team.logo,
+                    score: c.competitors[0].score,
+                    record: c.competitors[0].records?.[0]?.summary || '0-0'
+                },
+                away: {
+                    code: c.competitors[1].team.abbreviation,
+                    name: c.competitors[1].team.displayName,
+                    logo: c.competitors[1].team.logo,
+                    score: c.competitors[1].score,
+                    record: c.competitors[1].records?.[0]?.summary || '0-0'
+                }
+            };
+        }) || [];
+    } catch (e) { return []; }
+};
+
+export const getStandings = async (league: League) => {
+    try {
+        const res = await fetch(`${ENDPOINTS[league].standings}?level=3`, { headers: HEADERS, next: { revalidate: 3600 } });
+        const data = await res.json();
+        
+        const processGroup = (groupName: string) => {
+            const group = data.children?.find((c: any) => 
+                (c.name || '').toUpperCase().includes(groupName) || (c.abbreviation || '').toUpperCase() === groupName
+            );
+            if (!group) return [];
+
+            let entries = group.standings?.entries;
+            if (!entries && group.children) {
+                entries = group.children.flatMap((div: any) => div.standings?.entries || []);
+            }
+
+            return entries?.map((e: any) => {
+                const stats = e.stats || [];
+                const getStat = (n: string) => stats.find((s:any) => s.name === n)?.displayValue || '-';
+                return {
+                    id: e.team.id,
+                    rank: e.seed || 0,
+                    name: e.team.displayName,
+                    abbr: e.team.abbreviation,
+                    logo: e.team.logos?.[0]?.href,
+                    stats: {
+                        w: getStat('wins'),
+                        l: getStat('losses'),
+                        t: getStat('ties'),
+                        pct: getStat('winPercent'),
+                        gb: getStat('gamesBehind'),
+                        streak: getStat('streak'),
+                        diff: getStat('pointDifferential')
+                    }
+                };
+            }).sort((a: any, b: any) => a.rank - b.rank) || [];
+        };
+
+        if (league === 'nfl') {
+            return { groupA: processGroup('AFC'), groupB: processGroup('NFC'), labels: ['AFC', 'NFC'] };
+        } else {
+            return { groupA: processGroup('EASTERN CONFERENCE'), groupB: processGroup('WESTERN CONFERENCE'), labels: ['EAST', 'WEST'] };
+        }
+    } catch (e) { return { groupA: [], groupB: [], labels: [] }; }
+};
+
+export const getLeaders = async (league: League) => {
+    const cats = league === 'nfl' 
+        ? [
+            { key: 'pass', sort: 'passing.passingYards:desc', label: 'Passing' },
+            { key: 'rush', sort: 'rushing.rushingYards:desc', label: 'Rushing' },
+            { key: 'rec', sort: 'receiving.receivingYards:desc', label: 'Receiving' },
+            { key: 'def', sort: 'defensive.sacks:desc', label: 'Sacks' },
+            { key: 'int', sort: 'defensiveinterceptions.interceptions:desc', label: 'Interceptions' },
+            { key: 'tackles', sort: 'defensive.totalTackles:desc', label: 'Tackles' },
+            { key: 'qbr', sort: 'passing.adjQBR:desc', label: 'Total QBR' }
+          ]
+        : [
+            { key: 'pts', sort: 'offensive.avgPoints:desc', label: 'Points' },
+            { key: 'ast', sort: 'offensive.avgAssists:desc', label: 'Assists' },
+            { key: 'reb', sort: 'general.avgRebounds:desc', label: 'Rebounds' },
+            { key: 'stl', sort: 'defensive.avgSteals:desc', label: 'Steals' },
+            { key: 'blk', sort: 'defensive.avgBlocks:desc', label: 'Blocks' },
+            { key: 'pm', sort: 'general.plusMinus:desc', label: 'Plus/Minus' }
+          ];
+
+    const data: any = {};
+    for (const cat of cats) {
+        try {
+            const params = new URLSearchParams({
+                region: 'us', lang: 'en', contentorigin: 'espn', isqualified: 'false', 
+                page: '1', limit: '5', sort: cat.sort
+            });
+            const res = await fetch(`${ENDPOINTS[league].leaders}?${params}`, { headers: HEADERS, next: { revalidate: 3600 } });
+            const json = await res.json();
+            
+            const sortKey = cat.sort.split(':')[0]; 
+            const [catName, statName] = sortKey.split('.');
+            
+            const categoryMeta = json.categories?.find((c: any) => c.name === catName);
+            const statIndex = categoryMeta?.names?.indexOf(statName);
+
+            data[cat.key] = json.athletes?.map((a: any) => {
+                let displayValue = a.displayValue;
+                
+                if (!displayValue && statIndex !== undefined && statIndex !== -1 && a.categories) {
+                    const athleteCat = a.categories.find((c: any) => c.name === catName);
+                    if (athleteCat && athleteCat.totals) {
+                        displayValue = athleteCat.totals[statIndex];
+                    } else if (athleteCat && athleteCat.values) {
+                        displayValue = athleteCat.values[statIndex];
+                    }
+                }
+                
+                if (!displayValue && a.statistics && a.statistics.length > 0) {
+                    displayValue = a.statistics[0].displayValue;
+                }
+                
+                if (!displayValue) displayValue = a.value;
+
+                return {
+                    id: a.athlete.id,
+                    name: a.athlete.displayName,
+                    team: a.athlete.teamShortName || a.athlete.team?.abbreviation,
+                    headshot: a.athlete.headshot?.href,
+                    value: formatStatValue(displayValue),
+                    label: cat.label
+                };
+            }) || [];
+        } catch (e) { data[cat.key] = []; }
+    }
+    return data;
+};
+
+export const getTeam = async (league: League, id: string) => {
+    try {
+        const sport = league === 'nfl' ? 'football/nfl' : 'basketball/nba';
+        const [teamRes, rosterRes, scheduleRes] = await Promise.all([
+            fetch(`${BASE_API}/${sport}/teams/${id}`, { headers: HEADERS, next: { revalidate: 3600 } }),
+            fetch(`${BASE_API}/${sport}/teams/${id}/roster`, { headers: HEADERS, next: { revalidate: 3600 } }),
+            fetch(`${BASE_API}/${sport}/teams/${id}/schedule?seasontype=2`, { headers: HEADERS, next: { revalidate: 300 } })
+        ]);
+
+        if (!teamRes.ok) return null;
+        const teamData = await teamRes.json();
+        const t = teamData.team;
+
+        let roster = [];
+        if (rosterRes.ok) {
+            const rData = await rosterRes.json();
+            if (rData.athletes) {
+                roster = rData.athletes.flatMap((grp: any) => grp.items || []);
+            }
+        }
+
+        let schedule = [];
+        if (scheduleRes.ok) {
+            const sData = await scheduleRes.json();
+            const events = sData.events?.filter((e: any) => e.competitions?.[0]?.status?.type?.completed) || [];
+            schedule = events.slice(-5).reverse().map((e: any) => {
+                const c = e.competitions[0];
+                const competitor = c.competitors?.find((Comp:any) => Comp.team?.id === id);
+                const opponent = c.competitors?.find((Comp:any) => Comp.team?.id !== id);
+                const isWin = competitor?.winner === true;
+                
+                return {
+                    id: e.id,
+                    date: new Date(c.date).toLocaleDateString('en-US', {month:'short', day:'numeric'}),
+                    opponent: opponent?.team?.abbreviation || 'OPP',
+                    opponentLogo: opponent?.team?.logos?.[0]?.href,
+                    score: `${competitor?.score?.value}-${opponent?.score?.value}`,
+                    result: isWin ? 'W' : 'L'
+                };
+            });
+        }
+
+        return {
+            id: t.id,
+            location: t.location,
+            name: t.name,
+            nickname: t.nickname,
+            abbr: t.abbreviation,
+            color: t.color || '000000',
+            logo: t.logos?.[0]?.href,
+            record: t.record?.items?.[0]?.summary || '0-0',
+            standing: t.standingSummary,
+            stadium: t.franchise?.venue?.fullName,
+            roster: roster.map((p: any) => ({
+                id: p.id,
+                name: p.displayName,
+                jersey: p.jersey,
+                pos: p.position?.abbreviation,
+                headshot: p.headshot?.href
+            })),
+            recentGames: schedule
+        };
+
+    } catch (e) { return null; }
+};
+
+export const getPlayer = async (league: League, id: string) => {
+    try {
+        const res = await fetch(`${ENDPOINTS[league].athletes}/${id}`, { headers: HEADERS, next: { revalidate: 3600 } });
+        if (!res.ok) return null;
+        const json = await res.json();
+        const ath = json.athlete;
+
+        return {
+            id: ath.id,
+            name: ath.displayName,
+            headshot: ath.headshot?.href,
+            team: ath.team?.displayName || 'Free Agent',
+            teamId: ath.team?.id,
+            teamColor: ath.team?.color || '000000',
+            pos: ath.position?.displayName,
+            status: ath.status?.name || 'Active',
+            stats: ath.statsSummary?.statistics?.map((s: any) => ({ name: s.displayName, displayValue: s.displayValue })) || []
+        };
+    } catch (e) { return null; }
+};
+
+export const getPlayerLogs = async (league: League, id: string) => {
+    try {
+        const res = await fetch(`${ENDPOINTS[league].athletes}/${id}/gamelog`, { headers: HEADERS, next: { revalidate: 3600 } });
+        const json = await res.json();
+        
+        // Root level labels are the truth for the indices
+        const rootLabels = json.labels || [];
+        const gameMap = json.events || {};
+        let statsEvents: any[] = [];
+
+        if (json.seasonTypes) {
+            json.seasonTypes.forEach((st: any) => {
+                if (st.categories) {
+                    st.categories.forEach((cat: any) => {
+                        if (cat.events) statsEvents.push(...cat.events);
+                    });
+                } else if (st.events) {
+                    statsEvents.push(...st.events);
+                }
+            });
+        }
+        
+        return statsEvents.slice(0, 5).map((e: any) => {
+            const game = gameMap[e.eventId];
+            const stats = e.stats || [];
+            
+            const cleanStats = Array.isArray(stats) ? stats.map((s:any) => {
+                if (typeof s === 'object' && s !== null) return s.displayValue || s.value || '-';
+                return s;
+            }) : [];
+
+            if (!game) {
+                return { date: '-', opponent: 'OPP', result: '-', stats: cleanStats, labels: rootLabels };
+            }
+
+            const date = new Date(game.gameDate).toLocaleDateString('en-US', {month:'numeric', day:'numeric'});
+            const opponent = game.opponent?.abbreviation || game.opponent?.displayName || 'OPP';
+            const result = game.gameResult || '-';
+
+            return {
+                date,
+                opponent,
+                result,
+                stats: cleanStats,
+                labels: rootLabels
+            };
+        });
+    } catch (e) { return []; }
+};
+
+export const searchAthletes = async (league: League, query: string) => {
+    if (!query || query.length < 2) return [];
+    try {
+        const res = await fetch(`https://site.web.api.espn.com/apis/common/v3/search?region=us&lang=en&query=${encodeURIComponent(query)}&limit=5&mode=prefix&type=player&sport=${league === 'nfl' ? 'football' : 'basketball'}&league=${league}`);
+        const data = await res.json();
+        return (data.items || []).map((item: any) => ({
+            id: item.id,
+            name: item.displayName,
+            team: item.team?.abbreviation || 'FA',
+            url: `/sports/${league}/player/${item.id}`,
+            image: item.images?.[0]?.url || null
+        }));
+    } catch (e) { return []; }
+};

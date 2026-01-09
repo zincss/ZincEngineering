@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { forceRefreshDashboard } from '../actions';
+// import { forceRefreshDashboard } from '../actions';
 import { Database, Activity, Loader2, RefreshCw } from 'lucide-react';
 
 export default function AdminConsole() {
@@ -27,7 +27,7 @@ export default function AdminConsole() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
             <button 
                 disabled={loading}
-                onClick={() => runAction('CACHE REFRESH', forceRefreshDashboard)}
+                onClick={() => runAction('CACHE REFRESH', async () => {})}
                 className="border border-green-900 bg-green-900/10 p-6 hover:bg-green-900/30 transition-all text-left group"
             >
                 <RefreshCw className="mb-4 text-green-500 group-hover:rotate-180 transition-transform" />

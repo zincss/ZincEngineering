@@ -70,8 +70,11 @@ export default function PlayHub() {
   const closeInfoModal = () => { setShowInfoModal(false); sessionStorage.setItem('zinc_play_intro_seen', 'true'); };
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-white pb-20 relative overflow-x-hidden selection:bg-[#DFFF00] selection:text-black">
-      <div className="bg-starfield fixed inset-0 z-0" />
+    <main className="min-h-screen bg-zinc-950 text-white pb-20 relative overflow-x-hidden selection:bg-[#DFFF00] selection:text-black font-sans">
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute top-0 left-0 w-full h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay" />
+      </div>
+
       {showInfoModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in" onClick={closeInfoModal} />
@@ -90,94 +93,153 @@ export default function PlayHub() {
         </div>
       )}
 
-      <section className="relative pt-32 pb-8 px-6 border-b border-zinc-800/50 z-10 bg-zinc-950/50 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-end justify-between gap-6">
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter mb-2 text-white">System <span className="text-zinc-800">Arcade</span></h1>
-                <p className="text-zinc-400 font-mono text-xs md:text-sm max-w-xl leading-relaxed"><span className="text-[#DFFF00] font-black mr-2">///</span>Interactive simulation modules. Wager credits. Test algorithms.</p>
-            </div>
-            <Link href="/play/market" className="group flex items-center gap-3 px-6 py-3 bg-[#DFFF00] hover:bg-white text-black rounded-full font-bold uppercase tracking-widest text-xs transition-all shadow-[0_0_20px_rgba(223,255,0,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:-translate-y-1 active:scale-95 whitespace-nowrap">
-                <Package size={16} className="group-hover:rotate-12 transition-transform" /><span>Black Market</span><ArrowRight size={16} className="-rotate-45 group-hover:rotate-0 transition-transform" />
-            </Link>
+      <div className="relative z-10 pt-24 pb-8 px-6 max-w-[1600px] mx-auto w-full">
+        {/* HEADER */}
+        <div className="flex items-center justify-between mb-12">
+           <div className="flex items-center gap-6">
+              <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center border border-zinc-800 shadow-2xl">
+                 <Brain size={24} className="text-[#DFFF00]" />
+              </div>
+              <div>
+                 <div className="flex items-center gap-3 text-zinc-500 font-mono text-[10px] font-bold tracking-[0.3em] uppercase mb-2">
+                    <span>ARCADE_SYSTEMS // v4.0</span>
+                 </div>
+                 <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter leading-none italic text-white">
+                    System <span className="text-zinc-800">Arcade</span>
+                 </h1>
+              </div>
+           </div>
+           <div className="hidden md:flex items-center gap-2 text-zinc-600 bg-zinc-900/50 px-4 py-2 rounded-full border border-zinc-800">
+              <div className="w-2 h-2 rounded-full bg-[#DFFF00] animate-pulse" />
+              <span className="font-mono text-[10px] uppercase tracking-widest">Online</span>
+           </div>
         </div>
-      </section>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-10 space-y-16 relative z-10">
-        <section>
-           <div className="flex items-center gap-2 mb-4"><Zap size={16} className="text-[#DFFF00] fill-[#DFFF00] animate-pulse" /><span className="text-xs font-mono font-bold text-[#DFFF00] uppercase tracking-widest">Daily Protocol</span></div>
-           <Link href="/play/cyphers" className="group relative block w-full h-[400px] md:h-[320px] rounded-[2.5rem] overflow-hidden border border-zinc-700 hover:border-[#DFFF00] transition-all duration-500 shadow-2xl">
-              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-40 group-hover:opacity-20 transition-all duration-700 group-hover:scale-105 saturate-0 group-hover:saturate-100" />
-              <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/80 to-transparent" />
-              <div className="absolute inset-0 p-8 md:p-12 flex flex-col justify-center max-w-2xl">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#DFFF00] text-black text-[10px] font-black uppercase tracking-widest rounded-full w-fit mb-4"><span className="w-1.5 h-1.5 bg-black rounded-full animate-pulse" /> New Module</div>
-                  <h2 className="text-4xl md:text-6xl font-black uppercase text-white mb-4 tracking-tight group-hover:text-[#DFFF00] transition-colors">Protocol <br/><span className="text-zinc-600 group-hover:text-white transition-colors">Cyphers</span></h2>
-                  <p className="text-zinc-400 font-mono text-sm leading-relaxed mb-6 max-w-md">Daily cryptographic sequence challenge. Decrypt 4, 5, and 6-letter security layers to earn credits.</p>
-                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white group-hover:translate-x-2 transition-transform">Initiate Hack <ArrowRight size={14} /></div>
+        {/* MONOLITH GRID */}
+        <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-[300px] gap-[1px] bg-zinc-800 border border-zinc-800 rounded-[2rem] overflow-hidden shadow-2xl">
+           
+           {/* CYPHERS (Large) */}
+           <Link href="/play/cyphers" className="group md:col-span-8 relative bg-zinc-950 hover:bg-[#DFFF00] transition-colors duration-300 p-8 flex flex-col justify-between overflow-hidden">
+              <div className="relative z-10 flex justify-between items-start">
+                 <div className="flex items-center gap-3">
+                    <span className="font-mono text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-black/60 transition-colors">01_Logic</span>
+                    <div className="flex items-center gap-2 px-2 py-1 rounded bg-zinc-900 border border-zinc-800 group-hover:border-black/20 group-hover:bg-black/10 transition-colors">
+                       <span className="w-1.5 h-1.5 bg-[#DFFF00] rounded-full animate-pulse group-hover:bg-black" />
+                       <span className="text-[9px] font-bold text-zinc-500 group-hover:text-black/60 uppercase">Daily_Protocol</span>
+                    </div>
+                 </div>
+                 <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-black/10 transition-colors text-[#DFFF00] group-hover:text-black">
+                    <Hash size={18} />
+                 </div>
+              </div>
+              <div className="relative z-10">
+                 <h3 className="text-4xl md:text-5xl font-black text-white uppercase italic tracking-tighter group-hover:text-black transition-colors mb-2">Protocol Cyphers</h3>
+                 <p className="font-mono text-xs text-zinc-500 max-w-md group-hover:text-black/60">
+                    Daily cryptographic sequence challenge. Decrypt security layers to earn credits.
+                 </p>
               </div>
            </Link>
-        </section>
 
-        <section>
-          <SectionHeader icon={Spade} title="Live Tables" subtitle="High Stakes Environment" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 items-stretch">
-             <div className="col-span-1 md:col-span-2 lg:col-span-6 group relative min-h-[300px] rounded-[2rem] border border-zinc-800 bg-zinc-900 overflow-hidden hover:border-[#DFFF00]/50 transition-all duration-500">
-                <Link href="/play/poker" className="block h-full">
-                  <div className="absolute inset-0 overflow-hidden"><video autoPlay loop muted playsInline className="w-full h-full object-cover opacity-50 group-hover:opacity-30 transition-opacity duration-700"><source src="/videos/casino-bg.mp4" type="video/mp4" /></video><div className="absolute inset-0 bg-zinc-950/50" /></div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent" />
-                  <div className="absolute top-6 right-6 bg-black/50 backdrop-blur p-3 rounded-full border border-white/10 group-hover:scale-110 transition-transform"><Trophy className="text-[#DFFF00]" size={24} /></div>
-                  <div className="absolute bottom-0 left-0 p-8 w-full"><h2 className="text-4xl font-black uppercase text-white mb-2">Texas Hold&apos;em</h2><p className="text-zinc-400 font-mono text-sm max-w-lg">No-Limit Protocol. Neural network opponents.</p></div>
-                </Link>
-             </div>
-             <SpotlightCard className="lg:col-span-3 h-full min-h-[300px] rounded-[2rem]">
-                <Link href="/play/blackjack" className="relative flex flex-col h-full p-8 group">
-                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1511193311914-0346f16efe90?q=80&w=2674&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:opacity-20 transition-all duration-700 group-hover:scale-105" /><div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent" />
-                    <div className="relative z-10 bg-black/40 backdrop-blur-md p-3 rounded-2xl border border-white/10 w-fit mb-auto group-hover:border-[#DFFF00]/50 transition-colors"><AnimatedSpade /></div>
-                    <div className="relative z-10"><h2 className="text-2xl font-black uppercase text-white mb-2 group-hover:text-[#DFFF00] transition-colors">Blackjack</h2><p className="text-zinc-400 font-mono text-xs uppercase tracking-wider">21 Probability Sim</p></div>
-                </Link>
-             </SpotlightCard>
-             <SpotlightCard className="lg:col-span-3 h-full min-h-[300px] rounded-[2rem]">
-                <Link href="/play/roulette" className="relative flex flex-col h-full p-8 group">
-                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1605870445919-838d190e8e1b?q=80&w=2672&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:opacity-20 transition-all duration-700 group-hover:scale-105" /><div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent" />
-                    <div className="relative z-10 bg-black/40 backdrop-blur-md p-3 rounded-2xl border border-white/10 w-fit mb-auto group-hover:border-[#DFFF00]/50 transition-colors"><Spade size={24} className="text-white group-hover:text-[#DFFF00] transition-colors" /></div>
-                    <div className="relative z-10"><h2 className="text-2xl font-black uppercase text-white mb-2 group-hover:text-[#DFFF00] transition-colors">Roulette</h2><p className="text-zinc-400 font-mono text-xs uppercase tracking-wider">Wheel of Fortune</p></div>
-                </Link>
-             </SpotlightCard>
-          </div>
-        </section>
+           {/* BLACK MARKET (Medium) */}
+           <Link href="/play/market" className="group md:col-span-4 relative bg-zinc-950 hover:bg-[#DFFF00] transition-colors duration-300 p-8 flex flex-col justify-between overflow-hidden">
+              <div className="relative z-10 flex justify-between items-start">
+                 <span className="font-mono text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-black/60 transition-colors">02_Acquire</span>
+                 <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-black/10 transition-colors text-[#DFFF00] group-hover:text-black">
+                    <Package size={18} />
+                 </div>
+              </div>
+              <div className="relative z-10">
+                 <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter group-hover:text-black transition-colors">Black Market</h3>
+                 <div className="h-0.5 w-8 bg-[#DFFF00] mt-4 group-hover:bg-black group-hover:w-full transition-all duration-500" />
+              </div>
+           </Link>
 
-        <section>
-          <SectionHeader icon={Brain} title="Cognitive Sims" subtitle="Market & Logic" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-             <SpotlightCard className="rounded-[2.5rem]">
-                <Link href="/play/cyphers" className="relative flex flex-col h-64 p-8 group">
-                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:opacity-20 transition-all duration-700 group-hover:scale-105" /><div className="absolute inset-0 bg-zinc-950/60" />
-                    <div className="relative z-10 bg-black/40 backdrop-blur-md p-3 rounded-2xl border border-white/10 w-fit mb-auto group-hover:border-[#DFFF00]/50 transition-colors"><Hash size={24} className="text-[#DFFF00]" /></div>
-                    <div className="relative z-10"><h2 className="text-2xl font-black uppercase text-white mb-2 group-hover:text-[#DFFF00] transition-colors">Cyphers</h2><p className="text-zinc-400 font-mono text-xs uppercase tracking-wider">Cryptographic Word Logic</p></div>
-                </Link>
-             </SpotlightCard>
-             <SpotlightCard className="rounded-[2.5rem]" spotlightColor="rgba(239, 68, 68, 0.2)">
-                <Link href="/play/hotseat" className="relative flex flex-col h-64 p-8 group">
-                    <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/3826581/pexels-photo-3826581.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1')] bg-cover bg-center opacity-30 group-hover:opacity-20 transition-all duration-700 group-hover:scale-105" /><div className="absolute inset-0 bg-zinc-950/60" />
-                    <div className="relative z-10 flex justify-between w-full mb-auto"><div className="bg-black/40 backdrop-blur-md p-3 rounded-2xl border border-white/10 group-hover:border-red-500/50 transition-colors"><AnimatedFlame /></div><div className="px-3 py-1.5 h-fit bg-[#DFFF00] text-black font-black text-[10px] uppercase tracking-widest rounded-full animate-pulse">HOT</div></div>
-                    <div className="relative z-10"><h2 className="text-2xl font-black uppercase text-white mb-2 group-hover:text-red-500 transition-colors">Hotseat</h2><p className="text-zinc-400 font-mono text-xs uppercase tracking-wider">Rapid Fire Trivia</p></div>
-                </Link>
-             </SpotlightCard>
-             <SpotlightCard className="rounded-[2.5rem]">
-                <Link href="/collections/trivia" className="relative flex flex-col h-64 p-8 group">
-                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:opacity-20 transition-all duration-700 group-hover:scale-105" /><div className="absolute inset-0 bg-zinc-950/60" />
-                    <div className="relative z-10 bg-black/40 backdrop-blur-md p-3 rounded-2xl border border-white/10 w-fit mb-auto group-hover:border-[#DFFF00]/50 transition-colors"><Brain size={24} className="text-white" /></div>
-                    <div className="relative z-10"><h2 className="text-2xl font-black uppercase text-white mb-2 group-hover:text-[#DFFF00] transition-colors">Trivia Matrix</h2><p className="text-zinc-400 font-mono text-xs uppercase tracking-wider">Standard Assessment</p></div>
-                </Link>
-             </SpotlightCard>
-          </div>
-        </section>
+           {/* POKER */}
+           <Link href="/play/poker" className="group md:col-span-4 relative bg-zinc-950 hover:bg-[#DFFF00] transition-colors duration-300 p-8 flex flex-col justify-between overflow-hidden">
+              <div className="relative z-10 flex justify-between items-start">
+                 <span className="font-mono text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-black/60 transition-colors">03_Table</span>
+                 <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-black/10 transition-colors text-[#DFFF00] group-hover:text-black">
+                    <Trophy size={18} />
+                 </div>
+              </div>
+              <div className="relative z-10">
+                 <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter group-hover:text-black transition-colors">Poker</h3>
+                 <p className="font-mono text-[10px] text-zinc-500 group-hover:text-black/60 mt-1 uppercase tracking-widest">Texas Hold'em //</p>
+              </div>
+           </Link>
 
-        <section className="opacity-60 hover:opacity-100 transition-opacity">
-           <div className="border border-dashed border-zinc-800 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 bg-zinc-950/30">
-               <div className="flex items-center gap-4"><div className="p-4 bg-zinc-900 rounded-2xl text-zinc-600"><Construction size={32} /></div><div><h3 className="text-lg font-black uppercase text-zinc-500">Memory Core</h3><p className="text-xs font-mono text-zinc-600">Module under construction</p></div></div>
-               <div className="text-[10px] font-mono uppercase tracking-widest text-zinc-700 bg-zinc-900 px-4 py-2 rounded-full">v0.9.2 Alpha</div>
+           {/* BLACKJACK */}
+           <Link href="/play/blackjack" className="group md:col-span-4 relative bg-zinc-950 hover:bg-[#DFFF00] transition-colors duration-300 p-8 flex flex-col justify-between overflow-hidden">
+              <div className="relative z-10 flex justify-between items-start">
+                 <span className="font-mono text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-black/60 transition-colors">04_Table</span>
+                 <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-black/10 transition-colors text-[#DFFF00] group-hover:text-black">
+                    <AnimatedSpade />
+                 </div>
+              </div>
+              <div className="relative z-10">
+                 <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter group-hover:text-black transition-colors">Blackjack</h3>
+                 <p className="font-mono text-[10px] text-zinc-500 group-hover:text-black/60 mt-1 uppercase tracking-widest">21 Protocol //</p>
+              </div>
+           </Link>
+
+           {/* ROULETTE */}
+           <Link href="/play/roulette" className="group md:col-span-4 relative bg-zinc-950 hover:bg-[#DFFF00] transition-colors duration-300 p-8 flex flex-col justify-between overflow-hidden">
+              <div className="relative z-10 flex justify-between items-start">
+                 <span className="font-mono text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-black/60 transition-colors">05_Chance</span>
+                 <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-black/10 transition-colors text-[#DFFF00] group-hover:text-black">
+                    <Spade size={18} />
+                 </div>
+              </div>
+              <div className="relative z-10">
+                 <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter group-hover:text-black transition-colors">Roulette</h3>
+                 <p className="font-mono text-[10px] text-zinc-500 group-hover:text-black/60 mt-1 uppercase tracking-widest">Spin Cycle //</p>
+              </div>
+           </Link>
+
+           {/* HOTSEAT */}
+           <Link href="/play/hotseat" className="group md:col-span-6 relative bg-zinc-950 hover:bg-[#DFFF00] transition-colors duration-300 p-8 flex flex-col justify-between overflow-hidden">
+              <div className="relative z-10 flex justify-between items-start">
+                 <span className="font-mono text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-black/60 transition-colors">06_Rapid</span>
+                 <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-black/10 transition-colors text-[#DFFF00] group-hover:text-black">
+                    <AnimatedFlame />
+                 </div>
+              </div>
+              <div className="relative z-10">
+                 <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter group-hover:text-black transition-colors">Hotseat</h3>
+                 <p className="font-mono text-[10px] text-zinc-500 group-hover:text-black/60 mt-1 uppercase tracking-widest">High Velocity Trivia //</p>
+              </div>
+           </Link>
+
+           {/* TRIVIA MATRIX */}
+           <Link href="/collections/trivia" className="group md:col-span-6 relative bg-zinc-950 hover:bg-[#DFFF00] transition-colors duration-300 p-8 flex flex-col justify-between overflow-hidden">
+              <div className="relative z-10 flex justify-between items-start">
+                 <span className="font-mono text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-black/60 transition-colors">07_Database</span>
+                 <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-black/10 transition-colors text-[#DFFF00] group-hover:text-black">
+                    <Brain size={18} />
+                 </div>
+              </div>
+              <div className="relative z-10">
+                 <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter group-hover:text-black transition-colors">Trivia Matrix</h3>
+                 <p className="font-mono text-[10px] text-zinc-500 group-hover:text-black/60 mt-1 uppercase tracking-widest">Standard Assessment //</p>
+              </div>
+           </Link>
+
+        </div>
+
+        <div className="mt-12 opacity-60 hover:opacity-100 transition-opacity">
+           <div className="border border-zinc-800 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 bg-zinc-950">
+               <div className="flex items-center gap-4">
+                  <div className="p-4 bg-zinc-900 rounded-2xl text-zinc-600 border border-zinc-800">
+                     <Construction size={32} />
+                  </div>
+                  <div>
+                     <h3 className="text-lg font-black uppercase text-zinc-500 tracking-wide">Memory Core</h3>
+                     <p className="text-xs font-mono text-zinc-600">Module under construction</p>
+                  </div>
+               </div>
+               <div className="text-[10px] font-mono uppercase tracking-widest text-zinc-700 bg-zinc-900 px-4 py-2 rounded-full border border-zinc-800">v0.9.2 Alpha</div>
            </div>
-        </section>
+        </div>
       </div>
     </main>
   );

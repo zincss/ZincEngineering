@@ -13,174 +13,364 @@ import {
   ArrowRight, Activity, ShieldCheck, Cpu,
   Info, X, MoveRight, Rocket, Globe, Eye, Star, Terminal, CloudRain 
 } from 'lucide-react';
+import { COMPANIES } from './play/stocks/data';
+import { getCurrentPrice } from './play/stocks/utils';
 
 // --- CUSTOM ANIMATED ICONS ---
 
 const AnimatedTrophy = () => {
+
   const controls = useAnimation();
+
   return (
+
     <motion.svg
+
       xmlns="http://www.w3.org/2000/svg"
-      width="28" height="28" viewBox="0 0 24 24" fill="none"
+
+      width="18" height="18" viewBox="0 0 24 24" fill="none"
+
       stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+
       onMouseEnter={() => controls.start("hover")}
+
       onMouseLeave={() => controls.start("normal")}
+
     >
+
       <motion.path 
+
         d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" 
-        variants={{ hover: { x: -2, rotate: -10 }, normal: { x: 0, rotate: 0 } }} 
+
+        variants={{ hover: { rotate: -10 }, normal: { rotate: 0 } }} 
+
         animate={controls}
+
       />
+
       <motion.path 
+
         d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" 
-        variants={{ hover: { x: 2, rotate: 10 }, normal: { x: 0, rotate: 0 } }} 
+
+        variants={{ hover: { rotate: 10 }, normal: { rotate: 0 } }} 
+
         animate={controls}
+
       />
+
+      <motion.path d="M4 22h16" />
+
+      <motion.path d="M10 14.66V22" />
+
+      <motion.path d="M14 14.66V22" />
+
       <motion.path 
-        d="M4 22h16" 
-        variants={{ hover: { scaleX: 1.1 }, normal: { scaleX: 1 } }} 
-        animate={controls}
-      />
-      <motion.path 
-        d="M12 2L12 4" 
-        variants={{ hover: { y: -3, opacity: 1 }, normal: { y: 0, opacity: 0 } }}
-        animate={controls}
-        initial={{ opacity: 0 }}
-      />
-      <motion.path 
-        d="M8 21h8v-2l-1-1v-6c0-3.1-1.6-5-4-5s-4 1.9-4 5v6l-1 1v2z" 
+
+        d="M18 2H6v7c0 3.31 2.69 6 6 6s6-2.69 6-6V2Z" 
+
         variants={{ hover: { y: -1 }, normal: { y: 0 } }}
+
         animate={controls}
+
       />
+
     </motion.svg>
+
   );
+
 };
+
+
+
+const AnimatedGlobe = () => {
+
+  const controls = useAnimation();
+
+  return (
+
+    <motion.svg
+
+      xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+
+      onMouseEnter={() => controls.start("hover")}
+
+      onMouseLeave={() => controls.start("normal")}
+
+    >
+
+      <motion.circle cx="12" cy="12" r="10" />
+
+      <motion.path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" 
+
+        variants={{ hover: { rotate: 180 }, normal: { rotate: 0 } }}
+
+        transition={{ duration: 1, ease: "easeInOut" }}
+
+        animate={controls}
+
+      />
+
+      <motion.path d="M2 12h20" 
+
+         variants={{ hover: { scaleX: 1.1 }, normal: { scaleX: 1 } }}
+
+         animate={controls}
+
+      />
+
+    </motion.svg>
+
+  );
+
+};
+
+
+
+
 
 const AnimatedGamepad = () => {
+
   const controls = useAnimation();
+
   return (
+
     <div onMouseEnter={() => controls.start("hover")} onMouseLeave={() => controls.start("normal")}>
+
       <motion.svg
-        xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+
+        xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+
       >
+
         <line x1="6" x2="10" y1="12" y2="12" />
+
         <line x1="8" x2="8" y1="10" y2="14" />
+
         <line x1="15" x2="15.01" y1="13" y2="13" />
+
         <line x1="18" x2="18.01" y1="11" y2="11" />
+
         <motion.rect 
+
           x="2" y="6" width="20" height="12" rx="2"
+
           variants={{ 
+
             hover: { rotate: [0, -2, 2, -2, 2, 0], transition: { duration: 0.4 } }, 
+
             normal: { rotate: 0 } 
+
           }}
+
           animate={controls}
+
         />
+
       </motion.svg>
+
     </div>
+
   );
+
 };
+
+
 
 const AnimatedLayers = () => {
+
   const controls = useAnimation();
+
   return (
+
     <motion.svg
-      xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+
+      xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+
       onMouseEnter={() => controls.start("hover")}
+
       onMouseLeave={() => controls.start("normal")}
+
     >
+
       <motion.path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z" 
+
         variants={{ hover: { y: -2 }, normal: { y: 0 } }} animate={controls}
+
       />
+
       <motion.path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65" 
+
         variants={{ hover: { y: 2 }, normal: { y: 0 } }} animate={controls}
+
       />
+
       <motion.path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65" 
+
         variants={{ hover: { y: 0 }, normal: { y: 0 } }} animate={controls}
+
       />
+
     </motion.svg>
+
   );
+
 };
+
+
 
 const AnimatedTrend = () => {
+
   const controls = useAnimation();
+
   return (
+
     <motion.svg
+
       xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+
       onMouseEnter={() => controls.start("hover")}
+
       onMouseLeave={() => controls.start("normal")}
+
     >
+
       <motion.polyline points="23 6 13.5 15.5 8.5 10.5 1 18" 
+
         initial={{ pathLength: 1 }}
+
         variants={{ 
+
           hover: { pathLength: [0, 1], transition: { duration: 0.6, ease: "easeInOut" } },
+
           normal: { pathLength: 1 }
+
         }}
+
         animate={controls}
+
       />
+
       <motion.polyline points="17 6 23 6 23 12" 
+
         variants={{ 
+
           hover: { x: 2, y: -2, transition: { repeat: Infinity, repeatType: "reverse" } },
+
           normal: { x: 0, y: 0 }
+
         }}
+
         animate={controls}
+
       />
+
     </motion.svg>
+
   );
+
 };
+
+
 
 const AnimatedWeather = () => {
+
   const controls = useAnimation();
+
   return (
+
     <motion.svg
-      xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+
+      xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+
       onMouseEnter={() => controls.start("hover")}
+
       onMouseLeave={() => controls.start("normal")}
+
     >
+
       <motion.path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" 
+
          variants={{ hover: { x: [0, 1, -1, 0], transition: { repeat: Infinity, duration: 2 } } }}
+
          animate={controls}
+
       />
+
       <motion.path d="M16 14v6" 
+
          variants={{ hover: { y: [0, 5], opacity: [0, 1, 0], transition: { repeat: Infinity, duration: 0.8 } } }}
+
          animate={controls}
+
       />
+
       <motion.path d="M8 14v6" 
+
          variants={{ hover: { y: [0, 5], opacity: [0, 1, 0], transition: { repeat: Infinity, duration: 0.8, delay: 0.2 } } }}
+
          animate={controls}
+
       />
+
       <motion.path d="M12 16v6" 
+
          variants={{ hover: { y: [0, 5], opacity: [0, 1, 0], transition: { repeat: Infinity, duration: 0.8, delay: 0.4 } } }}
+
          animate={controls}
+
       />
+
     </motion.svg>
+
   );
+
 };
 
+
+
 const AnimatedTerminal = () => {
+
   const controls = useAnimation();
+
   return (
+
     <motion.svg
-      xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+
+      xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+
       onMouseEnter={() => controls.start("hover")}
+
       onMouseLeave={() => controls.start("normal")}
+
     >
+
       <polyline points="4 17 10 11 4 5" />
+
       <motion.line x1="12" x2="20" y1="19" y2="19" 
+
         variants={{ 
+
           hover: { opacity: [1, 0, 1], transition: { duration: 0.8, repeat: Infinity } },
+
           normal: { opacity: 1 }
+
         }}
+
         animate={controls}
+
       />
+
     </motion.svg>
+
   );
+
 };
 
 // --- UTILITY: MOUSE-FOLLOW SPOTLIGHT ---
 function SpotlightCard({ 
   children, 
   className = "", 
-  spotlightColor = "rgba(223, 255, 0, 0.15)" 
+  spotlightColor = "rgba(223, 255, 0, 0.1)" 
 }: { 
   children: React.ReactNode; 
   className?: string;
@@ -197,7 +387,7 @@ function SpotlightCard({
 
   return (
     <div 
-      className={`group relative border border-white/10 bg-zinc-900 overflow-hidden ${className}`}
+      className={`group relative border border-white/5 bg-black/40 backdrop-blur-sm overflow-hidden transition-all duration-500 hover:border-white/20 ${className}`}
       onMouseMove={handleMouseMove}
     >
       <motion.div
@@ -212,6 +402,13 @@ function SpotlightCard({
           `,
         }}
       />
+      
+      {/* HUD CORNER ACCENTS */}
+      <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-white/20 group-hover:border-[#DFFF00]/50 transition-colors" />
+      <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-white/20 group-hover:border-[#DFFF00]/50 transition-colors" />
+      <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-white/20 group-hover:border-[#DFFF00]/50 transition-colors" />
+      <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-white/20 group-hover:border-[#DFFF00]/50 transition-colors" />
+
       <div className="relative h-full z-20">{children}</div>
     </div>
   );
@@ -330,15 +527,30 @@ const IntroOverlay = ({ onClose }: { onClose: () => void }) => {
 // --- MAIN PAGE COMPONENT ---
 export default function Home() {
   const [wordIndex, setWordIndex] = useState(0);
-  const words = ["Engineering", "Economy", "Entertainment", "Everything"];
+  const words = ["ENGINEERING", "TELEMETRY", "EXCHANGE", "FRONTIER", "STRATEGY", "LIFESTYLE", "ARCHIVE", "ANALYTICS", "ECOSYSTEMS"];
   const [showIntro, setShowIntro] = useState(false);
   const [cinematicMode, setCinematicMode] = useState(false);
+  const [tickerData, setTickerData] = useState<any[]>([]);
 
   // Parallax Logic
   const { scrollY } = useScroll();
   const heroY = useTransform(scrollY, [0, 500], [0, 200]);
   const heroOpacity = useTransform(scrollY, [0, 400], [1, 0]);
   const videoY = useTransform(scrollY, [0, 1000], [0, -150]);
+
+  useEffect(() => {
+    // Generate ticker data on client-side mount
+    const data = COMPANIES.slice(0, 20).map(c => {
+        const price = getCurrentPrice(c.ticker);
+        const change = ((price - c.basePrice) / c.basePrice) * 100;
+        return {
+            s: c.ticker,
+            p: price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}),
+            c: (change >= 0 ? '+' : '') + change.toFixed(1) + '%'
+        };
+    });
+    setTickerData(data);
+  }, []);
 
   useEffect(() => {
     const hasSeen = localStorage.getItem('zinc_intro_v3_1'); 
@@ -361,29 +573,23 @@ export default function Home() {
   const scrollToLogs = () => document.getElementById('system-logs')?.scrollIntoView({ behavior: 'smooth' });
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-white selection:bg-[#DFFF00] selection:text-black pb-20 relative overflow-x-hidden">
+    <main className="min-h-screen bg-zinc-950 text-white selection:bg-[#DFFF00] selection:text-black pb-32 relative overflow-x-hidden font-sans">
       
+      {/* GLOBAL GRAIN OVERLAY */}
+      <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.15] mix-blend-overlay pointer-events-none z-[60]" />
+
       <AnimatePresence>
         {showIntro && <IntroOverlay onClose={handleCloseIntro} />}
       </AnimatePresence>
 
       {/* --- CINEMATIC BACKGROUND VIDEO --- */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-          {/* Dark Overlay - Fades out in Cinematic Mode */}
           <motion.div 
             animate={{ opacity: cinematicMode ? 0 : 1 }}
             transition={{ duration: 2, ease: "easeInOut" }}
             className="absolute inset-0 bg-zinc-950/80 z-20" 
           />
           
-          {/* Noise Overlay - Fades out in Cinematic Mode */}
-          <motion.div 
-            animate={{ opacity: cinematicMode ? 0 : 0.15 }}
-            transition={{ duration: 2, ease: "easeInOut" }}
-            className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] z-20 mix-blend-overlay" 
-          />
-          
-          {/* Video - Transitions to full color EPIC GRADED in Cinematic Mode */}
           <motion.div style={{ y: videoY }} className="absolute inset-0 z-10 h-[120%]">
             <motion.video 
               initial={{ opacity: 0.5, filter: 'grayscale(100%)', mixBlendMode: 'overlay' }}
@@ -415,14 +621,14 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }} 
                 exit={{ opacity: 0, y: 20 }}
                 transition={{ delay: 2 }}
-                className="bg-black/40 text-white/70 px-6 py-2 rounded-full backdrop-blur-md text-xs font-mono uppercase tracking-widest border border-white/10 group-hover:bg-black/60 group-hover:text-white transition-all"
+                className="bg-black/40 text-white/70 px-8 py-3 rounded-full backdrop-blur-md text-[10px] font-black uppercase tracking-[0.3em] border border-white/10 group-hover:bg-black/60 group-hover:text-white transition-all shadow-2xl"
             >
-                System Standby // Click to Restore
+                UPLINK STANDBY // CLICK TO RESTORE
             </motion.div>
         </div>
       )}
 
-      {/* --- MAIN INTERFACE WRAPPER (Fades out in Cinematic Mode) --- */}
+      {/* --- MAIN INTERFACE WRAPPER --- */}
       <motion.div
         animate={{ opacity: cinematicMode ? 0 : 1, pointerEvents: cinematicMode ? 'none' : 'auto' }}
         transition={{ duration: 1, ease: "easeInOut" }}
@@ -431,120 +637,96 @@ export default function Home() {
           {/* --- HERO SECTION --- */}
           <motion.section 
             style={{ opacity: heroOpacity, y: heroY }}
-            className="min-h-[92vh] flex flex-col items-center justify-center py-20 px-6"
+            className="min-h-[95vh] flex flex-col items-center justify-center py-20 px-6"
           >
-            {/* Subtle Gradient Glow Behind Hero */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/5 blur-[120px] rounded-full pointer-events-none" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-white/[0.02] blur-[150px] rounded-full pointer-events-none" />
 
-            <div className="relative w-full max-w-[1400px] mx-auto flex flex-col items-center lg:items-center text-center">
+            <div className="relative w-full max-w-[1400px] mx-auto flex flex-col items-center text-center">
               
-              {/* Status Chip */}
+              {/* Weather Quick Link - Minimalist Aesthetic */}
               <motion.div 
                 initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1 }}
-                className="mb-12 inline-flex items-center gap-3 px-5 py-2 bg-zinc-900/60 border border-white/10 backdrop-blur-2xl rounded-full"
+                className="mb-12"
               >
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#DFFF00] opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[#DFFF00]"></span>
-                </span>
-                <span className="text-[10px] font-mono font-bold text-zinc-300 tracking-[0.25em] uppercase">
-                  System Online v3.1
-                </span>
-                <div className="w-px h-3 bg-white/10 mx-1" />
-                <Link href="/collections/weather" className="hover:text-[#DFFF00] transition-colors" title="View Weather">
-                  <motion.div
-                    whileHover={{ scale: 1.2 }}
-                    whileTap={{ scale: 0.9 }}
-                  >
-                    <CloudRain size={12} className="text-zinc-500 hover:text-[#DFFF00]" />
-                  </motion.div>
+                <Link href="/collections/weather" className="group flex items-center gap-4 hover:opacity-70 transition-opacity">
+                  <CloudRain size={14} className="text-[#DFFF00]" />
+                  <span className="text-[10px] font-black text-[#DFFF00] tracking-[0.4em] uppercase italic">
+                    Weather //
+                  </span>
                 </Link>
               </motion.div>
 
               {/* Typography & Branding */}
-              <div className="flex flex-col items-center gap-8 select-none w-full max-w-5xl">
+              <div className="flex flex-col items-center gap-10 select-none w-full max-w-5xl">
                  
-                 {/* Logo + Title Lockup */}
-                 <div className="flex flex-col md:flex-row items-center gap-6 md:gap-12">
+                 <div className="flex flex-col md:flex-row items-center gap-8 md:gap-16 relative">
                      
-                     {/* Emblem - CLICKABLE FOR CINEMATIC MODE */}
-                     <motion.div 
-                       initial={{ scale: 0.8, opacity: 0 }} 
-                       animate={{ scale: 1, opacity: 1 }} 
-                       transition={{ duration: 1.2, ease: "circOut" }}
+                     {/* Emblem - ABSOLUTELY STILL */}
+                     <div 
                        onClick={() => setCinematicMode(true)}
-                       className="relative group cursor-pointer"
+                       className="relative group cursor-pointer shrink-0"
                      >
-                        <div className="absolute -inset-8 bg-[#DFFF00] rounded-[2.5rem] blur-[60px] opacity-10 group-hover:opacity-30 transition-opacity duration-700" />
-                        <div className="relative bg-[#DFFF00] w-24 h-24 md:w-32 md:h-32 flex items-center justify-center rounded-[1.5rem] shadow-2xl shrink-0 overflow-hidden hover:scale-105 transition-transform duration-500">
-                            <span className="font-black text-[70px] md:text-[90px] text-black leading-none z-10">Z</span>
+                        <div className="absolute -inset-12 bg-[#DFFF00] rounded-[2.5rem] blur-[80px] opacity-5 group-hover:opacity-20 transition-opacity duration-700" />
+                        <div className="relative bg-[#DFFF00] w-28 h-28 md:w-36 md:h-36 flex items-center justify-center rounded-[2rem] shadow-2xl overflow-hidden hover:scale-105 transition-transform duration-500">
+                            <span className="font-black text-[80px] md:text-[110px] text-black leading-none z-10">Z</span>
                             <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-black/5 opacity-50" />
                         </div>
-                        {/* Tooltip hint */}
-                        <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-[9px] font-mono uppercase tracking-widest text-[#DFFF00] whitespace-nowrap">
-                            View Background
-                        </div>
-                     </motion.div>
+                     </div>
 
-                     {/* Main Text */}
-                     <div className="flex flex-col items-center md:items-start">
-                        <motion.h1 
-                          initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 1, delay: 0.2 }}
-                          className="text-5xl md:text-7xl lg:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-200 to-zinc-500 tracking-tighter drop-shadow-sm leading-[0.9] text-center md:text-left"
-                        >
-                           ZINC<br/><span className="text-zinc-500">ECOSYSTEMS</span>
-                        </motion.h1>
+                     {/* Main Text - ABSOLUTELY STILL */}
+                     <div className="relative select-none">
+                        <h1 className="text-6xl md:text-8xl lg:text-[10rem] font-black text-white tracking-[0.1em] drop-shadow-2xl leading-[0.8] text-center md:text-left uppercase italic">
+                           ZINC
+                        </h1>
+                        
+                        {/* ABSOLUTE POSITIONED ROTATING LINE - Zero Layout Shift */}
+                        <div className="absolute top-[85%] left-0 right-0 md:left-1 flex items-center justify-center md:justify-start h-12 md:h-20 lg:h-24 overflow-visible">
+                           <AnimatePresence mode="wait">
+                             <motion.div 
+                               key={words[wordIndex]}
+                               initial={{ x: 40, opacity: 0, filter: 'blur(10px)', scale: 0.95 }}
+                               animate={{ x: 0, opacity: 1, filter: 'blur(0px)', scale: 1 }}
+                               exit={{ x: -40, opacity: 0, filter: 'blur(10px)', scale: 0.95 }}
+                               transition={{ 
+                                 duration: 0.4, 
+                                 ease: [0.23, 1, 0.32, 1] 
+                               }}
+                               className="text-[#DFFF00] font-mono text-xl md:text-2xl lg:text-4xl font-black tracking-[0.3em] uppercase italic drop-shadow-[0_0_20px_rgba(223,255,0,0.2)] whitespace-nowrap"
+                             >
+                                {words[wordIndex]}
+                             </motion.div>
+                           </AnimatePresence>
+                        </div>
                      </div>
                  </div>
                  
-                 {/* Divider Line */}
                  <motion.div 
                    initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ delay: 0.5, duration: 1 }}
-                   className="h-px w-full max-w-md bg-gradient-to-r from-transparent via-zinc-700 to-transparent my-4" 
+                   className="h-px w-full max-w-lg bg-gradient-to-r from-transparent via-zinc-700 to-transparent my-4" 
                  />
-
-                 {/* Rotating Subtext */}
-                 <div className="h-6 overflow-hidden relative w-full flex justify-center">
-                    <AnimatePresence mode="wait">
-                      <motion.div 
-                        key={words[wordIndex]}
-                        initial={{ y: 20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: -20, opacity: 0 }}
-                        transition={{ duration: 0.5 }}
-                        className="flex items-center gap-3"
-                      >
-                        <span className="text-[#DFFF00] font-bold text-xs">///</span>
-                        <span className="font-mono text-sm md:text-base text-zinc-400 tracking-[0.4em] uppercase">
-                          {words[wordIndex]}
-                        </span>
-                        <span className="text-[#DFFF00] font-bold text-xs">///</span>
-                      </motion.div>
-                    </AnimatePresence>
-                 </div>
               </div>
 
               {/* Action Buttons */}
               <motion.div 
                 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8, duration: 0.8 }}
-                className="mt-16 flex flex-col sm:flex-row items-center gap-5 w-full justify-center"
+                className="mt-20 flex flex-col sm:flex-row items-center gap-6 w-full justify-center"
               >
                 <Link 
                   href="/collections/astro"
-                  className="group relative px-10 py-4 bg-[#DFFF00] text-black font-black text-xs tracking-[0.2em] uppercase rounded-full overflow-hidden transition-all hover:scale-[1.02] active:scale-95 shadow-[0_0_40px_rgba(223,255,0,0.15)] hover:shadow-[0_0_60px_rgba(223,255,0,0.3)]"
+                  className="group relative px-12 py-5 bg-[#DFFF00] text-black font-black text-[10px] tracking-[0.3em] uppercase rounded-full overflow-hidden transition-all hover:scale-[1.05] active:scale-95 shadow-[0_0_50px_rgba(223,255,0,0.2)]"
                 >
-                  <span className="relative z-10 flex items-center gap-3">
-                    ASTRO DLC UPDATE <ArrowRight size={14} />
+                  <span className="relative z-10 flex items-center gap-4 italic">
+                    INITIALIZE ASTRO EXPANSION // <ArrowRight size={14} />
                   </span>
                   <div className="absolute inset-0 bg-white/40 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
                 </Link>
 
                 <button 
                   onClick={scrollToLogs}
-                  className="group flex items-center gap-3 px-8 py-4 rounded-full bg-zinc-900/40 border border-white/10 hover:bg-zinc-900 hover:border-white/20 transition-all backdrop-blur-md"
+                  className="group flex items-center gap-4 px-10 py-5 rounded-full bg-white/5 border border-white/10 hover:bg-zinc-900 hover:border-[#DFFF00]/30 transition-all backdrop-blur-md"
                 >
                   <Terminal size={14} className="text-zinc-500 group-hover:text-[#DFFF00] transition-colors"/>
-                  <span className="text-xs font-mono font-bold text-zinc-400 group-hover:text-white uppercase tracking-widest">System Logs</span>
+                  <span className="text-[10px] font-black text-zinc-400 group-hover:text-white uppercase tracking-[0.3em] italic">System_Logs_v3.1 //</span>
                 </button>
               </motion.div>
 
@@ -560,233 +742,225 @@ export default function Home() {
           </motion.div>
 
           {/* --- GRID SYSTEM --- */}
-          <section id="modules-grid" className="relative z-20 max-w-[1600px] mx-auto px-4 md:px-6 py-32">
+          <section id="modules-grid" className="relative z-20 max-w-[1600px] mx-auto px-4 md:px-8 py-40">
             
-            <SectionHeader title="Active Modules" icon={<Activity size={16} />} />
+            <div className="flex items-center justify-between mb-12 px-4 md:px-0">
+               <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-zinc-900 rounded-full flex items-center justify-center border border-zinc-800">
+                     <Activity size={20} className="text-[#DFFF00]" />
+                  </div>
+                  <div>
+                     <h2 className="text-2xl md:text-3xl font-black text-white uppercase italic tracking-tighter">
+                        System <span className="text-zinc-600">Modules</span>
+                     </h2>
+                     <span className="font-mono text-[10px] font-bold text-[#DFFF00] uppercase tracking-widest">
+                        v3.1 // Interconnected
+                     </span>
+                  </div>
+               </div>
+               <div className="hidden md:flex items-center gap-2 text-zinc-600">
+                  <div className="w-2 h-2 rounded-full bg-[#DFFF00] animate-pulse" />
+                  <span className="font-mono text-[10px] uppercase tracking-widest">Live</span>
+               </div>
+            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-[280px] gap-6">
+            {/* MONOLITH GRID CONTAINER */}
+            <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-[300px] gap-[1px] bg-zinc-800 border border-zinc-800 rounded-[2rem] overflow-hidden shadow-2xl">
               
-              {/* 1. SPORTS (Large) - Trophy Bounce */}
-              <SpotlightCard className="md:col-span-8 md:row-span-2 rounded-[2.5rem]">
-                <Link href="/sports" className="relative flex flex-col h-full w-full p-10 group z-30 overflow-hidden">
-                   {/* Fixed layout: Relative container for content */}
-                   <div className="relative z-20 h-full flex flex-col justify-between">
-                      <div className="flex justify-between items-start">
-                         {/* ANIMATED ICON */}
-                         <div className="p-4 bg-zinc-950/50 backdrop-blur-md rounded-2xl border border-white/10 text-blue-400">
-                            <AnimatedTrophy />
-                         </div>
-                         <span className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-mono font-bold uppercase tracking-wider animate-pulse">
-                            Live Telemetry
-                         </span>
-                      </div>
+              {/* 1. SPORTS (Col 3) */}
+              <Link href="/sports" className="group md:col-span-3 relative bg-zinc-950 hover:bg-[#DFFF00] transition-colors duration-300 p-8 flex flex-col justify-between overflow-hidden">
+                  <div className="relative z-10 flex justify-between items-start">
+                     <span className="font-mono text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-black/60 transition-colors">01_Sports</span>
+                     <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-black/10 transition-colors text-[#DFFF00] group-hover:text-black">
+                        <AnimatedTrophy />
+                     </div>
+                  </div>
+                  <div className="relative z-10">
+                     <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter group-hover:text-black transition-colors">Sports</h3>
+                     <div className="h-0.5 w-8 bg-[#DFFF00] mt-4 group-hover:bg-black group-hover:w-full transition-all duration-500" />
+                  </div>
+              </Link>
 
-                      <div>
-                         <h2 className="text-5xl md:text-7xl font-black uppercase text-white mb-4 tracking-tighter">Sports</h2>
-                         <div className="flex flex-wrap gap-3">
-                            {['Formula 1', 'NBA', 'NFL', 'PGA Tour'].map((item) => (
-                               <span key={item} className="px-4 py-2 rounded-lg bg-white/5 border border-white/5 text-zinc-400 text-xs font-mono font-bold uppercase hover:bg-white/10 hover:text-white transition-colors pointer-events-auto">
-                                  {item}
-                               </span>
-                            ))}
-                         </div>
-                      </div>
-                   </div>
-                   
-                   {/* Underlay Video */}
-                   <div className="absolute inset-0 z-0">
-                       <video autoPlay loop muted playsInline className="w-full h-full object-cover opacity-20 grayscale transition-all duration-700 group-hover:scale-105 group-hover:opacity-30">
-                         <source src="/sports-page.mp4" type="video/mp4" />
-                       </video>
-                       <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent" />
-                   </div>
-                </Link>
-              </SpotlightCard>
+              {/* 2. ARCADE (Col 3) */}
+              <Link href="/play" className="group md:col-span-3 relative bg-zinc-950 hover:bg-[#DFFF00] transition-colors duration-300 p-8 flex flex-col justify-between overflow-hidden">
+                  <div className="relative z-10 flex justify-between items-start">
+                     <span className="font-mono text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-black/60 transition-colors">02_Arcade</span>
+                     <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-black/10 transition-colors text-[#DFFF00] group-hover:text-black">
+                        <AnimatedGamepad />
+                     </div>
+                  </div>
+                  <div className="relative z-10">
+                     <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter group-hover:text-black transition-colors">Arcade</h3>
+                     <div className="h-0.5 w-8 bg-[#DFFF00] mt-4 group-hover:bg-black group-hover:w-full transition-all duration-500" />
+                  </div>
+              </Link>
 
-              {/* 2. ARCADE (Medium) - Gamepad Wiggle */}
-              <SpotlightCard className="md:col-span-4 rounded-[2.5rem]" spotlightColor="rgba(223, 255, 0, 0.2)">
-                <Link href="/play" className="relative flex flex-col h-full w-full p-8 group">
-                   <div className="h-full w-full flex flex-col justify-between z-10 relative">
-                       <div className="flex justify-between items-start">
-                          <div className="p-3 bg-zinc-950/50 backdrop-blur-md rounded-2xl border border-white/10 text-[#DFFF00]">
-                             <AnimatedGamepad />
-                          </div>
-                       </div>
-                       
-                       <div>
-                          <h2 className="text-4xl font-black uppercase text-white mb-2 tracking-tighter">Arcade</h2>
-                          <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest group-hover:text-[#DFFF00] transition-colors">
-                             High Stakes Gaming
-                          </p>
-                       </div>
-                   </div>
-
-                   <div className="absolute inset-0 z-0 pointer-events-none">
-                      <video autoPlay loop muted playsInline className="w-full h-full object-cover opacity-20 transition-all duration-700 group-hover:scale-110">
-                         <source src="/play-page.mp4" type="video/mp4" />
-                       </video>
-                       <div className="absolute inset-0 bg-gradient-to-br from-zinc-950/80 to-transparent" />
-                   </div>
-                </Link>
-              </SpotlightCard>
-
-              {/* 3. ARCHIVES (Medium) - Layers Float */}
-              <SpotlightCard className="md:col-span-4 rounded-[2.5rem]" spotlightColor="rgba(168, 85, 247, 0.2)">
-                <Link href="/collections" className="relative flex flex-col h-full w-full p-8 group">
-                   <div className="h-full w-full flex flex-col justify-between z-10 relative">
-                      <div className="text-purple-400">
+              {/* 3. ARCHIVES (Col 3) */}
+              <Link href="/collections" className="group md:col-span-3 relative bg-zinc-950 hover:bg-[#DFFF00] transition-colors duration-300 p-8 flex flex-col justify-between overflow-hidden">
+                  <div className="relative z-10 flex justify-between items-start">
+                     <span className="font-mono text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-black/60 transition-colors">03_Archives</span>
+                     <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-black/10 transition-colors text-[#DFFF00] group-hover:text-black">
                         <AnimatedLayers />
-                      </div>
-                      <div>
-                        <h2 className="text-3xl font-black uppercase text-white mb-2 tracking-tighter">Archives</h2>
-                        <p className="text-purple-400/80 font-mono text-xs uppercase tracking-widest">
-                           Databases & Tools
-                        </p>
-                      </div>
-                   </div>
+                     </div>
+                  </div>
+                  <div className="relative z-10">
+                     <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter group-hover:text-black transition-colors">Archives</h3>
+                     <div className="h-0.5 w-8 bg-[#DFFF00] mt-4 group-hover:bg-black group-hover:w-full transition-all duration-500" />
+                  </div>
+              </Link>
 
-                   <div className="absolute inset-0 bg-gradient-to-br from-purple-950/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-                   <div className="absolute inset-0 z-0 pointer-events-none">
-                       <video autoPlay loop muted playsInline className="w-full h-full object-cover opacity-10 grayscale transition-all duration-700 group-hover:scale-110">
-                         <source src="/archive-page.mp4" type="video/mp4" />
-                       </video>
-                   </div>
-                </Link>
-              </SpotlightCard>
+              {/* 4. PLANETARIUM (Col 3) */}
+              <Link href="/collections/planetarium" className="group md:col-span-3 relative bg-zinc-950 hover:bg-[#DFFF00] transition-colors duration-300 p-8 flex flex-col justify-between overflow-hidden">
+                  <div className="relative z-10 flex justify-between items-start">
+                     <span className="font-mono text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-black/60 transition-colors">07_Astro</span>
+                     <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-black/10 transition-colors text-[#DFFF00] group-hover:text-black">
+                        <AnimatedGlobe />
+                     </div>
+                  </div>
+                  <div className="relative z-10">
+                     <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter group-hover:text-black transition-colors">Astro</h3>
+                     <div className="h-0.5 w-8 bg-[#DFFF00] mt-4 group-hover:bg-black group-hover:w-full transition-all duration-500" />
+                  </div>
+              </Link>
 
-              {/* 4. MARKET (Full Width Strip) - Trend Draw */}
-              <SpotlightCard className="md:col-span-12 md:row-span-1 rounded-[2.5rem]" spotlightColor="rgba(16, 185, 129, 0.2)">
-                 <Link href="/market" className="relative flex items-center justify-between h-full w-full p-10 group overflow-hidden">
-                    <div className="relative z-10 flex flex-col justify-center">
-                       <div className="flex items-center gap-3 mb-2">
-                          <div className="text-emerald-500">
+              {/* 5. MARKET (Col 6) */}
+              <Link href="/market" className="group md:col-span-6 relative bg-zinc-950 hover:bg-[#DFFF00] transition-colors duration-300 p-8 flex flex-col justify-between overflow-hidden">
+                  <div className="relative z-10 flex justify-between items-start">
+                     <div className="flex items-center gap-3">
+                        <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-black/10 transition-colors">
                             <AnimatedTrend />
-                          </div>
-                          <span className="text-xs font-mono font-bold text-emerald-500 uppercase tracking-widest">
-                             Underground Exchange
-                          </span>
-                       </div>
-                       <h2 className="text-5xl md:text-6xl font-black uppercase text-white tracking-tighter group-hover:text-emerald-400 transition-colors">
-                          Black Market
-                       </h2>
-                    </div>
+                        </div>
+                        <span className="font-mono text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-black/60 transition-colors">04_Economy</span>
+                     </div>
+                     <div className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#DFFF00] animate-pulse group-hover:bg-black" />
+                        <span className="font-mono text-[9px] font-bold text-zinc-500 group-hover:text-black/60 transition-colors">LIVE_TICKER</span>
+                     </div>
+                  </div>
+                  
+                  <div className="relative z-10 flex flex-col gap-6">
+                     <div>
+                        <h3 className="text-4xl md:text-5xl font-black text-white uppercase italic tracking-tighter group-hover:text-black transition-colors">Market</h3>
+                        <p className="font-mono text-[10px] text-zinc-500 mt-1 uppercase tracking-widest group-hover:text-black/60">Zinc Exchange //</p>
+                     </div>
+                     
+                     {/* SCROLLING TICKER */}
+                     <div className="w-full overflow-hidden border-t border-zinc-800 pt-4 group-hover:border-black/10 transition-colors">
+                        <motion.div 
+                             initial={{ x: 0 }}
+                             animate={{ x: "-50%" }}
+                             transition={{ repeat: Infinity, ease: "linear", duration: 20 }}
+                             className="flex gap-12 whitespace-nowrap"
+                           >
+                              {[...tickerData, ...tickerData].map((stock, i) => (
+                                 <div key={i} className="flex items-center gap-3">
+                                    <span className="font-black text-sm text-white group-hover:text-black transition-colors tracking-tighter">{stock.s}</span>
+                                    <span className="font-mono text-xs text-[#DFFF00] group-hover:text-black/80 transition-colors">{stock.p}</span>
+                                    <span className={`text-[10px] font-bold ${stock.c.startsWith('+') ? 'text-emerald-500 group-hover:text-emerald-700' : 'text-red-500 group-hover:text-red-700'}`}>
+                                       {stock.c}
+                                    </span>
+                                 </div>
+                              ))}
+                        </motion.div>
+                     </div>
+                  </div>
+              </Link>
 
-                    <div className="absolute inset-0 z-0 pointer-events-none">
-                       <video autoPlay loop muted playsInline className="w-full h-full object-cover opacity-20 grayscale transition-all duration-700 group-hover:opacity-30 group-hover:scale-105">
-                         <source src="/market-page.mp4" type="video/mp4" />
-                       </video>
-                       <div className="absolute inset-0 bg-zinc-950/60" />
-                    </div>
-
-                    <div className="relative z-10 hidden md:flex items-center gap-6 pr-10">
-                       <div className="text-right">
-                          <div className="text-zinc-500 font-mono text-[10px] uppercase tracking-widest">Volume</div>
-                          <div className="text-2xl font-black text-white">24h</div>
-                       </div>
-                       <div className="h-10 w-px bg-zinc-800" />
-                       <div className="w-16 h-16 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-black transition-all duration-300">
-                          <MoveRight size={24} />
-                       </div>
-                    </div>
-                 </Link>
-              </SpotlightCard>
-
-              {/* 5. WEATHER - Cloud Shake */}
-              <SpotlightCard className="md:col-span-6 rounded-[2.5rem]">
-                 <Link href="/collections/weather" className="relative flex items-center p-8 h-full group">
-                    <div className="text-zinc-400 mr-6 group-hover:text-cyan-400 transition-colors">
+              {/* 6. WEATHER (Col 3) */}
+              <Link href="/collections/weather" className="group md:col-span-3 relative bg-zinc-950 hover:bg-[#DFFF00] transition-colors duration-300 p-8 flex flex-col justify-between overflow-hidden">
+                  <div className="relative z-10 flex justify-between items-start">
+                     <span className="font-mono text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-black/60 transition-colors">05_Atmos</span>
+                     <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-black/10 transition-colors text-[#DFFF00] group-hover:text-black">
                         <AnimatedWeather />
-                    </div>
-                    <div>
-                       <h3 className="text-2xl font-black text-white uppercase tracking-tight">Weather Station</h3>
-                       <p className="text-zinc-500 font-mono text-xs">Local atmospheric conditions</p>
-                    </div>
-                    <div className="ml-auto">
-                       <ArrowRight className="text-zinc-600 group-hover:-rotate-45 transition-transform duration-300" />
-                    </div>
-                 </Link>
-              </SpotlightCard>
+                     </div>
+                  </div>
+                  <div className="relative z-10">
+                     <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter group-hover:text-black transition-colors">Weather</h3>
+                     <div className="flex items-center gap-2 mt-4 text-zinc-500 group-hover:text-black/60">
+                        <CloudRain size={12} />
+                        <span className="text-[10px] font-bold">Local //</span>
+                     </div>
+                  </div>
+              </Link>
               
-              {/* 6. LOGS - Terminal Pulse */}
-              <SpotlightCard className="md:col-span-6 rounded-[2.5rem]">
-                 <button onClick={scrollToLogs} className="relative flex items-center p-8 h-full w-full text-left group">
-                    <div className="text-zinc-400 mr-6 group-hover:text-[#DFFF00] transition-colors">
+              {/* 7. LOGS (Col 3) */}
+              <button onClick={scrollToLogs} className="group md:col-span-3 relative bg-zinc-950 hover:bg-[#DFFF00] transition-colors duration-300 p-8 flex flex-col justify-between overflow-hidden text-left">
+                  <div className="relative z-10 flex justify-between items-start">
+                     <span className="font-mono text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-black/60 transition-colors">06_System</span>
+                     <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-black/10 transition-colors text-[#DFFF00] group-hover:text-black">
                         <AnimatedTerminal />
-                    </div>
-                    <div>
-                       <h3 className="text-2xl font-black text-white uppercase tracking-tight">Access Logs</h3>
-                       <p className="text-zinc-500 font-mono text-xs">View system updates & notes</p>
-                    </div>
-                    <div className="ml-auto">
-                       <ArrowRight className="text-zinc-600 group-hover:translate-x-2 transition-transform duration-300" />
-                    </div>
-                 </button>
-              </SpotlightCard>
+                     </div>
+                  </div>
+                  <div className="relative z-10 w-full">
+                     <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter group-hover:text-black transition-colors">Logs</h3>
+                     <div className="mt-4 px-3 py-2 bg-zinc-900 rounded border border-zinc-800 font-mono text-[9px] text-zinc-400 group-hover:bg-black/10 group-hover:border-black/10 group-hover:text-black/70 transition-all">
+                        &gt; DIAGNOSTICS...
+                     </div>
+                  </div>
+              </button>
 
             </div>
           </section>
 
           {/* --- LOGS SECTION --- */}
-          <section id="system-logs" className="relative z-20 max-w-[1600px] mx-auto px-4 md:px-6 pb-32">
-            <SectionHeader title="System Terminal" icon={<Terminal size={16} />} />
+          <section id="system-logs" className="relative z-20 max-w-[1600px] mx-auto px-4 md:px-8 pb-40">
+            <SectionHeader title="System Terminal // Root Access" icon={<Terminal size={16} />} />
             
-            <div className="relative rounded-[3rem] bg-black/40 border border-white/10 backdrop-blur-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-               {/* Terminal Header - Refined Glass Look */}
-               <div className="h-14 bg-white/[0.03] border-b border-white/5 flex items-center justify-between px-8 relative overflow-hidden">
+            <div className="relative rounded-[4rem] bg-black/40 border border-white/10 backdrop-blur-3xl overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.6)]">
+               <div className="h-16 bg-white/[0.03] border-b border-white/5 flex items-center justify-between px-10 relative overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-r from-[#DFFF00]/5 to-transparent pointer-events-none" />
                   
-                  <div className="flex items-center gap-6 relative z-10">
-                     <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#DFFF00] shadow-[0_0_10px_#DFFF00]" />
-                        <span className="text-[10px] font-mono font-bold text-[#DFFF00] uppercase tracking-[0.2em]">Console_Active</span>
+                  <div className="flex items-center gap-8 relative z-10">
+                     <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-[#DFFF00] shadow-[0_0_15px_#DFFF00]" />
+                        <span className="text-[10px] font-black text-[#DFFF00] uppercase tracking-[0.3em]">Console_Active</span>
                      </div>
-                     <div className="h-4 w-px bg-white/10" />
-                     <div className="flex items-center gap-2 opacity-40">
+                     <div className="h-5 w-px bg-white/10" />
+                     <div className="flex items-center gap-3 opacity-40">
                         <Terminal size={12} className="text-zinc-400" />
-                        <span className="text-[10px] font-mono text-zinc-400 tracking-wider">root/users/public/logs</span>
+                        <span className="text-[10px] font-mono text-zinc-400 tracking-widest font-bold uppercase">Uplink: Zinc_OS_v3.1</span>
                      </div>
                   </div>
 
-                  <div className="flex items-center gap-4 opacity-30 relative z-10">
-                     <div className="flex gap-1">
-                        {[0,1,2].map(i => <div key={i} className="w-1 h-1 bg-white rounded-full" />)}
+                  <div className="flex items-center gap-6 opacity-30 relative z-10">
+                     <div className="flex gap-1.5">
+                        {[0,1,2].map(i => <div key={i} className="w-1.5 h-1.5 bg-white rounded-full" />)}
                      </div>
-                     <span className="text-[9px] font-mono uppercase tracking-widest text-white">Zinc_OS_v3.1</span>
+                     <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white">SECURE_CONNECTION</span>
                   </div>
                </div>
                
-               <div className="p-4 md:p-12 relative">
-                  {/* Subtle Grid Background Pattern */}
-                  <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+               <div className="p-6 md:p-16 relative">
+                  <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '48px 48px' }} />
                   <PersonalLogs />
                </div>
             </div>
           </section>
 
           {/* --- FOOTER --- */}
-          <footer className="relative z-20 pt-20 pb-12 px-6 text-center border-t border-white/5 bg-zinc-950">
-            <div className="max-w-[1600px] mx-auto flex flex-col items-center gap-8">
-                <div className="w-12 h-12 bg-[#DFFF00] rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(223,255,0,0.2)]">
-                    <span className="font-black text-xl text-black">Z</span>
+          <footer className="relative z-20 pt-32 pb-16 px-8 text-center border-t border-white/5 bg-zinc-950">
+            <div className="max-w-[1600px] mx-auto flex flex-col items-center gap-12">
+                <div className="w-16 h-16 bg-[#DFFF00] rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(223,255,0,0.2)]">
+                    <span className="font-black text-2xl text-black">Z</span>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-12 text-[10px] font-mono uppercase tracking-widest text-zinc-500">
-                    <div className="flex items-center gap-2 justify-center">
-                        <ShieldCheck size={14} className="text-emerald-500" />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-20 text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">
+                    <div className="flex items-center gap-3 justify-center group cursor-default">
+                        <ShieldCheck size={16} className="text-emerald-500 group-hover:scale-110 transition-transform" />
                         <span>Secure Connection</span>
                     </div>
-                    <div className="flex items-center gap-2 justify-center">
-                        <Cpu size={14} className="text-blue-500" />
+                    <div className="flex items-center gap-3 justify-center group cursor-default">
+                        <Cpu size={16} className="text-blue-500 group-hover:scale-110 transition-transform" />
                         <span>Status: Optimal</span>
                     </div>
-                    <div className="flex items-center gap-2 justify-center">
-                        <Activity size={14} className="text-[#DFFF00]" />
-                        <span>Version: 3.1.0</span>
+                    <div className="flex items-center gap-3 justify-center group cursor-default">
+                        <Activity size={16} className="text-[#DFFF00] group-hover:scale-110 transition-transform" />
+                        <span>Version: 3.1.0_PRO</span>
                     </div>
                 </div>
-                <div className="w-full max-w-xs h-px bg-zinc-900" />
-                <Link href="/clipflation" className="group relative px-4 py-2">
-                  <p className="text-zinc-600 font-bold text-xs uppercase tracking-wider group-hover:text-zinc-400 transition-colors">
-                    Zinc Engineering © 2026
+                <div className="w-full max-w-md h-px bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
+                <Link href="/clipflation" className="group relative px-6 py-3">
+                  <p className="text-zinc-600 font-black text-xs uppercase tracking-[0.4em] italic group-hover:text-[#DFFF00] transition-colors">
+                    Zinc Engineering © 2026 // ALL_RIGHTS_RESERVED //
                   </p>
                 </Link>
             </div>
@@ -798,12 +972,9 @@ export default function Home() {
 
 // --- SUB-COMPONENTS ---
 const SectionHeader = ({ title, icon }: { title: string, icon: React.ReactNode }) => (
-  <div className="flex items-center gap-4 mb-12 px-4">
-      <div className="w-2 h-2 bg-[#DFFF00] rounded-full shadow-[0_0_10px_#DFFF00]" />
+  <div className="flex items-center gap-6 mb-12 px-4 md:px-0">
+      <div className="text-[#DFFF00] opacity-80">{icon}</div>
+      <span className="text-[11px] font-black uppercase tracking-[0.5em] italic text-[#DFFF00] whitespace-nowrap">{title} //</span>
       <div className="h-px flex-1 bg-gradient-to-r from-zinc-800 to-transparent" />
-      <div className="flex items-center gap-2 text-zinc-500 bg-zinc-900/50 px-4 py-2 rounded-full border border-white/5 backdrop-blur-md shadow-lg">
-           {icon}
-           <span className="text-xs font-mono font-bold uppercase tracking-widest">{title}</span>
-      </div>
   </div>
 );

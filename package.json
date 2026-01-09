@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
     "@ducanh2912/next-pwa": "^10.2.9",
     "@react-three/drei": "^9.122.0",
     "@react-three/fiber": "^8.18.0",

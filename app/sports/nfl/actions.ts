@@ -2,7 +2,7 @@
 'use server'
 
 import { getOrFetchResource } from '@/lib/data-manager';
-import * as ESPN from './lib/espn';
+import * as ESPN from '@/app/sports/services/espn';
 
 const CACHE_CONFIG = {
   SCORES: 0.05,    
@@ -14,50 +14,37 @@ const CACHE_CONFIG = {
 export async function getDashboardData() {
   const [scores, standings, leaders] = await Promise.all([
     getOrFetchResource({
-      table: 'nfl_snapshots', keyField: 'key', id: 'live_scores', expirationHours: CACHE_CONFIG.SCORES
-    }, ESPN.fetchLiveScoreboard),
+      table: 'nfl_snapshots', keyField: 'key', id: 'live_scores_v3', expirationHours: CACHE_CONFIG.SCORES
+    }, () => ESPN.getScoreboard('nfl')),
 
-    // Updated to v6 to force fresh fetch with corrected API URL
     getOrFetchResource({
-      table: 'nfl_snapshots', keyField: 'key', id: 'season_standings_v6', expirationHours: CACHE_CONFIG.STANDINGS
-    }, ESPN.fetchStandings),
+      table: 'nfl_snapshots', keyField: 'key', id: 'season_standings_v15', expirationHours: CACHE_CONFIG.STANDINGS
+    }, () => ESPN.getStandings('nfl')),
 
-    // Updated to v6 to force fresh fetch
     getOrFetchResource({
-      table: 'nfl_snapshots', keyField: 'key', id: 'season_leaders_v6', expirationHours: CACHE_CONFIG.LEADERS
-    }, ESPN.fetchDailyLeaders),
+      table: 'nfl_snapshots', keyField: 'key', id: 'season_leaders_v15', expirationHours: CACHE_CONFIG.LEADERS
+    }, () => ESPN.getLeaders('nfl')),
   ]);
 
   return { scores, standings, leaders };
 }
 
-export async function getTeamSnapshot(teamId: string) {
-  return await getOrFetchResource({
-    table: 'nfl_snapshots', keyField: 'key', id: `team_${teamId}`, expirationHours: CACHE_CONFIG.PROFILES
-  }, () => ESPN.fetchTeamProfile(teamId));
-}
-
 export async function getPlayerProfile(playerId: string) {
     return await getOrFetchResource({
-        table: 'nfl_snapshots', keyField: 'key', id: `player_bio_v6_${playerId}`, expirationHours: CACHE_CONFIG.PROFILES
-    }, () => ESPN.fetchPlayerProfile(playerId));
+        table: 'nfl_snapshots', keyField: 'key', id: `player_bio_v11_${playerId}`, expirationHours: CACHE_CONFIG.PROFILES
+    }, () => ESPN.getPlayer('nfl', playerId));
 }
 
 export async function getPlayerGameLog(playerId: string) {
-    return await ESPN.fetchPlayerGameLog(playerId);
+    return await ESPN.getPlayerLogs('nfl', playerId);
 }
 
 export async function searchPlayers(query: string) {
-    if (!query || query.length < 2) return [];
-    try {
-        const res = await fetch(`https://site.web.api.espn.com/apis/common/v3/search?region=us&lang=en&query=${encodeURIComponent(query)}&limit=5&mode=prefix&type=player&sport=football&league=nfl`);
-        const data = await res.json();
-        return (data.items || []).map((item: any) => ({
-            id: item.id,
-            name: item.displayName,
-            team: item.team?.abbreviation || 'FA',
-            url: `/sports/nfl/player/${item.id}`,
-            image: item.images?.[0]?.url || null
-        }));
-    } catch (e) { return []; }
+    return await ESPN.searchAthletes('nfl', query);
+}
+
+export async function getTeamSnapshot(teamId: string) {
+    return await getOrFetchResource({
+        table: 'nfl_snapshots', keyField: 'key', id: `team_v2_${teamId}`, expirationHours: CACHE_CONFIG.PROFILES
+    }, () => ESPN.getTeam('nfl', teamId));
 }

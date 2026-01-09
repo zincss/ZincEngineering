@@ -1,31 +1,57 @@
-import { createClient } from '@/utils/supabase/server';
-import { redirect } from 'next/navigation';
-import { Building2, Sparkles, Search, Filter } from 'lucide-react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
+import { Building2, Sparkles, Search, Filter, Loader2 } from 'lucide-react';
 import PropertyCard from './components/PropertyCard';
 import { PROPERTY_FLAVOR } from './lib/data';
 import { PropertyTemplate } from './types';
 
-export default async function ResidencePage() {
+export default function ResidencePage() {
+  const [listings, setListings] = useState<PropertyTemplate[]>([]);
+  const [ownershipMap, setOwnershipMap] = useState<Map<string, string>>(new Map());
+  const [primaryId, setPrimaryId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
+  const router = useRouter();
 
-  // 1. Fetch Templates (The Catalog)
-  const { data: listings } = await supabase
-    .from('property_templates')
-    .select('*')
-    .order('price', { ascending: true });
+  useEffect(() => {
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/login');
+        return;
+      }
 
-  // 2. Fetch User's Owned Properties (With the ID we need!)
-  const { data: owned } = await supabase
-    .from('user_properties')
-    .select('id, template_id, is_primary') // <--- Added 'id' here
-    .eq('user_id', user.id);
+      // 1. Fetch Templates
+      const { data: templates } = await supabase
+        .from('property_templates')
+        .select('*')
+        .order('price', { ascending: true });
 
-  // Create a lookup map: Template ID -> User Property ID
-  // This lets us find YOUR specific house ID based on the generic template
-  const ownershipMap = new Map(owned?.map(o => [o.template_id, o.id]));
-  const primaryId = owned?.find(o => o.is_primary)?.template_id;
+      // 2. Fetch Owned
+      const { data: owned } = await supabase
+        .from('user_properties')
+        .select('id, template_id, is_primary')
+        .eq('user_id', user.id);
+
+      if (templates) setListings(templates);
+      if (owned) {
+        const map = new Map(owned.map(o => [o.template_id, o.id]));
+        setOwnershipMap(map);
+        setPrimaryId(owned.find(o => o.is_primary)?.template_id || null);
+      }
+      setLoading(false);
+    }
+    load();
+  }, [supabase, router]);
+
+  if (loading) return (
+    <div className="min-h-screen bg-zinc-950 flex items-center justify-center gap-3 text-[#DFFF00] font-mono text-xs uppercase animate-pulse">
+        <Loader2 size={16} className="animate-spin" /> Accessing Real Estate Database...
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-zinc-950 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900 via-zinc-950 to-black text-white pt-24 pb-20">

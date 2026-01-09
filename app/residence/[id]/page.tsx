@@ -3,7 +3,12 @@ import { notFound, redirect } from 'next/navigation';
 import { PROPERTY_FLAVOR } from '../lib/data';
 import PropertyDashboard from './client-view';
 
-export default async function PropertyView({ params }: { params: { id: string } }) {
+// [FIX] Required for static export
+export async function generateStaticParams() {
+  return [];
+}
+
+export default async function PropertyPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if(!user) redirect('/login');

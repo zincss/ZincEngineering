@@ -60,27 +60,29 @@ function StandingsTable({ conference, teams }: { conference: string, teams: any[
     });
 
     return (
-        // UPDATED: Removed 'rounded-xl overflow-hidden' to square it off
-        <div className="border border-zinc-800 bg-zinc-900/10">
-            <div className="p-3 bg-zinc-900/50 border-b border-zinc-800 text-[10px] font-black text-zinc-400 uppercase tracking-widest flex justify-between">
-                <span>{conference}</span>
+        <div className="border border-zinc-800 bg-zinc-900 rounded-2xl overflow-hidden">
+            <div className="p-4 bg-zinc-950 border-b border-zinc-800 text-[10px] font-black text-zinc-400 uppercase tracking-widest flex justify-between items-center">
+                <span className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#DFFF00]" />
+                    {conference}
+                </span>
                 <span>W-L / GB</span>
             </div>
             <div className="divide-y divide-zinc-800/50">
                 {sortedTeams.map((t, index) => (
-                    <Link href={`/sports/nba/team/${t.id}`} key={t.id} className="flex items-center justify-between p-3 hover:bg-zinc-900 transition-colors group">
-                        <div className="flex items-center gap-3">
-                            <span className={`font-mono text-[10px] w-4 ${index < 6 ? 'text-[#DFFF00]' : index < 10 ? 'text-zinc-400' : 'text-zinc-700'}`}>
+                    <Link href={`/sports/nba/team/${t.id}`} key={t.id} className="flex items-center justify-between p-4 hover:bg-black transition-all group border-l-2 border-transparent hover:border-[#DFFF00]">
+                        <div className="flex items-center gap-4">
+                            <span className={`font-mono text-[10px] w-4 font-bold ${index < 6 ? 'text-[#DFFF00]' : index < 10 ? 'text-zinc-500' : 'text-zinc-700'}`}>
                                 {index + 1}
                             </span>
-                            <img src={t.logo} className="w-6 h-6 object-contain grayscale group-hover:grayscale-0 transition-all" alt={t.name} />
-                            <span className="font-bold text-xs text-zinc-300 group-hover:text-white group-hover:translate-x-1 transition-all">
+                            <img src={t.logo} className="w-8 h-8 object-contain grayscale group-hover:grayscale-0 transition-all" alt={t.name} />
+                            <span className="font-bold text-xs text-zinc-400 group-hover:text-white group-hover:translate-x-1 transition-all">
                                 {t.abbr}
                             </span>
                         </div>
-                        <div className="font-mono text-xs text-zinc-500 flex gap-3">
+                        <div className="font-mono text-xs text-zinc-500 flex gap-4">
                             <span className="text-white font-bold">{t.stats.w}-{t.stats.l}</span>
-                            <span className="text-zinc-600 w-10 text-right">{t.stats.gb === '-' ? '--' : t.stats.gb}</span>
+                            <span className="text-zinc-600 w-8 text-right">{t.stats.gb === '-' ? '--' : t.stats.gb}</span>
                         </div>
                     </Link>
                 ))}

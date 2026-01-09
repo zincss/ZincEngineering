@@ -102,74 +102,106 @@ export default function GlobalTicker() {
     fetchData();
   }, []);
 
-  return (
-    <div className="relative w-full h-10 bg-zinc-950/80 backdrop-blur-md border-y border-white/5 overflow-hidden flex items-center z-30">
-      
-      {/* LEFT ANCHOR: LABEL */}
-      <div className="absolute left-0 top-0 bottom-0 z-20 bg-zinc-950/90 backdrop-blur-xl pl-4 pr-6 flex items-center gap-3 border-r border-white/5 clip-path-slant">
-         <div className="flex items-center gap-2">
-            <div className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-300">
-               Live Wire
-            </span>
-         </div>
+    return (
+
+      <div className="relative w-full bg-[#DFFF00] py-1.5 overflow-hidden flex items-center z-30 shadow-2xl">
+
+        
+
+        {/* MARQUEE CONTENT */}
+
+        <div className="w-full">
+
+          <Marquee gradient={false} speed={50} className="flex items-center h-full">
+
+             {tickerItems.map((item, i) => (
+
+               <div key={i} className="flex items-center gap-4 mx-4 select-none">
+
+                  
+
+                  {/* SEPARATOR */}
+
+                  <span className="text-black/30 text-[10px] font-black italic">//</span>
+
+  
+
+                  {/* CONTENT */}
+
+                  <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.2em] text-black italic">
+
+                     
+
+                     {/* LABELS & VALUES */}
+
+                     {item.type === 'score' ? (
+
+                        <span className="flex gap-3">
+
+                           <span className="opacity-40">{item.sport}</span>
+
+                           <span>{item.matchup}</span>
+
+                           {item.isLive && (
+
+                              <span className="flex items-center gap-1.5 bg-black text-[#DFFF00] px-2 py-0.5 rounded-sm scale-90 origin-left not-italic tracking-normal">
+
+                                 <div className="w-1 h-1 rounded-full bg-red-500 animate-pulse" />
+
+                                 LIVE
+
+                              </span>
+
+                           )}
+
+                           {item.isFinal && <span className="opacity-40">FINAL</span>}
+
+                        </span>
+
+                     ) : (
+
+                        <span className="flex gap-3">
+
+                           <span className="opacity-40">{item.label}</span>
+
+                           <span>{item.value}</span>
+
+                        </span>
+
+                     )}
+
+  
+
+                  </div>
+
+               </div>
+
+             ))}
+
+             
+
+             {/* EMPTY STATE */}
+
+             {tickerItems.length === 0 && (
+
+                <span className="mx-10 text-[10px] font-black uppercase tracking-[0.3em] text-black italic animate-pulse">
+
+                   INITIALIZING SYSTEM DATA // ESTABLISHING SECURE UPLINK //
+
+                </span>
+
+             )}
+
+          </Marquee>
+
+        </div>
+
+  
+
       </div>
 
-      {/* MARQUEE CONTENT */}
-      <div className="w-full mask-linear-fade">
-        <Marquee gradient={false} speed={40} className="flex items-center h-full">
-           {tickerItems.map((item, i) => (
-             <div key={i} className="flex items-center gap-3 mx-6 select-none">
-                
-                {/* SEPARATOR */}
-                <span className="text-zinc-800 text-[10px] font-black">///</span>
+    );
 
-                {/* CONTENT */}
-                <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider">
-                   
-                   {/* ICONS */}
-                   {item.type === 'f1' && <span className="text-[#DFFF00]">{item.icon}</span>}
-                   {item.type === 'system' && <span className="text-emerald-500">{item.icon}</span>}
-                   {item.type === 'score' && (
-                       item.isLive 
-                        ? <Activity size={12} className="text-red-500 animate-pulse"/> 
-                        : (item.isFinal ? <CheckCircle2 size={12} className="text-zinc-600"/> : <Activity size={12} className="text-zinc-600"/>)
-                   )}
+  }
 
-                   {/* LABELS & VALUES */}
-                   {item.type === 'score' ? (
-                      <span className="flex gap-2">
-                         <span className="font-bold text-zinc-500">{item.sport}</span>
-                         <span className={item.isLive ? "text-red-400 font-bold" : "text-zinc-300"}>{item.matchup}</span>
-                         {item.isLive && <span className="text-red-500 font-black px-1 rounded bg-red-500/10">LIVE</span>}
-                         {item.isFinal && <span className="text-zinc-600 font-bold">F</span>}
-                      </span>
-                   ) : (
-                      <span className="flex gap-2">
-                         <span className="font-bold text-zinc-500">{item.label}</span>
-                         <span className="text-zinc-200">{item.value}</span>
-                      </span>
-                   )}
-
-                </div>
-             </div>
-           ))}
-           
-           {/* EMPTY STATE */}
-           {tickerItems.length === 0 && (
-              <span className="mx-10 text-[10px] font-mono uppercase text-zinc-600 animate-pulse">
-                 Establishing Secure Uplink...
-              </span>
-           )}
-        </Marquee>
-      </div>
-
-      {/* RIGHT FADE OVERLAY */}
-      <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-zinc-950 to-transparent pointer-events-none z-10" />
-
-    </div>
-  );
-}
+  

@@ -170,13 +170,19 @@ export async function fetchDailyLeaders() {
       const params = new URLSearchParams({ region: 'us', lang: 'en', contentorigin: 'espn', isqualified: 'false', page: '1', limit: '5', sort: cat.sort });
       const res = await fetch(`${API.ATHLETES}?${params}`, { headers: HEADERS, cache: 'no-store' });
       const data = await res.json();
-      results[cat.key] = data.athletes?.map((a: any) => ({
-          id: a.athlete.id,
-          name: a.athlete.displayName,
-          team: a.athlete.team?.abbreviation,
-          headshot: a.athlete.headshot?.href,
-          value: formatStat(a.displayValue)
-      })) || [];
+      results[cat.key] = data.athletes?.map((a: any) => {
+          let val = a.displayValue;
+          if (!val && a.statistics && a.statistics.length > 0) {
+              val = a.statistics[0].displayValue;
+          }
+          return {
+            id: a.athlete.id,
+            name: a.athlete.displayName,
+            team: a.athlete.team?.abbreviation,
+            headshot: a.athlete.headshot?.href,
+            value: formatStat(val)
+          };
+      }) || [];
     } catch (e) { results[cat.key] = []; }
   }
   return results;
@@ -210,6 +216,12 @@ export async function fetchPlayerProfile(id: string) {
         const data = await res.json();
         const ath = data.athlete;
         const getDraftInfo = () => ath.draft ? `${ath.draft.year} • Rd ${ath.draft.round} • Pk ${ath.draft.selection}` : (ath.displayDraft || 'Undrafted');
+        
+        let experience = 'R';
+        if (ath.experience && ath.experience.years !== undefined) {
+            experience = ath.experience.years === 0 ? 'R' : ath.experience.years.toString();
+        }
+
         return {
             id: ath.id,
             name: ath.displayName,
@@ -220,7 +232,7 @@ export async function fetchPlayerProfile(id: string) {
             pos: ath.position?.abbreviation,
             height: ath.displayHeight,
             weight: ath.displayWeight,
-            experience: ath.experience?.years || 'R',
+            experience: experience,
             age: ath.age || '-',
             college: ath.college?.name || ath.displayCollege || 'None',
             draft: getDraftInfo(),
@@ -251,11 +263,21 @@ export async function fetchPlayerGameLog(id: string) {
              let opponent = 'OPP';
              if (e.opponent) opponent = e.opponent.abbreviation || e.opponent.displayName || 'OPP';
              else if (e.game?.opponent) opponent = e.game.opponent.abbreviation || 'OPP';
+             
+             // Enhanced Stats Extraction
+             let stats = [];
+             if (e.stats) {
+                 stats = e.stats.map((s:any) => {
+                     if (typeof s === 'object' && s !== null) return s.displayValue || s.value || '-';
+                     return s;
+                 });
+             }
+
              return {
                  date: dateStr,
                  opponent: opponent,
                  result: e.gameResult || (e.game ? e.game.result : '-'),
-                 stats: Array.isArray(e.stats) ? e.stats.map((s:any) => typeof s === 'object' && s !== null ? s.displayValue || s.value || '-' : s) : []
+                 stats: stats
              };
         });
     } catch (e) { return []; }

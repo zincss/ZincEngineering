@@ -138,21 +138,19 @@ export default function Header() {
     <>
       <header 
         className={`
-          fixed top-0 left-0 right-0 z-50 
-          bg-zinc-950/90 backdrop-blur-md border-b border-white/5 
+          fixed top-0 left-0 right-0 z-[100] 
+          bg-zinc-950 border-b border-zinc-800 
           transition-transform duration-300 ease-in-out
-          supports-[backdrop-filter]:bg-zinc-950/60
           ${isVisible ? 'translate-y-0' : '-translate-y-full'}
         `}
       >
-        <div className="max-w-[1800px] mx-auto px-4 md:px-6 h-14 md:h-20 flex items-center justify-between gap-4 md:gap-8">
+        <div className="max-w-[1800px] mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between gap-4 md:gap-8">
           
           {/* LEFT: IDENTITY & NAV */}
           <div className="flex items-center gap-4 md:gap-10">
               <Link href="/" className="flex items-center gap-3 md:gap-4 group select-none">
-                  <div className="relative bg-[#DFFF00] w-8 h-8 md:w-10 md:h-10 flex items-center justify-center font-black text-lg md:text-xl text-black shadow-[0_0_15px_rgba(223,255,0,0.15)] md:shadow-[0_0_20px_rgba(223,255,0,0.2)] group-hover:shadow-[0_0_35px_rgba(223,255,0,0.5)] transition-all duration-500 rounded-lg md:rounded-xl group-hover:scale-105 group-active:scale-95">
+                  <div className="relative bg-zinc-900 border border-zinc-800 w-10 h-10 flex items-center justify-center font-black text-xl text-[#DFFF00] shadow-lg rounded-xl group-hover:bg-[#DFFF00] group-hover:text-black transition-all duration-300">
                       Z
-                      <div className="absolute inset-0 bg-white/20 rounded-lg md:rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                   
                   <div className="hidden md:flex flex-col justify-center">
@@ -161,7 +159,7 @@ export default function Header() {
                   </div>
               </Link>
 
-              <nav className="hidden xl:flex items-center gap-1 bg-zinc-900/50 p-1 rounded-full border border-white/5">
+              <nav className="hidden xl:flex items-center gap-2">
                   {NAV_CONFIG.map((item) => (
                       <NavLink 
                         key={item.id}
@@ -183,21 +181,21 @@ export default function Header() {
                   {user && profile ? (
                       <div className="flex items-center gap-5 animate-in fade-in duration-500">
                           
-                          <div className="hidden 2xl:flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900/50 border border-white/5">
-                             <Activity size={12} className="text-zinc-500" />
-                             <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest">Sys.Normal</span>
+                          <div className="hidden 2xl:flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800">
+                             <Activity size={12} className="text-[#DFFF00]" />
+                             <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest">Sys.Online</span>
                           </div>
 
                           <Link 
                             href="/profile?view=WALLET" 
-                            className="group flex items-center gap-3 px-4 py-1.5 bg-black/40 border border-zinc-800 hover:border-[#DFFF00] transition-colors rounded-full shadow-inner cursor-pointer"
+                            className="group flex items-center gap-3 px-4 py-1.5 bg-zinc-900 border border-zinc-800 hover:border-[#DFFF00] transition-colors rounded-full cursor-pointer"
                             title="Open Wallet"
                           >
                               <Coins size={14} className="text-[#DFFF00] group-hover:rotate-12 transition-transform" />
                               <span className="text-sm font-black text-white font-mono tracking-tight">{profile.credits.toLocaleString()}</span>
                           </Link>
                           
-                          <div className="flex items-center gap-4 pl-4 border-l border-zinc-800/50">
+                          <div className="flex items-center gap-4 pl-4 border-l border-zinc-800">
                               
                               {isAdmin && (
                                 <Link 
@@ -230,8 +228,8 @@ export default function Header() {
                   ) : (
                       <div className="flex items-center gap-6">
                         <div className="flex items-center gap-2 text-[9px] font-mono font-bold tracking-widest text-zinc-500 uppercase">
-                            <Circle size={6} className="fill-emerald-500 text-emerald-500 animate-pulse" />
-                            <span>System Online</span>
+                            <Circle size={6} className="fill-[#DFFF00] text-[#DFFF00] animate-pulse" />
+                            <span>System Ready</span>
                         </div>
                         <Link 
                             href="/login" 
@@ -255,7 +253,7 @@ export default function Header() {
       </header>
 
       {isMobileMenuOpen && (
-          <div className="fixed inset-0 top-0 pt-20 z-[49] bg-zinc-950/95 backdrop-blur-xl p-4 flex flex-col gap-3 animate-in fade-in slide-in-from-top-4 border-t border-zinc-800 overflow-y-auto">
+          <div className="fixed inset-0 top-0 pt-20 z-[99] bg-zinc-950/95 backdrop-blur-xl p-4 flex flex-col gap-3 animate-in fade-in slide-in-from-top-4 border-t border-zinc-800 overflow-y-auto">
               
               {NAV_CONFIG.map((item) => (
                   <MobileLink 
@@ -306,14 +304,14 @@ export default function Header() {
 
 // --- DESKTOP NAV COMPONENT ---
 const NavLink = ({ href, active, icon, children, subItems }: { href: string, active: boolean, icon: React.ReactNode, children: React.ReactNode, subItems?: any[] }) => (
-    <div className="relative group">
+    <div className="relative group h-full flex items-center">
         <Link 
             href={href} 
             className={`
-                relative flex items-center gap-2 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all rounded-full overflow-hidden
+                relative flex items-center gap-2 px-5 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-lg overflow-hidden
                 ${active 
-                    ? 'text-black bg-[#DFFF00] shadow-[0_0_20px_rgba(223,255,0,0.3)]' 
-                    : 'text-zinc-500 hover:text-white hover:bg-white/5'
+                    ? 'text-black bg-[#DFFF00] shadow-[0_0_15px_rgba(223,255,0,0.3)]' 
+                    : 'text-zinc-500 hover:text-white hover:bg-zinc-900'
                 }
             `}
         >
@@ -325,15 +323,18 @@ const NavLink = ({ href, active, icon, children, subItems }: { href: string, act
 
         {/* Desktop Dropdown */}
         {subItems && subItems.length > 0 && (
-            <div className="absolute top-full left-1/2 -translate-x-1/2 pt-4 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 pointer-events-none group-hover:pointer-events-auto">
-                 <div className="bg-zinc-950/90 backdrop-blur-xl border border-zinc-800 rounded-xl p-2 shadow-[0_20px_40px_rgba(0,0,0,0.5)] flex flex-col gap-1 ring-1 ring-white/5">
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[5px] w-2 h-2 bg-zinc-800 rotate-45 border-t border-l border-zinc-700"></div>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 w-56 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform group-hover:translate-y-0 translate-y-2 pointer-events-none group-hover:pointer-events-auto z-[110]">
+                 {/* Invisible bridge to prevent mouse gap issues */}
+                 <div className="absolute -top-4 left-0 w-full h-4 bg-transparent" />
+                 
+                 <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-2 shadow-2xl flex flex-col gap-1 ring-1 ring-white/5">
+                    <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-zinc-950 border-t border-l border-zinc-800 rotate-45"></div>
                     
                     {subItems.map((item: any) => (
                         <Link 
                             key={item.href} 
                             href={item.href}
-                            className="flex items-center justify-between px-3 py-2.5 text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors group/item"
+                            className="flex items-center justify-between px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg transition-colors group/item"
                         >
                             <span>{item.label}</span>
                             <ChevronRight size={12} className="opacity-0 -translate-x-2 group-hover/item:opacity-100 group-hover/item:translate-x-0 transition-all text-[#DFFF00]" />
@@ -358,7 +359,7 @@ const MobileLink = ({ href, active, icon, label, onClick, subItems }: any) => {
                     flex items-center gap-3 p-3 text-xs font-black uppercase tracking-widest border transition-all rounded-xl
                     ${active 
                         ? 'bg-[#DFFF00] text-black border-[#DFFF00] shadow-[0_0_20px_rgba(223,255,0,0.2)]' 
-                        : 'bg-zinc-900/30 text-zinc-500 border-zinc-800 hover:border-zinc-700 hover:text-white'
+                        : 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:border-zinc-700 hover:text-white'
                     }
                 `}
             >
@@ -373,8 +374,8 @@ const MobileLink = ({ href, active, icon, label, onClick, subItems }: any) => {
             <div className={`
                 flex items-center gap-2 text-xs font-black uppercase tracking-widest border transition-all rounded-xl p-0.5
                 ${active 
-                    ? 'bg-[#DFFF00] border-[#DFFF00]' 
-                    : 'bg-zinc-900/30 border-zinc-800 hover:border-zinc-700'
+                    ? 'bg-[#DFFF00] text-black border-[#DFFF00]' 
+                    : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
                 }
             `}>
                  <Link 
@@ -401,7 +402,7 @@ const MobileLink = ({ href, active, icon, label, onClick, subItems }: any) => {
                             key={item.href}
                             href={item.href}
                             onClick={onClick}
-                            className="flex items-center gap-2 py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-[#DFFF00] hover:bg-zinc-900/50 rounded-lg transition-colors"
+                            className="flex items-center gap-2 py-3 px-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-[#DFFF00] hover:bg-zinc-900 rounded-lg transition-colors"
                         >
                             <span className="w-1 h-1 bg-zinc-700 rounded-full"></span>
                             {item.label}
