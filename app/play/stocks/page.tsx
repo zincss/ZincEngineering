@@ -301,7 +301,7 @@ export default function StockMarketPage() {
                    <div className="h-48 w-full bg-black/20 rounded-xl p-0 md:p-4 mb-4 border border-zinc-800/50 overflow-hidden">
                         <StockChart 
                             data={selectedStock.history} 
-                            type="area" 
+                            type="step" 
                             showTooltip 
                             className="w-full h-full"
                         />
@@ -352,21 +352,21 @@ export default function StockMarketPage() {
                    <div className="mb-8">
                       <div className="flex justify-between mb-2">
                           <label className="text-xs font-bold uppercase text-zinc-500">Order Quantity</label>
-                          <label className="text-xs font-bold uppercase text-zinc-500">Total {tradeMode === 'BUY' ? 'Cost' : 'Value'}</label>
+                          <label className="text-xs font-bold uppercase text-zinc-500 text-right">Total {tradeMode === 'BUY' ? 'Cost' : 'Value'}</label>
                       </div>
-                      <div className="flex items-center gap-4">
+                      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4">
                          <div className="flex items-center flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-2 py-2 focus-within:border-[#DFFF00] transition-colors">
-                             <button onClick={() => setAmount(Math.max(1, amount - 1))} className="w-12 h-12 rounded-lg hover:bg-zinc-800 flex items-center justify-center text-2xl text-zinc-400 hover:text-white transition-colors">-</button>
+                             <button onClick={() => setAmount(Math.max(1, amount - 1))} className="w-14 h-14 rounded-lg hover:bg-zinc-800 flex items-center justify-center text-2xl text-zinc-400 hover:text-white transition-colors active:scale-95">-</button>
                              <input 
                                type="number" 
                                value={amount} 
                                onChange={(e) => setAmount(Math.max(1, Number(e.target.value)))}
-                               className="flex-1 bg-transparent text-center text-2xl md:text-3xl font-black outline-none text-white w-full min-w-0"
+                               className="flex-1 bg-transparent text-center text-3xl font-black outline-none text-white w-full min-w-0"
                              />
-                             <button onClick={() => setAmount(amount + 1)} className="w-12 h-12 rounded-lg hover:bg-zinc-800 flex items-center justify-center text-2xl text-zinc-400 hover:text-white transition-colors">+</button>
+                             <button onClick={() => setAmount(amount + 1)} className="w-14 h-14 rounded-lg hover:bg-zinc-800 flex items-center justify-center text-2xl text-zinc-400 hover:text-white transition-colors active:scale-95">+</button>
                          </div>
-                         <div className="text-right min-w-[100px] md:min-w-[120px]">
-                             <div className="text-2xl md:text-3xl font-black text-white">{(amount * selectedStock.currentPrice).toFixed(0)}</div>
+                         <div className="text-center md:text-right p-4 md:p-0 bg-zinc-900/50 md:bg-transparent rounded-xl md:rounded-none border md:border-none border-zinc-800/50 md:min-w-[120px]">
+                             <div className="text-3xl font-black text-white">{(amount * selectedStock.currentPrice).toFixed(0)}</div>
                              <div className="text-xs text-zinc-500 font-bold tracking-widest">CREDITS</div>
                          </div>
                       </div>

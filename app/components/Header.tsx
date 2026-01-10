@@ -101,7 +101,7 @@ export default function Header() {
   return (
     <>
       <header className={`fixed top-0 left-0 right-0 z-[100] bg-zinc-950/80 backdrop-blur-xl border-b border-white/5 transition-all duration-500 transform ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
-        <div className="max-w-[1800px] mx-auto px-4 md:px-8 h-20 md:h-24 flex items-center justify-between gap-8">
+        <div className="max-w-[1800px] mx-auto px-4 md:px-8 h-16 md:h-24 flex items-center justify-between gap-8">
           
           {/* LEFT: BRANDING */}
           <div className="flex items-center gap-12">

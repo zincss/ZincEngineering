@@ -173,27 +173,44 @@ export function StockMarketView({ user, profile, refreshProfile }: StockMarketVi
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-20">
-          <div className="lg:col-span-8 bg-zinc-900/50 border border-white/5 rounded-[3rem] p-12 backdrop-blur-3xl relative overflow-hidden shadow-2xl group">
-              <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-12 h-full">
-                  <div className="space-y-8">
-                      <div>
-                          <div className="flex items-center gap-3 text-zinc-500 font-mono text-[10px] font-bold tracking-[0.4em] uppercase mb-4">
-                              <span>Portfolio Snapshot</span>
-                              <div className="w-1.5 h-1.5 rounded-full bg-[#DFFF00] animate-pulse" />
-                          </div>
-                          <h2 className="text-6xl md:text-7xl font-black text-white uppercase italic tracking-tighter leading-none mb-4">Total <span className="text-zinc-800">Value</span></h2>
-                          <div className="flex items-baseline gap-4">
-                              <span className="text-7xl md:text-8xl font-black italic tracking-tighter text-white tabular-nums">{(profile?.credits + portfolioCurrentValue).toLocaleString()}</span>
-                              <span className="text-2xl text-[#DFFF00] font-black tracking-[0.2em] italic">CR</span>
-                          </div>
+          <div className="lg:col-span-8 bg-zinc-900/50 border border-white/5 rounded-[3rem] p-8 md:p-12 backdrop-blur-3xl relative overflow-hidden shadow-2xl group">
+              <div className="absolute inset-0 bg-gradient-to-br from-zinc-800/20 to-transparent pointer-events-none" />
+              <div className="relative z-10 flex flex-col justify-between h-full gap-8">
+                  <div className="space-y-6">
+                      <div className="flex items-center gap-3 text-zinc-500 font-mono text-[10px] font-bold tracking-[0.4em] uppercase">
+                          <span>Portfolio Snapshot</span>
+                          <div className="w-1.5 h-1.5 rounded-full bg-[#DFFF00] animate-pulse" />
                       </div>
-                      <div className="flex flex-wrap gap-8 pt-8 border-t border-white/5">
-                          <div className="flex flex-col"><span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Liquid Balance</span><span className="text-2xl font-black text-white">{(profile?.credits || 0).toLocaleString()}</span></div>
-                          <div className="flex flex-col"><span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Market Assets</span><span className="text-2xl font-black text-[#DFFF00]">{portfolioCurrentValue.toLocaleString()}</span></div>
-                          <div className="flex flex-col"><span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Overall Return</span><div className={`flex items-center gap-2 text-2xl font-black ${isProfitable ? 'text-emerald-500' : 'text-red-500'}`}>{isProfitable ? '+' : ''}{totalPL.toLocaleString()}<span className="text-sm opacity-60">({percentPL.toFixed(2)}%)</span></div></div>
+                      
+                      <div>
+                          <h2 className="text-4xl md:text-5xl font-black text-white uppercase italic tracking-tighter leading-none mb-2 md:mb-4">Total <span className="text-zinc-700">Value</span></h2>
+                          <div className="flex flex-wrap items-baseline gap-2 md:gap-4">
+                              <span className="text-6xl md:text-8xl font-black italic tracking-tighter text-white tabular-nums leading-none">{(profile?.credits + portfolioCurrentValue).toLocaleString()}</span>
+                              <span className="text-xl md:text-2xl text-[#DFFF00] font-black tracking-[0.2em] italic">CR</span>
+                          </div>
                       </div>
                   </div>
-                  <div className="hidden xl:flex flex-col items-end gap-4 opacity-20 group-hover:opacity-40 transition-opacity"><PieChart size={120} className="text-[#DFFF00]" /><span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 text-right">Asset Breakdown</span></div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-8 border-t border-white/5">
+                      <div className="flex flex-col p-4 bg-black/20 rounded-2xl border border-white/5">
+                          <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Liquid Balance</span>
+                          <span className="text-xl md:text-2xl font-black text-white">{(profile?.credits || 0).toLocaleString()}</span>
+                      </div>
+                      <div className="flex flex-col p-4 bg-black/20 rounded-2xl border border-white/5">
+                          <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Market Assets</span>
+                          <span className="text-xl md:text-2xl font-black text-[#DFFF00]">{portfolioCurrentValue.toLocaleString()}</span>
+                      </div>
+                      <div className="flex flex-col p-4 bg-black/20 rounded-2xl border border-white/5">
+                          <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Overall Return</span>
+                          <div className={`flex items-center gap-2 text-xl md:text-2xl font-black ${isProfitable ? 'text-emerald-500' : 'text-red-500'}`}>
+                              {isProfitable ? '+' : ''}{totalPL.toLocaleString()}
+                              <span className="text-xs opacity-60">({percentPL.toFixed(2)}%)</span>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+              <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none hidden xl:block">
+                  <PieChart size={180} className="text-[#DFFF00]" />
               </div>
           </div>
 
@@ -289,7 +306,7 @@ export function StockMarketView({ user, profile, refreshProfile }: StockMarketVi
                         <div className="h-80 w-full bg-black border border-white/5 rounded-[2.5rem] p-8 relative overflow-hidden group shadow-inner">
                             <StockChart 
                                 data={selectedStock.history} 
-                                type="area" 
+                                type="step" 
                                 showTooltip 
                                 className="w-full h-full" 
                             />
@@ -302,7 +319,20 @@ export function StockMarketView({ user, profile, refreshProfile }: StockMarketVi
                             </div>
                             <div className="space-y-10">
                                 <div className="flex items-center justify-between px-2"><span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Select Quantity</span>{portfolio.find(p => p.ticker === selectedStock.ticker) && (<div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#DFFF00] italic">Owned: {portfolio.find(p => p.ticker === selectedStock.ticker).quantity}</div>)}</div>
-                                <div className="flex flex-col md:flex-row items-center gap-10"><div className="flex items-center flex-1 w-full bg-black border border-white/10 rounded-[2rem] p-3 px-6 shadow-inner"><button onClick={() => setAmount(Math.max(1, amount - 1))} className="w-14 h-14 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-3xl text-zinc-500 hover:text-white transition-all">-</button><input type="number" value={amount} onChange={(e) => setAmount(Math.max(1, Number(e.target.value)))} className="flex-1 bg-transparent text-center text-5xl font-black tracking-tighter outline-none text-white w-full min-w-0 italic" /><button onClick={() => setAmount(amount + 1)} className="w-14 h-14 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-3xl text-zinc-500 hover:text-white transition-all">+</button></div><div className="flex flex-col items-center md:items-end min-w-[240px] border-l border-white/10 pl-10 hidden md:flex"><span className="text-[10px] font-bold text-zinc-700 uppercase tracking-widest mb-2">Estimated Total</span><div className="flex items-baseline gap-3"><span className="text-5xl font-black italic tracking-tighter text-white">{(amount * selectedStock.currentPrice).toLocaleString()}</span><span className="text-xs font-bold text-zinc-600 italic">CR</span></div></div></div>
+                                <div className="flex flex-col md:flex-row items-stretch md:items-center gap-6 md:gap-10">
+                                    <div className="flex items-center flex-1 w-full bg-black border border-white/10 rounded-[2rem] p-3 px-6 shadow-inner">
+                                        <button onClick={() => setAmount(Math.max(1, amount - 1))} className="w-14 h-14 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-3xl text-zinc-500 hover:text-white transition-all active:scale-95">-</button>
+                                        <input type="number" value={amount} onChange={(e) => setAmount(Math.max(1, Number(e.target.value)))} className="flex-1 bg-transparent text-center text-4xl md:text-5xl font-black tracking-tighter outline-none text-white w-full min-w-0 italic" />
+                                        <button onClick={() => setAmount(amount + 1)} className="w-14 h-14 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-3xl text-zinc-500 hover:text-white transition-all active:scale-95">+</button>
+                                    </div>
+                                    <div className="flex flex-col items-center md:items-end min-w-[240px] md:border-l border-white/10 md:pl-10 p-4 md:p-0 bg-zinc-900/30 md:bg-transparent rounded-2xl md:rounded-none">
+                                        <span className="text-[10px] font-bold text-zinc-700 uppercase tracking-widest mb-2">Estimated Total</span>
+                                        <div className="flex items-baseline gap-3">
+                                            <span className="text-4xl md:text-5xl font-black italic tracking-tighter text-white">{(amount * selectedStock.currentPrice).toLocaleString()}</span>
+                                            <span className="text-xs font-bold text-zinc-600 italic">CR</span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
