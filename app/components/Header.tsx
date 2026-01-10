@@ -9,6 +9,7 @@ import {
   ChevronDown, ChevronRight, Orbit
 } from 'lucide-react';
 import Link from 'next/link';
+import Wallet from './Wallet';
 
 // --- NAVIGATION CONFIGURATION ---
 const NAV_CONFIG = [
@@ -186,14 +187,7 @@ export default function Header() {
                              <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest">Sys.Online</span>
                           </div>
 
-                          <Link 
-                            href="/profile?view=WALLET" 
-                            className="group flex items-center gap-3 px-4 py-1.5 bg-zinc-900 border border-zinc-800 hover:border-[#DFFF00] transition-colors rounded-full cursor-pointer"
-                            title="Open Wallet"
-                          >
-                              <Coins size={14} className="text-[#DFFF00] group-hover:rotate-12 transition-transform" />
-                              <span className="text-sm font-black text-white font-mono tracking-tight">{profile.credits.toLocaleString()}</span>
-                          </Link>
+                          <Wallet />
                           
                           <div className="flex items-center gap-4 pl-4 border-l border-zinc-800">
                               

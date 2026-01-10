@@ -46,60 +46,16 @@ const formatStatValue = (val: any) => {
     return val.toString();
 };
 
-// --- SCRAPER ENGINE (LAYER 2) ---
-
-async function scrapePlayerBio(league: League, id: string) {
-    try {
-        const url = ENDPOINTS[league].web_player(id);
-        const res = await fetch(url, { headers: { ...HEADERS, 'Accept': 'text/html' }, next: { revalidate: 3600 } });
-        if (!res.ok) return null;
-        
-        const html = await res.text();
-        const $ = cheerio.load(html);
-        
-        const bio: any = {};
-        
-        $('.PlayerHeader__Bio_List li').each((_, el) => {
-            const text = $(el).text();
-            if (text.includes('Experience')) {
-                const parts = text.split('Experience');
-                bio.experience = parts[1]?.trim();
-            }
-            if (text.includes('College')) {
-                const parts = text.split('College');
-                bio.college = parts[1]?.trim();
-            }
-            if (text.includes('Draft')) {
-                const parts = text.split('Draft');
-                bio.draft = parts[1]?.trim();
-            }
-            if (text.includes('HT/WT')) {
-                const parts = text.split('HT/WT');
-                const val = parts[1]?.trim();
-                if(val) {
-                    const [h, w] = val.split(', ');
-                    bio.height = h;
-                    bio.weight = w;
-                }
-            }
-            if (text.includes('Birthplace')) {
-                const parts = text.split('Birthplace');
-                bio.birthPlace = parts[1]?.trim();
-            }
-        });
-
-        return bio;
-    } catch (e) {
-        console.error("Scraper Failed", e);
-        return null;
-    }
-}
-
 // --- API FETCHERS ---
 
-export const getScoreboard = async (league: League) => {
+export const getScoreboard = async (league: League, date?: string) => {
     try {
-        const res = await fetch(ENDPOINTS[league].scoreboard, { headers: HEADERS, next: { revalidate: 30 } });
+        let url = ENDPOINTS[league].scoreboard;
+        if (date) {
+            url += `?dates=${date.replace(/-/g, '')}`;
+        }
+        
+        const res = await fetch(url, { headers: HEADERS, next: { revalidate: 30 } });
         if (!res.ok) return [];
         const data = await res.json();
         
@@ -115,6 +71,7 @@ export const getScoreboard = async (league: League) => {
                 isLive: e.status.type.state === 'in',
                 venue: c.venue?.fullName || 'Unknown Venue',
                 home: {
+                    id: c.competitors[0].id || c.competitors[0].team.id,
                     code: c.competitors[0].team.abbreviation,
                     name: c.competitors[0].team.displayName,
                     logo: c.competitors[0].team.logo,
@@ -122,6 +79,7 @@ export const getScoreboard = async (league: League) => {
                     record: c.competitors[0].records?.[0]?.summary || '0-0'
                 },
                 away: {
+                    id: c.competitors[1].id || c.competitors[1].team.id,
                     code: c.competitors[1].team.abbreviation,
                     name: c.competitors[1].team.displayName,
                     logo: c.competitors[1].team.logo,
@@ -263,8 +221,12 @@ export const getTeam = async (league: League, id: string) => {
         let roster = [];
         if (rosterRes.ok) {
             const rData = await rosterRes.json();
-            if (rData.athletes) {
-                roster = rData.athletes.flatMap((grp: any) => grp.items || []);
+            if (Array.isArray(rData.athletes)) {
+                if (rData.athletes[0]?.items) {
+                    roster = rData.athletes.flatMap((grp: any) => grp.items || []);
+                } else {
+                    roster = rData.athletes;
+                }
             }
         }
 
@@ -339,7 +301,6 @@ export const getPlayerLogs = async (league: League, id: string) => {
         const res = await fetch(`${ENDPOINTS[league].athletes}/${id}/gamelog`, { headers: HEADERS, next: { revalidate: 3600 } });
         const json = await res.json();
         
-        // Root level labels are the truth for the indices
         const rootLabels = json.labels || [];
         const gameMap = json.events || {};
         let statsEvents: any[] = [];
@@ -397,4 +358,35 @@ export const searchAthletes = async (league: League, query: string) => {
             image: item.images?.[0]?.url || null
         }));
     } catch (e) { return []; }
+};
+
+export const getLiveBoxScore = async (league: League, gameId: string) => {
+    try {
+        const sport = league === 'nfl' ? 'football' : 'basketball';
+        const url = `https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/summary?event=${gameId}`;
+        const res = await fetch(url, { headers: HEADERS, next: { revalidate: 30 } });
+        if (!res.ok) return null;
+        const data = await res.json();
+        
+        const playerStats: Record<string, any> = {};
+        
+        data.boxscore?.players?.forEach((team: any) => {
+            team.statistics?.forEach((cat: any) => {
+                const labels = cat.labels;
+                cat.athletes?.forEach((ath: any) => {
+                    const stats: Record<string, string> = {};
+                    ath.stats?.forEach((val: string, idx: number) => {
+                        stats[labels[idx]] = val;
+                    });
+                    
+                    if (!playerStats[ath.athlete.displayName]) {
+                        playerStats[ath.athlete.displayName] = {};
+                    }
+                    Object.assign(playerStats[ath.athlete.displayName], stats);
+                });
+            });
+        });
+
+        return playerStats;
+    } catch (e) { return null; }
 };

@@ -8,7 +8,9 @@ import PlayerSearch from './components/PlayerSearch';
 import Link from 'next/link';
 import LeaderSlideshow from '../components/LeaderSlideshow';
 import MVPPredictor from '../components/MVPPredictor';
-import { getPlayerProfile } from './actions';
+import WagerGrid from '../wagers/components/WagerGrid';
+import WagerHistory from '../wagers/components/WagerHistory';
+import { getPlayerProfile, getTeamSnapshot } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,6 +51,9 @@ export default async function NFLHub() {
 
       {/* MAIN GRID */}
       <div className="max-w-[1600px] mx-auto px-6 py-12">
+        {/* WAGERING SECTION */}
+        <WagerGrid matches={scores || []} league="nfl" fetchRoster={getTeamSnapshot} />
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-[1px] bg-zinc-800 border border-zinc-800 rounded-[2rem] overflow-hidden shadow-2xl">
             
             {/* COL 1: STANDINGS */}
@@ -79,6 +84,8 @@ export default async function NFLHub() {
             </div>
 
         </div>
+
+        <WagerHistory />
       </div>
     </main>
   );

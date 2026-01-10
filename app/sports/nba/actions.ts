@@ -13,10 +13,22 @@ const CACHE_CONFIG = {
 };
 
 export async function getDashboardData() {
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const formatDate = (d: Date) => d.toISOString().split('T')[0].replace(/-/g, '');
+
   const [scores, standings, leaders] = await Promise.all([
-    getOrFetchResource({
-      table: 'nba_snapshots', keyField: 'key', id: 'live_scores_v3', expirationHours: CACHE_CONFIG.SCORES
-    }, () => ESPN.getScoreboard('nba')),
+    // Fetch today and tomorrow concurrently
+    Promise.all([
+        getOrFetchResource({
+            table: 'nba_snapshots', keyField: 'key', id: `live_scores_v3_${formatDate(today)}`, expirationHours: CACHE_CONFIG.SCORES
+        }, () => ESPN.getScoreboard('nba')),
+        getOrFetchResource({
+            table: 'nba_snapshots', keyField: 'key', id: `live_scores_v3_${formatDate(tomorrow)}`, expirationHours: CACHE_CONFIG.SCORES
+        }, () => ESPN.getScoreboard('nba', formatDate(tomorrow)))
+    ]).then(([t1, t2]) => [...(t1 || []), ...(t2 || [])]),
 
     getOrFetchResource({
       table: 'nba_snapshots', keyField: 'key', id: 'season_standings_v15', expirationHours: CACHE_CONFIG.STANDINGS

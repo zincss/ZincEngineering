@@ -8,7 +8,9 @@ import NBASearch from './components/NBASearch';
 import ConferenceStandings from './components/ConferenceStandings';
 import LeaderSlideshow from '../components/LeaderSlideshow';
 import MVPPredictor from '../components/MVPPredictor';
-import { getPlayerProfile } from './actions';
+import WagerGrid from '../wagers/components/WagerGrid';
+import WagerHistory from '../wagers/components/WagerHistory';
+import { getPlayerProfile, getTeamSnapshot } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,38 +19,15 @@ export default async function NBAHub() {
 
   return (
     <main className="min-h-screen bg-zinc-950 text-white pb-20 selection:bg-[#DFFF00] selection:text-black font-sans">
-      
-      {/* HEADER */}
-      <div className="relative z-50 pt-24 pb-8 px-6 max-w-[1600px] mx-auto w-full border-b border-zinc-800">
-        <div className="flex flex-col xl:flex-row justify-between items-center xl:items-end gap-4 sm:gap-12 mb-6 sm:mb-12">
-            <div className="flex items-center gap-6">
-                <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center border border-zinc-800 shadow-2xl">
-                    <Activity size={24} className="text-[#DFFF00]" />
-                </div>
-                <div>
-                    <div className="flex items-center gap-3 text-zinc-500 font-mono text-[10px] font-bold tracking-[0.3em] uppercase mb-2">
-                        <span>LEAGUE_OPS // NBA</span>
-                    </div>
-                    <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter leading-none italic text-white">
-                        BASKET<span className="text-[#DFFF00]">BALL</span>
-                    </h1>
-                </div>
-            </div>
-
-            <LeaderSlideshow leaders={leaders} league="nba" />
-        </div>
-
-        {/* SEARCH BAR */}
-        <div className="max-w-xl">
-            <NBASearch />
-        </div>
-      </div>
-
+...
       {/* --- LIVE TICKER --- */}
       <GameTicker scores={scores || []} />
 
       {/* --- MAIN GRID --- */}
       <div className="max-w-[1600px] mx-auto px-6 py-12">
+        {/* WAGERING SECTION */}
+        <WagerGrid matches={scores || []} league="nba" fetchRoster={getTeamSnapshot} />
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-[1px] bg-zinc-800 border border-zinc-800 rounded-[2rem] overflow-hidden shadow-2xl">
             
             {/* COL 1: STANDINGS (8 Spans) */}
@@ -78,6 +57,8 @@ export default async function NBAHub() {
             </div>
 
         </div>
+
+        <WagerHistory />
       </div>
     </main>
   );

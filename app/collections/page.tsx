@@ -6,7 +6,8 @@ import Image from 'next/image';
 import { motion, useMotionTemplate, useMotionValue } from 'framer-motion';
 import { 
   CarFront, Gamepad2, Flag, CloudHail, ArrowRight, 
-  Database, Layers, Orbit, Search, Globe, ListOrdered
+  Database, Layers, Orbit, Search, Globe, ListOrdered,
+  Book
 } from 'lucide-react'; 
 import GlobalTicker from '../components/GlobalTicker';
 
@@ -188,6 +189,26 @@ export default function CollectionsHub() {
                         <div className="text-2xl font-black text-white group-hover:text-black">ACTIVE</div>
                     </div>
                     <Layers size={32} className="text-zinc-600 group-hover:text-black transition-colors" />
+                </div>
+            </Link>
+
+            {/* THE LIBRARY (12) */}
+            <Link href="/collections/library" className="group md:col-span-12 relative bg-zinc-950 hover:bg-[#DFFF00] transition-colors duration-300 p-8 flex flex-row items-center justify-between overflow-hidden">
+                <div className="relative z-10 hidden md:flex items-center gap-4">
+                    <Book size={32} className="text-zinc-600 group-hover:text-black transition-colors" />
+                    <div className="text-left">
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 group-hover:text-black/60">Knowledge Archive</div>
+                        <div className="text-2xl font-black text-white group-hover:text-black">SECURE</div>
+                    </div>
+                </div>
+                <div className="relative z-10 flex flex-col justify-center h-full text-right items-end">
+                    <div className="flex items-center gap-3 mb-4">
+                        <span className="font-mono text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-black/60 transition-colors">09_Archive</span>
+                        <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-black/10 transition-colors text-[#DFFF00] group-hover:text-black">
+                            <Book size={18} />
+                        </div>
+                    </div>
+                    <h3 className="text-5xl md:text-7xl font-black uppercase text-white tracking-tighter italic group-hover:text-black transition-colors">The Library</h3>
                 </div>
             </Link>
 
