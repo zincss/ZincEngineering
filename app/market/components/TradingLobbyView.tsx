@@ -88,31 +88,37 @@ export const TradingLobbyView = ({ user }: { user: any }) => {
 
     return (
         <div className="w-full max-w-[1800px] mx-auto px-4 md:px-8 pb-32 pt-10">
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-12 gap-8 border-b border-white/5 pb-10">
+        <div className="flex flex-col lg:flex-row justify-between items-center mb-12 gap-8 border-b border-white/5 pb-12">
+            <div className="flex items-center gap-8 w-full lg:w-auto">
                 <div>
-                    <div className="text-[10px] font-mono font-bold text-[#DFFF00] uppercase tracking-[0.3em] mb-3 flex items-center gap-2">
-                        P2P Exchange Protocol
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#DFFF00] animate-pulse" />
+                    <div className="flex items-center gap-3 text-zinc-500 font-mono text-[10px] font-bold tracking-[0.4em] uppercase mb-2">
+                        <span>Zinc_Market_Protocol // V4.2</span>
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#3b82f6]/10 border border-[#3b82f6]/20">
+                            <div className="w-1 h-1 rounded-full bg-[#3b82f6] animate-pulse" />
+                            <span className="text-[8px] font-mono font-bold text-[#3b82f6] uppercase tracking-widest">Global_Liquidity_Online</span>
+                        </div>
                     </div>
-                    <h2 className="text-5xl md:text-6xl font-black uppercase tracking-tighter text-white leading-none">
+                    <h1 className="text-6xl md:text-8xl font-black uppercase tracking-tighter leading-none italic text-white">
                         Trading <span className="text-zinc-800">Floor</span>
-                    </h2>
-                </div>
-                <div className="flex gap-2 p-1.5 bg-white/[0.03] border border-white/5 rounded-2xl w-full lg:w-auto">
-                    <button 
-                        onClick={() => setActiveTab('PUBLIC')} 
-                        className={`flex-1 lg:flex-none px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'PUBLIC' ? 'bg-white text-black shadow-lg' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}
-                    >
-                        Public Market
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('DIRECT')} 
-                        className={`flex-1 lg:flex-none px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'DIRECT' ? 'bg-[#DFFF00] text-black shadow-lg' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}
-                    >
-                        Direct Invite
-                    </button>
+                    </h1>
                 </div>
             </div>
+            
+            <div className="flex gap-2 p-1.5 bg-white/[0.03] border border-white/5 rounded-2xl w-full lg:w-auto">
+                <button 
+                    onClick={() => setActiveTab('PUBLIC')} 
+                    className={`flex-1 lg:flex-none px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'PUBLIC' ? 'bg-white text-black shadow-lg' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}
+                >
+                    Public
+                </button>
+                <button 
+                    onClick={() => setActiveTab('DIRECT')} 
+                    className={`flex-1 lg:flex-none px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'DIRECT' ? 'bg-[#3b82f6] text-white shadow-lg' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}
+                >
+                    Direct
+                </button>
+            </div>
+        </div>
 
             {incomingInvites.length > 0 && (
                 <div className="mb-12 animate-in slide-in-from-top-4">

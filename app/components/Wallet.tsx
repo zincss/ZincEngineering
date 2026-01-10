@@ -5,19 +5,22 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Coins, Send, History, X, Search, CheckCircle2, AlertCircle, ArrowRightLeft, Clock, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import Link from 'next/link';
-import { getUserWagers, transferCredits, searchUsers } from '@/app/sports/wagers/actions';
+import { getUserWagers, transferCredits, searchUsers, getTransactions } from '@/app/sports/wagers/actions';
+import { getPortfolioValue } from '@/app/play/stocks/actions';
 
 export default function Wallet() {
-  const { profile, refreshProfile } = useAuth();
+  const { profile, refreshProfile, user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'status' | 'transfer' | 'history'>('status');
   const [pendingWagers, setPendingWagers] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [portfolioValue, setPortfolioValue] = useState<number>(0);
   
   // Transfer state
   const [recipient, setRecipient] = useState('');
   const [amount, setAmount] = useState<number>(0);
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [isTransferring, setIsPlacing] = useState(false);
+  const [isTransferring, setIsTransferring] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   useEffect(() => {
@@ -25,6 +28,8 @@ export default function Wallet() {
         getUserWagers().then(data => {
             setPendingWagers(data.filter((w: any) => w.status === 'pending'));
         });
+        getTransactions().then(setTransactions);
+        getPortfolioValue().then(setPortfolioValue);
     }
   }, [isOpen]);
 
@@ -38,7 +43,7 @@ export default function Wallet() {
 
   const handleTransfer = async () => {
     if (amount <= 0 || !recipient) return;
-    setIsPlacing(true);
+    setIsTransferring(true);
     try {
         await transferCredits(recipient, amount);
         setMsg({ type: 'success', text: `Sent ${amount} CR to ${recipient}` });
@@ -49,7 +54,7 @@ export default function Wallet() {
     } catch (e: any) {
         setMsg({ type: 'error', text: e.message });
     } finally {
-        setIsPlacing(false);
+        setIsTransferring(false);
     }
   };
 
@@ -59,14 +64,14 @@ export default function Wallet() {
     <div className="relative">
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="group flex items-center gap-3 px-4 py-1.5 bg-zinc-900 border border-zinc-800 hover:border-[#DFFF00] transition-colors rounded-full cursor-pointer relative"
+        className="group flex items-center gap-2 md:gap-3 px-3 md:px-4 py-1.5 bg-zinc-900 border border-zinc-800 hover:border-[#DFFF00] transition-colors rounded-full cursor-pointer relative"
       >
           <Coins size={14} className="text-[#DFFF00] group-hover:rotate-12 transition-transform" />
-          <span className="text-sm font-black text-white font-mono tracking-tight">{profile.credits.toLocaleString()}</span>
+          <span className="text-xs md:text-sm font-black text-white font-mono tracking-tight">{profile.credits.toLocaleString()}</span>
           {pendingWagers.length > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-3 w-3">
+              <span className="absolute -top-0.5 -right-0.5 md:-top-1 md:-right-1 flex h-2.5 w-2.5 md:h-3 md:w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#DFFF00] opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-[#DFFF00] border-2 border-zinc-950"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 md:h-3 md:w-3 bg-[#DFFF00] border-2 border-zinc-950"></span>
               </span>
           )}
       </button>
@@ -77,13 +82,13 @@ export default function Wallet() {
             <motion.div 
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 onClick={() => setIsOpen(false)}
-                className="fixed inset-0 z-[110] bg-black/40 backdrop-blur-sm lg:bg-transparent"
+                className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm lg:bg-transparent"
             />
             <motion.div 
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="absolute top-full right-0 mt-4 w-80 md:w-96 bg-zinc-950 border border-zinc-800 rounded-[2rem] shadow-[0_30px_100px_rgba(0,0,0,0.8)] z-[120] overflow-hidden flex flex-col ring-1 ring-white/5"
+                className="fixed md:absolute top-[70px] md:top-full right-4 md:right-0 w-[calc(100vw-32px)] md:w-96 bg-zinc-950 border border-zinc-800 rounded-[2rem] shadow-[0_30px_100px_rgba(0,0,0,0.8)] z-[120] overflow-hidden flex flex-col ring-1 ring-white/5"
             >
                 {/* Wallet Header */}
                 <div className="bg-zinc-900/50 p-6 border-b border-zinc-800 flex justify-between items-center">
@@ -92,11 +97,23 @@ export default function Wallet() {
                             <Coins size={18} />
                         </div>
                         <div>
-                            <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest leading-none mb-1">Total Balance</div>
-                            <div className="text-xl font-black text-white font-mono tracking-tighter">{profile.credits.toLocaleString()} <span className="text-xs text-zinc-600">CR</span></div>
+                            <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest leading-none mb-1">Total Net Worth</div>
+                            <div className="text-xl font-black text-white font-mono tracking-tighter">{(profile.credits + portfolioValue).toLocaleString()} <span className="text-xs text-zinc-600">CR</span></div>
                         </div>
                     </div>
                     <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-zinc-800 rounded-full transition-colors text-zinc-500"><X size={18}/></button>
+                </div>
+
+                {/* Sub-header Stats */}
+                <div className="grid grid-cols-2 gap-px bg-zinc-800 border-b border-zinc-800">
+                    <div className="bg-zinc-950 p-3 px-6 flex flex-col">
+                        <span className="text-[8px] font-mono text-zinc-600 uppercase tracking-widest">Liquid Credits</span>
+                        <span className="text-xs font-black text-white">{profile.credits.toLocaleString()}</span>
+                    </div>
+                    <div className="bg-zinc-950 p-3 px-6 flex flex-col items-end">
+                        <span className="text-[8px] font-mono text-zinc-600 uppercase tracking-widest">Market Assets</span>
+                        <span className="text-xs font-black text-[#DFFF00]">{portfolioValue.toLocaleString()}</span>
+                    </div>
                 </div>
 
                 {/* Tabs */}
@@ -223,11 +240,37 @@ export default function Wallet() {
                     )}
 
                     {activeTab === 'history' && (
-                        <div className="space-y-4">
-                            <div className="py-12 text-center opacity-30">
-                                <History size={24} className="mx-auto mb-3" />
-                                <p className="text-[10px] font-mono uppercase tracking-widest">Warp History coming soon</p>
-                            </div>
+                        <div className="space-y-3">
+                            {transactions.length === 0 ? (
+                                <div className="py-12 text-center opacity-30">
+                                    <History size={24} className="mx-auto mb-3" />
+                                    <p className="text-[10px] font-mono uppercase tracking-widest">No Recent Activity</p>
+                                </div>
+                            ) : (
+                                transactions.map(tx => {
+                                    const isSender = tx.sender_id === user?.id;
+                                    return (
+                                        <div key={tx.id} className="bg-zinc-900/50 p-3 rounded-xl border border-zinc-800 flex items-center justify-between group">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`p-2 rounded-lg ${isSender ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
+                                                    {isSender ? <Send size={12} /> : <Coins size={12} />}
+                                                </div>
+                                                <div>
+                                                    <div className="text-[10px] font-black text-white uppercase leading-none mb-1">
+                                                        {isSender ? `To ${tx.metadata?.recipient}` : `From ${tx.metadata?.sender}`}
+                                                    </div>
+                                                    <div className="text-[8px] font-mono text-zinc-600 uppercase">
+                                                        {new Date(tx.created_at).toLocaleDateString()}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className={`text-xs font-black font-mono ${isSender ? 'text-red-500' : 'text-green-500'}`}>
+                                                {isSender ? '-' : '+'}{tx.amount}
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
                         </div>
                     )}
                 </div>

@@ -57,35 +57,33 @@ export function CarDealershipView({ user, profile, refreshProfile }: { user: any
     <div className="p-4 md:p-8 max-w-[1800px] mx-auto min-h-screen">
       
       {/* HEADER BAR */}
-      <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-8 border-b border-white/5 pb-10">
-        <div>
-          <div className="text-[10px] font-mono font-bold text-[#DFFF00] uppercase tracking-[0.3em] mb-3 flex items-center gap-2">
-            Limited Rotation
-            <div className="w-1.5 h-1.5 rounded-full bg-[#DFFF00] animate-pulse" />
-          </div>
-          <h2 className="text-5xl md:text-6xl font-black uppercase tracking-tighter text-white leading-none">
-            Prestige <span className="text-zinc-800">Imports</span>
-          </h2>
-          <div className="flex flex-wrap items-center gap-6 text-zinc-500 font-mono text-xs mt-6">
-            <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-full border border-white/5">
-              <Timer size={14} className="text-[#DFFF00]" />
-              <span>STOCK REFRESH: <span className="text-white font-bold">{timeLeft}</span></span>
+      <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-8 border-b border-white/5 pb-12">
+        <div className="flex items-center gap-8">
+            <div>
+                <div className="flex items-center gap-3 text-zinc-500 font-mono text-[10px] font-bold tracking-[0.4em] uppercase mb-2">
+                    <span>Zinc_Market_Protocol // V4.2</span>
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#DFFF00]/10 border border-[#DFFF00]/20">
+                        <div className="w-1 h-1 rounded-full bg-[#DFFF00] animate-pulse" />
+                        <span className="text-[8px] font-mono font-bold text-[#DFFF00] uppercase tracking-widest">Global_Liquidity_Online</span>
+                    </div>
+                </div>
+                <h1 className="text-6xl md:text-8xl font-black uppercase tracking-tighter leading-none italic text-white">
+                    Prestige <span className="text-zinc-800">Imports</span>
+                </h1>
             </div>
-            <div className="text-[10px] uppercase tracking-[0.2em] opacity-60">Global Inventory Updates Every Hour</div>
-          </div>
         </div>
 
-        {/* User Balance (Mobile Friendly) */}
-        <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 flex flex-col items-end gap-1 backdrop-blur-3xl min-w-[200px]">
-          <div className="text-[8px] text-zinc-500 uppercase font-black tracking-widest">
-            Available Purchasing Power
-          </div>
-          <div className="text-3xl font-sans font-black tracking-tighter text-white tabular-nums flex items-baseline gap-2">
-             {profile?.credits?.toLocaleString() || 0}
-             <span className="text-xs text-zinc-600 font-bold tracking-widest">CR</span>
-          </div>
+        <div className="flex flex-col items-end gap-4">
+            <div className="flex flex-wrap items-center gap-6 text-zinc-500 font-mono text-xs">
+                <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-full border border-white/5">
+                <Timer size={14} className="text-[#DFFF00]" />
+                <span>STOCK REFRESH: <span className="text-white font-bold">{timeLeft}</span></span>
+                </div>
+            </div>
         </div>
       </div>
+
+
 
       {/* SHOWROOM GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

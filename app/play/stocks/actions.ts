@@ -71,6 +71,21 @@ export async function buyStock(ticker: string, quantity: number) {
   return { success: true, price };
 }
 
+export async function getPortfolioValue() {
+  const { COMPANIES } = await import('./data');
+  const { getCurrentPrice } = await import('./utils');
+  
+  const portfolio = await getPortfolio();
+  if (portfolio.length === 0) return 0;
+
+  const totalValue = portfolio.reduce((acc, item) => {
+    const price = getCurrentPrice(item.ticker);
+    return acc + (item.quantity * price);
+  }, 0);
+
+  return Math.floor(totalValue);
+}
+
 // Sell Stock via Secure RPC
 export async function sellStock(ticker: string, quantity: number) {
   // [FIX] No arguments needed

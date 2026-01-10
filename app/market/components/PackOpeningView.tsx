@@ -5,309 +5,97 @@ import { createClient } from '@/utils/supabase/client';
 import { 
     Layers, Grid3X3, Info, Lock, Zap, CarFront, Loader2, X, Sparkles, Cpu, 
     RotateCcw, Trophy, AlertTriangle, Siren, Radiation, Fingerprint, Crown, Scan, 
-    Signal, Radio, Disc
+    Signal, Radio, Disc, ChevronRight, LayoutGrid
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { REEL_ITEMS_SOURCE, CAR_PACK_SOURCE, GRIDIRON_PACK_SOURCE, BasePackIcon, ItemImage } from './shared';
 import { TradingCard } from './TradingCard';
 
-// --- CONFIGURATION: WALKOUT TIERS ---
-// Common/Uncommon/Rare = No Walkout (Tier 1)
-// Super Rare+ = Tier 3 (Alarm/Chaos + Cinematic Reveal)
-
-// UPDATED: Removed 'RARE' so only Super Rare and above get the animation
 const WALKOUT_RARITIES = ['SUPER_RARE', 'ULTRA', 'ZENITH'];
 
 const getHypeConfig = (rarity: string) => {
     switch (rarity) {
-        case 'ZENITH': return { 
-            tier: 3,
-            color: '#DFFF00', 
-            label: 'ZENITH CLASS', 
-            icon: Crown, 
-            detectText: 'ZENITH LEVEL EVENT',
-            revealText: 'MYTHIC ARTIFACT',
-            bg: 'bg-yellow-500'
-        };
-        case 'ULTRA': return { 
-            tier: 3,
-            color: '#A855F7', 
-            label: 'ULTRA CLASS', 
-            icon: Radiation, 
-            detectText: 'CRITICAL ANOMALY',
-            revealText: 'ULTRA RARE ASSET',
-            bg: 'bg-purple-600'
-        };
-        case 'SUPER_RARE': return { 
-            tier: 3,
-            color: '#F97316', 
-            label: 'SUPER RARE CLASS', 
-            icon: Zap, 
-            detectText: 'SECURITY BREACH',
-            revealText: 'HIGH VOLTAGE SIGNATURE',
-            bg: 'bg-orange-500'
-        };
-        // RARE Removed from config as it no longer triggers hype
+        case 'ZENITH': return { tier: 3, color: '#DFFF00', label: 'ZENITH_CLASS', icon: Crown, detectText: 'ZENITH_LEVEL_EVENT', revealText: 'MYTHIC_ARTIFACT', bg: 'bg-[#DFFF00]' };
+        case 'ULTRA': return { tier: 3, color: '#A855F7', label: 'ULTRA_CLASS', icon: Radiation, detectText: 'CRITICAL_ANOMALY', revealText: 'ULTRA_RARE_ASSET', bg: 'bg-purple-600' };
+        case 'SUPER_RARE': return { tier: 3, color: '#F97316', label: 'SUPER_RARE_CLASS', icon: Zap, detectText: 'SECURITY_BREACH', revealText: 'HIGH_VOLTAGE_SIGNATURE', bg: 'bg-orange-500' };
         default: return null;
     }
 };
 
-// --- VISUAL: CARD BACK ---
 const CardBack = ({ config }: { config: any }) => (
-    <div className="w-full h-full rounded-3xl bg-zinc-950 border-4 border-zinc-800 flex flex-col items-center justify-center relative overflow-hidden shadow-2xl">
-        <div className="absolute inset-0 opacity-20" 
-             style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #333 1px, transparent 0)', backgroundSize: '16px 16px' }} 
-        />
-        <div className={`w-24 h-24 rounded-full border-4 flex items-center justify-center bg-zinc-900 z-10 shadow-lg`} style={{ borderColor: config.color }}>
+    <div className="w-full h-full rounded-[2rem] bg-zinc-950 border-4 border-zinc-900 flex flex-col items-center justify-center relative overflow-hidden shadow-2xl">
+        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #fff 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#DFFF00]/5 to-transparent pointer-events-none" />
+        <div className={`w-24 h-24 rounded-3xl border-2 flex items-center justify-center bg-zinc-900 z-10 shadow-2xl transition-all duration-500 group-hover:scale-110`} style={{ borderColor: config.color }}>
             <config.icon size={48} style={{ color: config.color }} />
         </div>
-        <div className="mt-6 font-black uppercase text-zinc-600 tracking-[0.3em] text-xs z-10 flex flex-col items-center gap-1">
-            <span>ZINC</span>
-            <span style={{ color: config.color }}>ASSET_PACK</span>
+        <div className="mt-8 font-black uppercase text-zinc-600 tracking-[0.4em] text-[10px] z-10 flex flex-col items-center gap-2">
+            <span className="italic">ZINC_PROTOCOLS</span>
+            <span className="text-white opacity-40">ENCRYPTED_ASSET</span>
         </div>
-        <div className="absolute top-0 left-0 w-full h-2 bg-zinc-800" />
-        <div className="absolute bottom-0 left-0 w-full h-2 bg-zinc-800" />
+        <div className="absolute top-0 left-0 w-full h-1 bg-zinc-800" />
+        <div className="absolute bottom-0 left-0 w-full h-1 bg-zinc-800" />
     </div>
 );
 
-// --- COMPONENT: MINI SUMMARY CARD ---
 const MiniSummaryCard = ({ item, index }: { item: any, index: number }) => {
-    const isRare = ['RARE', 'SUPER_RARE', 'ULTRA', 'ZENITH'].includes(item.rarity);
-    const borderColor = isRare ? 'border-[#DFFF00]' : 'border-zinc-800';
-    const textColor = isRare ? 'text-[#DFFF00]' : 'text-zinc-500';
-
+    const isRare = WALKOUT_RARITIES.includes(item.rarity);
     return (
-        <motion.div 
-            initial={{ opacity: 0, y: 20 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            transition={{ delay: index * 0.05, duration: 0.3 }}
-            className={`relative aspect-[2/3] rounded-xl overflow-hidden bg-zinc-900 border ${borderColor} shadow-lg group`}
-        >
-            <ItemImage name={item.name} searchQuery={item.searchQuery || item.name} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent" />
-            <div className="absolute bottom-0 left-0 w-full p-3">
-                <div className={`text-[8px] font-mono font-black uppercase tracking-widest ${textColor} mb-0.5`}>
-                    {item.rarity}
-                </div>
-                <div className="text-xs font-bold text-white uppercase leading-tight truncate">
-                    {item.name}
-                </div>
+        <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: index * 0.05 }} className={`relative aspect-[2/3] rounded-2xl overflow-hidden bg-zinc-900 border ${isRare ? 'border-[#DFFF00]/50 shadow-[0_0_20px_rgba(223,255,0,0.1)]' : 'border-white/5'} group`}>
+            <ItemImage name={item.name} searchQuery={item.searchQuery || item.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+            <div className="absolute bottom-0 left-0 w-full p-4">
+                <div className={`text-[8px] font-black uppercase tracking-widest ${isRare ? 'text-[#DFFF00]' : 'text-zinc-500'} mb-1 italic`}>{item.rarity}</div>
+                <div className="text-[10px] font-black text-white uppercase leading-tight truncate italic">{item.name}</div>
             </div>
         </motion.div>
     );
 };
 
-// --- COMPONENT: CINEMATIC SUSPENSE OVERLAY ---
 const HypeOverlay = ({ rarity, item }: { rarity: string, item: any }) => {
     const config = getHypeConfig(rarity);
     const [phase, setPhase] = useState<'DETECTING' | 'IDENTIFIED' | 'REVEALED'>('DETECTING');
-    
-    // Timing Configuration
-    const detectDuration = 2000;
-    const identifyDuration = 1500;
-
     useEffect(() => {
-        // Phase 1 -> 2: Detecting to Identified
-        const timer1 = setTimeout(() => {
-            setPhase('IDENTIFIED');
-        }, detectDuration);
-
-        // Phase 2 -> 3: Identified to Card Reveal
-        const timer2 = setTimeout(() => {
-            setPhase('REVEALED');
-        }, detectDuration + identifyDuration);
-
-        return () => {
-            clearTimeout(timer1);
-            clearTimeout(timer2);
-        };
-    }, [detectDuration, identifyDuration]);
-
+        const t1 = setTimeout(() => setPhase('IDENTIFIED'), 2000);
+        const t2 = setTimeout(() => setPhase('REVEALED'), 3500);
+        return () => { clearTimeout(t1); clearTimeout(t2); };
+    }, []);
     if (!config) return null;
-
     const isDetecting = phase === 'DETECTING';
     const isRevealed = phase === 'REVEALED';
-    const isHighTier = true; // All remaining walkouts are high tier
-
     return (
-        <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 1.1, filter: 'blur(20px)' }}
-            transition={{ duration: 0.5 }}
-            className="fixed inset-0 z-[150] bg-black flex flex-col items-center justify-center overflow-hidden"
-        >
-            {/* Background: Pulsing */}
-            <motion.div 
-                animate={{ 
-                    opacity: isDetecting ? [0.1, 0.3, 0.1] : 0.2,
-                    backgroundColor: isDetecting 
-                        ? '#ef4444' // Red for Alarm
-                        : config.color
-                }}
-                transition={{ duration: isDetecting ? 0.5 : 1, repeat: isDetecting ? Infinity : 0 }}
-                className="absolute inset-0 z-0"
-            />
-            
-            {/* Rotating Radar/Scanlines */}
-            {!isRevealed && (
-                <motion.div 
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                    className={`absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,${isDetecting ? '#fff' : config.color}_0%,transparent_60%)] z-0`}
-                />
-            )}
-
-            {/* --- PHASE 3: THE CINEMATIC CARD REVEAL --- */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, filter: 'blur(20px)' }} className="fixed inset-0 z-[150] bg-zinc-950 flex flex-col items-center justify-center overflow-hidden">
+            <motion.div animate={{ opacity: isDetecting ? [0.05, 0.15, 0.05] : 0.1, backgroundColor: isDetecting ? '#ef4444' : config.color }} transition={{ duration: 0.5, repeat: isDetecting ? Infinity : 0 }} className="absolute inset-0 z-0" />
+            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.02] mix-blend-overlay" />
             <AnimatePresence>
                 {isRevealed && (
-                    <motion.div 
-                        initial={{ scale: 0.2, opacity: 0, rotateY: 180 }}
-                        animate={{ scale: 1, opacity: 1, rotateY: 0 }}
-                        transition={{ type: "spring", damping: 12, stiffness: 100 }}
-                        className="relative z-50 perspective-1000"
-                    >
-                         {/* Flash Effect */}
-                        <motion.div 
-                            initial={{ opacity: 1, scale: 1 }}
-                            animate={{ opacity: 0, scale: 2 }}
-                            transition={{ duration: 0.5 }}
-                            className="absolute inset-0 bg-white rounded-3xl z-50 pointer-events-none"
-                        />
-                        
-                        {/* The Card */}
-                        <div className="w-[300px] aspect-[2/3] shadow-2xl relative">
-                            <div className={`absolute inset-0 bg-${config.color} blur-3xl opacity-50 animate-pulse`} style={{ backgroundColor: config.color }} />
+                    <motion.div initial={{ scale: 0.5, opacity: 0, rotateY: 90 }} animate={{ scale: 1, opacity: 1, rotateY: 0 }} transition={{ type: "spring", damping: 15 }} className="relative z-50 flex flex-col items-center">
+                        <div className="w-[300px] aspect-[2/3] shadow-[0_0_100px_rgba(0,0,0,0.8)] relative rounded-[2.5rem] overflow-hidden border border-white/10">
+                            <div className={`absolute inset-0 blur-3xl opacity-30 animate-pulse`} style={{ backgroundColor: config.color }} />
                             <TradingCard item={item} />
                         </div>
-
-                        <motion.div 
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.5 }}
-                            className="text-center mt-8"
-                        >
-                            <h2 
-                                className="text-4xl font-black italic uppercase text-white tracking-tighter"
-                                style={{ textShadow: `0 0 40px ${config.color}` }}
-                            >
-                                {item.name}
-                            </h2>
-                            <div className="text-white/60 font-mono text-sm tracking-widest mt-2 uppercase">
-                                {config.label} ACQUIRED
-                            </div>
+                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="text-center mt-12">
+                            <h2 className="text-5xl font-black italic uppercase text-white tracking-tighter" style={{ textShadow: `0 0 40px ${config.color}40` }}>{item.name}</h2>
+                            <div className="text-[#DFFF00] font-mono text-xs font-bold tracking-[0.4em] mt-4 uppercase italic">Level_Signature // {config.label}</div>
                         </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>
-
-
-            {/* --- PHASE 1 & 2: SCANNER UI --- */}
             {!isRevealed && (
-                <div className="relative z-10 flex flex-col items-center gap-8 p-6">
-                    {/* ICON CONTAINER */}
+                <div className="relative z-10 flex flex-col items-center gap-12">
                     <div className="relative">
-                        {/* Rings */}
-                        <motion.div 
-                            animate={{ 
-                                scale: [1, 1.5, 1],
-                                borderColor: isDetecting ? '#ef4444' : config.color,
-                                opacity: [1, 0, 1]
-                            }}
-                            transition={{ duration: 1, repeat: Infinity }}
-                            className="absolute inset-0 rounded-full border-2"
-                        />
-                        
-                        <motion.div 
-                            initial={{ scale: 0.8 }}
-                            animate={{ 
-                                scale: isDetecting ? [0.9, 1.1, 0.9] : 1.2,
-                                borderColor: isDetecting ? '#ef4444' : config.color,
-                                backgroundColor: isDetecting ? '#000' : 'rgba(0,0,0,0.5)'
-                            }}
-                            transition={{ duration: 0.2 }}
-                            className="w-40 h-40 rounded-full border-4 flex items-center justify-center backdrop-blur-sm relative overflow-hidden"
-                        >
-                            <AnimatePresence mode="wait">
-                                {isDetecting ? (
-                                    <motion.div 
-                                        key="detecting"
-                                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0 }}
-                                    >
-                                        <Scan size={64} className="text-red-500 animate-pulse" />
-                                    </motion.div>
-                                ) : (
-                                    <motion.div 
-                                        key="found"
-                                        initial={{ scale: 0, rotate: 180 }} 
-                                        animate={{ scale: 1, rotate: 0 }}
-                                        transition={{ type: "spring", bounce: 0.5 }}
-                                    >
-                                        <config.icon size={80} style={{ color: config.color }} />
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </motion.div>
-                    </div>
-
-                    {/* TEXT CONTAINER */}
-                    <div className="text-center space-y-4">
-                        <motion.div 
-                            className="flex items-center gap-3 justify-center"
-                            animate={{ opacity: [1, 0.5, 1] }}
-                            transition={{ duration: 0.5, repeat: Infinity }}
-                        >
-                            {isDetecting ? (
-                                <>
-                                    <AlertTriangle size={20} className="text-red-500" />
-                                    <span className="text-red-500 font-mono text-sm uppercase tracking-[0.3em] font-bold">
-                                        {config.detectText}
-                                    </span>
-                                    <AlertTriangle size={20} className="text-red-500" />
-                                </>
-                            ) : (
-                                <motion.div 
-                                    initial={{ y: 20, opacity: 0 }}
-                                    animate={{ y: 0, opacity: 1 }}
-                                    className="flex items-center gap-2"
-                                >
-                                    <span style={{ color: config.color }} className="font-mono text-sm uppercase tracking-[0.3em] font-bold">{config.label}</span>
-                                </motion.div>
-                            )}
-                        </motion.div>
-
-                        <div className="h-16 flex items-center justify-center">
-                            <AnimatePresence mode="wait">
-                                {isDetecting ? (
-                                    <motion.h2 
-                                        key="text-scan"
-                                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, y: -20 }}
-                                        className="text-4xl md:text-5xl font-black uppercase text-white/20 tracking-tighter"
-                                    >
-                                        SCANNING...
-                                    </motion.h2>
-                                ) : (
-                                    <motion.h2 
-                                        key="text-found"
-                                        initial={{ scale: 1.5, opacity: 0, filter: 'blur(10px)' }}
-                                        animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
-                                        className="text-3xl md:text-5xl font-black italic uppercase text-white tracking-tighter"
-                                        style={{ textShadow: `0 0 40px ${config.color}` }}
-                                    >
-                                        {rarity.replace('_', ' ')}
-                                    </motion.h2>
-                                )}
-                            </AnimatePresence>
+                        <motion.div animate={{ scale: [1, 1.2, 1], opacity: [1, 0, 1] }} transition={{ duration: 1.5, repeat: Infinity }} className={`absolute -inset-8 rounded-full border-2 ${isDetecting ? 'border-red-500/30' : 'border-[#DFFF00]/30'}`} />
+                        <div className={`w-48 h-48 rounded-[2.5rem] border-2 flex items-center justify-center backdrop-blur-xl relative overflow-hidden transition-colors duration-500 ${isDetecting ? 'border-red-500/50 bg-red-500/5' : 'border-[#DFFF00]/50 bg-[#DFFF00]/5'}`}>
+                            {isDetecting ? <Scan size={80} className="text-red-500 animate-pulse" /> : <config.icon size={100} style={{ color: config.color }} />}
                         </div>
-                        
-                        {/* Loading/Progress Bar */}
-                        <div className="w-64 h-1.5 bg-zinc-800 rounded-full overflow-hidden mx-auto">
-                            <motion.div 
-                                initial={{ width: "0%" }}
-                                animate={{ width: isDetecting ? "60%" : "100%" }}
-                                transition={{ duration: isDetecting ? 2 : 0.5 }}
-                                className={`h-full ${isDetecting ? 'bg-red-500' : config.bg}`}
-                            />
+                    </div>
+                    <div className="text-center space-y-6">
+                        <motion.div animate={{ opacity: [1, 0.5, 1] }} transition={{ duration: 0.5, repeat: Infinity }} className="flex items-center gap-4 justify-center">
+                            <span className={`font-mono text-xs uppercase tracking-[0.5em] font-black italic ${isDetecting ? 'text-red-500' : 'text-[#DFFF00]'}`}>{isDetecting ? config.detectText : config.label}</span>
+                        </motion.div>
+                        <h2 className="text-5xl font-black italic uppercase text-white tracking-tighter">{isDetecting ? 'ANALYZING...' : rarity.replace('_', ' ')}</h2>
+                        <div className="w-80 h-1 bg-zinc-900 rounded-full overflow-hidden mx-auto border border-white/5">
+                            <motion.div initial={{ width: "0%" }} animate={{ width: isDetecting ? "70%" : "100%" }} transition={{ duration: 2 }} className={`h-full ${isDetecting ? 'bg-red-500' : 'bg-[#DFFF00]'}`} />
                         </div>
                     </div>
                 </div>
@@ -316,51 +104,32 @@ const HypeOverlay = ({ rarity, item }: { rarity: string, item: any }) => {
     );
 };
 
-// --- FOIL PACK ---
-const FoilPack = ({ config, isSelected }: { config: any, isSelected: boolean }) => {
-    return (
-        <div className={`relative w-48 h-72 flex-shrink-0 transition-all duration-300 ${isSelected ? 'scale-110 z-10' : 'scale-90 opacity-60 hover:opacity-100 hover:scale-95'}`}>
-            <div className={`absolute inset-0 bg-${config.color === '#DFFF00' ? 'yellow' : 'red'}-500/20 blur-3xl rounded-full transition-opacity duration-500 ${isSelected ? 'opacity-100' : 'opacity-0'}`} />
-            <div 
-                className="relative w-full h-full flex flex-col items-center justify-between overflow-hidden shadow-2xl"
-                style={{
-                    background: `linear-gradient(135deg, #18181b 0%, #27272a 40%, #18181b 100%)`,
-                    borderRadius: '16px',
-                    border: isSelected ? `2px solid ${config.color}40` : '2px solid #27272a'
-                }}
-            >
-                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none z-20" />
-                <div className="flex-1 w-full flex flex-col items-center justify-center p-4 relative z-10">
-                    <div className="mb-4 p-4 rounded-full bg-black/40 border border-white/5 shadow-inner">
-                        <config.icon size={40} style={{ color: config.color }} />
-                    </div>
-                    <h3 className="text-2xl font-black uppercase text-center italic leading-none text-white drop-shadow-md">
-                        {config.label}
-                    </h3>
-                    <div className="mt-2 text-[9px] font-mono font-bold uppercase tracking-widest text-zinc-500 bg-black/60 px-3 py-1 rounded-full">
-                        {config.name}
-                    </div>
+const FoilPack = ({ config, isSelected }: { config: any, isSelected: boolean }) => (
+    <div className={`relative w-56 h-80 shrink-0 transition-all duration-500 ${isSelected ? 'scale-110 z-10' : 'scale-90 opacity-40 grayscale hover:opacity-100 hover:grayscale-0'}`}>
+        <div className={`absolute inset-0 bg-${config.color === '#DFFF00' ? '[#DFFF00]' : 'red-500'}/20 blur-[60px] rounded-full transition-opacity duration-1000 ${isSelected ? 'opacity-100' : 'opacity-0'}`} />
+        <div className={`relative w-full h-full flex flex-col items-center justify-between overflow-hidden shadow-2xl rounded-[2.5rem] border-2 transition-all duration-500 ${isSelected ? 'border-[#DFFF00]/50' : 'border-white/5'}`} style={{ background: `linear-gradient(135deg, #09090b 0%, #18181b 100%)` }}>
+            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.05] pointer-events-none" />
+            <div className="flex-1 w-full flex flex-col items-center justify-center p-6 relative z-10 text-center">
+                <div className="mb-6 p-5 rounded-[2rem] bg-zinc-900 border border-white/5 shadow-2xl">
+                    <config.icon size={48} style={{ color: config.color }} />
                 </div>
-                <div className="w-full text-center py-4 relative z-10 bg-black/20">
-                    <div className="text-xs font-black text-white">
-                        {config.cost} CREDITS
-                    </div>
-                </div>
+                <h3 className="text-3xl font-black uppercase italic leading-none text-white tracking-tighter">{config.label}</h3>
+                <div className="mt-3 text-[9px] font-mono font-black uppercase tracking-[0.3em] text-[#DFFF00] bg-[#DFFF00]/10 px-4 py-1.5 rounded-full border border-[#DFFF00]/20">{config.name}</div>
+            </div>
+            <div className="w-full text-center py-6 relative z-10 bg-zinc-950/50 border-t border-white/5">
+                <div className="text-xs font-black text-white italic tracking-widest">{config.cost} CREDITS</div>
             </div>
         </div>
-    );
-};
+    </div>
+);
 
 export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: any) => {
     const supabase = createClient();
-    
     const [stage, setStage] = useState<'IDLE' | 'CHARGING' | 'BURST' | 'REVEAL' | 'HYPE' | 'SUMMARY'>('IDLE');
-    
     const [packQueue, setPackQueue] = useState<any[]>([]); 
     const [currentCardIndex, setCurrentCardIndex] = useState(0); 
     const [isCardFlipped, setIsCardFlipped] = useState(false); 
     const [isAutoFlipping, setIsAutoFlipping] = useState(false);
-    
     const [error, setError] = useState('');
     const [saveStatus, setSaveStatus] = useState<'SAVING' | 'SAVED' | 'ERROR' | null>(null);
     const [showInfo, setShowInfo] = useState(false);
@@ -368,22 +137,10 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
     const [selectedPack, setSelectedPack] = useState<'BASE' | 'CARS' | 'GRIDIRON' | 'TEST'>('BASE');
 
     const PACK_CONFIG = {
-        BASE: { 
-            cost: 100, name: 'Series 1', label: 'BASE SET', icon: BasePackIcon, source: REEL_ITEMS_SOURCE, comingSoon: false, color: '#DFFF00',
-            desc: "The essential collection. Contains 5 randomized artifacts per pack."
-        },
-        CARS: { 
-            cost: 250, name: 'Legends', label: 'AUTO LEGENDS', icon: CarFront, source: CAR_PACK_SOURCE, comingSoon: false, color: '#ef4444', 
-            desc: "High octane collection. Contains 5 vehicle cards per pack." 
-        },
-        GRIDIRON: {
-            cost: 300, name: 'Gridiron', label: 'GRIDIRON LEGENDS', icon: Trophy, source: GRIDIRON_PACK_SOURCE, comingSoon: false, color: '#3b82f6',
-            desc: "The greatest to ever play the game. 150 unique cards. Hunt for the Zenith Tom Brady (1 of 5)."
-        },
-        TEST: {
-            cost: 9999, name: 'DEBUG', label: 'TEST PROTOCOL', icon: Cpu, source: REEL_ITEMS_SOURCE, comingSoon: false, color: '#ff00ff',
-            desc: "DEV ONLY. Extremely high probability of Zenith and Omega level assets for testing walkout animations."
-        }
+        BASE: { cost: 100, name: 'Series_01', label: 'Base Set', icon: BasePackIcon, source: REEL_ITEMS_SOURCE, color: '#DFFF00', desc: "Standard archive extraction. Contains 5 randomized artifacts." },
+        CARS: { cost: 250, name: 'Hyper_Drive', label: 'Auto Legends', icon: CarFront, source: CAR_PACK_SOURCE, color: '#ef4444', desc: "High octane vehicle acquisition. 5 high-performance cards." },
+        GRIDIRON: { cost: 300, name: 'End_Zone', label: 'NFL Legends', icon: Trophy, source: GRIDIRON_PACK_SOURCE, color: '#3b82f6', desc: "Legendary player cards. Hunt for the Zenith Tom Brady (1 of 5)." },
+        TEST: { cost: 9999, name: 'Debug_Mode', label: 'Test Protocol', icon: Cpu, source: REEL_ITEMS_SOURCE, color: '#ff00ff', desc: "Restricted developer access. Guaranteed high-tier walkouts." }
     };
 
     const RARITY_ODDS = [
@@ -399,390 +156,126 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
     const cost = packQuantity * currentConfig.cost;
     const canAfford = (profile?.credits || 0) >= cost;
     const isReady = !authLoading && user;
-    const CARDS_PER_PACK = 5;
-
-    let buttonText = `PURCHASE (${cost})`;
-    if (currentConfig.comingSoon) buttonText = "DROPPING SOON";
-    else if (authLoading) buttonText = "CONNECTING...";
-    else if (!user) buttonText = "LOGIN REQUIRED";
-    else if (!canAfford) buttonText = "INSUFFICIENT CREDITS";
-
-    const getWalkoutDuration = (rarity: string) => {
-        const config = getHypeConfig(rarity);
-        if (!config) return 0;
-        // Detect (2s) + Identify (1.5s) + Reveal (2.5s) = 6s Total Cinematic
-        return 6000;
-    };
-
-    // --- SCROLL TO CENTER LOGIC ---
-    const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-    const selectPack = (packId: any) => {
-        setSelectedPack(packId);
-        setShowInfo(false);
-        
-        // Scroll to center logic
-        const element = document.getElementById(`pack-${packId}`);
-        if (element && scrollContainerRef.current) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        }
-    };
 
     const handleOpenPack = async () => {
-        if (authLoading || !profile || profile.credits < cost || currentConfig.comingSoon) return;
-        
-        setStage('CHARGING');
-        setSaveStatus('SAVING');
-        setError('');
-        setPackQueue([]);
-        setCurrentCardIndex(0);
-        setIsCardFlipped(false);
-        setIsAutoFlipping(false);
-
+        if (authLoading || !profile || profile.credits < cost) return;
+        setStage('CHARGING'); setSaveStatus('SAVING'); setError(''); setPackQueue([]); setCurrentCardIndex(0); setIsCardFlipped(false);
         try {
             const { error: txError } = await supabase.rpc('add_credits', { amount: -cost });
             if (txError) throw txError;
-            await supabase.from('transactions').insert({ sender_id: user.id, receiver_id: null, amount: cost, created_at: new Date().toISOString() });
-
             const generatedItems: any[] = [];
-            const source = currentConfig.source;
-            const totalItems = packQuantity * CARDS_PER_PACK;
-
-            for (let i = 0; i < totalItems; i++) {
+            for (let i = 0; i < packQuantity * 5; i++) {
                 const rand = Math.random() * 100;
                 let rarity = 'COMMON';
-                
-                if (selectedPack === 'TEST') {
-                    // --- TEST PACK ODDS (BOOSTED) ---
-                    if (rand <= 40.0) rarity = 'ZENITH'; // 40% Chance
-                    else if (rand <= 70.0) rarity = 'ULTRA'; // 30% Chance
-                    else if (rand <= 90.0) rarity = 'SUPER_RARE'; // 20% Chance
-                    else rarity = 'RARE'; // 10% Chance (Minimum Rare)
-                } else {
-                    // --- STANDARD ODDS ---
-                    if (rand <= 0.1) rarity = 'ZENITH';
-                    else if (rand <= 1.0) rarity = 'ULTRA';
-                    else if (rand <= 5.0) rarity = 'SUPER_RARE';
-                    else if (rand <= 20.0) rarity = 'RARE';
-                    else if (rand <= 50.0) rarity = 'UNCOMMON';
-                }
-
-                const itemsOfRarity = source.filter((item: any) => item.rarity === rarity);
-                const pool = itemsOfRarity.length > 0 ? itemsOfRarity : source; 
-                const wonItem = pool[Math.floor(Math.random() * pool.length)];
-                
+                if (selectedPack === 'TEST') { if (rand <= 40) rarity = 'ZENITH'; else if (rand <= 70) rarity = 'ULTRA'; else if (rand <= 90) rarity = 'SUPER_RARE'; else rarity = 'RARE'; }
+                else { if (rand <= 0.1) rarity = 'ZENITH'; else if (rand <= 1.0) rarity = 'ULTRA'; else if (rand <= 5.0) rarity = 'SUPER_RARE'; else if (rand <= 20.0) rarity = 'RARE'; else if (rand <= 50.0) rarity = 'UNCOMMON'; }
+                const pool = currentConfig.source.filter((item: any) => item.rarity === rarity);
+                const wonItem = (pool.length > 0 ? pool : currentConfig.source)[Math.floor(Math.random() * (pool.length || currentConfig.source.length))];
                 generatedItems.push({ ...wonItem, rarity, uniqueId: Math.random().toString() });
             }
-
-            // Async save to DB
-            (async () => {
-                for (const item of generatedItems) {
-                    const { data: existingTemplate } = await supabase.from('item_templates').select('id').eq('name', item.name).single();
-                    let templateId = existingTemplate?.id;
-                    if (!templateId) {
-                        const { data: newTemplate, error: insertError } = await supabase.from('item_templates').insert({
-                            name: item.name, rarity: item.rarity, description: item.description,
-                            image_url: `https://image.pollinations.ai/prompt/${encodeURIComponent(item.name)}`
-                        }).select('id').single();
-                        if (!insertError && newTemplate) templateId = newTemplate.id;
-                    }
-                    if (templateId) {
-                        await supabase.from('user_items').insert({
-                            user_id: user.id, template_id: templateId, is_shiny: Math.random() < 0.05, 
-                            serial_number: Math.floor(Math.random() * 9000) + 1000, obtained_at: new Date().toISOString()
-                        });
-                    }
-                }
-            })();
-
-            setPackQueue(generatedItems);
-            setSaveStatus('SAVED');
-            refreshProfile();
-            
-            setTimeout(() => { setStage('BURST'); }, 800); 
+            setPackQueue(generatedItems); setSaveStatus('SAVED'); refreshProfile();
+            setTimeout(() => setStage('BURST'), 800); 
             setTimeout(() => { 
-                const firstItem = generatedItems[0];
-                if (WALKOUT_RARITIES.includes(firstItem.rarity)) {
-                    setStage('HYPE');
-                    setIsCardFlipped(true); // Auto flip card underneath
-                    setTimeout(() => setStage('REVEAL'), getWalkoutDuration(firstItem.rarity)); 
-                } else {
-                    setStage('REVEAL'); 
-                }
-            }, 1000); 
-
-        } catch (err: any) {
-            console.error(err);
-            setError(err.message || "Transaction Failed");
-            setSaveStatus('ERROR');
-            setStage('IDLE');
-        }
+                if (WALKOUT_RARITIES.includes(generatedItems[0].rarity)) { setStage('HYPE'); setIsCardFlipped(true); setTimeout(() => setStage('REVEAL'), 6000); }
+                else setStage('REVEAL');
+            }, 1000);
+        } catch (err: any) { setError(err.message || "Uplink Failed"); setStage('IDLE'); }
     };
 
     const handleCardTap = () => {
-        // Block interaction if we are auto-flipping or in a crucial hype stage
         if (isAutoFlipping || (stage !== 'REVEAL' && stage !== 'HYPE')) return;
-        
-        if (!isCardFlipped) {
-            setIsCardFlipped(true);
-        } else {
-            if (currentCardIndex < packQueue.length - 1) {
-                const nextIndex = currentCardIndex + 1;
-                const nextItem = packQueue[nextIndex];
-                const isNextWalkout = WALKOUT_RARITIES.includes(nextItem.rarity);
-                
-                setIsAutoFlipping(true);
-                setIsCardFlipped(false); 
-
-                setTimeout(() => {
-                    setCurrentCardIndex(nextIndex);
-                    
-                    if (isNextWalkout) {
-                        setStage('HYPE');
-                        setIsAutoFlipping(false);
-                        setIsCardFlipped(true); // Auto flip card underneath
-                        setTimeout(() => {
-                           setStage('REVEAL');
-                        }, getWalkoutDuration(nextItem.rarity)); 
-                    } else {
-                        setIsAutoFlipping(false);
-                    }
-                }, 200);
-            } else {
-                setTimeout(() => setStage('SUMMARY'), 300);
-            }
-        }
+        if (!isCardFlipped) setIsCardFlipped(true);
+        else if (currentCardIndex < packQueue.length - 1) {
+            const nextIdx = currentCardIndex + 1;
+            setIsAutoFlipping(true); setIsCardFlipped(false);
+            setTimeout(() => {
+                setCurrentCardIndex(nextIdx);
+                if (WALKOUT_RARITIES.includes(packQueue[nextIdx].rarity)) { setStage('HYPE'); setIsCardFlipped(true); setTimeout(() => setStage('REVEAL'), 6000); }
+                setIsAutoFlipping(false);
+            }, 300);
+        } else setStage('SUMMARY');
     };
 
-    const reset = () => { setPackQueue([]); setStage('IDLE'); setCurrentCardIndex(0); setIsCardFlipped(false); setSaveStatus(null); };
-
-    const currentItem = packQueue[currentCardIndex];
-    const isRare = currentItem && WALKOUT_RARITIES.includes(currentItem.rarity);
-
     return (
-        <div className="w-full flex flex-col items-center justify-center py-12 px-4 relative min-h-[700px] overflow-hidden">
-            
-            {/* BACKGROUND FLASH EFFECT */}
-            <AnimatePresence>
-                {stage === 'BURST' && (
-                    <motion.div 
-                        initial={{ opacity: 0 }} 
-                        animate={{ opacity: 1 }} 
-                        exit={{ opacity: 0 }} 
-                        className="fixed inset-0 z-[100] bg-white pointer-events-none"
-                        transition={{ duration: 0.15 }}
-                    />
-                )}
-            </AnimatePresence>
+        <div className="w-full flex flex-col items-center justify-center py-12 px-4 relative min-h-[800px]">
+            <AnimatePresence>{stage === 'BURST' && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-white pointer-events-none" />}</AnimatePresence>
+            <AnimatePresence>{stage === 'HYPE' && packQueue[currentCardIndex] && <HypeOverlay rarity={packQueue[currentCardIndex].rarity} item={packQueue[currentCardIndex]} />}</AnimatePresence>
 
-            {/* --- STAGE: HYPE WALKOUT --- */}
-            <AnimatePresence>
-                {stage === 'HYPE' && currentItem && (
-                    <HypeOverlay key="hype" rarity={currentItem.rarity} item={currentItem} />
-                )}
-            </AnimatePresence>
-
-            {/* --- STAGE: IDLE --- */}
             <AnimatePresence>
                 {stage === 'IDLE' && (
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, filter: 'blur(10px)' }} className="w-full max-w-5xl flex flex-col items-center z-10">
-                        {/* PACK SELECTION SCROLL - OPTIMIZED FOR MOBILE */}
-                        <div 
-                            ref={scrollContainerRef}
-                            className="flex items-center gap-10 mb-12 md:mb-16 h-[400px] w-full overflow-x-auto no-scrollbar snap-x snap-mandatory px-[calc(50%-6rem)] md:px-8 md:justify-center scroll-smooth pb-4"
-                        >
-                            {['BASE', 'CARS', 'GRIDIRON', 'TEST'].map((packId) => (
-                                <div 
-                                    key={packId} 
-                                    id={`pack-${packId}`}
-                                    onClick={() => selectPack(packId as any)} 
-                                    className="cursor-pointer snap-center shrink-0 transition-all duration-500 active:scale-95"
-                                >
-                                    <FoilPack config={PACK_CONFIG[packId as keyof typeof PACK_CONFIG]} isSelected={selectedPack === packId} />
-                                </div>
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-6xl flex flex-col items-center z-10">
+                        <div className="flex items-center gap-8 mb-16 overflow-x-auto no-scrollbar snap-x snap-mandatory px-[calc(50%-7rem)] w-full pb-8">
+                            {Object.keys(PACK_CONFIG).map((id) => (
+                                <div key={id} onClick={() => setSelectedPack(id as any)} className="cursor-pointer snap-center"><FoilPack config={PACK_CONFIG[id as keyof typeof PACK_CONFIG]} isSelected={selectedPack === id} /></div>
                             ))}
                         </div>
 
-                        <div className="w-full max-w-xl bg-white/[0.02] backdrop-blur-3xl rounded-[2.5rem] border border-white/5 p-8 sm:p-10 shadow-2xl relative overflow-hidden">
-                            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
-                            
-                            <div className="flex justify-between items-start mb-8 relative z-10">
+                        <div className="w-full max-w-2xl bg-zinc-900/50 backdrop-blur-3xl rounded-[3rem] border border-white/5 p-10 shadow-[0_30px_100px_rgba(0,0,0,0.5)] relative overflow-hidden ring-1 ring-white/5">
+                            <div className="flex justify-between items-start mb-10">
                                 <div>
-                                    <div className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-[0.3em] mb-2 flex items-center gap-2">
-                                        Collection Series
-                                        <div className="w-1.5 h-1.5 rounded-full bg-[#DFFF00] animate-pulse" />
-                                    </div>
-                                    <h3 className="text-3xl font-sans font-black tracking-tighter text-white leading-none uppercase">{currentConfig.name}</h3>
+                                    <div className="flex items-center gap-3 text-zinc-500 font-mono text-[10px] font-bold tracking-[0.4em] uppercase mb-3">Archive_Extraction // Series_09</div>
+                                    <h3 className="text-5xl font-black italic tracking-tighter text-white uppercase leading-none">{currentConfig.label}</h3>
                                 </div>
-                                <button onClick={() => setShowInfo(!showInfo)} className="p-3 bg-white/5 rounded-full text-zinc-400 hover:text-white transition-all hover:bg-white/10 border border-white/5">
-                                    {showInfo ? <X size={20} /> : <Info size={20} />}
-                                </button>
+                                <button onClick={() => setShowInfo(!showInfo)} className={`p-4 rounded-2xl transition-all border ${showInfo ? 'bg-[#DFFF00] text-black border-[#DFFF00]' : 'bg-zinc-950 text-zinc-500 border-white/5 hover:text-white'}`}><Info size={20}/></button>
                             </div>
 
-                            <AnimatePresence>
-                                {showInfo && currentConfig.desc && (
-                                    <motion.div 
-                                        initial={{ height: 0, opacity: 0, marginBottom: 0 }} 
-                                        animate={{ height: 'auto', opacity: 1, marginBottom: 32 }} 
-                                        exit={{ height: 0, opacity: 0, marginBottom: 0 }} 
-                                        className="overflow-hidden bg-black/40 rounded-2xl border border-white/5 relative z-10"
-                                    >
-                                        <div className="p-5 text-xs font-mono text-zinc-400 leading-relaxed italic">{currentConfig.desc}</div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
+                            <AnimatePresence>{showInfo && <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden bg-black/40 rounded-2xl border border-white/5 mb-8 p-6 text-xs font-mono text-zinc-400 italic leading-relaxed">{currentConfig.desc}</motion.div>}</AnimatePresence>
 
-                            <div className="grid grid-cols-2 gap-x-8 gap-y-3 mb-10 text-[10px] font-mono uppercase bg-white/[0.02] p-6 rounded-2xl border border-white/5 relative z-10">
-                                {RARITY_ODDS.map((odd, i) => (
-                                    <div key={i} className="flex justify-between items-center border-b border-white/[0.03] pb-1">
-                                        <span className={`font-bold tracking-widest ${odd.color}`}>{odd.label}</span>
-                                        <span className="text-zinc-500 tabular-nums">{odd.chance}</span>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4 mb-8 relative z-10">
+                            <div className="grid grid-cols-2 gap-4 mb-8">
                                 {[1, 3].map(qty => (
-                                    <button 
-                                        key={qty} 
-                                        onClick={() => setPackQuantity(qty as 1|3)} 
-                                        className={`p-4 rounded-2xl border flex items-center justify-center gap-3 transition-all duration-300 ${packQuantity === qty ? 'bg-white text-black border-white shadow-[0_10px_30px_rgba(255,255,255,0.1)] scale-[1.02]' : 'bg-white/[0.03] border-white/5 text-zinc-500 hover:text-white hover:border-white/10'}`}
-                                    >
-                                        {qty === 1 ? <Layers size={18} /> : <Grid3X3 size={18} />}
-                                        <span className="font-black text-[10px] uppercase tracking-[0.2em]">{qty === 1 ? 'Single Unit' : 'Triple Stack'}</span>
+                                    <button key={qty} onClick={() => setPackQuantity(qty as 1|3)} className={`p-6 rounded-[2rem] border-2 flex items-center justify-center gap-4 transition-all duration-500 ${packQuantity === qty ? 'bg-white text-black border-white shadow-2xl scale-[1.02]' : 'bg-zinc-950 border-white/5 text-zinc-500 hover:text-white hover:border-white/20'}`}>
+                                        {qty === 1 ? <Layers size={20}/> : <LayoutGrid size={20}/>}
+                                        <span className="font-black text-xs uppercase tracking-[0.2em] italic">{qty === 1 ? 'Single_Unit' : 'Triple_Stack'}</span>
                                     </button>
                                 ))}
                             </div>
 
-                            <button 
-                                onClick={handleOpenPack} 
-                                disabled={!isReady || !canAfford || currentConfig.comingSoon} 
-                                className={`w-full py-5 rounded-[2rem] font-black uppercase tracking-[0.3em] transition-all shadow-2xl flex items-center justify-center gap-4 relative z-10 text-xs active:scale-[0.98] ${currentConfig.comingSoon ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' : 'bg-white text-black hover:bg-[#DFFF00] hover:shadow-[#DFFF00]/20'}`}
-                            >
-                                {authLoading ? <Loader2 size={20} className="animate-spin" /> : <Zap size={20} fill="currentColor" />}
-                                <span>{buttonText}</span>
+                            <button onClick={handleOpenPack} disabled={!isReady || !canAfford} className="w-full py-6 rounded-[2rem] bg-[#DFFF00] text-black font-black uppercase tracking-[0.3em] text-sm shadow-[0_20px_50px_rgba(223,255,0,0.2)] hover:bg-white hover:shadow-white/20 transition-all flex items-center justify-center gap-4 active:scale-95 disabled:opacity-30 disabled:grayscale">
+                                {authLoading ? <Loader2 className="animate-spin" size={20}/> : <Zap size={20} fill="black"/>}
+                                Authorize Acquisition ({cost} CR)
                             </button>
-                            {error && <div className="text-red-500 text-center text-[10px] font-mono mt-6 uppercase tracking-widest animate-pulse">{error}</div>}
                         </div>
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            {/* --- STAGE: CHARGING --- */}
-            {stage === 'CHARGING' && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/90 backdrop-blur-xl">
-                    <motion.div 
-                        animate={{ 
-                            x: [0, -15, 15, -15, 15, 0], 
-                            scale: [1, 1.05, 1.1]
-                        }} 
-                        transition={{ duration: 0.8, ease: "easeInOut" }}
-                        className="mb-8 relative"
-                    >
-                        <FoilPack config={currentConfig} isSelected={true} />
-                        <motion.div 
-                            className="absolute inset-0 bg-[#DFFF00] blur-3xl opacity-0"
-                            animate={{ opacity: [0, 0.8, 1] }}
-                            transition={{ duration: 0.8 }}
-                        />
-                    </motion.div>
-                    <div className="absolute bottom-20 text-[#DFFF00] font-mono text-sm font-bold uppercase tracking-[0.3em] animate-pulse flex flex-col items-center gap-2">
-                        <span>{saveStatus === 'SAVING' ? 'Encrypting Assets...' : 'Decrypting Payload...'}</span>
-                        {saveStatus === 'SAVING' && <Loader2 className="animate-spin" size={16}/>}
-                    </div>
-                </div>
-            )}
-
-            {/* --- STAGE: REVEAL --- */}
             {(stage === 'REVEAL' || stage === 'HYPE') && (
-                <div className="fixed inset-0 z-[90] flex flex-col items-center justify-center bg-zinc-950/95 backdrop-blur-md overflow-hidden" onClick={handleCardTap}>
-                    <div className="absolute top-24 md:top-20 text-center z-50 pointer-events-none">
-                        <div className="text-zinc-500 font-mono text-xs uppercase tracking-widest mb-2">Asset Sequence</div>
-                        <div className="flex items-center gap-2 justify-center">
-                            <span className="text-3xl font-black text-white">{currentCardIndex + 1}</span>
-                            <span className="text-xl font-bold text-zinc-600">/</span>
-                            <span className="text-xl font-bold text-zinc-600">{packQueue.length}</span>
+                <div className="fixed inset-0 z-[100] bg-zinc-950/95 backdrop-blur-2xl flex flex-col items-center justify-center" onClick={handleCardTap}>
+                    <div className="absolute top-28 text-center">
+                        <div className="text-zinc-600 font-mono text-[10px] uppercase tracking-[0.5em] mb-4">Uplink_Sequence_Active</div>
+                        <div className="flex items-center gap-4 justify-center text-4xl font-black italic tracking-tighter text-white">
+                            <span>{currentCardIndex + 1}</span> <span className="text-zinc-800">/</span> <span>{packQueue.length}</span>
                         </div>
                     </div>
-                    
-                    {/* VISUAL FLARE BEHIND CARD FOR HIGH TIERS */}
-                    {isRare && stage === 'REVEAL' && (
-                     <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 0.5 }}
-                        className="absolute inset-0 pointer-events-none z-0"
-                     >
-                        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] bg-[radial-gradient(circle,${getHypeConfig(currentItem.rarity)?.color || '#fff'}_0%,transparent_60%)] blur-3xl opacity-20 animate-pulse`} />
-                     </motion.div>
-                    )}
-
-                    {/* RESPONSIVE CARD CONTAINER */}
-                    <div className="relative w-[85vw] max-w-[320px] aspect-[2/3] perspective-1000 z-10">
+                    <div className="relative w-[85vw] max-w-[340px] aspect-[2/3] perspective-1000">
                         <AnimatePresence mode='wait'>
-                            <motion.div
-                                key={currentCardIndex}
-                                initial={{ y: 600, scale: 0.8, opacity: 0 }}
-                                animate={{ y: 0, scale: 1, opacity: 1 }}
-                                exit={{ y: -600, scale: 0.8, opacity: 0 }}
-                                transition={{ duration: 0.3, ease: "backOut" }} 
-                                className="w-full h-full cursor-pointer absolute inset-0"
-                                style={{ transformStyle: 'preserve-3d' }}
-                            >
-                                <motion.div
-                                    className="relative w-full h-full transition-all"
-                                    animate={{ rotateY: isCardFlipped ? 180 : 0 }}
-                                    transition={{ duration: 0.3, ease: "easeInOut" }} 
-                                    style={{ transformStyle: 'preserve-3d' }}
-                                >
-                                    {/* FRONT OF CARD (Asset) */}
-                                    <div className="absolute inset-0 backface-hidden" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
-                                        <div className="w-full h-full bg-black rounded-3xl overflow-hidden shadow-2xl relative">
-                                            <div className="transform scale-[0.98] origin-center w-full h-full flex items-center justify-center">
-                                                <TradingCard item={currentItem} />
-                                            </div>
-                                            {isRare && <div className="absolute inset-0 pointer-events-none rounded-3xl shadow-[inset_0_0_50px_rgba(223,255,0,0.2)] animate-pulse border-2 border-[#DFFF00]/50" />}
-                                        </div>
-                                    </div>
-
-                                    {/* BACK OF CARD (Pack Art) */}
-                                    <div className="absolute inset-0 backface-hidden" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(0deg)' }}>
-                                        <CardBack config={currentConfig} />
-                                    </div>
+                            <motion.div key={currentCardIndex} initial={{ y: 400, opacity: 0, rotate: 10 }} animate={{ y: 0, opacity: 1, rotate: 0 }} exit={{ y: -400, opacity: 0, rotate: -10 }} transition={{ type: "spring", damping: 20 }} className="w-full h-full relative" style={{ transformStyle: 'preserve-3d' }}>
+                                <motion.div animate={{ rotateY: isCardFlipped ? 180 : 0 }} transition={{ duration: 0.6, ease: "circOut" }} className="w-full h-full relative" style={{ transformStyle: 'preserve-3d' }}>
+                                    <div className="absolute inset-0 backface-hidden rounded-[2.5rem] overflow-hidden" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}><TradingCard item={packQueue[currentCardIndex]} /></div>
+                                    <div className="absolute inset-0 backface-hidden rounded-[2.5rem] overflow-hidden" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(0deg)' }}><CardBack config={currentConfig} /></div>
                                 </motion.div>
                             </motion.div>
                         </AnimatePresence>
                     </div>
-
-                    <div className="absolute bottom-12 text-zinc-500 font-mono text-xs uppercase tracking-widest animate-pulse pointer-events-none">
-                        {isAutoFlipping ? "Analyzing Signal..." : isCardFlipped ? "Tap to Dismiss" : "Tap to Reveal"}
-                    </div>
+                    <div className="absolute bottom-16 text-[#DFFF00] font-mono text-[10px] uppercase tracking-[0.4em] animate-pulse italic">{isCardFlipped ? 'Tap_to_Dismiss' : 'Authorize_Signal_Reveal'}</div>
                 </div>
             )}
 
-            {/* --- STAGE: SUMMARY --- */}
             {stage === 'SUMMARY' && (
-                <div className="fixed inset-0 z-[200] bg-zinc-950 flex flex-col overflow-y-auto animate-in fade-in duration-300">
-                    <div className="p-4 pt-28 md:pt-32 max-w-7xl mx-auto w-full">
-                        <div className="text-center mb-8">
-                            <h2 className="text-3xl md:text-4xl font-black text-white uppercase mb-2">Acquisition Report</h2>
-                            <p className="text-zinc-500 font-mono text-xs">All assets transferred to secure storage.</p>
+                <div className="fixed inset-0 z-[200] bg-zinc-950 flex flex-col items-center overflow-y-auto pt-32 pb-20 px-6">
+                    <div className="max-w-6xl w-full">
+                        <div className="flex flex-col items-center text-center mb-16">
+                            <div className="w-16 h-16 bg-[#DFFF00] rounded-2xl flex items-center justify-center mb-6 shadow-2xl"><CheckCircle2 className="text-black" size={32}/></div>
+                            <h2 className="text-5xl font-black italic tracking-tighter text-white uppercase">Acquisition_Report</h2>
+                            <p className="text-zinc-500 font-mono text-xs uppercase tracking-[0.3em] mt-4">Security verification complete. Assets transferred to local storage.</p>
                         </div>
-                        
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6 mb-12">
-                            {packQueue.map((item, i) => (
-                                <MiniSummaryCard key={i} item={item} index={i} />
-                            ))}
-                        </div>
-
-                        <div className="flex justify-center pb-8">
-                            <button onClick={reset} className="px-8 py-4 bg-zinc-800 text-white rounded-xl font-bold uppercase tracking-widest hover:bg-zinc-700 flex items-center gap-2 text-xs md:text-sm shadow-lg border border-zinc-700">
-                                <RotateCcw size={16} /> Return to Market
-                            </button>
-                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-6 mb-16">{packQueue.map((item, i) => <MiniSummaryCard key={i} item={item} index={i} />)}</div>
+                        <div className="flex justify-center"><button onClick={() => setStage('IDLE')} className="px-12 py-5 bg-zinc-900 border border-white/5 rounded-2xl text-white font-black uppercase tracking-[0.3em] text-xs italic hover:bg-white hover:text-black transition-all flex items-center gap-4 shadow-2xl">Return_to_Terminal <RotateCcw size={16}/></button></div>
                     </div>
                 </div>
             )}
-
         </div>
     );
 };
+
+const CheckCircle2 = ({ size, className }: any) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>;

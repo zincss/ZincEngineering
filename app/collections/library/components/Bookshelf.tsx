@@ -72,6 +72,12 @@ export default function Bookshelf({ initialBooks, isAdmin }: BookshelfProps) {
     return result;
   }, [books, searchQuery, selectedCategory, sortMode]);
 
+  const shelfCategories = useMemo(() => {
+    return selectedCategory === "All" 
+      ? CATEGORIES.filter(c => c !== "All")
+      : [selectedCategory];
+  }, [selectedCategory]);
+
   const handleOpenBook = (book: Book) => {
     if (isManageMode) return;
     setSelectedBook(book);
@@ -152,230 +158,475 @@ export default function Bookshelf({ initialBooks, isAdmin }: BookshelfProps) {
     }
   };
 
-  return (
-    <div className="relative space-y-8">
-      {/* Search and Filters */}
-      <div className="flex flex-col lg:flex-row gap-6 items-center justify-between bg-zinc-900/50 p-6 rounded-3xl border border-zinc-800 backdrop-blur-md">
-        <div className="flex flex-wrap items-center gap-3">
-          {CATEGORIES.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
-                selectedCategory === cat 
-                ? 'bg-[#DFFF00] text-black shadow-[0_0_15px_rgba(223,255,0,0.3)]' 
-                : 'bg-zinc-800 text-zinc-500 hover:bg-zinc-700 hover:text-white'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+    return (
 
-        <div className="flex items-center gap-4 w-full lg:w-auto">
-          {/* Sort Selector */}
-          <div className="relative">
-            <ArrowDownAz className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" size={14} />
-            <select 
-              value={sortMode}
-              onChange={(e) => setSortMode(e.target.value as SortMode)}
-              className="bg-zinc-950 border border-zinc-800 rounded-full py-2 pl-9 pr-8 text-[10px] font-mono text-white focus:outline-none focus:border-[#DFFF00] appearance-none cursor-pointer"
-            >
-              <option value="manual">MANUAL_ORDER</option>
-              <option value="title">SORT_TITLE</option>
-              <option value="author">SORT_AUTHOR</option>
-              <option value="newest">SORT_NEWEST</option>
-            </select>
-          </div>
+      <div className="relative space-y-12">
 
-          <div className="relative flex-1 lg:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
-            <input 
-              type="text"
-              placeholder="SEARCH ARCHIVES..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-full py-2 pl-10 pr-4 text-[10px] font-mono text-white focus:outline-none focus:border-[#DFFF00] transition-colors"
-            />
-          </div>
+        {/* Search and Filters */}
 
-          {isAdmin && (
-            <div className="flex items-center gap-2">
-               <button
-                onClick={() => setIsManageMode(!isManageMode)}
-                className={`p-2 rounded-lg border transition-all ${
-                  isManageMode 
-                  ? 'bg-red-500/10 border-red-500/50 text-red-500' 
-                  : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:text-white'
-                }`}
-                title="Toggle Manage Mode"
-              >
-                <Settings2 size={20} />
-              </button>
+        <div className="flex flex-col lg:flex-row gap-6 items-center justify-between bg-zinc-900/50 p-6 rounded-3xl border border-zinc-800 backdrop-blur-md">
+
+          <div className="flex flex-wrap items-center gap-3">
+
+            {CATEGORIES.map(cat => (
+
               <button
-                onClick={handleAddBook}
-                className="bg-[#DFFF00] text-black p-2 rounded-lg font-bold hover:bg-white transition-colors shadow-lg"
+
+                key={cat}
+
+                onClick={() => setSelectedCategory(cat)}
+
+                className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
+
+                  selectedCategory === cat 
+
+                  ? 'bg-[#DFFF00] text-black shadow-[0_0_15px_rgba(223,255,0,0.3)]' 
+
+                  : 'bg-zinc-800 text-zinc-500 hover:bg-zinc-700 hover:text-white'
+
+                }`}
+
               >
-                <Plus size={20} />
+
+                {cat}
+
               </button>
-            </div>
-          )}
-        </div>
-      </div>
 
-      {/* Library Stats */}
-      <div className="flex items-center gap-6 px-4">
-          <div className="flex flex-col">
-             <span className="text-[10px] font-mono text-zinc-600 uppercase tracking-widest">Total Volumes</span>
-             <span className="text-2xl font-black italic">{books.length}</span>
+            ))}
+
           </div>
-          <div className="h-8 w-px bg-zinc-800" />
-          <div className="flex flex-col">
-             <span className="text-[10px] font-mono text-zinc-600 uppercase tracking-widest">Category</span>
-             <span className="text-2xl font-black italic text-[#DFFF00] uppercase tracking-tighter">{selectedCategory}</span>
-          </div>
-          {filteredBooks.length !== books.length && (
-            <>
-              <div className="h-8 w-px bg-zinc-800" />
-              <div className="flex flex-col">
-                <span className="text-[10px] font-mono text-zinc-600 uppercase tracking-widest">Matches</span>
-                <span className="text-2xl font-black italic text-white">{filteredBooks.length}</span>
-              </div>
-            </>
-          )}
-      </div>
 
-      {/* The Bookshelf */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-y-20 gap-x-10 pb-32">
-        {filteredBooks.map((book, idx) => (
-          <motion.div
-            key={book.id || idx}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.05 }}
-            className="group relative"
-          >
-            {/* Manage Overlay */}
-            <AnimatePresence>
-              {isManageMode && (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  className="absolute -top-4 -right-4 z-30 flex flex-col gap-2"
-                >
-                  {sortMode === 'manual' && (
-                    <div className="flex gap-1 mb-1">
-                      <button 
-                        onClick={() => handleMove(book, 'left')}
-                        className="p-2 bg-zinc-800 text-white rounded-full shadow-xl hover:bg-[#DFFF00] hover:text-black transition-colors"
-                      >
-                        <ArrowLeft size={12} />
-                      </button>
-                      <button 
-                        onClick={() => handleMove(book, 'right')}
-                        className="p-2 bg-zinc-800 text-white rounded-full shadow-xl hover:bg-[#DFFF00] hover:text-black transition-colors"
-                      >
-                        <ArrowRight size={12} />
-                      </button>
-                    </div>
-                  )}
-                  <button 
-                    onClick={() => handleDelete(book.id)}
-                    className="p-2 bg-red-600 text-white rounded-full shadow-xl hover:bg-red-500 transition-colors"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                  <button 
-                    onClick={() => {
-                      setSelectedBook(book);
-                      setIsEditing(true);
-                      setIsManageMode(false);
-                    }}
-                    className="p-2 bg-zinc-100 text-black rounded-full shadow-xl hover:bg-white transition-colors"
-                  >
-                    <Edit3 size={16} />
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+  
 
-            {/* The Book */}
-            <div 
-              onClick={() => handleOpenBook(book)}
-              className={`relative aspect-[2/3] cursor-pointer transition-all duration-500 preserve-3d
-                ${isManageMode ? 'scale-95 opacity-50 grayscale' : 'group-hover:-translate-y-10 group-hover:rotate-3'}
-              `}
-              style={{ perspective: '1200px' }}
-            >
-              {/* Cover */}
-              <div 
-                className="absolute inset-0 rounded-r-lg shadow-[15px_15px_30px_rgba(0,0,0,0.7)] overflow-hidden border border-white/10 flex flex-col justify-between p-6"
-                style={{ 
-                  backgroundColor: book.cover_color,
-                  backgroundImage: 'linear-gradient(90deg, rgba(0,0,0,0.3) 0%, rgba(255,255,255,0.05) 1%, rgba(0,0,0,0.1) 5%, transparent 10%)'
-                }}
+          <div className="flex items-center gap-4 w-full lg:w-auto">
+
+            {/* Sort Selector */}
+
+            <div className="relative">
+
+              <ArrowDownAz className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" size={14} />
+
+              <select 
+
+                value={sortMode}
+
+                onChange={(e) => setSortMode(e.target.value as SortMode)}
+
+                className="bg-zinc-950 border border-zinc-800 rounded-full py-2 pl-9 pr-8 text-[10px] font-mono text-white focus:outline-none focus:border-[#DFFF00] appearance-none cursor-pointer"
+
               >
-                <div className="space-y-4">
-                  <div className="h-2 w-12 bg-black/20 rounded-full" />
-                  <div className="space-y-1">
-                    <h3 className={`font-black uppercase tracking-tight leading-tight text-xl ${book.cover_color === '#DFFF00' ? 'text-black' : 'text-white'}`}>
-                      {book.title}
-                    </h3>
-                    <div className={`text-[9px] font-mono uppercase tracking-[0.2em] font-black ${book.cover_color === '#DFFF00' ? 'text-black/40' : 'text-zinc-500'}`}>
-                      {book.category}
-                    </div>
-                  </div>
-                  <p className={`text-[10px] font-mono uppercase tracking-widest font-bold ${book.cover_color === '#DFFF00' ? 'text-black/60' : 'text-zinc-400'}`}>
-                    {book.author}
-                  </p>
-                </div>
-                
-                <div className="flex justify-between items-end">
-                   <div className="p-2 bg-black/10 rounded-lg backdrop-blur-sm">
-                      <BookIcon size={20} className={book.cover_color === '#DFFF00' ? 'text-black/40' : 'text-white/20'} />
-                   </div>
-                   <div className={`text-[8px] font-black font-mono tracking-widest ${book.cover_color === '#DFFF00' ? 'text-black/40' : 'text-zinc-500'}`}>
-                      ZINC_v3
-                   </div>
-                </div>
 
-                {/* Spine Highlight */}
-                <div className="absolute top-0 left-0 w-4 h-full bg-gradient-to-r from-black/40 via-transparent to-transparent" />
+                <option value="manual">MANUAL_ORDER</option>
+
+                <option value="title">SORT_TITLE</option>
+
+                <option value="author">SORT_AUTHOR</option>
+
+                <option value="newest">SORT_NEWEST</option>
+
+              </select>
+
+            </div>
+
+  
+
+            <div className="relative flex-1 lg:w-64">
+
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+
+              <input 
+
+                type="text"
+
+                placeholder="SEARCH ARCHIVES..."
+
+                value={searchQuery}
+
+                onChange={(e) => setSearchQuery(e.target.value)}
+
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-full py-2 pl-10 pr-4 text-[10px] font-mono text-white focus:outline-none focus:border-[#DFFF00] transition-colors"
+
+              />
+
+            </div>
+
+  
+
+            {isAdmin && (
+
+              <div className="flex items-center gap-2">
+
+                 <button
+
+                  onClick={() => setIsManageMode(!isManageMode)}
+
+                  className={`p-2 rounded-lg border transition-all ${
+
+                    isManageMode 
+
+                    ? 'bg-red-500/10 border-red-500/50 text-red-500' 
+
+                    : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:text-white'
+
+                  }`}
+
+                  title="Toggle Manage Mode"
+
+                >
+
+                  <Settings2 size={20} />
+
+                </button>
+
+                <button
+
+                  onClick={handleAddBook}
+
+                  className="bg-[#DFFF00] text-black p-2 rounded-lg font-bold hover:bg-white transition-colors shadow-lg"
+
+                >
+
+                  <Plus size={20} />
+
+                </button>
+
               </div>
-              
-              {/* Pages */}
-              <div className="absolute top-[4px] right-[-6px] bottom-[4px] w-6 bg-zinc-100 rounded-r-sm -z-10 shadow-2xl" />
+
+            )}
+
+          </div>
+
+        </div>
+
+  
+
+        {/* Library Stats */}
+
+        <div className="flex items-center gap-6 px-4">
+
+            <div className="flex flex-col">
+
+               <span className="text-[10px] font-mono text-zinc-600 uppercase tracking-widest">Total Volumes</span>
+
+               <span className="text-2xl font-black italic">{books.length}</span>
+
             </div>
 
-            {/* Shelf */}
-            <div className="absolute -bottom-6 left-[-20%] right-[-20%] h-5 bg-gradient-to-b from-zinc-800 to-zinc-950 border-t border-white/5 rounded-xl shadow-[0_20px_40px_rgba(0,0,0,0.8)]">
-               <div className="absolute top-0 left-0 right-0 h-1 bg-white/5 rounded-t-xl" />
+            <div className="h-8 w-px bg-zinc-800" />
+
+            <div className="flex flex-col">
+
+               <span className="text-[10px] font-mono text-zinc-600 uppercase tracking-widest">Active View</span>
+
+               <span className="text-2xl font-black italic text-[#DFFF00] uppercase tracking-tighter">{selectedCategory}</span>
+
             </div>
-          </motion.div>
-        ))}
+
+        </div>
+
+  
+
+        {/* THE SHELVES */}
+
+        <div className="space-y-32 pb-40">
+
+          {shelfCategories.map(category => {
+
+              const categoryBooks = filteredBooks.filter(b => b.category === category);
+
+              if (categoryBooks.length === 0 && selectedCategory !== "All") return (
+
+                  <div key={category} className="py-20 text-center border-2 border-dashed border-zinc-900 rounded-[3rem]">
+
+                      <p className="text-zinc-600 font-mono text-xs uppercase tracking-widest">Shelf {category} is currently empty</p>
+
+                  </div>
+
+              );
+
+              if (categoryBooks.length === 0) return null;
+
+  
+
+              return (
+
+                  <div key={category} className="relative">
+
+                      {/* Shelf Label */}
+
+                      <div className="flex items-center gap-4 mb-12">
+
+                          <h2 className="text-xs font-mono font-black text-zinc-500 uppercase tracking-[0.5em] whitespace-nowrap">{category} Sector</h2>
+
+                          <div className="h-px w-full bg-gradient-to-r from-zinc-800 to-transparent" />
+
+                      </div>
+
+  
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-y-24 gap-x-10">
+
+                          {categoryBooks.map((book, idx) => (
+
+                              <motion.div
+
+                                  key={book.id || idx}
+
+                                  initial={{ opacity: 0, y: 20 }}
+
+                                  animate={{ opacity: 1, y: 0 }}
+
+                                  transition={{ delay: idx * 0.05 }}
+
+                                  className="group relative"
+
+                              >
+
+                                  {/* Manage Overlay */}
+
+                                  <AnimatePresence>
+
+                                  {isManageMode && (
+
+                                      <motion.div 
+
+                                      initial={{ opacity: 0, scale: 0.9 }}
+
+                                      animate={{ opacity: 1, scale: 1 }}
+
+                                      exit={{ opacity: 0, scale: 0.9 }}
+
+                                      className="absolute -top-4 -right-4 z-30 flex flex-col gap-2"
+
+                                      >
+
+                                      {sortMode === 'manual' && (
+
+                                          <div className="flex gap-1 mb-1">
+
+                                          <button 
+
+                                              onClick={() => handleMove(book, 'left')}
+
+                                              className="p-2 bg-zinc-800 text-white rounded-full shadow-xl hover:bg-[#DFFF00] hover:text-black transition-colors"
+
+                                          >
+
+                                              <ArrowLeft size={12} />
+
+                                          </button>
+
+                                          <button 
+
+                                              onClick={() => handleMove(book, 'right')}
+
+                                              className="p-2 bg-zinc-800 text-white rounded-full shadow-xl hover:bg-[#DFFF00] hover:text-black transition-colors"
+
+                                          >
+
+                                              <ArrowRight size={12} />
+
+                                          </button>
+
+                                          </div>
+
+                                      )}
+
+                                      <button 
+
+                                          onClick={() => handleDelete(book.id)}
+
+                                          className="p-2 bg-red-600 text-white rounded-full shadow-xl hover:bg-red-500 transition-colors"
+
+                                      >
+
+                                          <Trash2 size={16} />
+
+                                      </button>
+
+                                      <button 
+
+                                          onClick={() => {
+
+                                          setSelectedBook(book);
+
+                                          setIsEditing(true);
+
+                                          setIsManageMode(false);
+
+                                          }}
+
+                                          className="p-2 bg-zinc-100 text-black rounded-full shadow-xl hover:bg-white transition-colors"
+
+                                      >
+
+                                          <Edit3 size={16} />
+
+                                      </button>
+
+                                      </motion.div>
+
+                                  )}
+
+                                  </AnimatePresence>
+
+  
+
+                                  {/* The Book */}
+
+                                  <div 
+
+                                  onClick={() => handleOpenBook(book)}
+
+                                  className={`relative aspect-[2/3] cursor-pointer transition-all duration-500 preserve-3d
+
+                                      ${isManageMode ? 'scale-95 opacity-50 grayscale' : 'group-hover:-translate-y-12 group-hover:rotate-3'}
+
+                                  `}
+
+                                  style={{ perspective: '1200px' }}
+
+                                  >
+
+                                  {/* Cover */}
+
+                                  <div 
+
+                                      className="absolute inset-0 rounded-r-lg shadow-[15px_15px_30px_rgba(0,0,0,0.7)] overflow-hidden border border-white/10 flex flex-col justify-between p-6"
+
+                                      style={{
+
+                                      backgroundColor: book.cover_color,
+
+                                      backgroundImage: 'linear-gradient(90deg, rgba(0,0,0,0.3) 0%, rgba(255,255,255,0.05) 1%, rgba(0,0,0,0.1) 5%, transparent 10%)'
+
+                                      }}
+
+                                  >
+
+                                      <div className="space-y-4">
+
+                                      <div className="h-2 w-12 bg-black/20 rounded-full" />
+
+                                      <div className="space-y-1">
+
+                                          <h3 className={`font-black uppercase tracking-tight leading-tight text-xl ${book.cover_color === '#DFFF00' ? 'text-black' : 'text-white'}`}>
+
+                                          {book.title}
+
+                                          </h3>
+
+                                          <div className={`text-[9px] font-mono uppercase tracking-[0.2em] font-black ${book.cover_color === '#DFFF00' ? 'text-black/40' : 'text-zinc-500'}`}>
+
+                                          {book.category}
+
+                                          </div>
+
+                                      </div>
+
+                                      <p className={`text-[10px] font-mono uppercase tracking-widest font-bold ${book.cover_color === '#DFFF00' ? 'text-black/60' : 'text-zinc-400'}`}>
+
+                                          {book.author}
+
+                                      </p>
+
+                                      </div>
+
+                                      
+
+                                      <div className="flex justify-between items-end">
+
+                                      <div className="p-2 bg-black/10 rounded-lg backdrop-blur-sm">
+
+                                          <BookIcon size={20} className={book.cover_color === '#DFFF00' ? 'text-black/40' : 'text-white/20'} />
+
+                                      </div>
+
+                                      <div className={`text-[8px] font-black font-mono tracking-widest ${book.cover_color === '#DFFF00' ? 'text-black/40' : 'text-zinc-500'}`}>
+
+                                          ZINC_v3
+
+                                      </div>
+
+                                      </div>
+
+  
+
+                                      {/* Spine Highlight */}
+
+                                      <div className="absolute top-0 left-0 w-4 h-full bg-gradient-to-r from-black/40 via-transparent to-transparent" />
+
+                                  </div>
+
+                                  
+
+                                  {/* Pages */}
+
+                                  <div className="absolute top-[4px] right-[-6px] bottom-[4px] w-6 bg-zinc-100 rounded-r-sm -z-10 shadow-2xl" />
+
+                                  </div>
+
+  
+
+                                  {/* Wood/Metal Shelf Visual */}
+
+                                  <div className="absolute -bottom-8 left-[-20%] right-[-20%] h-6 z-0">
+
+                                      <div className="absolute inset-0 bg-gradient-to-b from-zinc-800 to-zinc-950 rounded-xl shadow-[0_25px_50px_rgba(0,0,0,0.8)] border-t border-white/5 overflow-hidden">
+
+                                          <div className="absolute top-0 left-0 right-0 h-1 bg-white/10" />
+
+                                          <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+
+                                      </div>
+
+                                      <div className="absolute top-0 left-0 right-0 h-[2px] bg-[#DFFF00]/20 blur-[1px]" />
+
+                                  </div>
+
+                              </motion.div>
+
+                          ))}
+
+                      </div>
+
+                  </div>
+
+              );
+
+          })}
+
+        </div>
+
+  
+
+        <AnimatePresence>
+
+          {selectedBook && (
+
+            <BookModal 
+
+              book={selectedBook} 
+
+              isAdmin={isAdmin}
+
+              isEditing={isEditing}
+
+              onClose={() => setSelectedBook(null)}
+
+              onSave={handleSave}
+
+              onDelete={handleDelete}
+
+            />
+
+          )}
+
+        </AnimatePresence>
+
       </div>
 
-      {/* Empty State */}
-      {filteredBooks.length === 0 && (
-        <div className="py-40 flex flex-col items-center justify-center text-zinc-600 space-y-4">
-          <BookIcon size={48} className="opacity-20" />
-          <p className="font-mono text-xs uppercase tracking-[0.3em]">No volumes found in this sector</p>
-        </div>
-      )}
+    );
 
-      <AnimatePresence>
-        {selectedBook && (
-          <BookModal 
-            book={selectedBook} 
-            isAdmin={isAdmin}
-            isEditing={isEditing}
-            onClose={() => setSelectedBook(null)}
-            onSave={handleSave}
-            onDelete={handleDelete}
-          />
-        )}
-      </AnimatePresence>
-    </div>
-  );
+  
 }

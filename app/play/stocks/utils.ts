@@ -1,40 +1,35 @@
 import { COMPANIES, Company } from './data';
 
-// --- PSEUDO-RANDOM NOISE GENERATOR ---
+// --- DETERMINISTIC NOISE GENERATOR ---
 // Returns a value between -1 and 1 based on a seed.
-// This is deterministic: same seed = same value.
+// No Math.random() allowed to ensure continuity across deployments.
 function noise(index: number) {
-    let n = Math.sin(index * 12.9898) * 43758.5453;
+    let n = Math.sin(index * 12.9898 + 0.123) * 43758.5453;
     return n - Math.floor(n);
 }
 
-// --- FRACTAL BROWNIAN MOTION (Smart Randomness) ---
-// This combines multiple layers of noise ("octaves") to create realistic charts.
-// Octave 1: Long term trend (Months)
-// Octave 2: Mid term trend (Weeks)
-// Octave 3: Short term trend (Days)
-// Octave 4: Intraday volatility (Hours)
+// --- FRACTAL BROWNIAN MOTION ---
+// Strictly deterministic based on wall-clock time.
 function getFractalNoise(tickerCode: number, timestamp: number, volatility: number) {
     const t = timestamp / 1000; // Convert to seconds
-    
-    // Create unique offset per stock so they don't all move identically
-    const offset = tickerCode * 1000; 
+    const offset = tickerCode * 1337.42; 
 
-    // Layer 1: The "Macro" Trend (Very slow moving)
-    const trend = Math.sin((t + offset) / 100000) * 0.5;
+    // Layer 1: The "Macro" Trend (Changes over weeks/months)
+    const trend = Math.sin((t + offset) / 500000) * 0.6;
 
-    // Layer 2: The "Sector" Drift (Medium speed)
-    // We use the tickerCode to simulate sector grouping roughly
-    const drift = Math.sin((t + offset) / 10000) * 0.3;
+    // Layer 2: The "Sector" Drift (Changes over days)
+    const drift = Math.sin((t + offset) / 20000) * 0.3;
 
-    // Layer 3: The "Daily" Volatility (Fast noise)
-    // Using a pseudo-random walk function here
-    const dayBlock = Math.floor(t / 3600); // Hourly blocks
-    const randomWalk = (noise(dayBlock + tickerCode) - 0.5) * 2; // -1 to 1
+    // Layer 3: Intraday Volatility (Hourly blocks)
+    // We use a deterministic pseudo-random walk based on the hour
+    const hourBlock = Math.floor(t / 3600);
+    const hourNoise = (noise(hourBlock + tickerCode) - 0.5) * 2;
 
-    // Combine them
-    // Volatility scales the impact of the random walk
-    return trend + drift + (randomWalk * volatility * 3);
+    // Layer 4: Minute Jitter
+    const minBlock = Math.floor(t / 60);
+    const minNoise = (noise(minBlock + tickerCode * 2) - 0.5) * 0.5;
+
+    return trend + drift + (hourNoise * volatility * 2) + (minNoise * volatility);
 }
 
 export function getCurrentPrice(ticker: string) {
@@ -44,36 +39,34 @@ export function getCurrentPrice(ticker: string) {
 export function getStockHistory(ticker: string, points = 24) {
     const history: number[] = [];
     const now = Date.now();
-    const interval = 1000 * 60 * 60; // 1 Hour per data point for history
+    const interval = 1000 * 60 * 60; // 1 Hour per data point
     
     for (let i = points; i >= 0; i--) {
         const time = now - (i * interval);
-        history.push(calculatePriceAtTime(ticker, time));
+        history.push(calculatePriceAtTime(ticker, time, true));
     }
     return history;
 }
 
-function calculatePriceAtTime(ticker: string, timestamp: number) {
+function calculatePriceAtTime(ticker: string, timestamp: number, isHistory = false) {
     const company = COMPANIES.find(c => c.ticker === ticker);
     if (!company) return 0;
 
-    // Generate a numerical seed from the ticker string for deterministic randomness
     const tickerCode = ticker.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-
-    // Get the smart noise value (-X to +X)
     const noiseValue = getFractalNoise(tickerCode, timestamp, company.volatility);
 
-    // Apply to base price
-    // We limit the downside so stocks rarely go to 0, but can skyrocket
     let multiplier = 1 + noiseValue;
-    
-    // Ensure minimal price of 1.00
     let price = Math.max(1, company.basePrice * multiplier);
 
-    // Add a tiny bit of "Micro-Jitter" so it looks live when refreshing fast
-    const jitter = (Math.random() - 0.5) * (company.basePrice * 0.005);
+    // DETERMINISTIC JITTER:
+    // Only apply if not calculating history to keep charts clean, 
+    // but give "Live" prices a tiny deterministic pulse.
+    if (!isHistory) {
+        const pulse = Math.sin(timestamp / 1000) * (price * 0.001);
+        price += pulse;
+    }
 
-    return Number((price + jitter).toFixed(2));
+    return Number(price.toFixed(2));
 }
 
 export function getPercentageChange(current: number, base: number) {

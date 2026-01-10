@@ -49,40 +49,46 @@ export const AuctionHouseView = ({ user, profile, refreshProfile }: any) => {
 
     return (
         <div className="w-full max-w-[1800px] mx-auto px-4 md:px-8 pb-32 pt-6">
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-12 gap-8 border-b border-white/5 pb-10">
-                <div className="flex flex-col gap-6 w-full lg:w-auto">
-                    <div>
-                        <div className="text-[10px] font-mono font-bold text-[#DFFF00] uppercase tracking-[0.3em] mb-3 flex items-center gap-2">
-                            Global Auction Protocol
-                            <div className="w-1.5 h-1.5 rounded-full bg-[#DFFF00] animate-pulse" />
+        <div className="flex flex-col lg:flex-row justify-between items-center mb-12 gap-8 border-b border-white/5 pb-12">
+            <div className="flex items-center gap-8 w-full lg:w-auto">
+                <div>
+                    <div className="flex items-center gap-3 text-zinc-500 font-mono text-[10px] font-bold tracking-[0.4em] uppercase mb-2">
+                        <span>Zinc_Market_Protocol // V4.2</span>
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#DFFF00]/10 border border-[#DFFF00]/20">
+                            <div className="w-1 h-1 rounded-full bg-[#DFFF00] animate-pulse" />
+                            <span className="text-[8px] font-mono font-bold text-[#DFFF00] uppercase tracking-widest">Global_Liquidity_Online</span>
                         </div>
-                        <h2 className="text-5xl md:text-6xl font-black uppercase tracking-tighter text-white leading-none">
-                            Auction <span className="text-zinc-800">House</span>
-                        </h2>
                     </div>
-                    <div className="flex gap-2 p-1.5 bg-white/[0.03] border border-white/5 rounded-2xl w-fit">
-                        <button 
-                            onClick={() => setView('BROWSE')} 
-                            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${view === 'BROWSE' ? 'bg-white text-black shadow-lg' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}
-                        >
-                            Browse Listings
-                        </button>
-                        <button 
-                            onClick={() => setView('MY_LISTINGS')} 
-                            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${view === 'MY_LISTINGS' ? 'bg-white text-black shadow-lg' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}
-                        >
-                            My Listings
-                        </button>
-                    </div>
+                    <h1 className="text-6xl md:text-8xl font-black uppercase tracking-tighter leading-none italic text-white">
+                        Auction <span className="text-zinc-800">House</span>
+                    </h1>
+                </div>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
+                <div className="flex gap-2 p-1.5 bg-white/[0.03] border border-white/5 rounded-2xl w-full sm:w-fit">
+                    <button 
+                        onClick={() => setView('BROWSE')} 
+                        className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${view === 'BROWSE' ? 'bg-white text-black shadow-lg' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}
+                    >
+                        Browse
+                    </button>
+                    <button 
+                        onClick={() => setView('MY_LISTINGS')} 
+                        className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${view === 'MY_LISTINGS' ? 'bg-white text-black shadow-lg' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}
+                    >
+                        Listings
+                    </button>
                 </div>
                 <button 
                     onClick={() => setIsListingModalOpen(true)} 
-                    className="group flex items-center gap-4 px-8 py-4 bg-[#DFFF00] hover:bg-white text-black font-black uppercase tracking-[0.25em] rounded-[2rem] transition-all text-xs w-full lg:w-auto justify-center shadow-[0_10px_30px_rgba(223,255,0,0.2)] active:scale-[0.98]"
+                    className="group flex items-center gap-4 px-8 py-4 bg-[#DFFF00] hover:bg-white text-black font-black uppercase tracking-[0.25em] rounded-[2rem] transition-all text-xs w-full sm:w-auto justify-center shadow-[0_10px_30px_rgba(223,255,0,0.2)] active:scale-[0.98]"
                 >
                     <Plus size={18} className="transition-transform group-hover:rotate-90 duration-500" /> 
                     <span>Authorize Sale</span>
                 </button>
             </div>
+        </div>
 
             {loading ? (
                 <div className="flex flex-col items-center justify-center py-32 text-zinc-600 gap-6">

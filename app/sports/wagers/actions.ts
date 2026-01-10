@@ -153,6 +153,33 @@ export async function transferCredits(recipientUsername: string, amount: number)
     throw new Error('Transfer failed at addition');
   }
 
+  // 4. Log Transaction
+  await supabase.from('credit_transactions').insert([
+    { 
+        sender_id: user.id, 
+        recipient_id: recipient.id, 
+        amount, 
+        type: 'transfer',
+        metadata: { sender: sender.username, recipient: recipientUsername }
+    }
+  ]);
+
   revalidatePath('/', 'layout');
   return { success: true };
+}
+
+export async function getTransactions() {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from('credit_transactions')
+    .select('*')
+    .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  if (error) return [];
+  return data;
 }

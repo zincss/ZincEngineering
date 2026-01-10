@@ -24,12 +24,9 @@ export default async function NFLHub() {
       <div className="relative z-50 pt-24 pb-8 px-6 max-w-[1600px] mx-auto w-full border-b border-zinc-800">
         <div className="flex flex-col xl:flex-row justify-between items-center xl:items-end gap-4 sm:gap-12 mb-6 sm:mb-12">
             <div className="flex items-center gap-6">
-                <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center border border-zinc-800 shadow-2xl">
-                    <Zap size={24} className="text-[#DFFF00]" />
-                </div>
                 <div>
                     <div className="flex items-center gap-3 text-zinc-500 font-mono text-[10px] font-bold tracking-[0.3em] uppercase mb-2">
-                        <span>LEAGUE_OPS // NFL</span>
+                        <span>ZincSports // NFL</span>
                     </div>
                     <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter leading-none italic text-white">
                         GRID<span className="text-[#DFFF00]">IRON</span>
