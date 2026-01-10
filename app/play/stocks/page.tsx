@@ -7,72 +7,13 @@ import {
   TrendingDown, 
   RefreshCw, 
   Activity, 
-  Wallet, 
-  PieChart, 
-  ArrowRight, 
   Briefcase,
-  X 
+  X,
+  ArrowRight
 } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import { Category } from './data';
-
-// --- CANDLESTICK CHART COMPONENT ---
-// Simulates OHLC data from a single price history array for visual flair
-const CandlestickChart = ({ data }: { data: number[] }) => {
-    const min = Math.min(...data);
-    const max = Math.max(...data);
-    const range = max - min || 1;
-    
-    return (
-        <div className="flex items-end justify-between gap-[2px] h-12 w-full mt-3 opacity-90">
-            {data.map((close, i) => {
-                if (i === 0) return null; // Need previous close to determine open
-                const open = data[i-1];
-                
-                const isGreen = close >= open;
-                const color = isGreen ? '#DFFF00' : '#ef4444'; // Zinc Green or Red
-                
-                // Simulate wicks (High/Low) based on volatility
-                const candleTop = Math.max(open, close);
-                const candleBottom = Math.min(open, close);
-                const high = candleTop + (Math.random() * (range * 0.1)); 
-                const low = candleBottom - (Math.random() * (range * 0.1));
-
-                // Normalize for % height
-                const getY = (val: number) => ((val - min) / range) * 100;
-                
-                const topPct = getY(high);
-                const bottomPct = getY(low);
-                const bodyTopPct = getY(candleTop);
-                const bodyBottomPct = getY(candleBottom);
-                const bodyHeight = Math.max(2, bodyTopPct - bodyBottomPct); // Min 2px body
-
-                return (
-                    <div key={i} className="relative flex-1 group h-full">
-                        {/* WICK */}
-                        <div 
-                            className="absolute left-1/2 -translate-x-1/2 w-[1px] bg-zinc-600"
-                            style={{ 
-                                bottom: `${bottomPct}%`, 
-                                height: `${topPct - bottomPct}%` 
-                            }} 
-                        />
-                        {/* BODY */}
-                        <div 
-                            className="absolute left-[1px] right-[1px] rounded-[1px] transition-all"
-                            style={{ 
-                                bottom: `${bodyBottomPct}%`, 
-                                height: `${bodyHeight}%`,
-                                backgroundColor: color,
-                                boxShadow: isGreen ? `0 0 2px ${color}` : 'none'
-                            }} 
-                        />
-                    </div>
-                );
-            })}
-        </div>
-    );
-};
+import { StockChart } from '@/app/components/StockChart';
 
 export default function StockMarketPage() {
   const { user, profile, refreshProfile } = useAuth();
@@ -213,7 +154,8 @@ export default function StockMarketPage() {
                                 {isProfitable ? '+' : ''}{totalPL.toLocaleString()} <span className="text-xs opacity-70">({percentPL.toFixed(2)}%)</span>
                             </div>
                         </div>
-                        <PieChart className={`opacity-20 ${isProfitable ? 'text-[#DFFF00]' : 'text-red-500'}`} size={32} />
+                        {/* Replaced PieChart icon with small Area Chart for aesthetics if desired, or keep as is. Keeping simple. */}
+                        <Activity className={`opacity-20 ${isProfitable ? 'text-[#DFFF00]' : 'text-red-500'}`} size={32} />
                     </div>
                 </div>
             </div>
@@ -293,9 +235,9 @@ export default function StockMarketPage() {
                <button 
                   key={stock.ticker}
                   onClick={() => setSelectedStock(stock)}
-                  className="group relative bg-zinc-950 hover:bg-[#DFFF00] p-6 text-left transition-colors duration-200 overflow-hidden"
+                  className="group relative bg-zinc-950 hover:bg-[#DFFF00] p-6 text-left transition-colors duration-200 overflow-hidden h-48 flex flex-col justify-between"
                >
-                  <div className="flex justify-between items-start mb-4 relative z-10">
+                  <div className="flex justify-between items-start relative z-10 w-full">
                       <div className="flex flex-col">
                           <div className="flex items-center gap-2 mb-1">
                               <span className="text-2xl font-black text-white group-hover:text-black transition-colors tracking-tighter">{stock.ticker}</span>
@@ -312,9 +254,9 @@ export default function StockMarketPage() {
                       </div>
                   </div>
 
-                  {/* CANDLESTICK CHART */}
-                  <div className="opacity-50 group-hover:opacity-100 transition-opacity group-hover:invert group-hover:filter">
-                     <CandlestickChart data={stock.history} />
+                  {/* SMALL CHART */}
+                  <div className="w-full h-16 opacity-50 group-hover:opacity-100 transition-opacity">
+                     <StockChart data={stock.history} type="candle" height="100%" />
                   </div>
                </button>
              );
@@ -355,20 +297,14 @@ export default function StockMarketPage() {
                       </div>
                    </div>
 
-                   {/* BIG CHART (Still using bars for clarity on detail view, or could be candles too) */}
-                   <div className="h-40 w-full bg-black/40 rounded-xl p-4 flex items-end gap-1 mb-4 border border-zinc-800/50">
-                        {selectedStock.history.map((val: number, i: number) => {
-                            const min = Math.min(...selectedStock.history);
-                            const max = Math.max(...selectedStock.history);
-                            const h = ((val - min) / (max - min || 1)) * 100;
-                            return (
-                                <div key={i} className="flex-1 bg-zinc-700 hover:bg-[#DFFF00] transition-colors rounded-t-sm relative group" style={{ height: `${Math.max(5, h)}%` }}>
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-zinc-800 text-white text-[10px] px-2 py-1 rounded border border-zinc-700 opacity-0 group-hover:opacity-100 whitespace-nowrap z-10 pointer-events-none font-bold shadow-xl">
-                                        {val} CR
-                                    </div>
-                                </div>
-                            )
-                        })}
+                   {/* BIG CHART - REDESIGNED */}
+                   <div className="h-48 w-full bg-black/20 rounded-xl p-0 md:p-4 mb-4 border border-zinc-800/50 overflow-hidden">
+                        <StockChart 
+                            data={selectedStock.history} 
+                            type="area" 
+                            showTooltip 
+                            className="w-full h-full"
+                        />
                    </div>
                </div>
 

@@ -127,7 +127,7 @@ const AtmosphericBackground = ({ condition, isDay, isMobile }: { condition: stri
           style={{ willChange: 'transform, opacity' }}
         >
           {/* Base Gradient Layer */}
-          <div className={`absolute inset-0 transition-colors duration-[2000ms] ease-in-out
+          <div className={`absolute inset-0 transition-colors duration-2000 ease-in-out
             ${isStorm ? 'bg-zinc-950' : 
               isRain ? 'bg-gradient-to-b from-zinc-900 to-black' : 
               isSnow ? 'bg-gradient-to-b from-slate-200 to-zinc-400' :
@@ -172,7 +172,7 @@ const AtmosphericBackground = ({ condition, isDay, isMobile }: { condition: stri
 
           {/* Cloud Layers (Optimized) */}
           {[...Array(cloudCount)].map((_, i) => (
-            <div key={`c-${i}`} className={`absolute bg-white rounded-full blur-[100px] animate-cloud transition-opacity duration-[2000ms]
+            <div key={`c-${i}`} className={`absolute bg-white rounded-full blur-[100px] animate-cloud transition-opacity duration-2000
               ${isCloudy ? 'opacity-20' : isStorm ? 'opacity-15' : 'opacity-10'}`} 
               style={{ 
                 width: `${isMobile ? 300 + i * 100 : 400 + i * 150}px`, 

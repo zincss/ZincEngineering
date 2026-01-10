@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -15,9 +15,11 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSearchParams } from 'next/navigation';
 
 import { getMarketStatus, getPortfolio, buyStock, sellStock } from '@/app/play/stocks/actions';
 import { Category } from '@/app/play/stocks/data';
+import { StockChart } from '@/app/components/StockChart';
 
 // --- PROPS INTERFACE ---
 interface StockMarketViewProps {
@@ -55,106 +57,6 @@ const RollingNumber = ({ value, prefix = "", suffix = "", className = "" }: { va
     );
 };
 
-// --- SIGNAL TRACE COMPONENT (HIGH-FIDELITY OPTICS) ---
-const SignalTrace = ({ data, color: forceColor, isDetailed = false }: { data: number[], color?: string, isDetailed?: boolean }) => {
-    const min = Math.min(...data);
-    const max = Math.max(...data);
-    const range = max - min || 1;
-    const padding = range * 0.15;
-    
-    const points = data.map((val, i) => ({
-        x: (i / (data.length - 1)) * 100,
-        y: 100 - (((val - min + padding) / (range + padding * 2)) * 100)
-    }));
-
-    let pathData = `M ${points[0].x},${points[0].y}`;
-    for (let i = 0; i < points.length - 1; i++) {
-        const curr = points[i];
-        const next = points[i + 1];
-        const cpX1 = curr.x + (next.x - curr.x) / 3;
-        const cpX2 = curr.x + (next.x - curr.x) * (2/3);
-        pathData += ` C ${cpX1},${curr.y} ${cpX2},${next.y} ${next.x},${next.y}`;
-    }
-
-    const areaData = `${pathData} L 100,100 L 0,100 Z`;
-    const lastPoint = points[points.length - 1];
-    const color = forceColor || (data[data.length - 1] >= data[0] ? '#DFFF00' : '#ef4444');
-
-    return (
-        <div className="relative w-full h-full group/trace select-none">
-            {/* TECHNICAL GRID */}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-lg">
-                <div className="absolute inset-0 opacity-[0.03]" 
-                     style={{ backgroundImage: `linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)`, backgroundSize: isDetailed ? '20px 20px' : '40px 40px' }} 
-                />
-                <div className="absolute inset-0 flex flex-col justify-between py-2 opacity-10">
-                    {[...Array(isDetailed ? 5 : 3)].map((_, i) => <div key={i} className="h-px w-full bg-white/20" />)}
-                </div>
-            </div>
-
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full overflow-visible relative z-10">
-                <defs>
-                    <linearGradient id={`grad-${color}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={color} stopOpacity={isDetailed ? 0.1 : 0.2} />
-                        <stop offset="100%" stopColor={color} stopOpacity="0" />
-                    </linearGradient>
-                </defs>
-                
-                <path d={areaData} fill={`url(#grad-${color})`} />
-                
-                {/* Vertical Data Anchor */}
-                <motion.line 
-                    initial={{ scaleY: 0 }} animate={{ scaleY: 1 }}
-                    x1="100" y1={lastPoint.y} x2="100" y2="100" 
-                    stroke={color} strokeWidth={isDetailed ? "0.2" : "0.5"} strokeDasharray="2,2" opacity="0.4"
-                />
-
-                {/* Diffuse Atmospheric Glow */}
-                <motion.path 
-                    initial={{ opacity: 0 }} animate={{ opacity: 0.3 }}
-                    d={pathData} fill="none" stroke={color} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"
-                    style={{ filter: 'blur(6px)' }}
-                />
-
-                {/* Core Signal Glow */}
-                <motion.path 
-                    initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity: 1 }}
-                    transition={{ duration: 1 }}
-                    d={pathData} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-                    style={{ filter: 'blur(1.5px)' }}
-                />
-
-                {/* Sharp Core Thread */}
-                <motion.path 
-                    initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity: 1 }}
-                    transition={{ duration: 1.2, ease: "easeOut" }}
-                    d={pathData} fill="none" stroke="white" strokeWidth={isDetailed ? "0.5" : "0.75"} strokeLinecap="round" strokeLinejoin="round"
-                    style={{ opacity: 0.8 }}
-                />
-
-                {/* Lead Pulse */}
-                <g>
-                    <motion.circle 
-                        cx="100" cy={lastPoint.y} r="3" fill={color}
-                        animate={{ opacity: [0.2, 0.5, 0.2], scale: [1, 2, 1] }}
-                        transition={{ repeat: Infinity, duration: 2 }}
-                    />
-                    <circle cx="100" cy={lastPoint.y} r="1.5" fill="white" />
-                </g>
-            </svg>
-
-            {isDetailed && (
-                <div className="absolute left-2 top-0 bottom-0 flex flex-col justify-between py-2 pointer-events-none opacity-40">
-                    <span className="text-[7px] font-bold text-white">HI {max.toFixed(0)}</span>
-                    <span className="text-[7px] font-bold text-white">LO {min.toFixed(0)}</span>
-                </div>
-            )}
-        </div>
-    );
-};
-
 // --- STOCK CARD ---
 const StockCard = ({ stock, owned, onSelect }: any) => {
     const isPositive = stock.change >= 0;
@@ -173,7 +75,9 @@ const StockCard = ({ stock, owned, onSelect }: any) => {
                     <div className="text-lg font-black text-white italic tabular-nums leading-none"><RollingNumber value={stock.currentPrice} /></div>
                 </div>
             </div>
-            <div className="relative h-12 my-2 bg-zinc-900/30 rounded-xl overflow-hidden p-2 border border-white/[0.02]"><SignalTrace data={stock.history} /></div>
+            <div className="relative h-12 my-2 opacity-50 group-hover:opacity-100 transition-opacity">
+                <StockChart data={stock.history} type="candle" height="100%" />
+            </div>
             <div className="relative z-10 flex items-center justify-between">
                 <div className={`text-[10px] font-bold italic flex items-center gap-1.5 ${isPositive ? 'text-[#DFFF00]' : 'text-red-500'}`}>{isPositive ? '▲' : '▼'} {Math.abs(stock.change).toFixed(2)}%</div>
                 <ChevronRight size={14} className="text-zinc-800 group-hover:text-white transition-colors" />
@@ -194,6 +98,7 @@ const SectionHeader = ({ title, sub, icon: Icon }: any) => (
 );
 
 export function StockMarketView({ user, profile, refreshProfile }: StockMarketViewProps) {
+  const searchParams = useSearchParams();
   const [stocks, setStocks] = useState<any[]>([]);
   const [portfolio, setPortfolio] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -208,6 +113,12 @@ export function StockMarketView({ user, profile, refreshProfile }: StockMarketVi
   const refreshMarket = async () => {
     const [marketData, portfolioData] = await Promise.all([ getMarketStatus(), getPortfolio() ]);
     setStocks(marketData); setPortfolio(portfolioData); setLoading(false);
+
+    const ticker = searchParams.get('ticker');
+    if (ticker && marketData.length > 0) {
+        const found = marketData.find((s: any) => s.ticker === ticker.toUpperCase());
+        if (found) setSelectedStock(found);
+    }
   };
 
   const marketLeaders = useMemo(() => {
@@ -277,7 +188,7 @@ export function StockMarketView({ user, profile, refreshProfile }: StockMarketVi
                           </div>
                       </div>
                       <div className="flex flex-wrap gap-8 pt-8 border-t border-white/5">
-                          <div className="flex flex-col"><span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Liquid Credits</span><span className="text-2xl font-black text-white">{(profile?.credits || 0).toLocaleString()}</span></div>
+                          <div className="flex flex-col"><span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Liquid Balance</span><span className="text-2xl font-black text-white">{(profile?.credits || 0).toLocaleString()}</span></div>
                           <div className="flex flex-col"><span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Market Assets</span><span className="text-2xl font-black text-[#DFFF00]">{portfolioCurrentValue.toLocaleString()}</span></div>
                           <div className="flex flex-col"><span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Overall Return</span><div className={`flex items-center gap-2 text-2xl font-black ${isProfitable ? 'text-emerald-500' : 'text-red-500'}`}>{isProfitable ? '+' : ''}{totalPL.toLocaleString()}<span className="text-sm opacity-60">({percentPL.toFixed(2)}%)</span></div></div>
                       </div>
@@ -375,7 +286,14 @@ export function StockMarketView({ user, profile, refreshProfile }: StockMarketVi
                         </div>
                     </div>
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-12">
-                        <div className="h-80 w-full bg-black border border-white/5 rounded-[2.5rem] p-8 relative overflow-hidden group shadow-inner"><SignalTrace data={selectedStock.history} isDetailed={true} /></div>
+                        <div className="h-80 w-full bg-black border border-white/5 rounded-[2.5rem] p-8 relative overflow-hidden group shadow-inner">
+                            <StockChart 
+                                data={selectedStock.history} 
+                                type="area" 
+                                showTooltip 
+                                className="w-full h-full" 
+                            />
+                        </div>
                         <div className="bg-zinc-900/30 border border-white/5 rounded-[2.5rem] p-10">
                             <div className="flex bg-black/60 p-2 rounded-2xl mb-10 border border-white/5 relative">
                                 <motion.div layoutId="mode-bg" className={`absolute inset-2 w-[calc(50%-8px)] rounded-xl shadow-xl ${tradeMode === 'BUY' ? 'left-2 bg-white' : 'left-[calc(50%+4px)] bg-red-600'}`} transition={{ type: "spring", damping: 25, stiffness: 300 }} />

@@ -411,7 +411,7 @@ function BetSlipContent({ betSlip, wagerAmount, setWagerAmount, isPlacing, messa
                 {betSlip.length === 0 ? (
                     <div className="py-12 text-center border-2 border-dashed border-zinc-800 rounded-3xl"><Layers size={24} className="mx-auto text-zinc-800 mb-3" /><p className="text-zinc-600 text-[10px] font-mono uppercase tracking-widest">Selection Required</p></div>
                 ) : (
-                    betSlip.map(leg => (
+                    betSlip.map((leg: WagerLeg) => (
                         <div key={leg.match_id} className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 relative group">
                             <button onClick={() => removeFromSlip(leg.match_id)} className="absolute -top-2 -right-2 p-1 bg-zinc-800 text-zinc-400 rounded-full hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 shadow-xl"><X size={12} /></button>
                             <div className="text-[9px] font-mono text-[#DFFF00] uppercase tracking-widest mb-1">{leg.match_name}</div>
