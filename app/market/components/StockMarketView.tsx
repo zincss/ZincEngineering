@@ -272,38 +272,55 @@ export function StockMarketView({ user, profile, refreshProfile }: StockMarketVi
 
       <AnimatePresence>
         {selectedStock && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/90 backdrop-blur-2xl flex items-end sm:items-center justify-center p-0 sm:p-6 z-[200]" onClick={() => setSelectedStock(null)}>
-                <motion.div initial={{ y: "100%", scale: 0.95 }} animate={{ y: 0, scale: 1 }} exit={{ y: "100%", scale: 0.95 }} transition={{ type: "spring", damping: 30, stiffness: 300 }} className="bg-[#080808] border-t sm:border border-white/10 w-full max-w-4xl max-h-[92vh] sm:rounded-[3rem] overflow-hidden flex flex-col shadow-2xl relative shadow-black" onClick={(e) => e.stopPropagation()}>
+            <motion.div 
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
+                className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center sm:p-6" 
+                onClick={() => setSelectedStock(null)}
+            >
+                {/* Backdrop */}
+                <div className="absolute inset-0 bg-black/90 backdrop-blur-2xl" />
+
+                <motion.div 
+                    initial={{ y: "100%", scale: 0.95 }} animate={{ y: 0, scale: 1 }} exit={{ y: "100%", scale: 0.95 }} 
+                    transition={{ type: "spring", damping: 30, stiffness: 300 }} 
+                    className="relative bg-[#080808] border-t sm:border border-white/10 w-full max-w-4xl max-h-[92vh] sm:rounded-[3rem] overflow-hidden flex flex-col shadow-2xl shadow-black" 
+                    onClick={(e) => e.stopPropagation()}
+                >
                     <div className={`absolute top-0 left-0 w-full h-1 ${selectedStock.change >= 0 ? 'bg-[#DFFF00]' : 'bg-red-500'} shadow-[0_0_20px_currentColor] z-50`} />
-                    <div className="p-10 border-b border-white/5 bg-white/[0.02]">
-                        <div className="flex flex-col gap-10">
-                            <div className="flex justify-between items-start">
+                    
+                    {/* Header */}
+                    <div className="p-6 sm:p-10 border-b border-white/5 bg-white/[0.02] relative">
+                        <button onClick={() => setSelectedStock(null)} className="absolute top-6 right-6 p-3 bg-white/5 hover:bg-white/10 rounded-2xl transition-colors text-zinc-500 hover:text-white border border-white/5 z-20"><X size={20} /></button>
+                        
+                        <div className="flex flex-col gap-6 sm:gap-10">
+                            <div className="flex justify-between items-start pr-12">
                                 <div className="flex flex-col gap-2">
-                                    <div className="flex items-center gap-4">
-                                        <h3 className="text-6xl font-black tracking-tighter text-white italic leading-none">{selectedStock.ticker}</h3>
-                                        <span className="px-4 py-1.5 bg-[#DFFF00]/10 rounded-full text-[10px] text-[#DFFF00] font-bold tracking-widest border border-[#DFFF00]/20 uppercase italic">{selectedStock.category}</span>
+                                    <div className="flex items-center gap-3 sm:gap-4">
+                                        <h3 className="text-4xl sm:text-6xl font-black tracking-tighter text-white italic leading-none">{selectedStock.ticker}</h3>
+                                        <span className="px-3 py-1 sm:px-4 sm:py-1.5 bg-[#DFFF00]/10 rounded-full text-[9px] sm:text-[10px] text-[#DFFF00] font-bold tracking-widest border border-[#DFFF00]/20 uppercase italic">{selectedStock.category}</span>
                                     </div>
-                                    <p className="text-zinc-500 font-bold tracking-widest uppercase text-xs pl-1">{selectedStock.name}</p>
+                                    <p className="text-zinc-500 font-bold tracking-widest uppercase text-[10px] sm:text-xs pl-1">{selectedStock.name}</p>
                                 </div>
-                                <button onClick={() => setSelectedStock(null)} className="p-4 bg-white/5 hover:bg-white/10 rounded-2xl transition-colors text-zinc-500 hover:text-white border border-white/5"><X size={24} /></button>
                             </div>
-                            <div className="flex items-end justify-between border-t border-white/5 pt-10">
+                            <div className="flex items-end justify-between border-t border-white/5 pt-6 sm:pt-10">
                                 <div className="flex flex-col">
-                                    <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2 pl-1">Live Price</span>
-                                    <div className="flex items-baseline gap-3">
-                                        <RollingNumber value={selectedStock.currentPrice} className="text-6xl font-black italic tracking-tighter text-white tabular-nums leading-none" />
-                                        <span className="text-sm text-zinc-600 font-bold tracking-widest italic">CR</span>
+                                    <span className="text-[9px] sm:text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1 sm:mb-2 pl-1">Live Price</span>
+                                    <div className="flex items-baseline gap-2 sm:gap-3">
+                                        <RollingNumber value={selectedStock.currentPrice} className="text-4xl sm:text-6xl font-black italic tracking-tighter text-white tabular-nums leading-none" />
+                                        <span className="text-xs sm:text-sm text-zinc-600 font-bold tracking-widest italic">CR</span>
                                     </div>
                                 </div>
                                 <div className={`flex flex-col items-end ${selectedStock.change >= 0 ? 'text-[#DFFF00]' : 'text-red-500'}`}>
-                                    <span className="text-3xl font-black italic tracking-tighter">{selectedStock.change >= 0 ? '▲' : '▼'} {Math.abs(selectedStock.change).toFixed(2)}%</span>
-                                    <span className="text-[9px] uppercase font-bold text-zinc-600 tracking-widest italic mt-2">Real-time update</span>
+                                    <span className="text-2xl sm:text-3xl font-black italic tracking-tighter">{selectedStock.change >= 0 ? '▲' : '▼'} {Math.abs(selectedStock.change).toFixed(2)}%</span>
+                                    <span className="text-[8px] sm:text-[9px] uppercase font-bold text-zinc-600 tracking-widest italic mt-1 sm:mt-2">Real-time update</span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div className="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-12">
-                        <div className="h-80 w-full bg-black border border-white/5 rounded-[2.5rem] p-8 relative overflow-hidden group shadow-inner">
+
+                    {/* Scrollable Content */}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-10 space-y-8 sm:space-y-12">
+                        <div className="h-60 sm:h-80 w-full bg-black border border-white/5 rounded-[2rem] sm:rounded-[2.5rem] p-4 sm:p-8 relative overflow-hidden group shadow-inner">
                             <StockChart 
                                 data={selectedStock.history} 
                                 type="step" 
@@ -311,22 +328,22 @@ export function StockMarketView({ user, profile, refreshProfile }: StockMarketVi
                                 className="w-full h-full" 
                             />
                         </div>
-                        <div className="bg-zinc-900/30 border border-white/5 rounded-[2.5rem] p-10">
-                            <div className="flex bg-black/60 p-2 rounded-2xl mb-10 border border-white/5 relative">
-                                <motion.div layoutId="mode-bg" className={`absolute inset-2 w-[calc(50%-8px)] rounded-xl shadow-xl ${tradeMode === 'BUY' ? 'left-2 bg-white' : 'left-[calc(50%+4px)] bg-red-600'}`} transition={{ type: "spring", damping: 25, stiffness: 300 }} />
-                                <button onClick={() => setTradeMode('BUY')} className={`flex-1 py-4 font-black uppercase text-xs tracking-widest italic relative z-10 transition-colors ${tradeMode === 'BUY' ? 'text-black' : 'text-zinc-600 hover:text-white'}`}>Purchase Asset</button>
-                                <button onClick={() => setTradeMode('SELL')} className={`flex-1 py-4 font-black uppercase text-xs tracking-widest italic relative z-10 transition-colors ${tradeMode === 'SELL' ? 'text-white' : 'text-zinc-600 hover:text-white'}`}>Sell Asset</button>
+                        <div className="bg-zinc-900/30 border border-white/5 rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-10">
+                            <div className="flex bg-black/60 p-1.5 sm:p-2 rounded-2xl mb-8 sm:mb-10 border border-white/5 relative">
+                                <motion.div layoutId="mode-bg" className={`absolute inset-1.5 sm:inset-2 w-[calc(50%-6px)] sm:w-[calc(50%-8px)] rounded-xl shadow-xl ${tradeMode === 'BUY' ? 'left-1.5 sm:left-2 bg-white' : 'left-[calc(50%+3px)] sm:left-[calc(50%+4px)] bg-red-600'}`} transition={{ type: "spring", damping: 25, stiffness: 300 }} />
+                                <button onClick={() => setTradeMode('BUY')} className={`flex-1 py-3 sm:py-4 font-black uppercase text-[10px] sm:text-xs tracking-widest italic relative z-10 transition-colors ${tradeMode === 'BUY' ? 'text-black' : 'text-zinc-600 hover:text-white'}`}>Purchase Asset</button>
+                                <button onClick={() => setTradeMode('SELL')} className={`flex-1 py-3 sm:py-4 font-black uppercase text-[10px] sm:text-xs tracking-widest italic relative z-10 transition-colors ${tradeMode === 'SELL' ? 'text-white' : 'text-zinc-600 hover:text-white'}`}>Sell Asset</button>
                             </div>
-                            <div className="space-y-10">
-                                <div className="flex items-center justify-between px-2"><span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Select Quantity</span>{portfolio.find(p => p.ticker === selectedStock.ticker) && (<div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#DFFF00] italic">Owned: {portfolio.find(p => p.ticker === selectedStock.ticker).quantity}</div>)}</div>
+                            <div className="space-y-8 sm:space-y-10">
+                                <div className="flex items-center justify-between px-2"><span className="text-[9px] sm:text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Select Quantity</span>{portfolio.find(p => p.ticker === selectedStock.ticker) && (<div className="flex items-center gap-2 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-[#DFFF00] italic">Owned: {portfolio.find(p => p.ticker === selectedStock.ticker).quantity}</div>)}</div>
                                 <div className="flex flex-col md:flex-row items-stretch md:items-center gap-6 md:gap-10">
-                                    <div className="flex items-center flex-1 w-full bg-black border border-white/10 rounded-[2rem] p-3 px-6 shadow-inner">
-                                        <button onClick={() => setAmount(Math.max(1, amount - 1))} className="w-14 h-14 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-3xl text-zinc-500 hover:text-white transition-all active:scale-95">-</button>
+                                    <div className="flex items-center flex-1 w-full bg-black border border-white/10 rounded-[1.5rem] sm:rounded-[2rem] p-2 sm:p-3 px-4 sm:px-6 shadow-inner">
+                                        <button onClick={() => setAmount(Math.max(1, amount - 1))} className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-2xl sm:text-3xl text-zinc-500 hover:text-white transition-all active:scale-95">-</button>
                                         <input type="number" value={amount} onChange={(e) => setAmount(Math.max(1, Number(e.target.value)))} className="flex-1 bg-transparent text-center text-4xl md:text-5xl font-black tracking-tighter outline-none text-white w-full min-w-0 italic" />
-                                        <button onClick={() => setAmount(amount + 1)} className="w-14 h-14 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-3xl text-zinc-500 hover:text-white transition-all active:scale-95">+</button>
+                                        <button onClick={() => setAmount(amount + 1)} className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-2xl sm:text-3xl text-zinc-500 hover:text-white transition-all active:scale-95">+</button>
                                     </div>
                                     <div className="flex flex-col items-center md:items-end min-w-[240px] md:border-l border-white/10 md:pl-10 p-4 md:p-0 bg-zinc-900/30 md:bg-transparent rounded-2xl md:rounded-none">
-                                        <span className="text-[10px] font-bold text-zinc-700 uppercase tracking-widest mb-2">Estimated Total</span>
+                                        <span className="text-[9px] sm:text-[10px] font-bold text-zinc-700 uppercase tracking-widest mb-2">Estimated Total</span>
                                         <div className="flex items-baseline gap-3">
                                             <span className="text-4xl md:text-5xl font-black italic tracking-tighter text-white">{(amount * selectedStock.currentPrice).toLocaleString()}</span>
                                             <span className="text-xs font-bold text-zinc-600 italic">CR</span>
@@ -336,7 +353,11 @@ export function StockMarketView({ user, profile, refreshProfile }: StockMarketVi
                             </div>
                         </div>
                     </div>
-                    <div className="p-10 pt-6 bg-white/[0.02] border-t border-white/5 flex flex-col gap-6"><button onClick={handleTrade} disabled={isTransacting} className={`w-full py-7 font-black uppercase rounded-[2.5rem] transition-all flex items-center justify-center gap-4 shadow-2xl active:scale-[0.98] text-sm tracking-widest italic ${tradeMode === 'BUY' ? 'bg-[#DFFF00] text-black hover:bg-white' : 'bg-red-600 text-white hover:bg-red-500'}`}>{isTransacting ? <RefreshCw className="animate-spin" size={24} /> : <>Confirm {tradeMode === 'BUY' ? 'Purchase' : 'Sale'} <ArrowRight size={20} /></>}</button></div>
+
+                    {/* Sticky Footer */}
+                    <div className="p-6 sm:p-10 pt-4 sm:pt-6 bg-white/[0.02] border-t border-white/5 flex flex-col gap-6 safe-area-pb">
+                        <button onClick={handleTrade} disabled={isTransacting} className={`w-full py-5 sm:py-7 font-black uppercase rounded-[2rem] sm:rounded-[2.5rem] transition-all flex items-center justify-center gap-4 shadow-2xl active:scale-[0.98] text-sm tracking-widest italic ${tradeMode === 'BUY' ? 'bg-[#DFFF00] text-black hover:bg-white' : 'bg-red-600 text-white hover:bg-red-500'}`}>{isTransacting ? <RefreshCw className="animate-spin" size={24} /> : <>Confirm {tradeMode === 'BUY' ? 'Purchase' : 'Sale'} <ArrowRight size={20} /></>}</button>
+                    </div>
                 </motion.div>
             </motion.div>
         )}

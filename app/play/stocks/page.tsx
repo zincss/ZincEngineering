@@ -266,121 +266,131 @@ export default function StockMarketPage() {
 
       {/* DETAILED TRADE MODAL - MOBILE OPTIMIZED */}
       {selectedStock && (
-         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-4 z-50 animate-in fade-in duration-200">
+         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4 animate-in fade-in duration-200">
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setSelectedStock(null)} />
+            
+            {/* Modal Content */}
             <div 
-                className="bg-zinc-950 border-t md:border border-zinc-800 p-0 rounded-t-3xl md:rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden ring-1 ring-white/10 max-h-[90vh] md:max-h-none overflow-y-auto"
+                className="relative bg-zinc-950 border-t sm:border border-zinc-800 rounded-t-3xl sm:rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden ring-1 ring-white/10 max-h-[90vh] flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
-               {/* CLOSE BUTTON (Mobile) */}
-               <div className="sticky top-0 right-0 p-4 flex justify-end md:hidden z-20 bg-zinc-950/90 backdrop-blur">
-                   <button onClick={() => setSelectedStock(null)} className="p-2 bg-zinc-900 rounded-full text-white">
-                       <X size={20} />
-                   </button>
-               </div>
-
-               {/* Modal Header */}
-               <div className="p-6 md:p-8 pb-4 border-b border-zinc-800 bg-zinc-900/50">
-                   <div className="flex justify-between items-start mb-6">
-                      <div>
-                        <div className="flex items-center gap-3 mb-1">
-                            <h3 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-white">{selectedStock.ticker}</h3>
-                            <span className="px-3 py-1 bg-zinc-800 rounded-full text-[10px] text-zinc-400 font-bold tracking-widest border border-zinc-700">{selectedStock.category}</span>
-                        </div>
-                        <p className="text-zinc-400 text-sm font-bold">{selectedStock.name}</p>
-                        <p className="text-zinc-600 text-xs mt-1 italic max-w-sm">{selectedStock.description}</p>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-4xl md:text-5xl font-black text-white">{selectedStock.currentPrice}</div>
-                        <div className={`text-sm font-bold flex justify-end items-center gap-1 mt-1 ${selectedStock.change >= 0 ? 'text-[#DFFF00]' : 'text-red-500'}`}>
-                             {selectedStock.change.toFixed(2)}% Today
-                        </div>
-                      </div>
-                   </div>
-
-                   {/* BIG CHART - REDESIGNED */}
-                   <div className="h-48 w-full bg-black/20 rounded-xl p-0 md:p-4 mb-4 border border-zinc-800/50 overflow-hidden">
-                        <StockChart 
-                            data={selectedStock.history} 
-                            type="step" 
-                            showTooltip 
-                            className="w-full h-full"
-                        />
-                   </div>
-               </div>
-
-               {/* TRADING INTERFACE */}
-               <div className="p-6 md:p-8">
+               {/* Scrollable Body */}
+               <div className="overflow-y-auto custom-scrollbar flex-1">
                    
-                   {/* Toggle */}
-                   <div className="flex bg-zinc-900 p-1.5 rounded-xl mb-8 border border-zinc-800">
-                      <button 
-                        onClick={() => setTradeMode('BUY')}
-                        className={`flex-1 py-3 font-black uppercase rounded-lg transition-all text-sm tracking-widest ${tradeMode === 'BUY' ? 'bg-[#DFFF00] text-black shadow-lg' : 'text-zinc-500 hover:text-white'}`}
-                      >
-                        Buy
-                      </button>
-                      <button 
-                        onClick={() => setTradeMode('SELL')}
-                        className={`flex-1 py-3 font-black uppercase rounded-lg transition-all text-sm tracking-widest ${tradeMode === 'SELL' ? 'bg-red-600 text-white shadow-lg' : 'text-zinc-500 hover:text-white'}`}
-                      >
-                        Sell
-                      </button>
+                   {/* CLOSE BUTTON (Mobile - Floating) */}
+                   <div className="sticky top-0 right-0 p-4 flex justify-end sm:hidden z-20 pointer-events-none">
+                       <button onClick={() => setSelectedStock(null)} className="p-2 bg-zinc-900/80 backdrop-blur rounded-full text-white pointer-events-auto border border-zinc-800 shadow-xl">
+                           <X size={20} />
+                       </button>
                    </div>
 
-                   {/* User Stats */}
-                   {portfolio.find(p => p.ticker === selectedStock.ticker) ? (
-                       <div className="mb-6 bg-zinc-900/50 border border-zinc-800 p-4 rounded-xl flex justify-between items-center text-sm">
-                           <div className="flex flex-col">
-                               <span className="text-zinc-500 text-xs uppercase font-bold">Your Position</span>
-                               <span className="font-bold text-white text-lg flex items-center gap-2">
-                                   <Briefcase size={16} className="text-blue-400" />
-                                   {portfolio.find(p => p.ticker === selectedStock.ticker).quantity} Shares
-                               </span>
-                           </div>
-                           <div className="flex flex-col text-right">
-                               <span className="text-zinc-500 text-xs uppercase font-bold">Avg Price</span>
-                               <span className="font-mono text-zinc-300">{portfolio.find(p => p.ticker === selectedStock.ticker).average_price.toFixed(2)}</span>
-                           </div>
+                   {/* Modal Header */}
+                   <div className="px-6 pt-6 pb-4 sm:p-8 sm:pb-4 border-b border-zinc-800 bg-zinc-900/50">
+                       <div className="flex justify-between items-start mb-6">
+                          <div>
+                            <div className="flex items-center gap-3 mb-1">
+                                <h3 className="text-3xl sm:text-5xl font-black uppercase tracking-tighter text-white">{selectedStock.ticker}</h3>
+                                <span className="px-2 py-1 sm:px-3 sm:py-1 bg-zinc-800 rounded-full text-[9px] sm:text-[10px] text-zinc-400 font-bold tracking-widest border border-zinc-700">{selectedStock.category}</span>
+                            </div>
+                            <p className="text-zinc-400 text-xs sm:text-sm font-bold">{selectedStock.name}</p>
+                            <p className="text-zinc-600 text-[10px] sm:text-xs mt-1 italic max-w-sm">{selectedStock.description}</p>
+                          </div>
+                          <div className="text-right mt-1 sm:mt-0">
+                            <div className="text-3xl sm:text-5xl font-black text-white">{selectedStock.currentPrice}</div>
+                            <div className={`text-xs sm:text-sm font-bold flex justify-end items-center gap-1 mt-1 ${selectedStock.change >= 0 ? 'text-[#DFFF00]' : 'text-red-500'}`}>
+                                 {selectedStock.change.toFixed(2)}% Today
+                            </div>
+                          </div>
                        </div>
-                   ) : (
-                        <div className="mb-6 bg-zinc-900/30 border border-dashed border-zinc-800 p-4 rounded-xl text-center text-xs text-zinc-600 uppercase font-bold tracking-widest">
-                            You do not own this asset
-                        </div>
-                   )}
 
-                   {/* Quantity Input */}
-                   <div className="mb-8">
-                      <div className="flex justify-between mb-2">
-                          <label className="text-xs font-bold uppercase text-zinc-500">Order Quantity</label>
-                          <label className="text-xs font-bold uppercase text-zinc-500 text-right">Total {tradeMode === 'BUY' ? 'Cost' : 'Value'}</label>
-                      </div>
-                      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4">
-                         <div className="flex items-center flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-2 py-2 focus-within:border-[#DFFF00] transition-colors">
-                             <button onClick={() => setAmount(Math.max(1, amount - 1))} className="w-14 h-14 rounded-lg hover:bg-zinc-800 flex items-center justify-center text-2xl text-zinc-400 hover:text-white transition-colors active:scale-95">-</button>
-                             <input 
-                               type="number" 
-                               value={amount} 
-                               onChange={(e) => setAmount(Math.max(1, Number(e.target.value)))}
-                               className="flex-1 bg-transparent text-center text-3xl font-black outline-none text-white w-full min-w-0"
-                             />
-                             <button onClick={() => setAmount(amount + 1)} className="w-14 h-14 rounded-lg hover:bg-zinc-800 flex items-center justify-center text-2xl text-zinc-400 hover:text-white transition-colors active:scale-95">+</button>
-                         </div>
-                         <div className="text-center md:text-right p-4 md:p-0 bg-zinc-900/50 md:bg-transparent rounded-xl md:rounded-none border md:border-none border-zinc-800/50 md:min-w-[120px]">
-                             <div className="text-3xl font-black text-white">{(amount * selectedStock.currentPrice).toFixed(0)}</div>
-                             <div className="text-xs text-zinc-500 font-bold tracking-widest">CREDITS</div>
-                         </div>
-                      </div>
+                       {/* BIG CHART - REDESIGNED */}
+                       <div className="h-40 sm:h-48 w-full bg-black/20 rounded-xl p-0 md:p-4 mb-2 sm:mb-4 border border-zinc-800/50 overflow-hidden">
+                            <StockChart 
+                                data={selectedStock.history} 
+                                type="step" 
+                                showTooltip 
+                                className="w-full h-full"
+                            />
+                       </div>
                    </div>
 
-                   {/* Action Buttons */}
-                   <div className="grid grid-cols-3 gap-4 pb-4 md:pb-0">
-                      <button onClick={() => setSelectedStock(null)} className="col-span-1 py-4 bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold uppercase rounded-xl hover:bg-zinc-800 hover:text-white hover:border-zinc-700 transition-all text-xs tracking-widest hidden md:block">
+                   {/* TRADING INTERFACE */}
+                   <div className="p-6 sm:p-8 space-y-6">
+                       
+                       {/* Toggle */}
+                       <div className="flex bg-zinc-900 p-1.5 rounded-xl border border-zinc-800">
+                          <button 
+                            onClick={() => setTradeMode('BUY')}
+                            className={`flex-1 py-3 font-black uppercase rounded-lg transition-all text-sm tracking-widest ${tradeMode === 'BUY' ? 'bg-[#DFFF00] text-black shadow-lg' : 'text-zinc-500 hover:text-white'}`}
+                          >
+                            Buy
+                          </button>
+                          <button 
+                            onClick={() => setTradeMode('SELL')}
+                            className={`flex-1 py-3 font-black uppercase rounded-lg transition-all text-sm tracking-widest ${tradeMode === 'SELL' ? 'bg-red-600 text-white shadow-lg' : 'text-zinc-500 hover:text-white'}`}
+                          >
+                            Sell
+                          </button>
+                       </div>
+
+                       {/* User Stats */}
+                       {portfolio.find(p => p.ticker === selectedStock.ticker) ? (
+                           <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-xl flex justify-between items-center text-sm">
+                               <div className="flex flex-col">
+                                   <span className="text-zinc-500 text-xs uppercase font-bold">Your Position</span>
+                                   <span className="font-bold text-white text-lg flex items-center gap-2">
+                                       <Briefcase size={16} className="text-blue-400" />
+                                       {portfolio.find(p => p.ticker === selectedStock.ticker).quantity} Shares
+                                   </span>
+                               </div>
+                               <div className="flex flex-col text-right">
+                                   <span className="text-zinc-500 text-xs uppercase font-bold">Avg Price</span>
+                                   <span className="font-mono text-zinc-300">{portfolio.find(p => p.ticker === selectedStock.ticker).average_price.toFixed(2)}</span>
+                               </div>
+                           </div>
+                       ) : (
+                            <div className="bg-zinc-900/30 border border-dashed border-zinc-800 p-4 rounded-xl text-center text-xs text-zinc-600 uppercase font-bold tracking-widest">
+                                You do not own this asset
+                            </div>
+                       )}
+
+                       {/* Quantity Input */}
+                       <div>
+                          <div className="flex justify-between mb-2">
+                              <label className="text-xs font-bold uppercase text-zinc-500">Order Quantity</label>
+                              <label className="text-xs font-bold uppercase text-zinc-500 text-right">Total {tradeMode === 'BUY' ? 'Cost' : 'Value'}</label>
+                          </div>
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                             <div className="flex items-center flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-2 py-2 focus-within:border-[#DFFF00] transition-colors">
+                                 <button onClick={() => setAmount(Math.max(1, amount - 1))} className="w-12 h-12 rounded-lg hover:bg-zinc-800 flex items-center justify-center text-2xl text-zinc-400 hover:text-white transition-colors active:scale-95">-</button>
+                                 <input 
+                                   type="number" 
+                                   value={amount} 
+                                   onChange={(e) => setAmount(Math.max(1, Number(e.target.value)))}
+                                   className="flex-1 bg-transparent text-center text-3xl font-black outline-none text-white w-full min-w-0"
+                                 />
+                                 <button onClick={() => setAmount(amount + 1)} className="w-12 h-12 rounded-lg hover:bg-zinc-800 flex items-center justify-center text-2xl text-zinc-400 hover:text-white transition-colors active:scale-95">+</button>
+                             </div>
+                             <div className="text-center sm:text-right p-3 sm:p-0 bg-zinc-900/50 sm:bg-transparent rounded-xl sm:rounded-none border sm:border-none border-zinc-800/50 sm:min-w-[120px]">
+                                 <div className="text-2xl sm:text-3xl font-black text-white">{(amount * selectedStock.currentPrice).toFixed(0)}</div>
+                                 <div className="text-xs text-zinc-500 font-bold tracking-widest">CREDITS</div>
+                             </div>
+                          </div>
+                       </div>
+                   </div>
+               </div>
+
+               {/* Sticky Footer Actions */}
+               <div className="p-4 sm:p-8 pt-4 border-t border-zinc-800 bg-zinc-950/95 backdrop-blur safe-area-pb">
+                   <div className="grid grid-cols-3 gap-4">
+                      <button onClick={() => setSelectedStock(null)} className="col-span-1 py-4 bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold uppercase rounded-xl hover:bg-zinc-800 hover:text-white hover:border-zinc-700 transition-all text-xs tracking-widest hidden sm:block">
                           Cancel
                       </button>
                       <button 
                         onClick={handleTrade} 
                         disabled={isTransacting}
-                        className={`col-span-3 md:col-span-2 py-4 font-black uppercase rounded-xl transition-all flex items-center justify-center gap-2 shadow-xl active:scale-95 text-sm tracking-widest ${tradeMode === 'BUY' ? 'bg-[#DFFF00] text-black hover:bg-white' : 'bg-red-600 text-white hover:bg-red-500'}`}
+                        className={`col-span-3 sm:col-span-2 py-4 font-black uppercase rounded-xl transition-all flex items-center justify-center gap-2 shadow-xl active:scale-95 text-sm tracking-widest ${tradeMode === 'BUY' ? 'bg-[#DFFF00] text-black hover:bg-white' : 'bg-red-600 text-white hover:bg-red-500'}`}
                       >
                         {isTransacting ? <RefreshCw className="animate-spin" /> : `CONFIRM ${tradeMode}`} <ArrowRight size={16} />
                       </button>
