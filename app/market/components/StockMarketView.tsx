@@ -19,6 +19,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getMarketStatus, getPortfolio, buyStock, sellStock } from '@/app/play/stocks/actions';
 import { Category } from '@/app/play/stocks/data';
 
+// --- PROPS INTERFACE ---
+interface StockMarketViewProps {
+    user: any;
+    profile: any;
+    refreshProfile: () => Promise<void>;
+}
+
 // --- ROLLING NUMBER COMPONENT ---
 const RollingNumber = ({ value, prefix = "", suffix = "", className = "" }: { value: number, prefix?: string, suffix?: string, className?: string }) => {
     const [displayValue, setDisplayValue] = useState(value);
@@ -36,7 +43,7 @@ const RollingNumber = ({ value, prefix = "", suffix = "", className = "" }: { va
                 current++;
                 setDisplayValue(prev => Number((prev + stepVal).toFixed(2)));
                 if (current >= steps) { setDisplayValue(value); clearInterval(interval); }
-            }, 300);
+            }, 30);
             return () => { clearTimeout(timeout); clearInterval(interval); };
         }
     }, [value]);
@@ -48,14 +55,13 @@ const RollingNumber = ({ value, prefix = "", suffix = "", className = "" }: { va
     );
 };
 
-// --- SIGNAL TRACE COMPONENT (PRO-TERMINAL UPGRADE) ---
+// --- SIGNAL TRACE COMPONENT (HIGH-FIDELITY OPTICS) ---
 const SignalTrace = ({ data, color: forceColor, isDetailed = false }: { data: number[], color?: string, isDetailed?: boolean }) => {
     const min = Math.min(...data);
     const max = Math.max(...data);
     const range = max - min || 1;
     const padding = range * 0.15;
     
-    // Smooth Bezier Curve Fitting
     const points = data.map((val, i) => ({
         x: (i / (data.length - 1)) * 100,
         y: 100 - (((val - min + padding) / (range + padding * 2)) * 100)
@@ -76,12 +82,11 @@ const SignalTrace = ({ data, color: forceColor, isDetailed = false }: { data: nu
 
     return (
         <div className="relative w-full h-full group/trace select-none">
-            {/* TERMINAL GRID */}
+            {/* TECHNICAL GRID */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-lg">
                 <div className="absolute inset-0 opacity-[0.03]" 
                      style={{ backgroundImage: `linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)`, backgroundSize: isDetailed ? '20px 20px' : '40px 40px' }} 
                 />
-                {/* Horizontal Level Markers */}
                 <div className="absolute inset-0 flex flex-col justify-between py-2 opacity-10">
                     {[...Array(isDetailed ? 5 : 3)].map((_, i) => <div key={i} className="h-px w-full bg-white/20" />)}
                 </div>
@@ -93,69 +98,57 @@ const SignalTrace = ({ data, color: forceColor, isDetailed = false }: { data: nu
                         <stop offset="0%" stopColor={color} stopOpacity={isDetailed ? 0.1 : 0.2} />
                         <stop offset="100%" stopColor={color} stopOpacity="0" />
                     </linearGradient>
-                    <filter id="glow">
-                        <feGaussianBlur stdDeviation="1.5" result="coloredBlur" />
-                        <feMerge>
-                            <feMergeNode in="coloredBlur" />
-                            <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                    </filter>
                 </defs>
                 
-                {/* AREA FILL */}
-                <motion.path 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    d={areaData} fill={`url(#grad-${color})`} 
-                />
+                <path d={areaData} fill={`url(#grad-${color})`} />
                 
-                {/* TRACKING BEAM (Vertical Anchor) */}
+                {/* Vertical Data Anchor */}
                 <motion.line 
                     initial={{ scaleY: 0 }} animate={{ scaleY: 1 }}
                     x1="100" y1={lastPoint.y} x2="100" y2="100" 
                     stroke={color} strokeWidth={isDetailed ? "0.2" : "0.5"} strokeDasharray="2,2" opacity="0.4"
                 />
 
-                {/* ATMOSPHERIC GLOW (Layer 3) */}
+                {/* Diffuse Atmospheric Glow */}
                 <motion.path 
-                    initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity: 0.3 }}
+                    initial={{ opacity: 0 }} animate={{ opacity: 0.3 }}
                     d={pathData} fill="none" stroke={color} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"
                     style={{ filter: 'blur(6px)' }}
                 />
 
-                {/* SIGNAL GLOW (Layer 2) */}
+                {/* Core Signal Glow */}
                 <motion.path 
                     initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity: 0.6 }}
-                    d={pathData} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                    style={{ filter: 'blur(2px)' }}
+                    animate={{ pathLength: 1, opacity: 1 }}
+                    transition={{ duration: 1 }}
+                    d={pathData} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+                    style={{ filter: 'blur(1.5px)' }}
                 />
 
-                {/* SHARP CORE (Layer 1) */}
+                {/* Sharp Core Thread */}
                 <motion.path 
                     initial={{ pathLength: 0, opacity: 0 }}
                     animate={{ pathLength: 1, opacity: 1 }}
                     transition={{ duration: 1.2, ease: "easeOut" }}
-                    d={pathData} fill="none" stroke={isDetailed ? "white" : color} strokeWidth={isDetailed ? "0.75" : "1.5"} strokeLinecap="round" strokeLinejoin="round"
+                    d={pathData} fill="none" stroke="white" strokeWidth={isDetailed ? "0.5" : "0.75"} strokeLinecap="round" strokeLinejoin="round"
+                    style={{ opacity: 0.8 }}
                 />
 
-                {/* SIGNAL HEAD (Lead Particle) */}
+                {/* Lead Pulse */}
                 <g>
                     <motion.circle 
                         cx="100" cy={lastPoint.y} r="3" fill={color}
                         animate={{ opacity: [0.2, 0.5, 0.2], scale: [1, 2, 1] }}
                         transition={{ repeat: Infinity, duration: 2 }}
                     />
-                    <circle cx="100" cy={lastPoint.y} r="1.5" fill="white" className="shadow-lg" />
+                    <circle cx="100" cy={lastPoint.y} r="1.5" fill="white" />
                 </g>
             </svg>
 
-            {/* MIN/MAX AXIS LABELS (Detailed Only) */}
             {isDetailed && (
                 <div className="absolute left-2 top-0 bottom-0 flex flex-col justify-between py-2 pointer-events-none opacity-40">
-                    <span className="text-[7px] font-mono text-white">HI {max.toFixed(0)}</span>
-                    <span className="text-[7px] font-mono text-white">LO {min.toFixed(0)}</span>
+                    <span className="text-[7px] font-bold text-white">HI {max.toFixed(0)}</span>
+                    <span className="text-[7px] font-bold text-white">LO {min.toFixed(0)}</span>
                 </div>
             )}
         </div>
@@ -166,7 +159,7 @@ const SignalTrace = ({ data, color: forceColor, isDetailed = false }: { data: nu
 const StockCard = ({ stock, owned, onSelect }: any) => {
     const isPositive = stock.change >= 0;
     return (
-        <button onClick={() => onSelect(stock)} className="group relative bg-zinc-950 border border-white/5 hover:border-white/20 p-5 rounded-3xl text-left transition-all duration-500 hover:-translate-y-1 overflow-hidden h-[200px] flex flex-col justify-between">
+        <button onClick={() => onSelect(stock)} className="group relative bg-zinc-950 border border-white/5 hover:border-white/20 p-5 rounded-3xl text-left transition-all duration-500 hover:-translate-y-1 overflow-hidden h-[200px] flex flex-col justify-between shadow-lg">
             <div className="relative z-10 flex justify-between items-start">
                 <div className="flex flex-col">
                     <span className="text-[8px] font-bold text-zinc-600 uppercase tracking-widest mb-1">Asset</span>
@@ -245,7 +238,7 @@ export function StockMarketView({ user, profile, refreshProfile }: StockMarketVi
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-60 text-[#DFFF00] gap-8">
         <RefreshCw className="animate-spin" size={48} />
-        <span className="text-xs tracking-[0.5em] font-black uppercase italic opacity-60">Synchronizing...</span>
+        <span className="text-xs tracking-[0.5em] font-black uppercase italic opacity-60">Connecting to Exchange...</span>
     </div>
   );
 
@@ -274,7 +267,7 @@ export function StockMarketView({ user, profile, refreshProfile }: StockMarketVi
                   <div className="space-y-8">
                       <div>
                           <div className="flex items-center gap-3 text-zinc-500 font-mono text-[10px] font-bold tracking-[0.4em] uppercase mb-4">
-                              <span>Portfolio Overview</span>
+                              <span>Portfolio Snapshot</span>
                               <div className="w-1.5 h-1.5 rounded-full bg-[#DFFF00] animate-pulse" />
                           </div>
                           <h2 className="text-6xl md:text-7xl font-black text-white uppercase italic tracking-tighter leading-none mb-4">Total <span className="text-zinc-800">Value</span></h2>
@@ -284,18 +277,18 @@ export function StockMarketView({ user, profile, refreshProfile }: StockMarketVi
                           </div>
                       </div>
                       <div className="flex flex-wrap gap-8 pt-8 border-t border-white/5">
-                          <div className="flex flex-col"><span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Liquid Balance</span><span className="text-2xl font-black text-white">{(profile?.credits || 0).toLocaleString()}</span></div>
-                          <div className="flex flex-col"><span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Invested Assets</span><span className="text-2xl font-black text-[#DFFF00]">{portfolioCurrentValue.toLocaleString()}</span></div>
-                          <div className="flex flex-col"><span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Lifetime Gain</span><div className={`flex items-center gap-2 text-2xl font-black ${isProfitable ? 'text-emerald-500' : 'text-red-500'}`}>{isProfitable ? '+' : ''}{totalPL.toLocaleString()}<span className="text-sm opacity-60">({percentPL.toFixed(2)}%)</span></div></div>
+                          <div className="flex flex-col"><span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Liquid Credits</span><span className="text-2xl font-black text-white">{(profile?.credits || 0).toLocaleString()}</span></div>
+                          <div className="flex flex-col"><span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Market Assets</span><span className="text-2xl font-black text-[#DFFF00]">{portfolioCurrentValue.toLocaleString()}</span></div>
+                          <div className="flex flex-col"><span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Overall Return</span><div className={`flex items-center gap-2 text-2xl font-black ${isProfitable ? 'text-emerald-500' : 'text-red-500'}`}>{isProfitable ? '+' : ''}{totalPL.toLocaleString()}<span className="text-sm opacity-60">({percentPL.toFixed(2)}%)</span></div></div>
                       </div>
                   </div>
-                  <div className="hidden xl:flex flex-col items-end gap-4 opacity-20 group-hover:opacity-40 transition-opacity"><PieChart size={120} className="text-[#DFFF00]" /><span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 text-right">Asset Distribution</span></div>
+                  <div className="hidden xl:flex flex-col items-end gap-4 opacity-20 group-hover:opacity-40 transition-opacity"><PieChart size={120} className="text-[#DFFF00]" /><span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 text-right">Asset Breakdown</span></div>
               </div>
           </div>
 
           <div className="lg:col-span-4 bg-zinc-900/50 border border-white/5 rounded-[3rem] p-10 backdrop-blur-3xl relative overflow-hidden shadow-2xl">
               <div className="flex items-center justify-between mb-10">
-                  <h3 className="font-black uppercase italic tracking-tight text-white flex items-center gap-3">Market Leaders</h3>
+                  <h3 className="font-black uppercase italic tracking-tight text-white flex items-center gap-3">Top Movers</h3>
                   <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]" />
               </div>
               <div className="space-y-6">
@@ -304,7 +297,7 @@ export function StockMarketView({ user, profile, refreshProfile }: StockMarketVi
                           <div className="flex justify-between items-center">
                               <div className="flex items-center gap-4">
                                   <div className="w-10 h-10 rounded-2xl bg-zinc-900 flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform"><TrendingUp size={20}/></div>
-                                  <div><div className="text-[8px] font-bold text-zinc-600 uppercase tracking-widest">Top Gainer</div><div className="text-xl font-black text-white italic">{marketLeaders.gainer.ticker}</div></div>
+                                  <div><div className="text-[8px] font-bold text-zinc-600 uppercase tracking-widest">Gain Leader</div><div className="text-xl font-black text-white italic">{marketLeaders.gainer.ticker}</div></div>
                               </div>
                               <div className="text-right text-2xl font-black text-emerald-500 italic">+{marketLeaders.gainer.change.toFixed(1)}%</div>
                           </div>
@@ -315,7 +308,7 @@ export function StockMarketView({ user, profile, refreshProfile }: StockMarketVi
                           <div className="flex justify-between items-center">
                               <div className="flex items-center gap-4">
                                   <div className="w-10 h-10 rounded-2xl bg-zinc-900 flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform"><TrendingDown size={20}/></div>
-                                  <div><div className="text-[8px] font-bold text-zinc-600 uppercase tracking-widest">Top Loser</div><div className="text-xl font-black text-white italic">{marketLeaders.loser.ticker}</div></div>
+                                  <div><div className="text-[8px] font-bold text-zinc-600 uppercase tracking-widest">Loss Leader</div><div className="text-xl font-black text-white italic">{marketLeaders.loser.ticker}</div></div>
                               </div>
                               <div className="text-right text-2xl font-black text-red-500 italic">{marketLeaders.loser.change.toFixed(1)}%</div>
                           </div>
@@ -327,7 +320,7 @@ export function StockMarketView({ user, profile, refreshProfile }: StockMarketVi
 
       {ownedStocks.length > 0 && (
           <div className="mb-24">
-              <SectionHeader title="Your Positions" sub="Portfolio Holdings" icon={Briefcase} />
+              <SectionHeader title="Owned Assets" sub="Personal Portfolio" icon={Briefcase} />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                   {ownedStocks.map(stock => <StockCard key={stock.ticker} stock={stock} owned={true} onSelect={setSelectedStock} />)}
               </div>
@@ -340,7 +333,7 @@ export function StockMarketView({ user, profile, refreshProfile }: StockMarketVi
               if (sectorStocks.length === 0) return null;
               return (
                   <div key={category}>
-                      <SectionHeader title={`${category} Sector`} sub="Market Category" icon={BarChart3} />
+                      <SectionHeader title={`${category} Market`} sub="Sector Intelligence" icon={BarChart3} />
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                           {sectorStocks.map(stock => <StockCard key={stock.ticker} stock={stock} owned={portfolio.some(p => p.ticker === stock.ticker)} onSelect={setSelectedStock} />)}
                       </div>
@@ -352,7 +345,7 @@ export function StockMarketView({ user, profile, refreshProfile }: StockMarketVi
       <AnimatePresence>
         {selectedStock && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/90 backdrop-blur-2xl flex items-end sm:items-center justify-center p-0 sm:p-6 z-[200]" onClick={() => setSelectedStock(null)}>
-                <motion.div initial={{ y: "100%", scale: 0.95 }} animate={{ y: 0, scale: 1 }} exit={{ y: "100%", scale: 0.95 }} transition={{ type: "spring", damping: 30, stiffness: 300 }} className="bg-[#080808] border-t sm:border border-white/10 w-full max-w-4xl max-h-[92vh] sm:rounded-[3rem] overflow-hidden flex flex-col shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
+                <motion.div initial={{ y: "100%", scale: 0.95 }} animate={{ y: 0, scale: 1 }} exit={{ y: "100%", scale: 0.95 }} transition={{ type: "spring", damping: 30, stiffness: 300 }} className="bg-[#080808] border-t sm:border border-white/10 w-full max-w-4xl max-h-[92vh] sm:rounded-[3rem] overflow-hidden flex flex-col shadow-2xl relative shadow-black" onClick={(e) => e.stopPropagation()}>
                     <div className={`absolute top-0 left-0 w-full h-1 ${selectedStock.change >= 0 ? 'bg-[#DFFF00]' : 'bg-red-500'} shadow-[0_0_20px_currentColor] z-50`} />
                     <div className="p-10 border-b border-white/5 bg-white/[0.02]">
                         <div className="flex flex-col gap-10">
@@ -368,7 +361,7 @@ export function StockMarketView({ user, profile, refreshProfile }: StockMarketVi
                             </div>
                             <div className="flex items-end justify-between border-t border-white/5 pt-10">
                                 <div className="flex flex-col">
-                                    <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2 pl-1">Market Price</span>
+                                    <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2 pl-1">Live Price</span>
                                     <div className="flex items-baseline gap-3">
                                         <RollingNumber value={selectedStock.currentPrice} className="text-6xl font-black italic tracking-tighter text-white tabular-nums leading-none" />
                                         <span className="text-sm text-zinc-600 font-bold tracking-widest italic">CR</span>
@@ -382,11 +375,11 @@ export function StockMarketView({ user, profile, refreshProfile }: StockMarketVi
                         </div>
                     </div>
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-12">
-                        <div className="h-72 w-full bg-black border border-white/5 rounded-[2.5rem] p-8 relative overflow-hidden group"><SignalTrace data={selectedStock.history} isDetailed={true} /></div>
+                        <div className="h-80 w-full bg-black border border-white/5 rounded-[2.5rem] p-8 relative overflow-hidden group shadow-inner"><SignalTrace data={selectedStock.history} isDetailed={true} /></div>
                         <div className="bg-zinc-900/30 border border-white/5 rounded-[2.5rem] p-10">
                             <div className="flex bg-black/60 p-2 rounded-2xl mb-10 border border-white/5 relative">
                                 <motion.div layoutId="mode-bg" className={`absolute inset-2 w-[calc(50%-8px)] rounded-xl shadow-xl ${tradeMode === 'BUY' ? 'left-2 bg-white' : 'left-[calc(50%+4px)] bg-red-600'}`} transition={{ type: "spring", damping: 25, stiffness: 300 }} />
-                                <button onClick={() => setTradeMode('BUY')} className={`flex-1 py-4 font-black uppercase text-xs tracking-widest italic relative z-10 transition-colors ${tradeMode === 'BUY' ? 'text-black' : 'text-zinc-600 hover:text-white'}`}>Buy Asset</button>
+                                <button onClick={() => setTradeMode('BUY')} className={`flex-1 py-4 font-black uppercase text-xs tracking-widest italic relative z-10 transition-colors ${tradeMode === 'BUY' ? 'text-black' : 'text-zinc-600 hover:text-white'}`}>Purchase Asset</button>
                                 <button onClick={() => setTradeMode('SELL')} className={`flex-1 py-4 font-black uppercase text-xs tracking-widest italic relative z-10 transition-colors ${tradeMode === 'SELL' ? 'text-white' : 'text-zinc-600 hover:text-white'}`}>Sell Asset</button>
                             </div>
                             <div className="space-y-10">
