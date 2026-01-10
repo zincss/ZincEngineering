@@ -40,7 +40,6 @@ export async function login(formData: FormData) {
     return { error: error.message }
   }
 
-  // FORCE the layout to re-fetch the user immediately
   revalidatePath('/', 'layout')
   redirect('/')
 }
@@ -48,7 +47,12 @@ export async function login(formData: FormData) {
 export async function signup(formData: FormData) {
   const email = formData.get('email') as string
   const password = formData.get('password') as string
+  const username = formData.get('username') as string
   const cookieStore = cookies()
+
+  if (!username || username.length < 3) {
+      return { error: "Username must be at least 3 characters." };
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -75,8 +79,11 @@ export async function signup(formData: FormData) {
     email,
     password,
     options: {
-      // Redirect to your callback route after email confirmation
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`, 
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+      data: {
+          username: username,
+          full_name: username,
+      }
     },
   })
 
@@ -84,9 +91,6 @@ export async function signup(formData: FormData) {
     return { error: error.message }
   }
 
-  // Depending on your Supabase settings, this might require email confirmation
-  // or it might log them in immediately.
-  // If immediate login:
-  revalidatePath('/', 'layout')
-  redirect('/')
+  // Redirect to the verification instruction page
+  redirect('/auth/verify')
 }

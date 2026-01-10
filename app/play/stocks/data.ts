@@ -1,4 +1,4 @@
-export type Category = 'TECH' | 'FINANCE' | 'ENERGY' | 'CONSUMER' | 'HEALTH' | 'COMMODITIES';
+export type Category = 'TECH' | 'FINANCE' | 'ENERGY' | 'CONSUMER' | 'HEALTH' | 'COMMODITIES' | 'AEROSPACE';
 
 export interface Company {
   ticker: string;
@@ -7,148 +7,218 @@ export interface Company {
   category: Category;
   basePrice: number;
   volatility: number;
+  // New Fields
+  ceo: string;
+  founded: string;
+  hq: string;
+  employees: string;
+  slogan: string;
+  y2dStatement: string;
 }
 
 const CATEGORIES = {
+  AEROSPACE: [
+    { 
+      n: 'Zinc Aerospace', t: 'ZINC', p: 1250, 
+      d: 'The default option. Reliable, mostly because they own the physics engine.',
+      ceo: 'The Architect', founded: '2024', hq: 'Low Earth Orbit', employees: '42',
+      slogan: 'It Just Works (Mostly)',
+      y2dStatement: '+14.2% // Higher margins due to charging for breathable oxygen in economy class.'
+    },
+    { 
+      n: 'Australian Dynamics', t: 'ADYN', p: 850, 
+      d: 'Spacecraft built like utes. Guaranteed to upside-down in zero-g.',
+      ceo: 'Bruce "Rocket" Mate', founded: '2088', hq: 'Neo-Canberra, Mars', employees: '50,000',
+      slogan: 'She\'ll Be Right',
+      y2dStatement: '-2.4% // Losses attributed to "The Great Kangaroo Infiltration" of the fuel lines.'
+    },
+    { 
+      n: 'Ares-Miltech', t: 'ARES', p: 2100, 
+      d: 'If it doesn\'t have a gun attached, they aren\'t interested. Surprisingly high insurance premiums.',
+      ceo: 'General K. Boom', founded: '2150', hq: 'Phobos Forward Base', employees: 'Classified',
+      slogan: 'Peace Through Superior Firepower',
+      y2dStatement: '+42.0% // Record profits following the "Total Peace" initiative (by blowing everything up).'
+    },
+    { 
+      n: 'Titan Industries', t: 'TITN', p: 600, 
+      d: 'Heavy industrial mining vessels. 0-60 in three business days.',
+      ceo: 'Magnus Steel', founded: '2105', hq: 'Titan (Obviously)', employees: '2.5 Million',
+      slogan: 'We Dig It',
+      y2dStatement: '+5.1% // Growth stagnated as miners discovered "unionization" was more than just a fancy word.'
+    },
+    { 
+      n: 'inTAKE racing', t: 'TAKE', p: 1500, 
+      d: 'Glass cannons with engines. Safety features are sold separately.',
+      ceo: 'Speedy McFast', founded: '2201', hq: 'Lagrange Point 5', employees: '300 (High Turnover)',
+      slogan: 'Brakes Are For Cowards',
+      y2dStatement: '+88% // Revenue up after replacing legal department with a "Don\'t Sue Us" waiver printed on every ticket.'
+    },
+    { 
+      n: 'Orbital Mechanics', t: 'ORB', p: 920, 
+      d: 'Experimental gravity drives. 50% chance of arriving at destination, 50% chance of spaghetti-fication.',
+      ceo: 'Dr. Quantum', founded: '2199', hq: 'The Void', employees: 'Unknown',
+      slogan: 'Physics is a Suggestion',
+      y2dStatement: 'NULL // Financial data currently trapped in a localized singularity. We assume we made money.'
+    },
+    { 
+      n: 'Fishworx Staryard', t: 'FISH', p: 450, 
+      d: 'Budget haulers made from recycled soup cans. Smells faintly of tuna.',
+      ceo: 'Captain Haddock', founded: '2140', hq: 'Europa Depths', employees: '8,000',
+      slogan: 'It Floats... In Space',
+      y2dStatement: '-12% // Significant write-downs after a crate of "Grade A Kelp" turned out to be regular space-trash.'
+    },
+    { 
+      n: 'Marse Movement', t: 'MARS', p: 3200, 
+      d: 'Luxury yachts for the galactic 1%. Gold-plated airlocks standard.',
+      ceo: 'Viscount V. Rich', founded: '2120', hq: 'Olympus Mons Penthouse', employees: '1,000 Artisans',
+      slogan: 'Better Than You',
+      y2dStatement: '+215% // Extremely profitable after launching the "Billionaire Escape Pod" subscription service.'
+    }
+  ],
   TECH: [
-    { n: 'Fruit', t: 'FRT', d: 'Overpriced aluminum rectangles.', p: 180 },
-    { n: 'Microhard', t: 'MHD', d: 'Updating your PC right now.', p: 320 },
-    { n: 'Goggle', t: 'GGL', d: 'We know what you searched.', p: 140 },
-    { n: 'Amazone', t: 'AMZ', d: 'Delivered before you ordered.', p: 130 },
-    { n: 'Faceplant', t: 'FPL', d: 'Selling your data for peanuts.', p: 290 },
-    { n: 'Nvidia', t: 'NVDA', d: 'Graphics cards mining crypto.', p: 450 },
-    { n: 'Tessla', t: 'TSL', d: 'Electric cars with panel gaps.', p: 210 },
-    { n: 'Bintel', t: 'INTC', d: 'Processing heat since 1990.', p: 45 },
-    { n: 'Advancd Micro', t: 'AMD', d: 'Red team rules.', p: 110 },
-    { n: 'Spotifry', t: 'SPOT', d: 'Ads between every song.', p: 160 },
-    { n: 'Snapchat', t: 'SNAP', d: 'Disappearing memories.', p: 15 },
-    { n: 'Uuber', t: 'UBR', d: 'Your driver is here.', p: 65 },
-    { n: 'DoorDash', t: 'DASH', d: 'Cold food, hot fees.', p: 85 },
-    { n: 'Palantir', t: 'PLTR', d: 'Seeing everything.', p: 22 },
-    { n: 'Salesforce', t: 'CRM', d: 'Cloudy with a chance of sales.', p: 250 },
-    { n: 'Adobe', t: 'ADBE', d: 'Subscription required.', p: 550 },
-    { n: 'Oracle', t: 'ORCL', d: 'Lawyers who code.', p: 115 },
-    { n: 'Cisco', t: 'CSCO', d: 'Routers and doubts.', p: 50 },
-    { n: 'IBM', t: 'IBM', d: 'Big Blue Dinosaur.', p: 140 },
-    { n: 'Zoom', t: 'ZM', d: 'You are on mute.', p: 70 },
-    { n: 'Slack', t: 'WORK', d: 'Notification fatigue.', p: 45 },
-    { n: 'Pinterest', t: 'PINS', d: 'Interior design dreams.', p: 30 },
-    { n: 'Reddit', t: 'RDDT', d: 'Front page of the internet.', p: 55 },
-    { n: 'Twitter', t: 'X', d: 'Everything app, apparently.', p: 40 },
-    { n: 'Airbnb', t: 'ABNB', d: 'Cleaning fees included.', p: 145 },
-    { n: 'Roblox', t: 'RBLX', d: 'Oof.', p: 40 },
-    { n: 'Unity', t: 'U', d: 'Made with Unity.', p: 35 },
-    { n: 'Coinbase', t: 'COIN', d: 'To the moon?', p: 180 }
+    { 
+      n: 'Fruit', t: 'FRT', p: 180, 
+      d: 'Selling the same rectangle every year for slightly more money.',
+      ceo: 'Tim Apple', founded: '1976', hq: 'Infinite Loop', employees: '160,000',
+      slogan: 'Think Expensive',
+      y2dStatement: '+12.5% // Profits up after removing the charging port and replacing it with "Wireless Dreams".'
+    },
+    { 
+      n: 'Microhard', t: 'MHD', p: 320, 
+      d: 'Your device will restart in 5 minutes for updates. You cannot stop it.',
+      ceo: 'Satya Nadella', founded: '1975', hq: 'Redmond', employees: '220,000',
+      slogan: 'Updating 99%...',
+      y2dStatement: '+8.2% // Strong earnings from the new "Skip-Update" premium monthly pass.'
+    },
+    { 
+      n: 'Goggle', t: 'GGL', p: 140, 
+      d: 'We canceled that project you liked. Also, we are reading your email.',
+      ceo: 'Sundar Pichai', founded: '1998', hq: 'Mountain View', employees: '180,000',
+      slogan: 'Don\'t Be Evil (Optional)',
+      y2dStatement: '+15.0% // Revenue boosted by "Accidental Click" optimization in mobile search results.'
+    },
+    { 
+      n: 'Amazone', t: 'AMZ', p: 130, 
+      d: 'Delivering packages before you even order them. Bathroom breaks discouraged.',
+      ceo: 'Jeff B.', founded: '1994', hq: 'Seattle', employees: '1.5 Million',
+      slogan: 'Work Hard. Have Fun. Make History.',
+      y2dStatement: '+4.5% // Margin improvement achieved by replacing drivers with sentient drones that don\'t sleep.'
+    },
+    { 
+      n: 'Faceplant', t: 'FPL', p: 290, 
+      d: 'Connecting the world so your uncle can share conspiracy theories.',
+      ceo: 'Mark Z.', founded: '2004', hq: 'Metaverse', employees: '80,000',
+      slogan: 'Move Fast and Break Democracies',
+      y2dStatement: '-55% // Heavy losses in the Metaverse. Marking down "Virtual Leg" development costs.'
+    },
+    { 
+      n: 'Nvidia', t: 'NVDA', p: 450, 
+      d: 'Powering AI overlords and crypto farms. The more you buy, the more you save.',
+      ceo: 'Jensen Huang', founded: '1993', hq: 'Santa Clara', employees: '26,000',
+      slogan: 'The Way It\'s Meant To Be Played',
+      y2dStatement: '+1,240% // Sold out of H100s to a customer who turned out to be just three AI bots in a trench coat.'
+    },
+    { 
+      n: 'Tessla', t: 'TSL', p: 210, 
+      d: 'Self-driving coming "next year" since 2014. Panel gaps included.',
+      ceo: 'Elon M.', founded: '2003', hq: 'Texas', employees: '120,000',
+      slogan: 'S3XY',
+      y2dStatement: '-1.2% // Costs up due to frequent "X" rebranding sessions at 3 AM.'
+    }
   ],
   FINANCE: [
-    { n: 'Goldman Sacks', t: 'GS', d: 'Vampire squid logic.', p: 350 },
-    { n: 'JPMorgue', t: 'JPM', d: 'Too big to fail.', p: 170 },
-    { n: 'Bank of Amer.', t: 'BAC', d: 'Overdraft fees apply.', p: 35 },
-    { n: 'Wells Fargo', t: 'WFC', d: 'Opening accounts for you.', p: 50 },
-    { n: 'Citi', t: 'C', d: 'The city never sleeps.', p: 55 },
-    { n: 'Morgan Stan', t: 'MS', d: 'Wealth management for them.', p: 90 },
-    { n: 'BlackRock', t: 'BLK', d: 'Owning the world.', p: 780 },
-    { n: 'Visa', t: 'V', d: 'Everywhere you want to be.', p: 260 },
-    { n: 'Mastercard', t: 'MA', d: 'Priceless fees.', p: 420 },
-    { n: 'Amex', t: 'AXP', d: 'Don\'t leave home without it.', p: 210 },
-    { n: 'PayPal', t: 'PYPL', d: 'Friendly fraud protection.', p: 60 },
-    { n: 'Block', t: 'SQ', d: 'Blockchain payments.', p: 70 },
-    { n: 'Robinhood', t: 'HOOD', d: 'Gamified losses.', p: 18 },
-    { n: 'Schwab', t: 'SCHW', d: 'Talk to Chuck.', p: 65 },
-    { n: 'Fidelity', t: 'FNF', d: 'Loyal to profits.', p: 45 },
-    { n: 'Berkshire', t: 'BRK', d: 'Oracle of Omaha.', p: 540 },
-    { n: 'S&P Global', t: 'SPGI', d: 'Rating the world.', p: 410 },
-    { n: 'Moody\'s', t: 'MCO', d: 'Mood swings.', p: 380 },
-    { n: 'AIG', t: 'AIG', d: 'Insurance giants.', p: 70 },
-    { n: 'MetLife', t: 'MET', d: 'Snoopy approves.', p: 68 }
+    { 
+      n: 'Goldman Sacks', t: 'GS', p: 350, 
+      d: 'Doing God\'s work, if God charged a 2% management fee.',
+      ceo: 'David Solomon', founded: '1869', hq: 'NYC', employees: '45,000',
+      slogan: 'Money Never Sleeps',
+      y2dStatement: '+22.4% // Record performance after shorting the existence of the middle class.'
+    },
+    { 
+      n: 'JPMorgue', t: 'JPM', p: 170, 
+      d: 'Too big to fail, too rich to care. We own everything anyway.',
+      ceo: 'Jamie Dimon', founded: '2000', hq: 'NYC', employees: '290,000',
+      slogan: 'The House Always Wins',
+      y2dStatement: '+9.8% // Successfully acquired three failing banks for the price of a ham sandwich.'
+    },
+    { 
+      n: 'Visa', t: 'V', p: 260, 
+      d: 'Everywhere you want to be, taking 3% of every transaction.',
+      ceo: 'Ryan McInerney', founded: '1958', hq: 'San Francisco', employees: '26,000',
+      slogan: 'Priceless Fees',
+      y2dStatement: '+11.2% // Profit growth perfectly correlates with your increasing debt.'
+    }
   ],
   ENERGY: [
-    { n: 'Exxon Mobile', t: 'XOM', d: 'Dinosaurs burning dinosaurs.', p: 110 },
-    { n: 'Chevron', t: 'CVX', d: 'Standard Oil legacy.', p: 150 },
-    { n: 'Shell', t: 'SHEL', d: 'Sea shells by the sea shore.', p: 65 },
-    { n: 'BP', t: 'BP', d: 'Beyond Petroleum (Not really).', p: 38 },
-    { n: 'Total', t: 'TTE', d: 'Totally oil.', p: 70 },
-    { n: 'Conoco', t: 'COP', d: 'Drill baby drill.', p: 120 },
-    { n: 'Schlumberger', t: 'SLB', d: 'Big drills.', p: 50 },
-    { n: 'Halliburton', t: 'HAL', d: 'Logistics and crude.', p: 35 },
-    { n: 'Occidental', t: 'OXY', d: 'Western oil.', p: 60 },
-    { n: 'Kinder Morgan', t: 'KMI', d: 'Pipelines everywhere.', p: 18 },
-    { n: 'NextEra', t: 'NEE', d: 'Wind and solar profits.', p: 60 },
-    { n: 'Duke Energy', t: 'DUK', d: 'The royal power.', p: 95 },
-    { n: 'Southern Co', t: 'SO', d: 'Sweet home Alabama.', p: 70 },
-    { n: 'Dominion', t: 'D', d: 'Powering the dominion.', p: 48 },
-    { n: 'Enbridge', t: 'ENB', d: 'Bridge to energy.', p: 36 },
-    { n: 'Valero', t: 'VLO', d: 'Refining margins.', p: 140 },
-    { n: 'Phillips 66', t: 'PSX', d: 'Get your kicks.', p: 130 },
-    { n: 'Marathon', t: 'MPC', d: 'Long run energy.', p: 160 },
-    { n: 'Hess', t: 'HES', d: 'Toy trucks and oil.', p: 145 },
-    { n: 'Devon', t: 'DVN', d: 'Shale revolution.', p: 45 }
+    { 
+      n: 'Exxon Mobile', t: 'XOM', p: 110, 
+      d: 'Melting ice caps for shareholder value since 1870.',
+      ceo: 'Darren Woods', founded: '1999', hq: 'Texas', employees: '62,000',
+      slogan: 'Energy Lives Here (And Dies Here)',
+      y2dStatement: '+18.5% // Record profits. The heat is definitely making us more money.'
+    },
+    { 
+      n: 'Shell', t: 'SHEL', p: 65, 
+      d: 'We are totally green now. Look at this picture of a leaf.',
+      ceo: 'Wael Sawan', founded: '1907', hq: 'London', employees: '90,000',
+      slogan: 'Go Well',
+      y2dStatement: '+14% // Carbon capture offsets successfully captured several million dollars in subsidies.'
+    }
   ],
   CONSUMER: [
-    { n: 'Wal-Mart', t: 'WMT', d: 'Save money. Live better.', p: 160 },
-    { n: 'Target', t: 'TGT', d: 'Expect more. Pay more.', p: 140 },
-    { n: 'Costco', t: 'COST', d: 'Bulk buying frenzy.', p: 720 },
-    { n: 'Home Depot', t: 'HD', d: 'You can do it.', p: 350 },
-    { n: 'Lowes', t: 'LOW', d: 'Blue hardware.', p: 230 },
-    { n: 'McDonalds', t: 'MCD', d: 'I\'m lovin it.', p: 290 },
-    { n: 'Starbucks', t: 'SBUX', d: 'Expensive bean water.', p: 95 },
-    { n: 'Chipotle', t: 'CMG', d: 'Guac is extra.', p: 2800 },
-    { n: 'Nike', t: 'NKE', d: 'Just do it.', p: 100 },
-    { n: 'Adidas', t: 'ADDYY', d: 'Three stripes.', p: 110 },
-    { n: 'Lululemon', t: 'LULU', d: 'Expensive yoga pants.', p: 400 },
-    { n: 'Coca-Cola', t: 'KO', d: 'Open happiness.', p: 60 },
-    { n: 'Pepsi', t: 'PEP', d: 'Is Pepsi okay?', p: 170 },
-    { n: 'Procter', t: 'PG', d: 'Tide pods and razors.', p: 160 },
-    { n: 'Unilever', t: 'UL', d: 'Soap and soup.', p: 50 },
-    { n: 'Nestle', t: 'NSRGY', d: 'Water is not a right.', p: 110 },
-    { n: 'Disney', t: 'DIS', d: 'The Mouse House.', p: 115 },
-    { n: 'Netflix', t: 'NFLX', d: 'Streaming wars.', p: 550 },
-    { n: 'Comcast', t: 'CMCSA', d: 'Customer service hell.', p: 40 },
-    { n: 'Verizon', t: 'VZ', d: 'Can you hear me?', p: 40 }
+    { 
+      n: 'Wal-Mart', t: 'WMT', p: 160, 
+      d: 'Destroying small businesses in a town near you.',
+      ceo: 'Doug McMillon', founded: '1962', hq: 'Arkansas', employees: '2.3 Million',
+      slogan: 'Save Money. Live Better.',
+      y2dStatement: '+3.2% // Gains from self-checkout "efficiency" (making you do the work for free).'
+    },
+    { 
+      n: 'McDonalds', t: 'MCD', p: 290, 
+      d: 'The ice cream machine is broken. Come back tomorrow.',
+      ceo: 'Chris K.', founded: '1940', hq: 'Chicago', employees: '200,000',
+      slogan: 'I\'m Lovin\' It',
+      y2dStatement: '+6.7% // Profit growth led by the new "Ice Cream Machine Repair" premium loyalty tier.'
+    },
+    { 
+      n: 'Starbucks', t: 'SBUX', p: 95, 
+      d: 'Burnt bean water with 80g of sugar for $9.',
+      ceo: 'Laxman N.', founded: '1971', hq: 'Seattle', employees: '400,000',
+      slogan: 'Your Name Spelled Wrong',
+      y2dStatement: '+2.1% // Revenue up after charging $0.50 for "vibes" in city locations.'
+    }
   ],
   HEALTH: [
-    { n: 'Pfizer', t: 'PFE', d: 'Big Pharma.', p: 28 },
-    { n: 'Johnson & J', t: 'JNJ', d: 'Baby powder and vaccines.', p: 155 },
-    { n: 'Merck', t: 'MRK', d: 'Science for life.', p: 125 },
-    { n: 'AbbVie', t: 'ABBV', d: 'Humira profits.', p: 175 },
-    { n: 'Eli Lilly', t: 'LLY', d: 'Weight loss gold.', p: 750 },
-    { n: 'UnitedHealth', t: 'UNH', d: 'Denied claims.', p: 480 },
-    { n: 'CVS Health', t: 'CVS', d: 'Receipts appearing.', p: 75 },
-    { n: 'Moderna', t: 'MRNA', d: 'mRNA revolution.', p: 100 },
-    { n: 'Gilead', t: 'GILD', d: 'Antiviral masters.', p: 65 },
-    { n: 'Amgen', t: 'AMGN', d: 'Biotech giant.', p: 310 },
-    { n: 'Bristol Myers', t: 'BMY', d: 'Serious medicine.', p: 50 },
-    { n: 'Thermo Fisher', t: 'TMO', d: 'Lab equipment.', p: 580 },
-    { n: 'Abbott', t: 'ABT', d: 'Testing testing.', p: 110 },
-    { n: 'Medtronic', t: 'MDT', d: 'Heart beats.', p: 85 },
-    { n: 'Stryker', t: 'SYK', d: 'Medical robots.', p: 340 },
-    { n: 'Intuitive', t: 'ISRG', d: 'Da Vinci surgery.', p: 380 },
-    { n: 'Regeneron', t: 'REGN', d: 'Gene masters.', p: 950 },
-    { n: 'Vertex', t: 'VRTX', d: 'Cystic fibrosis.', p: 420 },
-    { n: 'Biogen', t: 'BIIB', d: 'Brain matters.', p: 220 },
-    { n: 'Cigna', t: 'CI', d: 'Insurance group.', p: 340 }
+    { 
+      n: 'Pfizer', t: 'PFE', p: 28, 
+      d: 'Creating problems and selling the solutions.',
+      ceo: 'Albert Bourla', founded: '1849', hq: 'NYC', employees: '80,000',
+      slogan: 'Science Will Win',
+      y2dStatement: '-15.4% // Losses attributed to everyone accidentally becoming healthy for a week.'
+    },
+    { 
+      n: 'UnitedHealth', t: 'UNH', p: 480, 
+      d: 'Your claim has been denied. Have a nice day.',
+      ceo: 'Andrew Witty', founded: '1977', hq: 'Minnesota', employees: '400,000',
+      slogan: 'Coverage (Terms Apply)',
+      y2dStatement: '+32% // Record earnings after denying 99% of claims for "Excessive Living".'
+    }
   ],
   COMMODITIES: [
-    { n: 'Gold Corp', t: 'GLD', d: 'Shiny rocks.', p: 190 },
-    { n: 'Silver Inc', t: 'SLV', d: 'Poor man\'s gold.', p: 22 },
-    { n: 'Copper Co', t: 'COPX', d: 'Wiring the world.', p: 40 },
-    { n: 'Lithium Ltd', t: 'LIT', d: 'Battery juice.', p: 50 },
-    { n: 'Steel Dyn', t: 'STLD', d: 'Heavy metal.', p: 120 },
-    { n: 'Alcoa', t: 'AA', d: 'Aluminum cans.', p: 35 },
-    { n: 'Freeport', t: 'FCX', d: 'Copper & Gold.', p: 45 },
-    { n: 'Newmont', t: 'NEM', d: 'Gold mining.', p: 35 },
-    { n: 'Barrick', t: 'GOLD', d: 'More gold mining.', p: 16 },
-    { n: 'Rio Tinto', t: 'RIO', d: 'Digging holes.', p: 65 },
-    { n: 'BHP', t: 'BHP', d: 'Big Australian.', p: 60 },
-    { n: 'Vale', t: 'VALE', d: 'Iron ore.', p: 12 },
-    { n: 'Glencore', t: 'GLEN', d: 'Trading everything.', p: 10 },
-    { n: 'Wheat Trust', t: 'WEAT', d: 'Bread basket.', p: 6 },
-    { n: 'Corn Fund', t: 'CORN', d: 'Ethanol fuel.', p: 20 },
-    { n: 'Soybean', t: 'SOYB', d: 'Tofu base.', p: 25 },
-    { n: 'Coffee', t: 'JO', d: 'Morning mud.', p: 50 },
-    { n: 'Sugar', t: 'CANE', d: 'Sweet tooth.', p: 12 },
-    { n: 'Cotton', t: 'BAL', d: 'Fabric of life.', p: 80 },
-    { n: 'Water', t: 'PHO', d: 'Liquid gold.', p: 55 }
+    { 
+      n: 'Gold Corp', t: 'GLD', p: 190, 
+      d: 'It\'s shiny and heavy. That makes it valuable, apparently.',
+      ceo: 'King Midas', founded: 'Ancient', hq: 'Vault 101', employees: 'Miners',
+      slogan: 'Shiny Rock Good',
+      y2dStatement: '+0.5% // Flat growth. Still just a rock.'
+    },
+    { 
+      n: 'Lithium Ltd', t: 'LIT', p: 50, 
+      d: 'Powering your phone until it explodes.',
+      ceo: 'Elon M. (Probably)', founded: '2010', hq: 'Salt Flats', employees: 'Robots',
+      slogan: 'Charge It',
+      y2dStatement: '+45.2% // Skyrocketing demand for batteries that last exactly 366 days.'
+    }
   ]
 };
 
@@ -159,6 +229,12 @@ export const COMPANIES: Company[] = Object.entries(CATEGORIES).flatMap(([cat, li
     description: c.d,
     basePrice: c.p,
     category: cat as Category,
-    volatility: 0.08 + Math.random() * 0.15 
+    volatility: 0.08 + Math.random() * 0.15,
+    ceo: c.ceo,
+    founded: c.founded,
+    hq: c.hq,
+    employees: c.employees,
+    slogan: c.slogan,
+    y2dStatement: c.y2dStatement
   }))
 );

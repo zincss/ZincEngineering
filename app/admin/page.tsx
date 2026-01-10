@@ -1,536 +1,303 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/app/context/AuthContext';
-import { supabase } from '@/lib/supabaseClient';
-import { Shield, Users, Coins, Save, Lock, Search, AlertTriangle, Database, Image as ImageIcon, X, ChevronLeft, ChevronRight, DownloadCloud, Loader2, Sparkles, Brain, RefreshCw, RotateCcw } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { 
+  Users, Shield, Coins, Search, Edit2, Check, X, 
+  Activity, Database, Terminal, AlertTriangle, Zap, RefreshCw, Trash2 
+} from 'lucide-react';
+import { getAdminData, updateUserCredits, updateUserRole, distributeStimulus, resetEconomy, clearSystemCache } from './actions';
 import { useRouter } from 'next/navigation';
-import { REEL_ITEMS_SOURCE, CAR_PACK_SOURCE, GRIDIRON_PACK_SOURCE, RealAssetImage } from '@/app/market/components/shared';
-import { getDailyWords } from '@/app/play/cyphers/lib';
 
 export default function AdminPage() {
-  const { user, profile, isAdmin, loading: authLoading } = useAuth();
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [confirmAction, setConfirmAction] = useState<{ type: string, action: () => Promise<any> } | null>(null);
+  const [error, setError] = useState('');
+  const [processing, setProcessing] = useState(false);
   const router = useRouter();
 
-  const [activeTab, setActiveTab] = useState<'USERS' | 'ASSETS' | 'CYPHERS'>('USERS');
-
-  // Dashboard State
-  const [allUsers, setAllUsers] = useState<any[]>([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  
-  // Asset Management State
-  const [assetSearch, setAssetSearch] = useState('');
-  const [selectedPack, setSelectedPack] = useState<'BASE' | 'CARS' | 'GRIDIRON'>('GRIDIRON');
-  const [overrides, setOverrides] = useState<Record<string, string>>({});
-  
-  // Edit Modal State
-  const [editingItem, setEditingItem] = useState<any | null>(null);
-  const [newImageUrl, setNewImageUrl] = useState('');
-  
-  // Image Fetcher State
-  const [fetchQuery, setFetchQuery] = useState('');
-  const [fetchedImages, setFetchedImages] = useState<string[]>([]);
-  const [currentFetchIndex, setCurrentFetchIndex] = useState(0);
-  const [loadingImages, setLoadingImages] = useState(false);
-
-  // Password Change State
-  const [newPassword, setNewPassword] = useState('');
-  const [passwordMsg, setPasswordMsg] = useState('');
-
-  // Cypher Manager State
-  const [cypherOffset, setCypherOffset] = useState(0);
-  const [currentCyphers, setCurrentCyphers] = useState<any>(null);
-
   useEffect(() => {
-    if (!authLoading) {
-      if (!isAdmin) {
-        router.push('/'); 
-      } else {
-        fetchUsers();
-        fetchOverrides();
-        fetchCypherConfig();
-      }
-    }
-  }, [isAdmin, authLoading, router]);
+    loadData();
+  }, []);
 
-  // Reset fetcher when opening modal
-  useEffect(() => {
-    if (editingItem) {
-        setFetchQuery(editingItem.name);
-        setFetchedImages([]);
-        setCurrentFetchIndex(0);
-    }
-  }, [editingItem]);
-
-  // Recalculate cyphers whenever offset changes locally (preview)
-  useEffect(() => {
-    const words = getDailyWords(cypherOffset);
-    setCurrentCyphers(words);
-  }, [cypherOffset]);
-
-  const fetchUsers = async () => {
-    setLoadingUsers(true);
-    const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false } as any);
-    if (data) setAllUsers(data);
-    setLoadingUsers(false);
-  };
-
-  const fetchOverrides = async () => {
-      const { data } = await supabase.from('asset_overrides').select('*');
-      if (data) {
-          const map: Record<string, string> = {};
-          data.forEach((item: any) => { map[item.name] = item.image_url });
-          setOverrides(map);
-      }
-  };
-
-  const fetchCypherConfig = async () => {
-      // Assuming we store a 'cypher_offset' in a table (e.g., app_config or similar)
-      // For now, we utilize 'asset_overrides' as a generic kv store if needed, 
-      // or assume a 'game_config' table exists. 
-      // Note: User requested implementation, assuming we can use 'asset_overrides' 
-      // with a reserved key to avoid migration complexity for them, 
-      // OR a dedicated table 'game_settings'.
-      
-      // Let's use 'asset_overrides' with a special key 'CYPHER_OFFSET' for simplest integration
-      const { data } = await supabase.from('asset_overrides').select('*').eq('name', 'CYPHER_OFFSET').single();
-      if (data && data.image_url) {
-          const offset = parseInt(data.image_url);
-          if (!isNaN(offset)) setCypherOffset(offset);
-      }
-  };
-
-  const saveCypherOffset = async (newOffset: number) => {
-      const { error } = await supabase
-        .from('asset_overrides')
-        .upsert({ name: 'CYPHER_OFFSET', image_url: newOffset.toString() });
-      
-      if (error) {
-          alert("Failed to update cypher offset.");
-      } else {
-          setCypherOffset(newOffset);
-          alert("Cyphers Updated. Players will see new words on refresh.");
-      }
-  };
-
-  const handleUpdateCredits = async (userId: string, currentCredits: number, amountToAdd: number) => {
-    const newTotal = currentCredits + amountToAdd;
-    setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, credits: newTotal } : u));
-    const { error } = await supabase.from('profiles').update({ credits: newTotal }).eq('id', userId);
-    if (error) { alert('Failed: ' + error.message); fetchUsers(); }
-  };
-
-  const handleChangePassword = async () => {
-    if (newPassword.length < 6) { setPasswordMsg("Password must be 6+ characters."); return; }
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) setPasswordMsg("Error: " + error.message);
-    else { setPasswordMsg("Success! Password updated."); setNewPassword(''); }
-  };
-
-  const handleSaveAsset = async () => {
-      if (!editingItem || !newImageUrl) return;
-      
-      const { error } = await supabase
-        .from('asset_overrides')
-        .upsert({ name: editingItem.name, image_url: newImageUrl });
-
-      if (error) {
-          alert('Error saving asset: ' + error.message);
-      } else {
-          setOverrides(prev => ({ ...prev, [editingItem.name]: newImageUrl }));
-          setEditingItem(null);
-          setNewImageUrl('');
-          setFetchedImages([]);
-      }
-  };
-
-  const handleFetchImages = async (overrideQuery?: string) => {
-    const queryToUse = overrideQuery || fetchQuery;
-    if (!queryToUse) return;
-    
-    setLoadingImages(true);
-    setFetchedImages([]);
-    
-    try {
-        const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(queryToUse)}&gsrlimit=20&prop=imageinfo&iiprop=url&format=json&origin=*`);
-        const data = await res.json();
-        
-        const images: string[] = [];
-        if (data.query?.pages) {
-            Object.values(data.query.pages).forEach((page: any) => {
-                if (page.imageinfo && page.imageinfo[0]?.url) {
-                    images.push(page.imageinfo[0].url);
-                }
-            });
+  const loadData = async () => {
+    const res = await getAdminData();
+    if (res.error) {
+        setError(res.error);
+        if (res.error === 'Unauthorized' || res.error === 'Forbidden') {
+            router.push('/');
         }
-
-        if (images.length > 0) {
-            setFetchedImages(images);
-            setCurrentFetchIndex(0);
-            setNewImageUrl(images[0]); 
-        } else {
-            alert("No images found for this query.");
-        }
-    } catch (err) {
-        console.error(err);
-        alert("Failed to fetch images.");
-    } finally {
-        setLoadingImages(false);
+    } else {
+        setData(res);
     }
+    setLoading(false);
   };
 
-  const cycleImage = (direction: 'next' | 'prev') => {
-      if (fetchedImages.length === 0) return;
-      let newIndex = direction === 'next' ? currentFetchIndex + 1 : currentFetchIndex - 1;
-      
-      if (newIndex >= fetchedImages.length) newIndex = 0;
-      if (newIndex < 0) newIndex = fetchedImages.length - 1;
-
-      setCurrentFetchIndex(newIndex);
-      setNewImageUrl(fetchedImages[newIndex]);
+  const handleSaveUser = async () => {
+      if (!editingUser) return;
+      await updateUserCredits(editingUser.id, editingUser.credits);
+      await updateUserRole(editingUser.id, editingUser.role);
+      setEditingUser(null);
+      loadData();
   };
 
-  const getSuggestedSearches = () => {
-      if (!editingItem) return [];
-      const base = editingItem.name;
-      const suggestions = [base];
-
-      if (selectedPack === 'GRIDIRON') {
-          const team = editingItem.team ? editingItem.team.split('/')[0] : '';
-          if (team) suggestions.push(`${base} ${team}`);
-          suggestions.push(`${base} NFL`);
-          suggestions.push(`${base} american football`);
-      } else if (selectedPack === 'CARS') {
-          if (editingItem.manufacturer) suggestions.push(`${editingItem.manufacturer} ${base}`);
-          suggestions.push(`${base} car`);
+  const executeAction = async () => {
+      if (!confirmAction) return;
+      setProcessing(true);
+      const res = await confirmAction.action();
+      setProcessing(false);
+      setConfirmAction(null);
+      if (res.success) {
+          loadData();
+          alert('Operation Successful');
       } else {
-          suggestions.push(`${base} object`);
-          suggestions.push(`${base} icon`);
+          alert('Operation Failed: ' + res.error);
       }
-      return Array.from(new Set(suggestions));
   };
 
-  const getSource = () => {
-      if (selectedPack === 'BASE') return REEL_ITEMS_SOURCE;
-      if (selectedPack === 'CARS') return CAR_PACK_SOURCE;
-      return GRIDIRON_PACK_SOURCE;
-  };
+  if (loading) return <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-[#DFFF00] font-mono animate-pulse">INITIALIZING_ADMIN_UPLINK...</div>;
+  if (error) return <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-red-500 font-mono">ACCESS_DENIED: {error}</div>;
 
-  const filteredAssets = getSource().filter(item => item.name.toLowerCase().includes(assetSearch.toLowerCase()));
-  const filteredUsers = allUsers.filter(u => u.username?.toLowerCase().includes(searchTerm.toLowerCase()));
-
-  if (authLoading || !isAdmin) return <div className="min-h-screen bg-black flex items-center justify-center text-[#DFFF00] font-mono animate-pulse">VERIFYING CLEARANCE...</div>;
+  const filteredUsers = data?.profiles.filter((p: any) => 
+    p.username?.toLowerCase().includes(search.toLowerCase()) || 
+    p.id.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white pb-20 md:pb-0">
-      <div className="max-w-7xl mx-auto p-4 md:p-12 md:pt-32 pt-24">
-        
-        {/* HEADER */}
-        <div className="flex flex-col md:flex-row items-center gap-4 mb-8 md:mb-12 border-b border-zinc-800 pb-8 text-center md:text-left">
-            <div className="p-4 bg-red-900/20 border border-red-500 rounded-2xl">
-                <Shield size={32} className="text-red-500 md:w-12 md:h-12" />
-            </div>
-            <div>
-                <div className="text-red-500 font-mono text-[10px] md:text-xs font-bold uppercase tracking-widest mb-1">Restricted Area</div>
-                <h1 className="text-2xl md:text-5xl font-black uppercase">Command Console</h1>
-                <p className="text-zinc-500 font-mono text-xs md:text-sm">Welcome, Admin {profile?.username}</p>
-            </div>
-        </div>
+    <div className="min-h-screen bg-zinc-950 text-white font-sans selection:bg-[#DFFF00] selection:text-black">
+      <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] pointer-events-none" />
+      
+      {/* HEADER */}
+      <header className="fixed top-0 left-0 right-0 h-20 bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-800 z-50 flex items-center justify-between px-8">
+          <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center text-red-500 border border-red-500/20">
+                  <Shield size={20} />
+              </div>
+              <div>
+                  <h1 className="text-xl font-black uppercase tracking-tighter text-white">Zinc<span className="text-red-500">Admin</span></h1>
+                  <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">System_Root_Access</p>
+              </div>
+          </div>
+          <div className="flex items-center gap-6">
+              <div className="hidden md:flex items-center gap-2 text-xs font-mono text-zinc-500">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  SYSTEM_ONLINE
+              </div>
+          </div>
+      </header>
 
-        {/* MOBILE NAV TABS */}
-        <div className="flex overflow-x-auto gap-2 md:gap-4 mb-8 pb-2 scrollbar-hide">
-            {[
-                { id: 'USERS', icon: Users, label: 'Database' },
-                { id: 'ASSETS', icon: Database, label: 'Assets' },
-                { id: 'CYPHERS', icon: Brain, label: 'Cyphers' }
-            ].map((tab) => (
-                <button 
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)} 
-                    className={`
-                        flex items-center gap-2 px-4 md:px-6 py-3 rounded-lg font-bold uppercase tracking-wider text-[10px] md:text-xs border transition-all whitespace-nowrap
-                        ${activeTab === tab.id ? 'bg-white text-black border-white' : 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:text-white'}
-                    `}
-                >
-                    <tab.icon size={14} />
-                    {tab.label}
-                </button>
-            ))}
-        </div>
+      <main className="pt-32 pb-20 px-6 max-w-[1600px] mx-auto space-y-12">
+          
+          {/* STATS GRID */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 p-6 text-zinc-800 group-hover:text-zinc-700 transition-colors"><Users size={64} /></div>
+                  <div className="relative z-10">
+                      <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Total Operators</div>
+                      <div className="text-5xl font-black text-white">{data.stats.totalUsers}</div>
+                  </div>
+              </div>
+              <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 p-6 text-zinc-800 group-hover:text-zinc-700 transition-colors"><Coins size={64} /></div>
+                  <div className="relative z-10">
+                      <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Global Economy</div>
+                      <div className="text-5xl font-black text-[#DFFF00]">{data.stats.totalEconomy.toLocaleString()} <span className="text-lg text-zinc-500">CR</span></div>
+                  </div>
+              </div>
+              <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 p-6 text-zinc-800 group-hover:text-zinc-700 transition-colors"><Activity size={64} /></div>
+                  <div className="relative z-10">
+                      <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Avg. Net Worth</div>
+                      <div className="text-5xl font-black text-white">{data.stats.averageWealth.toLocaleString()} <span className="text-lg text-zinc-500">CR</span></div>
+                  </div>
+              </div>
+          </div>
 
-        {activeTab === 'USERS' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* USER MANAGEMENT */}
-                <div className="lg:col-span-2 space-y-6">
-                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                        <h2 className="text-lg md:text-xl font-black uppercase flex items-center gap-2">
-                            <Users className="text-[#DFFF00]" /> User Database
-                        </h2>
-                        <div className="relative w-full md:w-auto">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={14} />
-                            <input type="text" placeholder="SEARCH USERS..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg pl-9 pr-4 py-2 text-xs font-mono uppercase focus:border-[#DFFF00] outline-none"
-                            />
-                        </div>
-                    </div>
+          {/* SYSTEM OPERATIONS TOOLKIT */}
+          <div>
+              <div className="flex items-center gap-3 mb-6">
+                  <Terminal size={20} className="text-[#DFFF00]" />
+                  <h2 className="text-lg font-black uppercase tracking-tight text-white">System Operations</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Stimulus Tool */}
+                  <button 
+                    onClick={() => setConfirmAction({ type: 'STIMULUS', action: () => distributeStimulus(5000) })}
+                    className="group bg-zinc-900 border border-zinc-800 hover:border-[#DFFF00] p-6 rounded-2xl text-left transition-all"
+                  >
+                      <div className="flex justify-between items-start mb-4">
+                          <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-xl group-hover:bg-emerald-500 group-hover:text-black transition-colors"><Coins size={24} /></div>
+                          <Zap size={16} className="text-zinc-600 group-hover:text-[#DFFF00]" />
+                      </div>
+                      <h3 className="text-lg font-black text-white uppercase tracking-tight mb-1">Global Stimulus</h3>
+                      <p className="text-xs text-zinc-500">Airdrop 5,000 CR to all registered operators.</p>
+                  </button>
 
-                    {/* MOBILE CARD VIEW */}
-                    <div className="block md:hidden space-y-3">
-                        {filteredUsers.map(u => (
-                            <div key={u.id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-                                <div className="flex justify-between items-start mb-2">
-                                    <div className="font-bold">{u.username || 'Unknown'}</div>
-                                    <span className={`text-[10px] px-2 py-1 rounded border ${u.role === 'admin' ? 'border-red-500 text-red-500 bg-red-950/20' : 'border-zinc-700 text-zinc-500'}`}>{u.role || 'USER'}</span>
-                                </div>
-                                <div className="text-xs font-mono text-[#DFFF00] mb-4">{u.credits} Credits</div>
-                                <div className="flex gap-2 justify-end">
-                                    <button onClick={() => handleUpdateCredits(u.id, u.credits, 100)} className="p-2 bg-zinc-800 hover:bg-[#DFFF00] hover:text-black rounded transition-colors"><Coins size={14} /> +100</button>
-                                    <button onClick={() => handleUpdateCredits(u.id, u.credits, 1000)} className="p-2 bg-zinc-800 hover:bg-[#DFFF00] hover:text-black rounded transition-colors"><Coins size={14} /> +1k</button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                  {/* Cache Purge */}
+                  <button 
+                    onClick={() => setConfirmAction({ type: 'PURGE', action: () => clearSystemCache() })}
+                    className="group bg-zinc-900 border border-zinc-800 hover:border-blue-500 p-6 rounded-2xl text-left transition-all"
+                  >
+                      <div className="flex justify-between items-start mb-4">
+                          <div className="p-3 bg-blue-500/10 text-blue-500 rounded-xl group-hover:bg-blue-500 group-hover:text-white transition-colors"><RefreshCw size={24} /></div>
+                          <Activity size={16} className="text-zinc-600 group-hover:text-blue-500" />
+                      </div>
+                      <h3 className="text-lg font-black text-white uppercase tracking-tight mb-1">System Purge</h3>
+                      <p className="text-xs text-zinc-500">Force revalidate global cache and update stats.</p>
+                  </button>
 
-                    {/* DESKTOP TABLE VIEW */}
-                    <div className="hidden md:block bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden">
-                        <table className="w-full text-left text-sm">
-                            <thead className="bg-zinc-900 text-zinc-500 font-mono text-[10px] uppercase tracking-widest">
-                                <tr><th className="p-4">User</th><th className="p-4">Role</th><th className="p-4">Credits</th><th className="p-4 text-right">Actions</th></tr>
-                            </thead>
-                            <tbody className="divide-y divide-zinc-800">
-                                {filteredUsers.map(u => (
-                                    <tr key={u.id} className="hover:bg-zinc-900/80 transition-colors">
-                                        <td className="p-4 font-bold">{u.username || 'Unknown'}</td>
-                                        <td className="p-4"><span className={`text-[10px] px-2 py-1 rounded border ${u.role === 'admin' ? 'border-red-500 text-red-500 bg-red-950/20' : 'border-zinc-700 text-zinc-500'}`}>{u.role || 'USER'}</span></td>
-                                        <td className="p-4 font-mono text-[#DFFF00]">{u.credits}</td>
-                                        <td className="p-4 flex justify-end gap-2">
-                                            <button onClick={() => handleUpdateCredits(u.id, u.credits, 100)} className="p-2 bg-zinc-800 hover:bg-[#DFFF00] hover:text-black rounded transition-colors"><Coins size={14} /> +100</button>
-                                            <button onClick={() => handleUpdateCredits(u.id, u.credits, 1000)} className="p-2 bg-zinc-800 hover:bg-[#DFFF00] hover:text-black rounded transition-colors"><Coins size={14} /> +1k</button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                  {/* Economy Reset */}
+                  <button 
+                    onClick={() => setConfirmAction({ type: 'RESET', action: () => resetEconomy(1000) })}
+                    className="group bg-zinc-900 border border-zinc-800 hover:border-red-500 p-6 rounded-2xl text-left transition-all"
+                  >
+                      <div className="flex justify-between items-start mb-4">
+                          <div className="p-3 bg-red-500/10 text-red-500 rounded-xl group-hover:bg-red-500 group-hover:text-white transition-colors"><Trash2 size={24} /></div>
+                          <AlertTriangle size={16} className="text-zinc-600 group-hover:text-red-500" />
+                      </div>
+                      <h3 className="text-lg font-black text-white uppercase tracking-tight mb-1">Economy Reset</h3>
+                      <p className="text-xs text-zinc-500">Wipe all balances to default (1,000 CR). Danger!</p>
+                  </button>
+              </div>
+          </div>
 
-                {/* TOOLS */}
-                <div className="space-y-6">
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-                        <h2 className="text-lg font-black uppercase flex items-center gap-2 mb-4"><Lock className="text-red-500" size={18} /> Admin Security</h2>
-                        <div className="space-y-3">
-                            <input type="password" placeholder="NEW PASSWORD" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full bg-black border border-zinc-700 p-3 rounded text-sm font-mono focus:border-red-500 outline-none" />
-                            <button onClick={handleChangePassword} className="w-full bg-red-600 hover:bg-red-500 text-white font-bold uppercase py-3 rounded text-xs tracking-widest transition-colors">Update Password</button>
-                            {passwordMsg && <div className="text-[10px] font-mono text-[#DFFF00] text-center pt-2">{passwordMsg}</div>}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        )}
+          {/* USER MANAGEMENT */}
+          <div className="bg-zinc-900/50 border border-zinc-800 rounded-3xl overflow-hidden">
+              <div className="p-6 border-b border-zinc-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div className="flex items-center gap-3">
+                      <Database size={20} className="text-zinc-500" />
+                      <h2 className="text-lg font-black uppercase tracking-tight text-white">User Database</h2>
+                  </div>
+                  <div className="relative w-full md:w-96">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+                      <input 
+                        type="text" 
+                        placeholder="SEARCH_OPERATOR_ID..." 
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-3 pl-10 pr-4 text-xs font-mono text-white focus:border-[#DFFF00] outline-none transition-colors"
+                      />
+                  </div>
+              </div>
 
-        {activeTab === 'CYPHERS' && (
-            <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="text-center mb-8">
-                    <Brain className="w-16 h-16 text-[#DFFF00] mx-auto mb-4" />
-                    <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight">Cypher Control</h2>
-                    <p className="text-zinc-500">Manipulate the daily protocol seed.</p>
-                </div>
+              <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                      <thead>
+                          <tr className="bg-zinc-950 text-zinc-500 text-[10px] uppercase font-bold tracking-widest border-b border-zinc-800">
+                              <th className="p-6">Operator</th>
+                              <th className="p-6">Role</th>
+                              <th className="p-6">Credits</th>
+                              <th className="p-6 text-right">Actions</th>
+                          </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-800 text-sm">
+                          {filteredUsers.map((user: any) => (
+                              <tr key={user.id} className="hover:bg-zinc-800/50 transition-colors group">
+                                  <td className="p-6">
+                                      <div className="font-bold text-white">{user.username || 'Unknown'}</div>
+                                      <div className="text-[10px] font-mono text-zinc-600">{user.id}</div>
+                                  </td>
+                                  <td className="p-6">
+                                      <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest border ${user.role === 'admin' || user.role === 'owner' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-zinc-800 text-zinc-400 border-zinc-700'}`}>
+                                          {user.role || 'user'}
+                                      </span>
+                                  </td>
+                                  <td className="p-6 font-mono text-[#DFFF00] font-bold">
+                                      {user.credits.toLocaleString()} CR
+                                  </td>
+                                  <td className="p-6 text-right">
+                                      <button 
+                                        onClick={() => setEditingUser(user)}
+                                        className="p-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-400 hover:text-white hover:border-zinc-600 transition-all"
+                                      >
+                                          <Edit2 size={14} />
+                                      </button>
+                                  </td>
+                              </tr>
+                          ))}
+                      </tbody>
+                  </table>
+              </div>
+          </div>
 
-                <div className="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-6 md:p-8">
-                    <div className="flex flex-col gap-8">
-                        {/* CURRENT STATUS */}
-                        <div>
-                            <div className="text-zinc-500 font-mono text-xs uppercase tracking-widest mb-4">Current Protocol</div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                {['word4', 'word5', 'word6'].map((key) => (
-                                    <div key={key} className="bg-black border border-zinc-800 p-4 rounded-xl text-center">
-                                        <div className="text-[10px] text-zinc-600 font-bold uppercase mb-1">{key.replace('word', 'Level ')}</div>
-                                        <div className="text-xl md:text-2xl font-black text-[#DFFF00] tracking-widest">
-                                            {currentCyphers?.[key] || '....'}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+      </main>
 
-                        {/* CONTROLS */}
-                        <div className="border-t border-zinc-800 pt-8">
-                            <div className="text-zinc-500 font-mono text-xs uppercase tracking-widest mb-4">Override Controls</div>
-                            
-                            <div className="flex flex-col gap-4">
-                                <div className="p-4 bg-zinc-950 rounded-xl border border-zinc-800 flex items-center justify-between">
-                                    <span className="font-mono text-sm">Current Offset</span>
-                                    <span className="font-black text-xl text-white">{cypherOffset}</span>
-                                </div>
-                                
-                                <div className="grid grid-cols-2 gap-4">
-                                    <button 
-                                        onClick={() => saveCypherOffset(cypherOffset + 1)}
-                                        className="bg-[#DFFF00] text-black font-bold p-4 rounded-xl flex items-center justify-center gap-2 hover:bg-[#ccee00] transition-colors"
-                                    >
-                                        <RefreshCw size={18} /> Regenerate
-                                    </button>
-                                    <button 
-                                        onClick={() => saveCypherOffset(0)}
-                                        className="bg-zinc-800 text-white font-bold p-4 rounded-xl flex items-center justify-center gap-2 hover:bg-zinc-700 transition-colors"
-                                    >
-                                        <RotateCcw size={18} /> Reset Default
-                                    </button>
-                                </div>
-                                <p className="text-[10px] text-zinc-500 text-center mt-2">
-                                    Clicking Regenerate increments the daily seed offset, instantly changing words for all users upon their next refresh.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        )}
+      {/* CONFIRMATION MODAL */}
+      {confirmAction && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
+              <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-8 w-full max-w-sm shadow-2xl relative text-center">
+                  <div className="w-16 h-16 bg-zinc-900 rounded-2xl mx-auto mb-6 flex items-center justify-center border border-zinc-800">
+                      <AlertTriangle size={32} className="text-red-500" />
+                  </div>
+                  <h3 className="text-xl font-black uppercase tracking-tighter text-white mb-2">Confirm Protocol</h3>
+                  <p className="text-xs text-zinc-500 mb-8 px-4">
+                      Are you sure you want to execute <span className="text-white font-bold">{confirmAction.type}</span>? This action affects the global system.
+                  </p>
+                  
+                  <div className="flex gap-4">
+                      <button onClick={() => setConfirmAction(null)} className="flex-1 py-4 bg-zinc-900 text-zinc-400 font-bold uppercase tracking-widest rounded-xl hover:text-white transition-colors">Abort</button>
+                      <button 
+                        onClick={executeAction} 
+                        disabled={processing}
+                        className="flex-1 py-4 bg-red-600 text-white font-black uppercase tracking-widest rounded-xl hover:bg-red-500 transition-colors flex items-center justify-center gap-2"
+                      >
+                          {processing ? <RefreshCw className="animate-spin" size={16} /> : 'Execute'}
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
 
-        {activeTab === 'ASSETS' && (
-            <div className="space-y-6">
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <div className="flex flex-wrap gap-2">
-                        {['BASE', 'CARS', 'GRIDIRON'].map(pack => (
-                            <button key={pack} onClick={() => setSelectedPack(pack as any)} className={`px-4 py-2 rounded font-bold uppercase text-[10px] md:text-xs border ${selectedPack === pack ? 'bg-[#DFFF00] text-black border-[#DFFF00]' : 'bg-zinc-900 text-zinc-500 border-zinc-800'}`}>
-                                {pack}
-                            </button>
-                        ))}
-                    </div>
-                    <div className="relative w-full md:w-auto">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={14} />
-                        <input type="text" placeholder="SEARCH ASSETS..." value={assetSearch} onChange={(e) => setAssetSearch(e.target.value)}
-                            className="w-full md:w-[300px] bg-zinc-900 border border-zinc-800 rounded-lg pl-9 pr-4 py-2 text-xs font-mono uppercase focus:border-[#DFFF00] outline-none"
-                        />
-                    </div>
-                </div>
+      {/* EDIT MODAL */}
+      {editingUser && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+              <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-8 w-full max-w-md shadow-2xl relative">
+                  <h3 className="text-xl font-black uppercase tracking-tighter text-white mb-6 flex items-center gap-3">
+                      <Terminal size={24} className="text-[#DFFF00]" />
+                      Edit Operator
+                  </h3>
+                  
+                  <div className="space-y-6">
+                      <div>
+                          <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Username</label>
+                          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-zinc-400 text-sm font-mono">{editingUser.username}</div>
+                      </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
-                    {filteredAssets.map((item, i) => (
-                        <div key={i} className="group relative bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden cursor-pointer hover:border-[#DFFF00] transition-colors"
-                             onClick={() => { setEditingItem(item); setNewImageUrl(overrides[item.name] || ''); }}>
-                            <div className="aspect-[2/3] w-full relative">
-                                <RealAssetImage name={item.name} searchQuery={item.searchQuery || item.name} className="w-full h-full object-cover" forcedUrl={overrides[item.name]} />
-                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                    <div className="bg-[#DFFF00] text-black text-xs font-bold px-3 py-1 rounded">EDIT</div>
-                                </div>
-                            </div>
-                            <div className="p-3">
-                                <div className="text-[10px] text-zinc-500 font-mono mb-1 uppercase truncate">{item.rarity}</div>
-                                <div className="text-xs font-bold truncate">{item.name}</div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        )}
+                      <div>
+                          <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Credit Balance</label>
+                          <input 
+                            type="number" 
+                            value={editingUser.credits} 
+                            onChange={(e) => setEditingUser({...editingUser, credits: parseInt(e.target.value)})}
+                            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-white font-mono outline-none focus:border-[#DFFF00]"
+                          />
+                      </div>
 
-        {/* EDIT MODAL */}
-        {editingItem && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl p-6 relative flex flex-col md:flex-row gap-6 max-h-[90vh] overflow-y-auto">
-                    <button onClick={() => setEditingItem(null)} className="absolute top-4 right-4 text-zinc-500 hover:text-white z-10"><X size={20} /></button>
-                    
-                    {/* LEFT: PREVIEW */}
-                    <div className="w-full md:w-1/3 flex flex-col gap-4">
-                        <div className="aspect-[2/3] rounded-xl overflow-hidden border border-zinc-700 relative bg-black shrink-0">
-                             {newImageUrl ? (
-                                <img src={newImageUrl} className="w-full h-full object-cover" onError={() => setNewImageUrl('')} />
-                             ) : (
-                                <div className="flex items-center justify-center h-full text-zinc-600 text-[10px] uppercase">No Image Preview</div>
-                             )}
-                        </div>
-                        <div className="text-center">
-                            <div className="text-lg font-bold">{editingItem.name}</div>
-                            <div className="text-[10px] text-zinc-500 font-mono uppercase">{editingItem.rarity}</div>
-                        </div>
-                    </div>
+                      <div>
+                          <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Security Clearance</label>
+                          <select 
+                            value={editingUser.role || 'user'}
+                            onChange={(e) => setEditingUser({...editingUser, role: e.target.value})}
+                            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-white font-mono outline-none focus:border-[#DFFF00]"
+                          >
+                              <option value="user">USER</option>
+                              <option value="admin">ADMIN</option>
+                              <option value="owner">OWNER</option>
+                          </select>
+                      </div>
+                  </div>
 
-                    {/* RIGHT: CONTROLS */}
-                    <div className="w-full md:w-2/3 space-y-6">
-                        <div>
-                            <h3 className="text-xl font-black uppercase mb-1 flex items-center gap-2">
-                                <Database className="text-[#DFFF00]" /> Edit Asset
-                            </h3>
-                            <p className="text-xs text-zinc-500">Update the visual representation of this asset.</p>
-                        </div>
-
-                        {/* AUTO FETCH SECTION */}
-                        <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800">
-                            <div className="flex justify-between items-center mb-2">
-                                <label className="text-[10px] font-mono text-zinc-400 uppercase flex items-center gap-1">
-                                    <DownloadCloud size={10} /> Auto-Fetch Images
-                                </label>
-                                {fetchedImages.length > 0 && (
-                                    <span className="text-[10px] text-[#DFFF00] font-mono">
-                                        {currentFetchIndex + 1}/{fetchedImages.length} Found
-                                    </span>
-                                )}
-                            </div>
-                            
-                            <div className="flex gap-2 mb-3">
-                                <input 
-                                    type="text" 
-                                    value={fetchQuery} 
-                                    onChange={(e) => setFetchQuery(e.target.value)}
-                                    className="flex-1 bg-zinc-900 border border-zinc-700 px-3 py-2 rounded text-xs focus:border-[#DFFF00] outline-none"
-                                />
-                                <button 
-                                    onClick={() => handleFetchImages()} 
-                                    disabled={loadingImages}
-                                    className="px-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded border border-zinc-700"
-                                >
-                                    {loadingImages ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
-                                </button>
-                            </div>
-
-                            {/* SUGGESTIONS */}
-                            <div className="flex flex-wrap gap-2 mb-3">
-                                {getSuggestedSearches().map((query, i) => (
-                                    <button 
-                                        key={i} 
-                                        onClick={() => { setFetchQuery(query); handleFetchImages(query); }}
-                                        className="text-[10px] px-2 py-1 bg-zinc-900 hover:bg-[#DFFF00] hover:text-black border border-zinc-800 rounded transition-colors"
-                                    >
-                                        <div className="flex items-center gap-1">
-                                            <Sparkles size={8} /> {query}
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-
-                            {fetchedImages.length > 0 && (
-                                <div className="flex items-center justify-between bg-zinc-900 rounded p-2 border border-zinc-800">
-                                    <button onClick={() => cycleImage('prev')} className="p-2 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white"><ChevronLeft size={16} /></button>
-                                    <span className="text-[10px] font-mono text-zinc-500 uppercase">Cycle Results</span>
-                                    <button onClick={() => cycleImage('next')} className="p-2 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white"><ChevronRight size={16} /></button>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* MANUAL OVERRIDE */}
-                        <div>
-                            <label className="block text-[10px] font-mono text-zinc-500 uppercase mb-1">Image URL (Manual)</label>
-                            <input 
-                                type="text" 
-                                value={newImageUrl} 
-                                onChange={(e) => setNewImageUrl(e.target.value)}
-                                placeholder="https://..."
-                                className="w-full bg-zinc-950 border border-zinc-700 p-3 rounded text-xs font-mono focus:border-[#DFFF00] outline-none"
-                            />
-                        </div>
-
-                        <div className="flex justify-end gap-3 pt-4 border-t border-zinc-800">
-                            <button onClick={() => setEditingItem(null)} className="px-6 py-3 rounded font-bold uppercase text-xs border border-zinc-700 text-zinc-400 hover:bg-zinc-800">Cancel</button>
-                            <button onClick={handleSaveAsset} className="px-6 py-3 rounded font-bold uppercase text-xs bg-[#DFFF00] text-black hover:bg-[#ccee00]">Save Changes</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        )}
-
-      </div>
+                  <div className="flex gap-4 mt-8">
+                      <button onClick={() => setEditingUser(null)} className="flex-1 py-4 bg-zinc-900 text-zinc-400 font-bold uppercase tracking-widest rounded-xl hover:text-white transition-colors">Cancel</button>
+                      <button onClick={handleSaveUser} className="flex-1 py-4 bg-[#DFFF00] text-black font-black uppercase tracking-widest rounded-xl hover:bg-white transition-colors flex items-center justify-center gap-2">
+                          <Check size={16} /> Save
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
     </div>
   );
 }

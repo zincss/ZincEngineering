@@ -20,8 +20,13 @@ export default function MarketIndex() {
       {/* GLOBAL GRAIN OVERLAY */}
       <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay pointer-events-none z-[0]" />
 
-      <div className="relative z-10 pt-24 pb-8 px-6 max-w-[1600px] mx-auto w-full">
+      <div className="relative z-10 pt-20 md:pt-24 pb-8 px-6 max-w-[1600px] mx-auto w-full">
         
+        {/* TICKER MOVED UP */}
+        <div className="mb-12 md:mb-16">
+            <StockTicker />
+        </div>
+
         {/* HEADER */}
         <div className="flex flex-col md:flex-row items-center justify-between mb-12 gap-8 border-b border-white/5 pb-12">
            <div className="flex items-center gap-8">
@@ -51,8 +56,6 @@ export default function MarketIndex() {
               </div>
            </div>
         </div>
-
-        <StockTicker />
 
         <div className="mt-12 grid grid-cols-1 md:grid-cols-12 auto-rows-[340px] gap-[1px] bg-zinc-800 border border-zinc-800 rounded-[3rem] overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.6)]">
             

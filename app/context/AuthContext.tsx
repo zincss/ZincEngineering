@@ -7,7 +7,7 @@ import { User, Session, AuthChangeEvent, AuthError, RealtimePostgresChangesPaylo
 type Profile = {
   username: string;
   credits: number;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'owner';
   created_at: string;
 };
 
@@ -171,7 +171,7 @@ export const AuthProvider = ({
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, isAdmin: profile?.role === 'admin', signIn, signOut, refreshProfile, loading }}>
+    <AuthContext.Provider value={{ user, profile, isAdmin: profile?.role === 'admin' || profile?.role === 'owner', signIn, signOut, refreshProfile, loading }}>
       {children}
     </AuthContext.Provider>
   );

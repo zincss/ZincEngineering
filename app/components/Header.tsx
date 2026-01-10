@@ -64,6 +64,10 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
 
+  // Check for elevated privileges
+  const isElevated = isAdmin || profile?.role === 'owner';
+  const isOwner = profile?.role === 'owner';
+
   const getActiveState = (id: string) => {
       switch(id) {
           case 'astro': return pathname?.includes('/astro') || pathname?.includes('/weather') || pathname?.includes('/planetarium');
@@ -100,28 +104,28 @@ export default function Header() {
 
   return (
     <>
-      <header className={`fixed top-0 left-0 right-0 z-[100] bg-zinc-950/80 backdrop-blur-xl border-b border-white/5 transition-all duration-500 transform ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
-        <div className="max-w-[1800px] mx-auto px-4 md:px-8 h-16 md:h-24 flex items-center justify-between gap-8">
+      <header className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 transform ${isVisible ? 'translate-y-0' : '-translate-y-full'} ${isElevated ? 'bg-zinc-950/90 border-b border-red-500/20 shadow-[0_4px_30px_-10px_rgba(239,68,68,0.2)]' : 'bg-zinc-950/80 backdrop-blur-xl border-b border-white/5'}`}>
+        <div className="max-w-[1800px] mx-auto px-4 md:px-8 h-14 md:h-24 flex items-center justify-between gap-8">
           
           {/* LEFT: BRANDING */}
           <div className="flex items-center gap-12">
               <Link href="/" className="flex items-center gap-4 group">
-                  <div className="relative w-12 h-12 flex items-center justify-center bg-[#DFFF00] rounded-2xl shadow-[0_0_30px_rgba(223,255,0,0.2)] group-hover:shadow-[0_0_50px_rgba(223,255,0,0.4)] group-hover:scale-105 transition-all duration-500 overflow-hidden">
-                      <span className="font-black text-2xl text-black relative z-10">Z</span>
+                  <div className={`relative w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-2xl shadow-[0_0_30px_rgba(223,255,0,0.2)] group-hover:shadow-[0_0_50px_rgba(223,255,0,0.4)] group-hover:scale-105 transition-all duration-500 overflow-hidden ${isElevated ? 'bg-red-600' : 'bg-[#DFFF00]'}`}>
+                      <span className={`font-black text-xl md:text-2xl relative z-10 ${isElevated ? 'text-white' : 'text-black'}`}>Z</span>
                       <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent" />
                   </div>
                   <div className="hidden md:flex flex-col">
-                      <span className="font-black text-2xl leading-none text-white tracking-tighter italic uppercase group-hover:text-[#DFFF00] transition-colors">Zinc</span>
+                      <span className={`font-black text-2xl leading-none tracking-tighter italic uppercase transition-colors ${isElevated ? 'text-red-500 group-hover:text-white' : 'text-white group-hover:text-[#DFFF00]'}`}>Zinc</span>
                       <div className="flex items-center gap-2">
-                         <div className="w-1.5 h-1.5 rounded-full bg-[#DFFF00] animate-pulse" />
-                         <span className="font-mono text-[8px] font-black text-zinc-500 tracking-[0.4em] uppercase">Uplink_Active</span>
+                         <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${isElevated ? 'bg-red-500' : 'bg-[#DFFF00]'}`} />
+                         <span className="font-mono text-[8px] font-black text-zinc-500 tracking-[0.4em] uppercase">{isOwner ? 'OWNER_ACCESS' : isElevated ? 'ADMIN_ACCESS' : 'UPLINK_ACTIVE'}</span>
                       </div>
                   </div>
               </Link>
 
               <nav className="hidden xl:flex items-center gap-1">
                   {NAV_CONFIG.map((item) => (
-                      <NavLink key={item.id} href={item.href} active={getActiveState(item.id)} icon={item.icon} subItems={item.subItems}>
+                      <NavLink key={item.id} href={item.href} active={getActiveState(item.id)} icon={item.icon} subItems={item.subItems} isElevated={isElevated}>
                         {item.label}
                       </NavLink>
                   ))}
@@ -141,13 +145,13 @@ export default function Header() {
                       <div className="flex items-center gap-6 animate-in fade-in duration-700">
                           <div className="hidden 2xl:flex flex-col items-end">
                              <span className="text-[8px] font-mono font-black text-zinc-600 uppercase tracking-widest leading-none mb-1">Status</span>
-                             <span className="text-[10px] font-black text-[#DFFF00] uppercase tracking-tighter italic">Zinc_OS_v4.2</span>
+                             <span className={`text-[10px] font-black uppercase tracking-tighter italic ${isElevated ? 'text-red-500' : 'text-[#DFFF00]'}`}>Zinc_OS_v4.2</span>
                           </div>
 
                           <Wallet />
                           
                           <div className="flex items-center gap-5 pl-6 border-l border-white/10">
-                              {isAdmin && (
+                              {isElevated && (
                                 <Link href="/admin" className="p-2.5 bg-red-500/10 text-red-500 hover:text-white hover:bg-red-500 rounded-xl transition-all relative">
                                   <Shield size={18} />
                                   <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-white rounded-full flex items-center justify-center"><span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" /></span>
@@ -155,7 +159,7 @@ export default function Header() {
                               )}
 
                               <Link href="/profile" className="flex flex-col items-end group">
-                                  <span className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] group-hover:text-[#DFFF00] transition-colors leading-none mb-1">Operator</span>
+                                  <span className={`text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] transition-colors leading-none mb-1 ${isElevated ? 'group-hover:text-red-500' : 'group-hover:text-[#DFFF00]'}`}>{isOwner ? 'System Owner' : isElevated ? 'Administrator' : 'Operator'}</span>
                                   <span className="text-sm font-black text-white uppercase tracking-tight italic">{profile.username}</span>
                               </Link>
                               

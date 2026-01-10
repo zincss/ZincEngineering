@@ -21,24 +21,26 @@ export default async function NBAHub() {
     <main className="min-h-screen bg-zinc-950 text-white pb-20 selection:bg-[#DFFF00] selection:text-black font-sans">
       
       {/* HEADER */}
-      <div className="relative z-50 pt-24 pb-8 px-6 max-w-[1600px] mx-auto w-full border-b border-zinc-800">
-        <div className="flex flex-col xl:flex-row justify-between items-center xl:items-end gap-4 sm:gap-12 mb-6 sm:mb-12">
+      <div className="relative z-50 pt-20 sm:pt-24 pb-6 sm:pb-8 px-4 sm:px-6 max-w-[1600px] mx-auto w-full border-b border-zinc-800">
+        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-6 mb-8">
             <div className="flex items-center gap-6">
                 <div>
-                    <div className="flex items-center gap-3 text-zinc-500 font-mono text-[10px] font-bold tracking-[0.3em] uppercase mb-2">
+                    <div className="flex items-center gap-3 text-zinc-500 font-mono text-[9px] sm:text-[10px] font-bold tracking-[0.3em] uppercase mb-2">
                         <span>ZincSports // NBA</span>
                     </div>
-                    <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter leading-none italic text-white">
+                    <h1 className="text-4xl sm:text-5xl md:text-7xl font-black uppercase tracking-tighter leading-none italic text-white">
                         BASKET<span className="text-[#DFFF00]">BALL</span>
                     </h1>
                 </div>
             </div>
 
-            <LeaderSlideshow leaders={leaders} league="nba" />
+            <div className="w-full xl:w-auto">
+                <LeaderSlideshow leaders={leaders} league="nba" />
+            </div>
         </div>
 
         {/* SEARCH BAR */}
-        <div className="max-w-xl">
+        <div className="max-w-xl w-full">
             <NBASearch />
         </div>
       </div>

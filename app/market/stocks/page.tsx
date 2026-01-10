@@ -10,10 +10,12 @@ export default function StocksPage() {
 
   return (
     <main className="min-h-screen bg-zinc-950">
-      {/* Spacer for fixed global header */}
-      <div className="h-20 md:h-24" />
+      {/* Reduced spacer to move ticker up */}
+      <div className="h-16 md:h-20" />
       
-      <StockTicker />
+      <div className="mb-12 md:mb-16">
+        <StockTicker />
+      </div>
       
       <div className="px-4 md:px-10 max-w-[1800px] mx-auto">
         <StockMarketView 

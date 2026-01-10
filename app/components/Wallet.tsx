@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Coins, Send, History, X, Search, CheckCircle2, AlertCircle, ArrowRightLeft, Clock, ExternalLink } from 'lucide-react';
+import { CreditCard, Send, History, X, Search, CheckCircle2, AlertCircle, ArrowRightLeft, Clock, ExternalLink, Coins } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import Link from 'next/link';
 import { getUserWagers, transferCredits, searchUsers, getTransactions } from '@/app/sports/wagers/actions';
@@ -66,7 +66,7 @@ export default function Wallet() {
         onClick={() => setIsOpen(!isOpen)}
         className="group flex items-center gap-2 md:gap-3 px-3 md:px-4 py-1.5 bg-zinc-900 border border-zinc-800 hover:border-[#DFFF00] transition-colors rounded-full cursor-pointer relative"
       >
-          <Coins size={14} className="text-[#DFFF00] group-hover:rotate-12 transition-transform" />
+          <CreditCard size={14} className="text-[#DFFF00] group-hover:rotate-12 transition-transform" />
           <span className="text-xs md:text-sm font-black text-white font-mono tracking-tight">{profile.credits.toLocaleString()}</span>
           {pendingWagers.length > 0 && (
               <span className="absolute -top-0.5 -right-0.5 md:-top-1 md:-right-1 flex h-2.5 w-2.5 md:h-3 md:w-3">
@@ -94,7 +94,7 @@ export default function Wallet() {
                 <div className="bg-zinc-900/50 p-6 border-b border-zinc-800 flex justify-between items-center">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-zinc-950 rounded-xl text-[#DFFF00] border border-zinc-800 shadow-lg">
-                            <Coins size={18} />
+                            <CreditCard size={18} />
                         </div>
                         <div>
                             <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest leading-none mb-1">Total Net Worth</div>
