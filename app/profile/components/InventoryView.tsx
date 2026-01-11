@@ -2,11 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { Loader2, Search, Box, Grid, BookOpen, ChevronUp, CheckCircle2, Gavel, X, DollarSign } from 'lucide-react';
+import { Loader2, Search, Box, Grid, BookOpen, ChevronUp, CheckCircle2, Gavel, X, DollarSign, Trophy } from 'lucide-react';
 import { ProfileAssetCard } from './ProfileAssetCard'; 
 import { ItemDetailModal } from './ItemDetailModal';
 import { TradingCard } from '@/app/market/components/TradingCard';
 import { quickSellItem, breakdownItem, listAuctionItem } from '@/app/profile/actions'; // Adjust path if needed
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Import Source Data
 import { CARS } from '@/app/automotive/data';
@@ -341,28 +342,6 @@ export default function InventoryView({ user }: { user: any }) {
               </motion.div>
           )}
       </AnimatePresence>
-
-      {/* DETAIL MODAL (Existing) */}
-      {selectedItem && (
-        <ItemDetailModal 
-            item={selectedItem} 
-            onClose={() => setSelectedItem(null)} 
-            onQuickSell={() => handleQuickSell(selectedItem.id, selectedItem.item_templates.rarity)} 
-            onBreakdown={() => handleBreakdown(selectedItem.id, selectedItem.item_templates.rarity)} 
-            getRarityColor={(r) => {
-                switch(r) {
-                    case 'ZENITH': return 'border-[#DFFF00] shadow-[0_0_50px_-12px_#DFFF00]';
-                    case 'COSMIC': return 'border-pink-500 shadow-[0_0_50px_-12px_#ec4899]';
-                    case 'ULTRA': return 'border-purple-500 shadow-[0_0_50px_-12px_#a855f7]';
-                    case 'SUPER_RARE': return 'border-orange-500 shadow-[0_0_50px_-12px_#f97316]';
-                    default: return 'border-zinc-700';
-                }
-            }}
-        />
-      )}
-    </div>
-  );
-}
 
       {/* DETAIL MODAL (Existing) */}
       {selectedItem && (
