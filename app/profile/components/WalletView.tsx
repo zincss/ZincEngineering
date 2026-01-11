@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from '@/app/context/AuthContext';
 import { useDebounce } from 'use-debounce'; // Ensure this is installed
-import { Coins, Send, ArrowUpRight, ArrowDownLeft, RefreshCw, Loader2, History, ShoppingBag, Globe, User } from 'lucide-react';
+import { Coins, Send, ArrowUpRight, ArrowDownLeft, RefreshCw, Loader2, History, ShoppingBag, Globe, User, Fingerprint, Clock } from 'lucide-react';
 import { Transaction } from '../types';
 
 interface WalletViewProps {
