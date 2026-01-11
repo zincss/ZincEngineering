@@ -2,7 +2,7 @@
 
 import React from 'react';
 import LeaderSlideshow from '../../components/LeaderSlideshow';
-import { Search } from 'lucide-react';
+import GolfSearch from './GolfSearch';
 
 export default function GolfHeader({ leaders }: { leaders: any }) {
   return (
@@ -24,14 +24,9 @@ export default function GolfHeader({ leaders }: { leaders: any }) {
             </div>
         </div>
 
-        {/* SEARCH BAR (Visual Placeholder for now) */}
-        <div className="max-w-xl w-full relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-            <input 
-                type="text" 
-                placeholder="SEARCH_PLAYERS // EVENTS" 
-                className="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl py-4 pl-12 pr-4 text-xs font-bold text-white uppercase tracking-wider focus:outline-none focus:border-[#DFFF00] transition-colors placeholder:text-zinc-700"
-            />
+        {/* SEARCH BAR */}
+        <div className="max-w-xl w-full">
+            <GolfSearch />
         </div>
     </div>
   );

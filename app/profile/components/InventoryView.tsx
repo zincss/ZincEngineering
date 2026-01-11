@@ -144,45 +144,65 @@ export default function InventoryView({ user }: { user: any }) {
 
   const toggleSet = (id: string) => setCollapsedSets(prev => ({ ...prev, [id]: !prev[id] }));
 
-  if (loading) return <div className="flex h-64 items-center justify-center text-[#DFFF00] font-mono text-xs tracking-widest"><Loader2 className="animate-spin mr-2" /> SYNCING SECURE VAULT...</div>;
+  if (loading) return (
+    <div className="flex flex-col h-96 items-center justify-center text-zinc-700 gap-4">
+        <Loader2 className="animate-spin text-[#DFFF00]" size={32} />
+        <span className="font-mono text-[10px] font-black uppercase tracking-[0.4em] animate-pulse">Syncing Secure Vault...</span>
+    </div>
+  );
+
+  const filteredItems = items.filter(i => i.item_templates.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="w-full relative">
+    <div className="w-full relative animate-in fade-in slide-in-from-bottom-4 duration-500">
       {isProcessing && (
-          <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur flex items-center justify-center">
-              <Loader2 className="animate-spin text-[#DFFF00]" size={48} />
+          <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-xl flex items-center justify-center">
+              <div className="flex flex-col items-center gap-4">
+                  <Loader2 className="animate-spin text-[#DFFF00]" size={48} />
+                  <span className="font-mono text-xs font-black text-white uppercase tracking-widest">Processing Transaction...</span>
+              </div>
           </div>
       )}
 
       {/* VIEW TOGGLE & SEARCH */}
-      <div className="sticky top-0 z-30 bg-zinc-950/95 backdrop-blur-md pt-2 pb-4 mb-6 flex flex-col gap-4 border-b border-zinc-800/50">
-         <div className="flex bg-zinc-900 p-1 rounded-xl border border-zinc-800 self-start w-full md:w-auto overflow-x-auto no-scrollbar">
-             <button onClick={() => setViewMode('VAULT')} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${viewMode === 'VAULT' ? 'bg-[#DFFF00] text-black shadow-lg' : 'text-zinc-500 hover:text-white'}`}>
-                <Grid size={14}/> My Vault ({items.length})
+      <div className="sticky top-[-2px] z-30 bg-black/90 backdrop-blur-xl pt-2 pb-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 border-b border-zinc-800/50">
+         <div className="flex bg-zinc-900/50 p-1 rounded-2xl border border-zinc-800 w-full md:w-auto">
+             <button onClick={() => setViewMode('VAULT')} className={`flex-1 md:flex-none flex items-center justify-center gap-3 px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${viewMode === 'VAULT' ? 'bg-[#DFFF00] text-black shadow-lg shadow-[#DFFF00]/10' : 'text-zinc-500 hover:text-white'}`}>
+                <Grid size={14}/> My Vault
              </button>
-             <button onClick={() => setViewMode('COLLECTIONS')} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${viewMode === 'COLLECTIONS' ? 'bg-[#DFFF00] text-black shadow-lg' : 'text-zinc-500 hover:text-white'}`}>
+             <button onClick={() => setViewMode('COLLECTIONS')} className={`flex-1 md:flex-none flex items-center justify-center gap-3 px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${viewMode === 'COLLECTIONS' ? 'bg-[#DFFF00] text-black shadow-lg shadow-[#DFFF00]/10' : 'text-zinc-500 hover:text-white'}`}>
                 <BookOpen size={14}/> Collections
              </button>
          </div>
-         {viewMode === 'VAULT' && (
-             <div className="relative w-full">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
-                <input type="text" placeholder="SEARCH INVENTORY..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-12 pr-4 py-4 text-sm font-mono text-white focus:border-[#DFFF00] focus:outline-none transition-colors placeholder:text-zinc-600" />
-            </div>
-         )}
+         
+         <div className="relative w-full md:max-w-md group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-[#DFFF00] transition-colors" size={16} />
+            <input 
+                type="text" 
+                placeholder="Search Secure Registry..." 
+                value={search} 
+                onChange={(e) => setSearch(e.target.value)} 
+                className="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl pl-12 pr-4 py-4 text-sm font-mono text-white focus:border-[#DFFF00] focus:bg-black focus:outline-none transition-all placeholder:text-zinc-700 shadow-inner" 
+            />
+            {search && (
+                <button onClick={() => setSearch('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white transition-colors">
+                    <X size={14} />
+                </button>
+            )}
+        </div>
       </div>
 
       {/* --- VIEW: VAULT --- */}
       {viewMode === 'VAULT' && (
-          items.filter(i => i.item_templates.name.toLowerCase().includes(search.toLowerCase())).length === 0 ? (
-            <div className="text-center py-20 text-zinc-600 font-mono flex flex-col items-center border-2 border-dashed border-zinc-900 rounded-3xl">
-                <Box size={48} className="mb-4 opacity-30" />
-                <p className="text-xs uppercase tracking-widest">No Assets Found</p>
+          filteredItems.length === 0 ? (
+            <div className="text-center py-32 text-zinc-700 font-mono flex flex-col items-center border-2 border-dashed border-zinc-900 rounded-[3rem]">
+                <Box size={64} className="mb-6 opacity-10" />
+                <p className="text-[10px] font-black uppercase tracking-[0.4em]">Vault Inventory Empty</p>
+                <p className="text-[9px] mt-2 text-zinc-800">Clear filters or obtain new assets via Market</p>
             </div>
           ) : (
-            // REDESIGNED GRID LAYOUT
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6 pb-20">
-                {items.filter(i => i.item_templates.name.toLowerCase().includes(search.toLowerCase())).map((item) => (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-8 pb-32">
+                {filteredItems.map((item) => (
                     <ProfileAssetCard 
                         key={item.id} 
                         item={{
@@ -197,7 +217,7 @@ export default function InventoryView({ user }: { user: any }) {
                         }}
                         onQuickSell={handleQuickSell}
                         onBreakdown={handleBreakdown}
-                        onAuction={(itm) => setAuctionItem(item)} // Pass original item for ID
+                        onAuction={(itm) => setAuctionItem(item)}
                         onView={() => setSelectedItem(item)}
                     />
                 ))}
@@ -207,27 +227,47 @@ export default function InventoryView({ user }: { user: any }) {
 
       {/* --- VIEW: COLLECTIONS --- */}
       {viewMode === 'COLLECTIONS' && (
-          <div className="space-y-6 md:space-y-8 pb-20">
+          <div className="space-y-8 md:space-y-12 pb-32">
               {COLLECTIONS.map((col) => {
                   const isCollapsed = collapsedSets[col.id];
                   const percent = col.total > 0 ? Math.round((col.collected / col.total) * 100) : 0;
                   return (
-                    <div key={col.id} className="relative bg-zinc-900/20 border border-zinc-800 rounded-2xl overflow-hidden">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between p-4 cursor-pointer hover:bg-zinc-900/50 transition-colors gap-4 md:gap-0" onClick={() => toggleSet(col.id)}>
-                            <div className="flex flex-col gap-1">
-                                <h3 className="text-base md:text-xl font-black text-white uppercase tracking-tighter flex items-center gap-2">{col.title} {percent === 100 && <CheckCircle2 size={16} className="text-[#DFFF00]" />}</h3>
-                                <div className="flex items-center gap-3 text-[10px] font-mono font-bold text-zinc-500 uppercase"><span className={percent === 100 ? "text-[#DFFF00]" : ""}>{col.collected} / {col.total} FOUND</span><span>•</span><span>{percent}% COMPLETE</span></div>
+                    <div key={col.id} className="relative bg-zinc-900/10 border border-zinc-800 rounded-[2.5rem] overflow-hidden group hover:border-zinc-700 transition-colors">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between p-8 cursor-pointer hover:bg-zinc-900/30 transition-colors gap-6" onClick={() => toggleSet(col.id)}>
+                            <div className="flex items-center gap-6">
+                                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center border-2 border-zinc-800 transition-all ${percent === 100 ? 'bg-[#DFFF00] border-[#DFFF00] text-black shadow-[0_0_30px_rgba(223,255,0,0.3)]' : 'bg-black text-zinc-600'}`}>
+                                    <Trophy size={28} />
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <h3 className="text-xl md:text-2xl font-black text-white uppercase tracking-tighter italic flex items-center gap-3">
+                                        {col.title}
+                                    </h3>
+                                    <div className="flex items-center gap-3 text-[10px] font-mono font-black text-zinc-500 uppercase">
+                                        <span className={percent === 100 ? "text-[#DFFF00]" : ""}>{col.collected} / {col.total} Extracted</span>
+                                        <span className="opacity-20 text-white">|</span>
+                                        <span>{percent}% Affinity</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
-                                <div className="w-full md:w-32 h-1.5 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800"><div className={`h-full transition-all duration-1000 ${percent === 100 ? 'bg-[#DFFF00]' : 'bg-zinc-600'}`} style={{ width: `${percent}%` }} /></div>
-                                <div className={`p-2 rounded-full bg-zinc-900 border border-zinc-800 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''} shrink-0`}><ChevronUp size={16} className="text-zinc-400" /></div>
+                            <div className="flex items-center gap-6 flex-1 md:max-w-xs">
+                                <div className="flex-1 h-1.5 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800 shadow-inner">
+                                    <motion.div 
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${percent}%` }}
+                                        transition={{ duration: 1.5, ease: "easeOut" }}
+                                        className={`h-full transition-all duration-1000 ${percent === 100 ? 'bg-[#DFFF00] shadow-[0_0_15px_#DFFF00]' : 'bg-zinc-700'}`} 
+                                    />
+                                </div>
+                                <div className={`p-3 rounded-full bg-zinc-900 border border-zinc-800 transition-transform duration-500 ${isCollapsed ? 'rotate-180' : ''} shrink-0`}>
+                                    <ChevronUp size={18} className="text-zinc-500" />
+                                </div>
                             </div>
                         </div>
                         {!isCollapsed && (
-                            <div className="p-4 pt-0 border-t border-zinc-800/50 bg-zinc-950/30 animate-in slide-in-from-top-2 duration-300">
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4 mt-4">
+                            <div className="p-8 pt-0 border-t border-zinc-800/50 bg-zinc-950/20 animate-in slide-in-from-top-4 duration-500">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6 mt-8">
                                     {col.grid.map((item: any, idx: number) => (
-                                        <div key={`${col.id}-${idx}`} className={`${item.isLocked ? 'opacity-60 pointer-events-none grayscale' : 'cursor-pointer'}`} onClick={() => !item.isLocked && setSelectedItem(items.find(i => i.item_templates.name === item.name))}>
+                                        <div key={`${col.id}-${idx}`} className={`${item.isLocked ? 'opacity-30 grayscale saturate-0 transition-all hover:opacity-50' : 'cursor-pointer'}`} onClick={() => !item.isLocked && setSelectedItem(items.find(i => i.item_templates.name === item.name))}>
                                             <TradingCard item={item} isLocked={item.isLocked} />
                                         </div>
                                     ))}
@@ -241,48 +281,88 @@ export default function InventoryView({ user }: { user: any }) {
       )}
 
       {/* --- AUCTION LISTING MODAL --- */}
-      {auctionItem && (
-          <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex items-center justify-center p-4">
-              <div className="w-full max-w-md bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-2xl animate-in fade-in zoom-in-95">
-                  <div className="flex justify-between items-start mb-6">
-                      <div>
-                          <h3 className="text-xl font-black uppercase text-white flex items-center gap-2"><Gavel size={20} className="text-[#DFFF00]"/> Auction House</h3>
-                          <p className="text-xs text-zinc-500 font-mono mt-1">Listing: <span className="text-white">{auctionItem.item_templates.name}</span></p>
+      <AnimatePresence>
+          {auctionItem && (
+              <motion.div 
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[150] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-4"
+              >
+                  <motion.div 
+                    initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+                    className="w-full max-w-lg bg-zinc-950 border border-zinc-800 rounded-[2.5rem] p-8 md:p-10 shadow-2xl relative overflow-hidden"
+                  >
+                      <div className="absolute top-0 right-0 w-64 h-64 bg-[#DFFF00]/5 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/2" />
+                      
+                      <div className="flex justify-between items-start mb-10 relative z-10">
+                          <div className="flex items-center gap-4">
+                              <div className="p-3 bg-zinc-900 rounded-2xl border border-zinc-800 text-[#DFFF00]">
+                                  <Gavel size={24} />
+                              </div>
+                              <div>
+                                  <h3 className="text-2xl font-black uppercase text-white italic leading-none">Auction House</h3>
+                                  <p className="text-[10px] font-mono text-zinc-500 uppercase mt-2 tracking-widest">Asset // <span className="text-white">{auctionItem.item_templates.name}</span></p>
+                              </div>
+                          </div>
+                          <button onClick={() => setAuctionItem(null)} className="p-2.5 hover:bg-zinc-900 rounded-xl transition-all border border-transparent hover:border-zinc-800 text-zinc-500 hover:text-white"><X size={20}/></button>
                       </div>
-                      <button onClick={() => setAuctionItem(null)} className="p-2 hover:bg-zinc-900 rounded-full"><X size={20} className="text-zinc-500"/></button>
-                  </div>
-                  
-                  <div className="space-y-4">
-                      <div>
-                          <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-2">Starting Bid</label>
-                          <div className="relative">
-                              <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
-                              <input type="number" value={auctionPrice} onChange={e => setAuctionPrice(Number(e.target.value))} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-10 pr-4 py-3 text-white font-mono focus:border-[#DFFF00] outline-none" />
+                      
+                      <div className="space-y-6 relative z-10">
+                          <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-3">
+                                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Reserve_Price</label>
+                                  <div className="relative group/input">
+                                      <DollarSign size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-700 group-focus-within/input:text-[#DFFF00] transition-colors" />
+                                      <input type="number" value={auctionPrice} onChange={e => setAuctionPrice(Number(e.target.value))} className="w-full bg-black border border-zinc-800 rounded-2xl pl-12 pr-4 py-4 text-white font-mono focus:border-[#DFFF00] outline-none transition-all shadow-inner" />
+                                  </div>
+                              </div>
+                              <div className="space-y-3">
+                                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Buyout_Price</label>
+                                  <div className="relative group/input">
+                                      <DollarSign size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-700 group-focus-within/input:text-[#DFFF00] transition-colors" />
+                                      <input type="number" value={auctionBuyout} onChange={e => setAuctionBuyout(Number(e.target.value))} className="w-full bg-black border border-zinc-800 rounded-2xl pl-12 pr-4 py-4 text-white font-mono focus:border-[#DFFF00] outline-none transition-all shadow-inner" />
+                                  </div>
+                              </div>
+                          </div>
+                          
+                          <div className="space-y-3">
+                              <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Listing_Duration</label>
+                              <div className="flex bg-zinc-900/50 p-1.5 rounded-2xl border border-zinc-800 gap-1">
+                                  {[6, 12, 24, 48].map(h => (
+                                      <button key={h} onClick={() => setAuctionDuration(h)} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${auctionDuration === h ? 'bg-white text-black shadow-xl' : 'text-zinc-500 hover:text-white hover:bg-zinc-800'}`}>{h}H</button>
+                                  ))}
+                              </div>
                           </div>
                       </div>
-                      <div>
-                          <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-2">Buyout Price</label>
-                          <div className="relative">
-                              <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
-                              <input type="number" value={auctionBuyout} onChange={e => setAuctionBuyout(Number(e.target.value))} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-10 pr-4 py-3 text-white font-mono focus:border-[#DFFF00] outline-none" />
-                          </div>
-                      </div>
-                      <div>
-                          <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-2">Duration</label>
-                          <div className="flex gap-2">
-                              {[6, 12, 24, 48].map(h => (
-                                  <button key={h} onClick={() => setAuctionDuration(h)} className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${auctionDuration === h ? 'bg-[#DFFF00] text-black border-[#DFFF00]' : 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:text-white'}`}>{h}H</button>
-                              ))}
-                          </div>
-                      </div>
-                  </div>
 
-                  <button onClick={handleListAuction} className="w-full mt-8 py-4 bg-[#DFFF00] hover:bg-white text-black font-black uppercase tracking-widest rounded-xl transition-all shadow-[0_0_20px_rgba(223,255,0,0.2)]">
-                      Confirm Listing
-                  </button>
-              </div>
-          </div>
+                      <button onClick={handleListAuction} className="w-full mt-10 py-5 bg-[#DFFF00] hover:bg-white text-black font-black uppercase tracking-[0.2em] rounded-2xl transition-all shadow-[0_10px_40px_rgba(223,255,0,0.2)] active:scale-95">
+                          Authorize Listing
+                      </button>
+                  </motion.div>
+              </motion.div>
+          )}
+      </AnimatePresence>
+
+      {/* DETAIL MODAL (Existing) */}
+      {selectedItem && (
+        <ItemDetailModal 
+            item={selectedItem} 
+            onClose={() => setSelectedItem(null)} 
+            onQuickSell={() => handleQuickSell(selectedItem.id, selectedItem.item_templates.rarity)} 
+            onBreakdown={() => handleBreakdown(selectedItem.id, selectedItem.item_templates.rarity)} 
+            getRarityColor={(r) => {
+                switch(r) {
+                    case 'ZENITH': return 'border-[#DFFF00] shadow-[0_0_50px_-12px_#DFFF00]';
+                    case 'COSMIC': return 'border-pink-500 shadow-[0_0_50px_-12px_#ec4899]';
+                    case 'ULTRA': return 'border-purple-500 shadow-[0_0_50px_-12px_#a855f7]';
+                    case 'SUPER_RARE': return 'border-orange-500 shadow-[0_0_50px_-12px_#f97316]';
+                    default: return 'border-zinc-700';
+                }
+            }}
+        />
       )}
+    </div>
+  );
+}
 
       {/* DETAIL MODAL (Existing) */}
       {selectedItem && (

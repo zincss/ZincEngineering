@@ -46,7 +46,7 @@ export const AuthProvider = ({
     try {
         const { data, error } = await supabase
         .from('profiles')
-        .select('username, credits, role, created_at') 
+        .select('username, credits, role, created_at, weekly_digest_opt_in') 
         .eq('id', userId)
         .single();
         

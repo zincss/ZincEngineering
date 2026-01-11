@@ -14,7 +14,7 @@ interface Leader {
     label: string;
 }
 
-export default function LeaderSlideshow({ leaders, league }: { leaders: any, league: 'nfl' | 'nba' }) {
+export default function LeaderSlideshow({ leaders, league }: { leaders: any, league: 'nfl' | 'nba' | 'golf' }) {
     const slides: Leader[] = Object.values(leaders)
         .map((list: any) => list[0])
         .filter(Boolean);

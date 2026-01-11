@@ -172,108 +172,136 @@ export function WalletView({ profile, onRefresh }: WalletViewProps) {
     };
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pb-20">
             
             {/* LEFT COLUMN: BALANCE & TRANSFER */}
-            <div className="lg:col-span-5 space-y-6">
+            <div className="lg:col-span-5 space-y-8">
                 
                 {/* BALANCE CARD */}
-                <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-zinc-900 to-zinc-950 border border-zinc-800 p-6 md:p-8 shadow-2xl">
-                    <div className="absolute top-0 right-0 p-8 opacity-10">
-                        <Coins size={120} />
-                    </div>
+                <div className="relative overflow-hidden rounded-[3rem] bg-zinc-950 border border-zinc-800 p-8 md:p-10 shadow-2xl group">
+                    {/* Animated Glow */}
+                    <div className="absolute -top-24 -left-24 w-64 h-64 bg-[#DFFF00] rounded-full blur-[120px] opacity-10 group-hover:opacity-20 transition-opacity" />
                     
                     <div className="relative z-10">
-                        <h3 className="text-zinc-500 font-mono text-xs uppercase tracking-widest mb-2">Available Balance</h3>
-                        <div className="flex items-baseline gap-2 text-[#DFFF00]">
-                            <span className="text-5xl md:text-6xl font-black tracking-tight">
-                                {profile?.credits?.toLocaleString() ?? 0}
-                            </span>
-                            <span className="text-xl font-bold">CR</span>
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2 bg-zinc-900 rounded-lg text-[#DFFF00] border border-zinc-800 shadow-lg">
+                                <Coins size={18} />
+                            </div>
+                            <h3 className="text-zinc-500 font-mono text-[10px] font-black uppercase tracking-[0.3em]">Network_Credits // Balance</h3>
                         </div>
-                        <div className="mt-6 flex items-center gap-2 text-zinc-400 text-xs font-mono">
-                            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                            NETWORK ACTIVE // SYNCED
+
+                        <div className="flex items-baseline gap-3 text-white">
+                            <motion.span 
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                className="text-6xl md:text-7xl font-black tracking-tighter italic"
+                            >
+                                {profile?.credits?.toLocaleString() ?? 0}
+                            </motion.span>
+                            <span className="text-2xl font-black text-[#DFFF00] italic">CR</span>
+                        </div>
+
+                        <div className="mt-8 flex flex-col gap-4">
+                            <div className="flex items-center gap-3 text-zinc-500 text-[10px] font-mono font-bold uppercase tracking-widest bg-zinc-900/50 w-fit px-4 py-2 rounded-full border border-zinc-800">
+                                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_#10b981]" />
+                                NODE_ACTIVE // SECURE_SYNC
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 {/* TRANSFER FORM */}
-                <div className="rounded-[2rem] bg-zinc-900/50 border border-zinc-800 p-6 md:p-8 backdrop-blur-sm relative">
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 rounded-full bg-[#DFFF00]/10 text-[#DFFF00]">
-                            <Send size={18} />
+                <div className="rounded-[3rem] bg-zinc-900/20 border border-zinc-800 p-8 md:p-10 backdrop-blur-md relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#DFFF00]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                    
+                    <div className="flex items-center gap-3 mb-8">
+                        <div className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-400">
+                            <Send size={20} />
                         </div>
-                        <h3 className="text-lg font-bold text-white uppercase tracking-wider">Wire Transfer</h3>
+                        <div>
+                            <h3 className="text-lg font-black text-white uppercase tracking-tighter italic leading-none">Wire Transfer</h3>
+                            <p className="text-[9px] font-mono text-zinc-600 uppercase mt-1 tracking-widest">P2P_Registry // Transmission</p>
+                        </div>
                     </div>
 
-                    <form onSubmit={handleTransfer} className="space-y-4">
+                    <form onSubmit={handleTransfer} className="space-y-6">
                         
                         {/* USERNAME INPUT WITH AUTOCOMPLETE */}
-                        <div className="space-y-2 relative" ref={wrapperRef}>
-                            <label className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest ml-2">Recipient Username</label>
-                            <input 
-                                type="text" 
-                                value={recipient}
-                                onChange={(e) => {
-                                    setRecipient(e.target.value);
-                                    if (e.target.value.length < 2) setShowSuggestions(false);
-                                }}
-                                onFocus={() => {
-                                    if (suggestions.length > 0) setShowSuggestions(true);
-                                }}
-                                className="w-full bg-black border border-zinc-800 rounded-xl p-4 text-white font-mono text-sm focus:outline-none focus:border-[#DFFF00] transition-colors placeholder:text-zinc-800 uppercase"
-                                placeholder="START TYPING..."
-                                required
-                                autoComplete="off"
-                            />
+                        <div className="space-y-3 relative" ref={wrapperRef}>
+                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Recipient_Node</label>
+                            <div className="relative group/input">
+                                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-700 group-focus-within/input:text-[#DFFF00] transition-colors" size={16} />
+                                <input 
+                                    type="text" 
+                                    value={recipient}
+                                    onChange={(e) => {
+                                        setRecipient(e.target.value);
+                                        if (e.target.value.length < 2) setShowSuggestions(false);
+                                    }}
+                                    onFocus={() => {
+                                        if (suggestions.length > 0) setShowSuggestions(true);
+                                    }}
+                                    className="w-full bg-black/50 border border-zinc-800 rounded-2xl p-4 pl-12 text-white font-mono text-sm focus:outline-none focus:border-[#DFFF00] transition-all placeholder:text-zinc-800 uppercase focus:bg-black shadow-inner"
+                                    placeholder="OPERATOR_TAG"
+                                    required
+                                    autoComplete="off"
+                                />
+                            </div>
                             
                             {/* SUGGESTIONS DROPDOWN */}
-                            {showSuggestions && suggestions.length > 0 && (
-                                <div className="absolute top-full left-0 right-0 mt-2 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                                    <div className="px-3 py-2 bg-zinc-950 border-b border-zinc-800 text-[10px] font-mono text-zinc-500 uppercase">
-                                        Suggested Users
-                                    </div>
-                                    {suggestions.map((username) => (
-                                        <button
-                                            key={username}
-                                            type="button"
-                                            onClick={() => selectSuggestion(username)}
-                                            className="w-full text-left px-4 py-3 text-sm font-mono text-zinc-300 hover:text-black hover:bg-[#DFFF00] transition-colors flex items-center gap-3 border-b border-zinc-800/50 last:border-0"
-                                        >
-                                            <div className="w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center text-[10px] font-bold">
-                                                {username.charAt(0).toUpperCase()}
-                                            </div>
-                                            {username}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
+                            <AnimatePresence>
+                                {showSuggestions && suggestions.length > 0 && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: 10 }}
+                                        className="absolute top-full left-0 right-0 mt-2 bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl z-50 overflow-hidden ring-1 ring-white/10"
+                                    >
+                                        <div className="px-4 py-2.5 bg-zinc-900 border-b border-zinc-800 text-[9px] font-black text-zinc-500 uppercase tracking-widest">
+                                            Identified Nodes
+                                        </div>
+                                        {suggestions.map((username) => (
+                                            <button
+                                                key={username}
+                                                type="button"
+                                                onClick={() => selectSuggestion(username)}
+                                                className="w-full text-left px-4 py-4 text-xs font-black font-mono text-zinc-400 hover:text-black hover:bg-[#DFFF00] transition-all flex items-center gap-3 border-b border-zinc-800 last:border-0"
+                                            >
+                                                <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-[10px] group-hover:border-black/20">
+                                                    <Fingerprint size={14} />
+                                                </div>
+                                                {username}
+                                            </button>
+                                        ))}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest ml-2">Amount</label>
-                            <div className="relative">
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Transmission_Value</label>
+                            <div className="relative group/input">
+                                <Coins className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-700 group-focus-within/input:text-[#DFFF00] transition-colors" size={16} />
                                 <input 
                                     type="number" 
                                     value={amount}
                                     onChange={(e) => setAmount(e.target.value)}
-                                    className="w-full bg-black border border-zinc-800 rounded-xl p-4 pr-12 text-white font-mono text-sm focus:outline-none focus:border-[#DFFF00] transition-colors placeholder:text-zinc-800"
-                                    placeholder="0"
+                                    className="w-full bg-black/50 border border-zinc-800 rounded-2xl p-4 pl-12 pr-16 text-white font-mono text-sm focus:outline-none focus:border-[#DFFF00] transition-all placeholder:text-zinc-800 focus:bg-black shadow-inner"
+                                    placeholder="0.00"
                                     min="1"
                                     required
                                 />
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 font-black text-xs">CR</div>
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 font-black text-[10px] uppercase tracking-widest">Credits</div>
                             </div>
                         </div>
 
                         <button 
                             type="submit" 
                             disabled={sending || !amount || !recipient}
-                            className="w-full bg-[#DFFF00] hover:bg-white text-black font-black uppercase py-4 rounded-xl transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4"
+                            className="w-full bg-[#DFFF00] hover:bg-white text-black font-black uppercase py-5 rounded-2xl transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 mt-4 shadow-[0_10px_30px_rgba(223,255,0,0.2)]"
                         >
-                            {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-                            {sending ? 'Processing...' : 'Initiate Transfer'}
+                            {sending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
+                            {sending ? 'TRANSMITTING...' : 'AUTHORIZE_WIRE'}
                         </button>
                     </form>
                 </div>
@@ -281,61 +309,75 @@ export function WalletView({ profile, onRefresh }: WalletViewProps) {
 
             {/* RIGHT COLUMN: HISTORY */}
             <div className="lg:col-span-7">
-                <div className="h-full rounded-[2rem] bg-zinc-900/30 border border-zinc-800 p-6 md:p-8 flex flex-col">
-                    <div className="flex items-center justify-between mb-8">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-full bg-zinc-800 text-zinc-400">
-                                <History size={18} />
+                <div className="h-full rounded-[3rem] bg-zinc-900/10 border border-zinc-800 p-8 md:p-10 flex flex-col relative overflow-hidden">
+                    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.02] pointer-events-none" />
+                    
+                    <div className="flex items-center justify-between mb-10 relative z-10">
+                        <div className="flex items-center gap-4">
+                            <div className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-500">
+                                <History size={20} />
                             </div>
-                            <h3 className="text-lg font-bold text-white uppercase tracking-wider">Recent Activity</h3>
+                            <div>
+                                <h3 className="text-lg font-black text-white uppercase tracking-tighter italic leading-none">Activity Log</h3>
+                                <p className="text-[9px] font-mono text-zinc-600 uppercase mt-1 tracking-widest">Credit_Flow // Archive</p>
+                            </div>
                         </div>
                         <button 
                             onClick={fetchTransactions} 
-                            className="p-2 text-zinc-600 hover:text-[#DFFF00] transition-colors"
-                            title="Refresh History"
+                            className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-600 hover:text-[#DFFF00] hover:border-[#DFFF00] transition-all active:scale-90"
+                            title="Sync Log"
                         >
                             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
                         </button>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3 max-h-[500px]">
+                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4 max-h-[600px] relative z-10">
                         {loading ? (
-                            <div className="flex flex-col items-center justify-center py-20 text-zinc-600 gap-2">
-                                <Loader2 size={24} className="animate-spin text-[#DFFF00]" />
-                                <span className="text-xs font-mono uppercase">Fetching Data...</span>
+                            <div className="flex flex-col items-center justify-center py-24 text-zinc-700 gap-4">
+                                <Loader2 size={32} className="animate-spin text-[#DFFF00]" />
+                                <span className="text-[10px] font-mono font-black uppercase tracking-[0.4em] animate-pulse">Scanning Archive...</span>
                             </div>
                         ) : transactions.length === 0 ? (
-                            <div className="text-center py-20 text-zinc-600 font-mono text-xs uppercase tracking-widest border border-dashed border-zinc-800 rounded-xl">
-                                No recent transactions found.
+                            <div className="text-center py-32 text-zinc-700 font-mono flex flex-col items-center border-2 border-dashed border-zinc-900 rounded-[2rem]">
+                                <Globe size={48} className="mb-4 opacity-20" />
+                                <p className="text-[10px] font-black uppercase tracking-[0.3em]">No Transactions Detected</p>
                             </div>
                         ) : (
-                            transactions.map((tx) => {
-                                const { isReceived, label, partyName, icon } = getTransactionDetails(tx);
-                                return (
-                                    <div 
-                                        key={tx.id} 
-                                        className="group flex items-center justify-between p-4 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-600 transition-all hover:bg-zinc-900"
-                                    >
-                                        <div className="flex items-center gap-3 md:gap-4">
-                                            <div className={`p-2 md:p-3 rounded-full ${isReceived ? 'bg-emerald-900/20 text-emerald-500' : 'bg-red-900/20 text-red-500'}`}>
-                                                {icon}
-                                            </div>
-                                            <div>
-                                                <div className="text-sm font-bold text-white truncate max-w-[140px] md:max-w-none">
-                                                    {label} <span className="text-zinc-400">{partyName}</span>
+                            <div className="space-y-3">
+                                {transactions.map((tx) => {
+                                    const { isReceived, label, partyName, icon } = getTransactionDetails(tx);
+                                    return (
+                                        <motion.div 
+                                            key={tx.id} 
+                                            initial={{ opacity: 0, x: 20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            className="group flex items-center justify-between p-5 rounded-2xl bg-black/40 border border-zinc-800/50 hover:border-zinc-600 transition-all hover:bg-zinc-900 shadow-sm"
+                                        >
+                                            <div className="flex items-center gap-4 lg:gap-5">
+                                                <div className={`p-3 rounded-xl border transition-colors ${isReceived ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 group-hover:bg-emerald-500 group-hover:text-black' : 'bg-red-500/10 text-red-500 border-red-500/20 group-hover:bg-red-500 group-hover:text-black'}`}>
+                                                    {icon}
                                                 </div>
-                                                <div className="text-[10px] font-mono text-zinc-500 uppercase mt-1">
-                                                    {new Date(tx.created_at).toLocaleDateString()}
+                                                <div>
+                                                    <div className="text-xs font-black text-white uppercase tracking-wide leading-none mb-1.5 flex items-center gap-2">
+                                                        {label} <span className="text-zinc-500 font-mono text-[10px] group-hover:text-zinc-300 transition-colors">@{partyName}</span>
+                                                    </div>
+                                                    <div className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest flex items-center gap-2">
+                                                        <Clock size={10} />
+                                                        {new Date(tx.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        
-                                        <div className={`font-mono font-black text-base md:text-lg ${isReceived ? 'text-emerald-500' : 'text-zinc-500'}`}>
-                                            {isReceived ? '+' : '-'}{tx.amount.toLocaleString()}
-                                        </div>
-                                    </div>
-                                );
-                            })
+                                            
+                                            <div className={`text-right`}>
+                                                <div className={`font-mono font-black text-lg md:text-xl leading-none ${isReceived ? 'text-emerald-500' : 'text-zinc-400 group-hover:text-white transition-colors'}`}>
+                                                    {isReceived ? '+' : '-'}{tx.amount.toLocaleString()}
+                                                </div>
+                                                <div className="text-[8px] font-mono text-zinc-700 uppercase mt-1 tracking-tighter">Verified</div>
+                                            </div>
+                                        </motion.div>
+                                    );
+                                })}
+                            </div>
                         )}
                     </div>
                 </div>

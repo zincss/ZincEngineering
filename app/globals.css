@@ -79,3 +79,21 @@ html, body {
 ::-webkit-scrollbar-thumb { background: #3f3f46; }
 ::-webkit-scrollbar-thumb:hover { background: #DFFF00; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Dashboard Utils */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}

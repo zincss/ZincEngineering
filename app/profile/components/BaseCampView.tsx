@@ -167,13 +167,13 @@ export const BaseCampView = ({ materials, onTrade }: BaseCampViewProps) => {
                                         <button 
                                             onClick={() => onTrade(trade.costMaterial, trade.costAmount, trade.packName)}
                                             disabled={!canAfford}
-                                            className={`w-full py-2 text-[10px] font-black uppercase tracking-widest rounded transition-all flex items-center justify-center gap-2
+                                            className={`w-full py-4 text-[10px] font-black uppercase tracking-[0.2em] rounded-xl transition-all flex items-center justify-center gap-2
                                                 ${canAfford 
-                                                    ? 'bg-zinc-100 text-black hover:bg-[#DFFF00] hover:scale-[1.02] shadow-lg' 
-                                                    : 'bg-zinc-800 text-zinc-600 cursor-not-allowed opacity-50'}
+                                                    ? 'bg-white text-black hover:bg-[#DFFF00] hover:scale-[1.02] shadow-xl active:scale-95' 
+                                                    : 'bg-zinc-900 text-zinc-700 cursor-not-allowed border border-zinc-800'}
                                             `}
                                         >
-                                            {canAfford ? <><Signal size={12} /> INITIATE TRADE</> : 'INSUFFICIENT RESOURCES'}
+                                            {canAfford ? <><Signal size={12} /> Initiate Extraction</> : 'Insufficient Data'}
                                         </button>
                                     </div>
                                 );

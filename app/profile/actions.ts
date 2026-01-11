@@ -101,3 +101,22 @@ export async function listAuctionItem(itemId: string, startPrice: number, buyout
     revalidatePath('/market');
     return { success: true, message: 'Item listed on Auction House' };
 }
+
+export async function updateWeeklyDigestPreference(optIn: boolean) {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Unauthorized' };
+
+    const { error } = await supabase
+        .from('profiles')
+        .update({ weekly_digest_opt_in: optIn })
+        .eq('id', user.id);
+
+    if (error) {
+        console.error("Digest Preference Error:", error);
+        return { error: 'Failed to update preference' };
+    }
+
+    revalidatePath('/profile');
+    return { success: true, message: optIn ? 'Opted in to Weekly Digest' : 'Opted out of Weekly Digest' };
+}

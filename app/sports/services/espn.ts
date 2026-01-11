@@ -9,7 +9,7 @@ const HEADERS = {
 const BASE_API = 'https://site.api.espn.com/apis/site/v2/sports';
 const COMMON_API = 'https://site.web.api.espn.com/apis/common/v3/sports';
 
-type League = 'nfl' | 'nba';
+type League = 'nfl' | 'nba' | 'golf';
 
 const ENDPOINTS = {
   nfl: {
@@ -27,6 +27,13 @@ const ENDPOINTS = {
     athletes: `${COMMON_API}/basketball/nba/athletes`,
     leaders: `${COMMON_API}/basketball/nba/statistics/byathlete`,
     web_player: (id: string) => `https://www.espn.com/nba/player/_/id/${id}`
+  },
+  golf: {
+    scoreboard: `${BASE_API}/golf/pga/scoreboard`,
+    standings: `${BASE_API}/golf/pga/rankings`,
+    athletes: `${COMMON_API}/golf/pga/athletes`,
+    leaders: `https://site.web.api.espn.com/apis/common/v3/sports/golf/pga/statistics/byathlete`,
+    web_player: (id: string) => `https://www.espn.com/pga/player/_/id/${id}`
   }
 };
 
@@ -148,13 +155,22 @@ export const getLeaders = async (league: League) => {
             { key: 'tackles', sort: 'defensive.totalTackles:desc', label: 'Tackles' },
             { key: 'qbr', sort: 'passing.adjQBR:desc', label: 'Total QBR' }
           ]
-        : [
+        : league === 'nba'
+        ? [
             { key: 'pts', sort: 'offensive.avgPoints:desc', label: 'Points' },
             { key: 'ast', sort: 'offensive.avgAssists:desc', label: 'Assists' },
             { key: 'reb', sort: 'general.avgRebounds:desc', label: 'Rebounds' },
             { key: 'stl', sort: 'defensive.avgSteals:desc', label: 'Steals' },
             { key: 'blk', sort: 'defensive.avgBlocks:desc', label: 'Blocks' },
             { key: 'pm', sort: 'general.plusMinus:desc', label: 'Plus/Minus' }
+          ]
+        : [
+            { key: 'fedex', sort: 'cupPoints:desc', label: 'FedEx Cup' },
+            { key: 'scoring', sort: 'scoringAverage:asc', label: 'Scoring Avg' },
+            { key: 'drive_dist', sort: 'drivingDistance:desc', label: 'Driving Dist' },
+            { key: 'drive_acc', sort: 'drivingAccuracy:desc', label: 'Driving Acc' },
+            { key: 'gir', sort: 'greensInRegulation:desc', label: 'GIR %' },
+            { key: 'putt', sort: 'puttingAverage:asc', label: 'Putting Avg' }
           ];
 
     const data: any = {};
@@ -167,6 +183,18 @@ export const getLeaders = async (league: League) => {
             const res = await fetch(`${ENDPOINTS[league].leaders}?${params}`, { headers: HEADERS, next: { revalidate: 3600 } });
             const json = await res.json();
             
+            if (league === 'golf') {
+                data[cat.key] = json.athletes?.map((a: any) => ({
+                    id: a.athlete.id,
+                    name: a.athlete.displayName,
+                    team: a.athlete.flag?.caption || 'PGA',
+                    headshot: a.athlete.headshot?.href,
+                    value: formatStatValue(a.displayValue),
+                    label: cat.label
+                })) || [];
+                continue;
+            }
+
             const sortKey = cat.sort.split(':')[0]; 
             const [catName, statName] = sortKey.split('.');
             
@@ -277,6 +305,7 @@ export const getTeam = async (league: League, id: string) => {
 
 export const getPlayer = async (league: League, id: string) => {
     try {
+        const sport = league === 'nfl' ? 'football/nfl' : league === 'nba' ? 'basketball/nba' : 'golf/pga';
         const res = await fetch(`${ENDPOINTS[league].athletes}/${id}`, { headers: HEADERS, next: { revalidate: 3600 } });
         if (!res.ok) return null;
         const json = await res.json();
@@ -286,7 +315,7 @@ export const getPlayer = async (league: League, id: string) => {
             id: ath.id,
             name: ath.displayName,
             headshot: ath.headshot?.href,
-            team: ath.team?.displayName || 'Free Agent',
+            team: ath.team?.displayName || (league === 'golf' ? ath.flag?.caption : 'Free Agent'),
             teamId: ath.team?.id,
             teamColor: ath.team?.color || '000000',
             pos: ath.position?.displayName,
@@ -298,6 +327,7 @@ export const getPlayer = async (league: League, id: string) => {
 
 export const getPlayerLogs = async (league: League, id: string) => {
     try {
+        const sport = league === 'nfl' ? 'football/nfl' : league === 'nba' ? 'basketball/nba' : 'golf/pga';
         const res = await fetch(`${ENDPOINTS[league].athletes}/${id}/gamelog`, { headers: HEADERS, next: { revalidate: 3600 } });
         const json = await res.json();
         
@@ -348,12 +378,13 @@ export const getPlayerLogs = async (league: League, id: string) => {
 export const searchAthletes = async (league: League, query: string) => {
     if (!query || query.length < 2) return [];
     try {
-        const res = await fetch(`https://site.web.api.espn.com/apis/common/v3/search?region=us&lang=en&query=${encodeURIComponent(query)}&limit=5&mode=prefix&type=player&sport=${league === 'nfl' ? 'football' : 'basketball'}&league=${league}`);
+        const sport = league === 'nfl' ? 'football' : league === 'nba' ? 'basketball' : 'golf';
+        const res = await fetch(`https://site.web.api.espn.com/apis/common/v3/search?region=us&lang=en&query=${encodeURIComponent(query)}&limit=5&mode=prefix&type=player&sport=${sport}&league=${league}`);
         const data = await res.json();
         return (data.items || []).map((item: any) => ({
             id: item.id,
             name: item.displayName,
-            team: item.team?.abbreviation || 'FA',
+            team: item.team?.abbreviation || (league === 'golf' ? 'PGA' : 'FA'),
             url: `/sports/${league}/player/${item.id}`,
             image: item.images?.[0]?.url || null
         }));
