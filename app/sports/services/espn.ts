@@ -390,3 +390,36 @@ export const getLiveBoxScore = async (league: League, gameId: string) => {
         return playerStats;
     } catch (e) { return null; }
 };
+
+export const getGameResult = async (league: League, gameId: string) => {
+    try {
+        const sport = league === 'nfl' ? 'football' : 'basketball';
+        const url = `https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/summary?event=${gameId}`;
+        const res = await fetch(url, { headers: HEADERS, next: { revalidate: 30 } });
+        if (!res.ok) return null;
+        const data = await res.json();
+        const header = data.header;
+
+        if (!header) return null;
+
+        const c = header.competitions?.[0];
+        if (!c) return null;
+
+        const home = c.competitors.find((comp: any) => comp.homeAway === 'home');
+        const away = c.competitors.find((comp: any) => comp.homeAway === 'away');
+
+        return {
+            completed: header.competitions[0].status.type.completed,
+            home: {
+                id: home.id || home.team.id,
+                score: parseInt(home.score),
+                winner: home.winner
+            },
+            away: {
+                id: away.id || away.team.id,
+                score: parseInt(away.score),
+                winner: away.winner
+            }
+        };
+    } catch (e) { return null; }
+};

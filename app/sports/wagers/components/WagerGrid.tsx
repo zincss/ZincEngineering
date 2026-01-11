@@ -442,6 +442,18 @@ function MarketSection({ title, match, odds, addToSlip, formatOdds, labels, pref
         const legId = `${match.id}-${type}-${selection}-${prefix}`;
         return betSlip.some((l: any) => l.match_id === legId);
     };
+
+    // Helper to format selection strings with lines
+    const getSpreadSelection = (side: 'home' | 'away') => {
+        const isFav = odds.spread.favorite === side;
+        const line = isFav ? `-${odds.spread.value}` : `+${odds.spread.value}`;
+        return `${side}:${line}`;
+    };
+
+    const getTotalSelection = (side: 'over' | 'under') => {
+        return `${side}:${odds.total.value}`;
+    };
+
     return (
         <div className="space-y-4">
             <h4 className="text-xs font-mono text-[#DFFF00] uppercase tracking-[0.3em] pl-2 border-l-2 border-[#DFFF00]">{title}</h4>
@@ -456,15 +468,15 @@ function MarketSection({ title, match, odds, addToSlip, formatOdds, labels, pref
                 <div className="bg-zinc-950/50 p-4 rounded-2xl border border-zinc-800">
                     <div className="text-[9px] font-mono text-zinc-600 uppercase mb-3">{labels.spread}</div>
                     <div className="space-y-2">
-                        <button onClick={() => addToSlip(match, 'spread', 'away', odds.spread.favorite === 'away' ? odds.spread.odds : odds.spread.dogOdds, prefix)} className={`w-full py-3 rounded-xl text-xs font-black transition-all flex justify-between px-4 border ${isInSlip('spread', 'away') ? 'bg-[#DFFF00] text-black border-[#DFFF00]' : 'bg-zinc-900 text-white border-zinc-800 hover:bg-[#DFFF00] hover:text-black'}`}><span>{match.away.code} {odds.spread.favorite === 'away' ? '-' : '+'}{odds.spread.value}</span><span>{formatOdds(odds.spread.favorite === 'away' ? odds.spread.odds : odds.spread.dogOdds)}</span></button>
-                        <button onClick={() => addToSlip(match, 'spread', 'home', odds.spread.favorite === 'home' ? odds.spread.odds : odds.spread.dogOdds, prefix)} className={`w-full py-3 rounded-xl text-xs font-black transition-all flex justify-between px-4 border ${isInSlip('spread', 'home') ? 'bg-[#DFFF00] text-black border-[#DFFF00]' : 'bg-zinc-950 text-white border-zinc-800 hover:bg-[#DFFF00] hover:text-black'}`}><span>{match.home.code} {odds.spread.favorite === 'home' ? '-' : '+'}{odds.spread.value}</span><span>{formatOdds(odds.spread.favorite === 'home' ? odds.spread.odds : odds.spread.dogOdds)}</span></button>
+                        <button onClick={() => addToSlip(match, 'spread', getSpreadSelection('away'), odds.spread.favorite === 'away' ? odds.spread.odds : odds.spread.dogOdds, prefix)} className={`w-full py-3 rounded-xl text-xs font-black transition-all flex justify-between px-4 border ${isInSlip('spread', getSpreadSelection('away')) ? 'bg-[#DFFF00] text-black border-[#DFFF00]' : 'bg-zinc-900 text-white border-zinc-800 hover:bg-[#DFFF00] hover:text-black'}`}><span>{match.away.code} {odds.spread.favorite === 'away' ? '-' : '+'}{odds.spread.value}</span><span>{formatOdds(odds.spread.favorite === 'away' ? odds.spread.odds : odds.spread.dogOdds)}</span></button>
+                        <button onClick={() => addToSlip(match, 'spread', getSpreadSelection('home'), odds.spread.favorite === 'home' ? odds.spread.odds : odds.spread.dogOdds, prefix)} className={`w-full py-3 rounded-xl text-xs font-black transition-all flex justify-between px-4 border ${isInSlip('spread', getSpreadSelection('home')) ? 'bg-[#DFFF00] text-black border-[#DFFF00]' : 'bg-zinc-900 text-white border-zinc-800 hover:bg-[#DFFF00] hover:text-black'}`}><span>{match.home.code} {odds.spread.favorite === 'home' ? '-' : '+'}{odds.spread.value}</span><span>{formatOdds(odds.spread.favorite === 'home' ? odds.spread.odds : odds.spread.dogOdds)}</span></button>
                     </div>
                 </div>
                 <div className="bg-zinc-950/50 p-4 rounded-2xl border border-zinc-800">
                     <div className="text-[9px] font-mono text-zinc-600 uppercase mb-3">{labels.total}</div>
                     <div className="space-y-2">
-                        <button onClick={() => addToSlip(match, 'total', 'over', odds.total.overOdds, prefix)} className={`w-full py-3 rounded-xl text-xs font-black transition-all flex justify-between px-4 border ${isInSlip('total', 'over') ? 'bg-[#DFFF00] text-black border-[#DFFF00]' : 'bg-zinc-950 text-white border-zinc-800 hover:bg-[#DFFF00] hover:text-black'}`}><span>OVER {odds.total.value}</span><span>{formatOdds(odds.total.overOdds)}</span></button>
-                        <button onClick={() => addToSlip(match, 'total', 'under', odds.total.underOdds, prefix)} className={`w-full py-3 rounded-xl text-xs font-black transition-all flex justify-between px-4 border ${isInSlip('total', 'under') ? 'bg-[#DFFF00] text-black border-[#DFFF00]' : 'bg-zinc-950 text-white border-zinc-800 hover:bg-[#DFFF00] hover:text-black'}`}><span>UNDER {odds.total.value}</span><span>{formatOdds(odds.total.underOdds)}</span></button>
+                        <button onClick={() => addToSlip(match, 'total', getTotalSelection('over'), odds.total.overOdds, prefix)} className={`w-full py-3 rounded-xl text-xs font-black transition-all flex justify-between px-4 border ${isInSlip('total', getTotalSelection('over')) ? 'bg-[#DFFF00] text-black border-[#DFFF00]' : 'bg-zinc-900 text-white border-zinc-800 hover:bg-[#DFFF00] hover:text-black'}`}><span>OVER {odds.total.value}</span><span>{formatOdds(odds.total.overOdds)}</span></button>
+                        <button onClick={() => addToSlip(match, 'total', getTotalSelection('under'), odds.total.underOdds, prefix)} className={`w-full py-3 rounded-xl text-xs font-black transition-all flex justify-between px-4 border ${isInSlip('total', getTotalSelection('under')) ? 'bg-[#DFFF00] text-black border-[#DFFF00]' : 'bg-zinc-900 text-white border-zinc-800 hover:bg-[#DFFF00] hover:text-black'}`}><span>UNDER {odds.total.value}</span><span>{formatOdds(odds.total.underOdds)}</span></button>
                     </div>
                 </div>
             </div>

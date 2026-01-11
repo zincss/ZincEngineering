@@ -13,6 +13,7 @@ export default function Wallet() {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'status' | 'transfer' | 'history'>('status');
   const [pendingWagers, setPendingWagers] = useState<any[]>([]);
+  const [settledWagers, setSettledWagers] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [portfolioValue, setPortfolioValue] = useState<number>(0);
   
@@ -27,6 +28,7 @@ export default function Wallet() {
     if (isOpen) {
         getUserWagers().then(data => {
             setPendingWagers(data.filter((w: any) => w.status === 'pending'));
+            setSettledWagers(data.filter((w: any) => w.status !== 'pending'));
         });
         getTransactions().then(setTransactions);
         getPortfolioValue().then(setPortfolioValue);
@@ -57,6 +59,12 @@ export default function Wallet() {
         setIsTransferring(false);
     }
   };
+
+  // Merge and sort history items
+  const historyItems = [
+      ...transactions.map(t => ({ ...t, type: 'transaction' })), 
+      ...settledWagers.map(w => ({ ...w, type: 'wager', created_at: w.created_at }))
+  ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   if (!profile) return null;
 
@@ -241,34 +249,85 @@ export default function Wallet() {
 
                     {activeTab === 'history' && (
                         <div className="space-y-3">
-                            {transactions.length === 0 ? (
+                            {historyItems.length === 0 ? (
                                 <div className="py-12 text-center opacity-30">
                                     <History size={24} className="mx-auto mb-3" />
                                     <p className="text-[10px] font-mono uppercase tracking-widest">No Recent Activity</p>
                                 </div>
                             ) : (
-                                transactions.map(tx => {
-                                    const isSender = tx.sender_id === user?.id;
-                                    return (
-                                        <div key={tx.id} className="bg-zinc-900/50 p-3 rounded-xl border border-zinc-800 flex items-center justify-between group">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`p-2 rounded-lg ${isSender ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
-                                                    {isSender ? <Send size={12} /> : <Coins size={12} />}
+                                historyItems.map((item: any) => {
+                                    if (item.type === 'transaction') {
+                                        const isSender = item.sender_id === user?.id;
+                                        return (
+                                            <div key={item.id} className="bg-zinc-900/50 p-3 rounded-xl border border-zinc-800 flex items-center justify-between group">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`p-2 rounded-lg ${isSender ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
+                                                        {isSender ? <Send size={12} /> : <Coins size={12} />}
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-[10px] font-black text-white uppercase leading-none mb-1">
+                                                            {isSender ? `To ${item.metadata?.recipient}` : `From ${item.metadata?.sender}`}
+                                                        </div>
+                                                        <div className="text-[8px] font-mono text-zinc-600 uppercase">
+                                                            {new Date(item.created_at).toLocaleDateString()}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <div className="text-[10px] font-black text-white uppercase leading-none mb-1">
-                                                        {isSender ? `To ${tx.metadata?.recipient}` : `From ${tx.metadata?.sender}`}
-                                                    </div>
-                                                    <div className="text-[8px] font-mono text-zinc-600 uppercase">
-                                                        {new Date(tx.created_at).toLocaleDateString()}
-                                                    </div>
+                                                <div className={`text-xs font-black font-mono ${isSender ? 'text-red-500' : 'text-green-500'}`}>
+                                                    {isSender ? '-' : '+'}{item.amount}
                                                 </div>
                                             </div>
-                                            <div className={`text-xs font-black font-mono ${isSender ? 'text-red-500' : 'text-green-500'}`}>
-                                                {isSender ? '-' : '+'}{tx.amount}
+                                        );
+                                    } else {
+                                        // Wager Item
+                                        const isWin = item.status === 'won';
+                                        const isVoid = item.status === 'void' || item.status === 'push';
+                                        const isLoss = item.status === 'lost';
+                                        const payout = item.payout || 0;
+                                        
+                                        return (
+                                            <div key={item.id} className={`bg-zinc-900/50 p-4 rounded-xl border relative overflow-hidden group ${isWin ? 'border-green-500/30 bg-green-500/5' : isLoss ? 'border-red-500/30 bg-red-500/5' : 'border-zinc-800'}`}>
+                                                {/* Badge */}
+                                                <div className={`absolute top-0 right-0 px-2 py-1 rounded-bl-xl text-[8px] font-black uppercase tracking-widest ${isWin ? 'bg-green-500 text-black' : isLoss ? 'bg-red-500/20 text-red-500' : 'bg-zinc-800 text-zinc-500'}`}>
+                                                    {item.status}
+                                                </div>
+                                                
+                                                <div className="flex justify-between items-start mb-3 pr-12">
+                                                    <div>
+                                                        <div className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-0.5">Settled Wager</div>
+                                                        <div className="text-[8px] text-zinc-600 font-mono">{new Date(item.created_at).toLocaleDateString()}</div>
+                                                    </div>
+                                                    <div className={`text-sm font-black ${isWin ? 'text-green-500' : isLoss ? 'text-red-500' : 'text-zinc-400'}`}>
+                                                        {isWin ? `+${payout}` : isLoss ? `-${item.amount}` : 'REFUND'} <span className="text-[8px]">CR</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-2 mb-3">
+                                                    {item.wager_legs?.map((leg: any, i: number) => {
+                                                        const legStatus = leg.status === 'won' ? 'text-green-500' : leg.status === 'lost' ? 'text-red-500' : 'text-zinc-500';
+                                                        return (
+                                                            <div key={i} className="flex justify-between items-center text-[10px] border-b border-white/5 pb-1 last:border-0 last:pb-0">
+                                                                <div className="flex flex-col">
+                                                                     <span className="text-[8px] text-zinc-500 uppercase font-mono">{leg.type}</span>
+                                                                     <span className="text-zinc-300 font-bold uppercase">{leg.selection.replace(':', ' ')}</span>
+                                                                     <span className="text-[8px] text-zinc-600 italic">{leg.match_name}</span>
+                                                                </div>
+                                                                {/* Optional Leg Status Indicator */}
+                                                                <div className={`text-[8px] font-black uppercase ${legStatus}`}>
+                                                                    {leg.status === 'pending' ? '' : leg.status}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                                
+                                                <div className="flex justify-between items-center pt-2 border-t border-white/5">
+                                                    <span className="text-[8px] text-zinc-500 font-mono">ID: {item.id.slice(0, 8)}</span>
+                                                    <span className="text-[9px] font-bold text-zinc-400">Wagered: {item.amount}</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    );
+                                        );
+                                    }
                                 })
                             )}
                         </div>
