@@ -124,6 +124,8 @@ export async function resetEconomy(baseAmount: number = 1000) {
     return { success: true };
 }
 
+import { sendUserDigest } from '@/scripts/send-weekly-digest';
+
 // 3. System Purge (Cache Clear)
 export async function clearSystemCache() {
     const { authorized, error } = await verifyAdmin();
@@ -131,4 +133,16 @@ export async function clearSystemCache() {
 
     revalidatePath('/', 'layout'); // Hard revalidate everything
     return { success: true };
+}
+
+// 4. Send Test Digest
+export async function sendTestDigest() {
+    const { authorized, error, supabase } = await verifyAdmin();
+    if (!authorized || !supabase) return { error };
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Session lost' };
+
+    const result = await sendUserDigest(user.id);
+    return result;
 }

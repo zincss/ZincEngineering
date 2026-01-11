@@ -3,9 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import { 
   Users, Shield, Coins, Search, Edit2, Check, X, 
-  Activity, Database, Terminal, AlertTriangle, Zap, RefreshCw, Trash2 
+  Activity, Database, Terminal, AlertTriangle, Zap, RefreshCw, Trash2, Mail
 } from 'lucide-react';
-import { getAdminData, updateUserCredits, updateUserRole, distributeStimulus, resetEconomy, clearSystemCache } from './actions';
+import { getAdminData, updateUserCredits, updateUserRole, distributeStimulus, resetEconomy, clearSystemCache, sendTestDigest } from './actions';
 import { useRouter } from 'next/navigation';
 
 export default function AdminPage() {
@@ -16,6 +16,7 @@ export default function AdminPage() {
   const [confirmAction, setConfirmAction] = useState<{ type: string, action: () => Promise<any> } | null>(null);
   const [error, setError] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [testMailHtml, setTestMailHtml] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -49,9 +50,14 @@ export default function AdminPage() {
       const res = await confirmAction.action();
       setProcessing(false);
       setConfirmAction(null);
+      
       if (res.success) {
-          loadData();
-          alert('Operation Successful');
+          if (res.html) {
+              setTestMailHtml(res.html);
+          } else {
+              loadData();
+              alert('Operation Successful');
+          }
       } else {
           alert('Operation Failed: ' + res.error);
       }
@@ -121,7 +127,7 @@ export default function AdminPage() {
                   <Terminal size={20} className="text-[#DFFF00]" />
                   <h2 className="text-lg font-black uppercase tracking-tight text-white">System Operations</h2>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                   {/* Stimulus Tool */}
                   <button 
                     onClick={() => setConfirmAction({ type: 'STIMULUS', action: () => distributeStimulus(5000) })}
@@ -148,6 +154,19 @@ export default function AdminPage() {
                       <p className="text-xs text-zinc-500">Force revalidate global cache and update stats.</p>
                   </button>
 
+                  {/* Test Digest */}
+                  <button 
+                    onClick={() => setConfirmAction({ type: 'TEST_DIGEST', action: () => sendTestDigest() })}
+                    className="group bg-zinc-900 border border-zinc-800 hover:border-[#DFFF00] p-6 rounded-2xl text-left transition-all"
+                  >
+                      <div className="flex justify-between items-start mb-4">
+                          <div className="p-3 bg-[#DFFF00]/10 text-[#DFFF00] rounded-xl group-hover:bg-[#DFFF00] group-hover:text-black transition-colors"><Mail size={24} /></div>
+                          <Edit2 size={16} className="text-zinc-600 group-hover:text-[#DFFF00]" />
+                      </div>
+                      <h3 className="text-lg font-black text-white uppercase tracking-tight mb-1">Test Digest</h3>
+                      <p className="text-xs text-zinc-500">Generate and preview a test weekly digest email.</p>
+                  </button>
+
                   {/* Economy Reset */}
                   <button 
                     onClick={() => setConfirmAction({ type: 'RESET', action: () => resetEconomy(1000) })}
@@ -162,6 +181,27 @@ export default function AdminPage() {
                   </button>
               </div>
           </div>
+
+          {/* PREVIEW MODAL */}
+          {testMailHtml && (
+              <div className="fixed inset-0 z-[250] flex flex-col bg-black/90 backdrop-blur-2xl animate-in fade-in duration-300">
+                  <div className="h-20 bg-zinc-950 border-b border-zinc-800 flex items-center justify-between px-8 shrink-0">
+                      <div className="flex items-center gap-3 uppercase font-black text-white tracking-widest italic">
+                          <Mail className="text-[#DFFF00]" /> Digest Preview
+                      </div>
+                      <button onClick={() => setTestMailHtml(null)} className="p-2 bg-zinc-900 hover:bg-white hover:text-black rounded-full transition-all border border-zinc-800"><X size={20}/></button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-8 flex justify-center">
+                      <div className="w-full max-w-[600px] bg-white rounded-3xl overflow-hidden shadow-2xl">
+                          <iframe 
+                            srcDoc={testMailHtml} 
+                            className="w-full h-full min-h-[800px]" 
+                            title="Digest Preview"
+                          />
+                      </div>
+                  </div>
+              </div>
+          )}
 
           {/* USER MANAGEMENT */}
           <div className="bg-zinc-900/50 border border-zinc-800 rounded-3xl overflow-hidden">
