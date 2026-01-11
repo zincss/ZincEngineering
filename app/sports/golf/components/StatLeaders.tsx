@@ -17,7 +17,7 @@ export default function StatLeaders({ stats }: { stats: any }) {
         </div>
 
         <div className="space-y-8">
-            {Object.entries(stats).map(([category, players]: [string, any[]]) => (
+            {(Object.entries(stats) as [string, any[]][]).map(([category, players]) => (
                 <div key={category} className="bg-zinc-900/50 rounded-2xl border border-zinc-800 overflow-hidden">
                     <div className="bg-zinc-900 px-4 py-3 border-b border-zinc-800 flex justify-between items-center">
                         <span className="text-xs font-black text-white uppercase tracking-wider">{category}</span>
