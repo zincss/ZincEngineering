@@ -12,7 +12,7 @@ import { BaseCampView } from './components/BaseCampView';
 import { PreferencesView } from './components/PreferencesView';
 import { 
   Package, LineChart, Wallet, Hammer, Tent, X, Trophy, Settings,
-  ChevronRight, Shield, Activity, Fingerprint, Command
+  ChevronRight, Shield, Activity, Fingerprint, Command, Gem
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
