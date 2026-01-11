@@ -68,18 +68,18 @@ export default function CollectionsHub() {
 
         <div className="mt-12 grid grid-cols-1 md:grid-cols-12 auto-rows-[300px] gap-[1px] bg-zinc-800 border border-zinc-800 rounded-[2rem] overflow-hidden shadow-2xl">
             
-            {/* GAMING DB (8) */}
-            <Link href="/gaming" className="group md:col-span-8 relative bg-zinc-950 hover:bg-[#DFFF00] transition-colors duration-300 p-8 flex flex-col justify-between overflow-hidden">
+            {/* GEM FINDER (8) */}
+            <Link href="/collections/gem-finder" className="group md:col-span-8 relative bg-zinc-950 hover:bg-[#DFFF00] transition-colors duration-300 p-8 flex flex-col justify-between overflow-hidden">
                 <div className="relative z-10 flex justify-between items-start">
-                    <span className="font-mono text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-black/60 transition-colors">01_Warframe</span>
+                    <span className="font-mono text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-black/60 transition-colors">01_Discovery</span>
                     <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-black/10 transition-colors text-[#DFFF00] group-hover:text-black">
                         <Gamepad2 size={18} />
                     </div>
                 </div>
                 <div className="relative z-10">
-                    <h3 className="text-4xl md:text-5xl font-black uppercase text-white mb-2 tracking-tighter italic group-hover:text-black transition-colors">Gaming DB</h3>
+                    <h3 className="text-4xl md:text-5xl font-black uppercase text-white mb-2 tracking-tighter italic group-hover:text-black transition-colors">Gem Finder</h3>
                     <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest max-w-md group-hover:text-black/60">
-                        Item prices, module configurations, and drop tables.
+                        Unearth hidden, high-rated games from the Steam store.
                     </p>
                 </div>
             </Link>
