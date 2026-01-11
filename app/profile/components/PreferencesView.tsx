@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Mail, CheckCircle2, AlertCircle, BellRing, Settings } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Mail, CheckCircle2, AlertCircle, BellRing, Settings, ShieldCheck } from 'lucide-react';
 import { updateWeeklyDigestPreference } from '../actions';
 
 interface PreferencesViewProps {
