@@ -245,7 +245,7 @@ function WalletContent({
                                         <p className="text-[10px] font-mono uppercase tracking-widest text-zinc-600 font-bold">No active wagers</p>
                                     </div>
                                 ) : (
-                                    pendingWagers.map(wager => (
+                                    pendingWagers.map((wager: any) => (
                                         <div key={wager.id} className="bg-zinc-900/50 border border-white/5 rounded-2xl p-5 group hover:border-[#DFFF00]/30 transition-all">
                                             <div className="flex justify-between items-start mb-4">
                                                 <div className="flex items-center gap-2">
