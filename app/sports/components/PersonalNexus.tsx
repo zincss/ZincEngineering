@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Star, Plus, X, Activity, User, Search, Zap, Loader2, Target, BarChart3, CloudCheck } from 'lucide-react';
+import { Star, Plus, X, Activity, User, Search, Zap, Loader2, Target, BarChart3, CloudCheck, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import Link from 'next/link';
 import { updateSportsPrefs, getSportsPrefs, getAllTeams, searchNexusAthletes, getNexusTeamStats, getNexusPlayerStats } from '../actions';
@@ -23,6 +23,7 @@ interface SportsPrefs {
 
 export default function PersonalNexus() {
     const { user } = useAuth();
+    const [isMinimized, setIsMinimized] = useState(true);
     const [league, setLeague] = useState<'nfl' | 'nba'>('nfl');
     const [prefs, setPrefs] = useState<SportsPrefs>({
         nfl: { team: null, players: [] },
@@ -174,103 +175,139 @@ export default function PersonalNexus() {
             
             <div className="p-5 sm:p-6 border-b border-zinc-800 bg-zinc-900/50 flex flex-col sm:flex-row items-center justify-between gap-4 relative z-10">
                 <div className="flex items-center gap-4">
-                    <div className="p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-[#DFFF00] shadow-inner"><Activity size={20} /></div>
+                    <button 
+                        onClick={() => setIsMinimized(!isMinimized)}
+                        className="p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-[#DFFF00] shadow-inner hover:border-[#DFFF00]/50 transition-colors"
+                    >
+                        {isMinimized ? <ChevronRight size={20} className="rotate-90" /> : <ChevronRight size={20} className="-rotate-90" />}
+                    </button>
                     <div>
                         <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tighter text-white italic leading-none flex items-center gap-3">Personal <span className="text-[#DFFF00]">Favourites</span> {syncing && <Loader2 size={14} className="animate-spin text-zinc-600" />}</h2>
                         <p className="hidden sm:flex text-[10px] font-mono text-zinc-500 uppercase tracking-[0.3em] mt-1.5 items-center gap-2"><CloudCheck size={12} className="text-emerald-500" /> Cloud Synchronized</p>
                     </div>
                 </div>
-                <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 shadow-inner w-full sm:w-auto">
-                    <button onClick={() => setLeague('nfl')} className={`flex-1 sm:flex-none px-5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${league === 'nfl' ? 'bg-[#DFFF00] text-black shadow-lg' : 'text-zinc-500 hover:text-white'}`}>NFL</button>
-                    <button onClick={() => setLeague('nba')} className={`flex-1 sm:flex-none px-5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${league === 'nba' ? 'bg-[#DFFF00] text-black shadow-lg' : 'text-zinc-500 hover:text-white'}`}>NBA</button>
-                </div>
+                {!isMinimized && (
+                    <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 shadow-inner w-full sm:w-auto">
+                        <button onClick={() => setLeague('nfl')} className={`flex-1 sm:flex-none px-5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${league === 'nfl' ? 'bg-[#DFFF00] text-black shadow-lg' : 'text-zinc-500 hover:text-white'}`}>NFL</button>
+                        <button onClick={() => setLeague('nba')} className={`flex-1 sm:flex-none px-5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${league === 'nba' ? 'bg-[#DFFF00] text-black shadow-lg' : 'text-zinc-500 hover:text-white'}`}>NBA</button>
+                    </div>
+                )}
+                {isMinimized && (
+                    <div className="flex items-center gap-4">
+                        {favTeam && <img src={favTeam.image} className="w-8 h-8 object-contain opacity-50" alt="" />}
+                        <div className="flex -space-x-3">
+                            {favPlayers.map(p => (
+                                <div key={p.id} className="w-8 h-8 rounded-full border-2 border-zinc-950 bg-zinc-900 overflow-hidden opacity-50">
+                                    <img src={p.image} className="w-full h-full object-cover" alt="" />
+                                </div>
+                            ))}
+                        </div>
+                        <button 
+                            onClick={() => setIsMinimized(false)}
+                            className="px-4 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-[9px] font-black text-zinc-500 uppercase tracking-widest hover:text-white transition-all"
+                        >
+                            Expand
+                        </button>
+                    </div>
+                )}
             </div>
 
-            <div className="p-5 sm:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 relative z-10">
-                <div className="lg:col-span-4 flex flex-col">
-                    <div className="flex items-center justify-between mb-4 h-4">
-                        <div className="text-[10px] font-mono font-black text-zinc-500 uppercase tracking-[0.3em]">Favourite Team</div>
-                        {favTeam && <button onClick={dismissTeam} className="text-[9px] font-mono font-bold text-zinc-600 hover:text-red-500 uppercase">Dismiss</button>}
-                    </div>
-                    {favTeam ? (
-                        <div className="group relative block bg-zinc-900 border border-zinc-800 rounded-3xl p-6 hover:border-[#DFFF00]/50 transition-all overflow-hidden h-[180px] shadow-lg flex flex-col cursor-pointer" onClick={() => setIsAdding('team')}>
-                            <div className="absolute top-0 right-0 p-12 bg-[#DFFF00] blur-3xl opacity-5 group-hover:opacity-10 transition-opacity" />
-                            <div className="relative z-10 flex items-center gap-5 mb-4">
-                                <div className="w-14 h-14 bg-zinc-950 rounded-2xl border border-zinc-800 p-2.5 group-hover:border-[#DFFF00]/30 shadow-2xl transition-all shrink-0"><img src={favTeam.image} className="w-full h-full object-contain" alt="" /></div>
-                                <div className="min-w-0">
-                                    <div className="text-lg font-black text-white uppercase tracking-tighter italic group-hover:text-[#DFFF00] transition-colors leading-none mb-1 truncate">{favTeam.name}</div>
-                                    <div className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest">Click to Reassign</div>
+            <AnimatePresence>
+                {!isMinimized && (
+                    <motion.div 
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.4, ease: "easeInOut" }}
+                        className="overflow-hidden"
+                    >
+                        <div className="p-5 sm:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 relative z-10 border-t border-zinc-800">
+                            <div className="lg:col-span-4 flex flex-col">
+                                <div className="flex items-center justify-between mb-4 h-4">
+                                    <div className="text-[10px] font-mono font-black text-zinc-500 uppercase tracking-[0.3em]">Favourite Team</div>
+                                    {favTeam && <button onClick={dismissTeam} className="text-[9px] font-mono font-bold text-zinc-600 hover:text-red-500 uppercase">Dismiss</button>}
                                 </div>
-                            </div>
-                            <div className="mt-auto pt-4 border-t border-zinc-800/50 flex justify-between items-center relative z-10">
-                                {favTeam.recentStats && typeof favTeam.recentStats === 'object' ? (
-                                    <>
-                                        <div className="flex flex-col">
-                                            <span className="text-[8px] font-mono font-bold text-zinc-600 uppercase tracking-[0.2em] mb-1">vs {favTeam.recentStats.opponent}</span>
-                                            <span className="text-xl font-mono font-black text-white group-hover:text-[#DFFF00] leading-none tracking-tighter italic">{favTeam.recentStats.score}</span>
+                                {favTeam ? (
+                                    <div className="group relative block bg-zinc-900 border border-zinc-800 rounded-3xl p-6 hover:border-[#DFFF00]/50 transition-all overflow-hidden h-[180px] shadow-lg flex flex-col cursor-pointer" onClick={() => setIsAdding('team')}>
+                                        <div className="absolute top-0 right-0 p-12 bg-[#DFFF00] blur-3xl opacity-5 group-hover:opacity-10 transition-opacity" />
+                                        <div className="relative z-10 flex items-center gap-5 mb-4">
+                                            <div className="w-14 h-14 bg-zinc-950 rounded-2xl border border-zinc-800 p-2.5 group-hover:border-[#DFFF00]/30 shadow-2xl transition-all shrink-0"><img src={favTeam.image} className="w-full h-full object-contain" alt="" /></div>
+                                            <div className="min-w-0">
+                                                <div className="text-lg font-black text-white uppercase tracking-tighter italic group-hover:text-[#DFFF00] transition-colors leading-none mb-1 truncate">{favTeam.name}</div>
+                                                <div className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest">Click to Reassign</div>
+                                            </div>
                                         </div>
-                                        <div className={`w-9 h-9 rounded-xl border flex items-center justify-center font-mono font-black text-base ${favTeam.recentStats.result === 'W' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
-                                            {favTeam.recentStats.result}
+                                        <div className="mt-auto pt-4 border-t border-zinc-800/50 flex justify-between items-center relative z-10">
+                                            {favTeam.recentStats && typeof favTeam.recentStats === 'object' ? (
+                                                <>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[8px] font-mono font-bold text-zinc-600 uppercase tracking-[0.2em] mb-1">vs {favTeam.recentStats.opponent}</span>
+                                                        <span className="text-xl font-mono font-black text-white group-hover:text-[#DFFF00] leading-none tracking-tighter italic">{favTeam.recentStats.score}</span>
+                                                    </div>
+                                                    <div className={`w-9 h-9 rounded-xl border flex items-center justify-center font-mono font-black text-base ${favTeam.recentStats.result === 'W' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
+                                                        {favTeam.recentStats.result}
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="flex items-center gap-3 text-zinc-700 animate-pulse font-mono text-[9px] uppercase tracking-widest">
+                                                    <Loader2 size={12} className="animate-spin" /> Uplink Active...
+                                                </div>
+                                            )}
                                         </div>
-                                    </>
+                                    </div>
                                 ) : (
-                                    <div className="flex items-center gap-3 text-zinc-700 animate-pulse font-mono text-[9px] uppercase tracking-widest">
-                                        <Loader2 size={12} className="animate-spin" /> Uplink Active...
+                                    <div onClick={() => setIsAdding('team')} className="bg-zinc-900/30 border-2 border-zinc-800 border-dashed rounded-3xl p-8 flex flex-col items-center justify-center text-center h-[180px] group hover:bg-zinc-900/50 hover:border-[#DFFF00]/30 transition-all cursor-pointer">
+                                        <div className="w-12 h-12 rounded-2xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-zinc-700 group-hover:text-[#DFFF00] mb-4 transition-all"><Plus size={24} /></div>
+                                        <div className="text-[11px] font-black text-zinc-600 uppercase tracking-[0.2em] group-hover:text-zinc-400">Assign Favourite Team</div>
                                     </div>
                                 )}
                             </div>
-                        </div>
-                    ) : (
-                        <div onClick={() => setIsAdding('team')} className="bg-zinc-900/30 border-2 border-zinc-800 border-dashed rounded-3xl p-8 flex flex-col items-center justify-center text-center h-[180px] group hover:bg-zinc-900/50 hover:border-[#DFFF00]/30 transition-all cursor-pointer">
-                            <div className="w-12 h-12 rounded-2xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-zinc-700 group-hover:text-[#DFFF00] mb-4 transition-all"><Plus size={24} /></div>
-                            <div className="text-[11px] font-black text-zinc-600 uppercase tracking-[0.2em] group-hover:text-zinc-400">Assign Favourite Team</div>
-                        </div>
-                    )}
-                </div>
 
-                <div className="lg:col-span-8 flex flex-col">
-                    <div className="flex items-center mb-4 h-4">
-                        <div className="text-[10px] font-mono font-black text-zinc-500 uppercase tracking-[0.3em]">Favourite Players (0{favPlayers.length}/05)</div>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
-                        {favPlayers.map(player => (
-                            <div key={player.id} className="group relative bg-zinc-900 border border-zinc-800 rounded-3xl p-4 sm:p-5 hover:border-[#DFFF00]/50 transition-all flex flex-col items-center text-center shadow-lg h-[180px]">
-                                <button onClick={(e) => { e.stopPropagation(); removePlayer(player.id); }} className="absolute top-3 right-3 p-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-600 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100 z-20"><X size={12} /></button>
-                                
-                                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-zinc-800 bg-zinc-950 overflow-hidden mb-3 group-hover:border-[#DFFF00]/30 shadow-2xl transition-all mx-auto relative shrink-0">
-                                    <img src={player.image} className="w-full h-full object-cover translate-y-1 scale-110" alt="" />
+                            <div className="lg:col-span-8 flex flex-col">
+                                <div className="flex items-center mb-4 h-4">
+                                    <div className="text-[10px] font-mono font-black text-zinc-500 uppercase tracking-[0.3em]">Favourite Players (0{favPlayers.length}/05)</div>
                                 </div>
-                                <div className="text-[10px] sm:text-[11px] font-black text-white uppercase leading-tight truncate w-full mb-3 group-hover:text-[#DFFF00] transition-colors">{player.name}</div>
-                                
-                                <div className="mt-auto w-full border-t border-zinc-800/50 pt-3 flex gap-px bg-zinc-800/50 rounded-xl overflow-hidden shrink-0">
-                                    {player.recentStats && typeof player.recentStats === 'object' ? (
-                                        <>
-                                            <div className="flex-1 bg-zinc-950/50 py-1.5 flex flex-col items-center">
-                                                <span className="text-[6px] sm:text-[7px] font-mono font-bold text-zinc-600 uppercase leading-none mb-1">{player.recentStats.s1.l}</span>
-                                                <span className="text-[9px] sm:text-[11px] font-mono font-black text-white group-hover:text-[#DFFF00] leading-none">{player.recentStats.s1.v}</span>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
+                                    {favPlayers.map(player => (
+                                        <div key={player.id} className="group relative bg-zinc-900 border border-zinc-800 rounded-3xl p-4 sm:p-5 hover:border-[#DFFF00]/50 transition-all flex flex-col items-center text-center shadow-lg h-[180px]">
+                                            <button onClick={(e) => { e.stopPropagation(); removePlayer(player.id); }} className="absolute top-3 right-3 p-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-600 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100 z-20"><X size={12} /></button>
+                                            
+                                            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-zinc-800 bg-zinc-950 overflow-hidden mb-3 group-hover:border-[#DFFF00]/30 shadow-2xl transition-all mx-auto relative shrink-0">
+                                                <img src={player.image} className="w-full h-full object-cover translate-y-1 scale-110" alt="" />
                                             </div>
-                                            <div className="flex-1 bg-zinc-950/50 py-1.5 flex flex-col items-center">
-                                                <span className="text-[6px] sm:text-[7px] font-mono font-bold text-zinc-600 uppercase leading-none mb-1">{player.recentStats.s2.l}</span>
-                                                <span className="text-[9px] sm:text-[11px] font-mono font-black text-white group-hover:text-[#DFFF00] leading-none">{player.recentStats.s2.v}</span>
+                                            <div className="text-[10px] sm:text-[11px] font-black text-white uppercase leading-tight truncate w-full mb-3 group-hover:text-[#DFFF00] transition-colors">{player.name}</div>
+                                            
+                                            <div className="mt-auto w-full border-t border-zinc-800/50 pt-3 flex gap-px bg-zinc-800/50 rounded-xl overflow-hidden shrink-0">
+                                                {player.recentStats && typeof player.recentStats === 'object' ? (
+                                                    <>
+                                                        <div className="flex-1 bg-zinc-950/50 py-1.5 flex flex-col items-center">
+                                                            <span className="text-[6px] sm:text-[7px] font-mono font-bold text-zinc-600 uppercase leading-none mb-1">{player.recentStats.s1.l}</span>
+                                                            <span className="text-[9px] sm:text-[11px] font-mono font-black text-white group-hover:text-[#DFFF00] leading-none">{player.recentStats.s1.v}</span>
+                                                        </div>
+                                                        <div className="flex-1 bg-zinc-950/50 py-1.5 flex flex-col items-center">
+                                                            <span className="text-[6px] sm:text-[7px] font-mono font-bold text-zinc-600 uppercase leading-none mb-1">{player.recentStats.s2.l}</span>
+                                                            <span className="text-[9px] sm:text-[11px] font-mono font-black text-white group-hover:text-[#DFFF00] leading-none">{player.recentStats.s2.v}</span>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div className="w-full py-2 text-[8px] font-mono font-black text-zinc-700 animate-pulse uppercase tracking-tighter">Syncing...</div>
+                                                )}
                                             </div>
-                                        </>
-                                    ) : (
-                                        <div className="w-full py-2 text-[8px] font-mono font-black text-zinc-700 animate-pulse uppercase tracking-tighter">Syncing...</div>
-                                    )}
+                                        </div>
+                                    ))}
+                                    {favPlayers.length < 5 && Array.from({ length: 5 - favPlayers.length }).map((_, i) => (
+                                        <div key={i} onClick={() => setIsAdding('player')} className="bg-zinc-900/30 border-2 border-zinc-800 border-dashed rounded-3xl h-[180px] flex flex-col items-center justify-center group hover:bg-zinc-900/50 hover:border-[#DFFF00]/30 transition-all cursor-pointer">
+                                            <Plus size={18} className="text-zinc-700 group-hover:text-[#DFFF00] mb-3" />
+                                            <div className="text-[9px] font-black text-zinc-700 uppercase tracking-[0.2em] group-hover:text-zinc-500">Vacant</div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
-                        ))}
-                        {favPlayers.length < 5 && Array.from({ length: 5 - favPlayers.length }).map((_, i) => (
-                            <div key={i} onClick={() => setIsAdding('player')} className="bg-zinc-900/30 border-2 border-zinc-800 border-dashed rounded-3xl h-[180px] flex flex-col items-center justify-center group hover:bg-zinc-900/50 hover:border-[#DFFF00]/30 transition-all cursor-pointer">
-                                <Plus size={18} className="text-zinc-700 group-hover:text-[#DFFF00] mb-3" />
-                                <div className="text-[9px] font-black text-zinc-700 uppercase tracking-[0.2em] group-hover:text-zinc-500">Vacant</div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
-            {/* SELECTION OVERLAY */}
             <AnimatePresence>
                 {isAdding && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-xl p-4 sm:p-8 flex flex-col items-center justify-center">

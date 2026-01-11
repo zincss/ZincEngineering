@@ -145,8 +145,8 @@ export default function EntertainmentHub() {
             
             <div className="relative z-10">
                 <div className="flex items-start justify-between mb-6">
-                   <div className="w-10 h-10 bg-[#DFFF00] text-black flex items-center justify-center font-bold border border-black">
-                       WF
+                   <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-black/10 transition-colors text-[#DFFF00] group-hover:text-black">
+                       <Ghost size={18} />
                    </div>
                    <span className="text-[9px] font-mono text-[#DFFF00] border border-[#DFFF00]/30 px-2 py-1 rounded-full">ONLINE</span>
                 </div>

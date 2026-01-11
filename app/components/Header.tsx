@@ -1,76 +1,96 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
 import { 
   Trophy, Circle, Menu, X, FolderOpen, Coins,
   LogIn, LogOut, Shield, Gamepad2, Package, Activity,
-  ChevronDown, ChevronRight, Orbit, User as UserIcon
+  ChevronDown, ChevronRight, Orbit, User as UserIcon,
+  Search, Bell, Terminal, Command, LayoutGrid, Zap, Wallet as WalletIcon
 } from 'lucide-react';
 import Link from 'next/link';
 import Wallet from './Wallet';
 
 const NAV_CONFIG = [
   {
-    id: 'astro', label: 'ASTRO', href: '/collections/astro', icon: <Orbit size={14} />,
+    id: 'latest', label: 'LATEST', href: '/collections/astro', icon: <Zap size={16} />,
     subItems: [
-        { label: 'Overview', href: '/collections/astro' },
-        { label: 'Weather Station', href: '/collections/weather' },
-        { label: 'Planetarium', href: '/collections/planetarium' },
+        { label: 'Astro Hub', href: '/collections/astro', desc: 'Space & Astronomy' },
+        { label: 'Weather', href: '/collections/weather', desc: 'Local Forecasts' },
+        { label: 'Planetarium', href: '/collections/planetarium', desc: 'Solar System Map' },
     ]
   },
   {
-    id: 'play', label: 'PLAY', href: '/play', icon: <Gamepad2 size={14} />,
+    id: 'play', label: 'PLAY', href: '/play', icon: <Gamepad2 size={16} />,
     subItems: [
-        { label: 'Cyphers', href: '/play/cyphers' },
-        { label: 'Hotseat', href: '/play/hotseat' },
-        { label: 'Poker', href: '/play/poker' },
-        { label: 'Blackjack', href: '/play/blackjack' },
-        { label: 'Roulette', href: '/play/roulette' },
-        { label: 'Trivia Matrix', href: '/collections/trivia' },
+        { label: 'Cyphers', href: '/play/cyphers', desc: 'Daily Puzzles' },
+        { label: 'Hotseat', href: '/play/hotseat', desc: 'Trivia Challenge' },
+        { label: 'Poker', href: '/play/poker', desc: 'Texas Hold\'em' },
+        { label: 'Arcade', href: '/play', desc: 'All Games' },
     ]
   },
-  { id: 'market', label: 'MARKET', href: '/market', icon: <Package size={14} />, subItems: [] },
+  { id: 'market', label: 'MARKET', href: '/market', icon: <Package size={16} />, subItems: [] },
   {
-    id: 'archive', label: 'ARCHIVE', href: '/collections', icon: <FolderOpen size={14} />,
+    id: 'archive', label: 'ARCHIVE', href: '/collections', icon: <FolderOpen size={16} />,
     subItems: [
-       { label: 'The Library', href: '/collections/library' },
-       { label: 'Gaming DB', href: '/gaming' },
-       { label: 'Automotive', href: '/automotive' },
-       { label: 'Recipes', href: '/collections/recipes' },
-       { label: 'Zinc Search', href: '/collections/search' },
-       { label: 'Tier Lists', href: '/collections/tier-list' },
-       { label: 'Golf Cards', href: '/collections/golf' },
+       { label: 'Gem Finder', href: '/collections/gem-finder', desc: 'Steam Discoveries' },
+       { label: 'Automotive', href: '/automotive', desc: 'Vehicle Database' },
+       { label: 'Tier Lists', href: '/collections/tier-list', desc: 'Rankings' },
+       { label: 'The Library', href: '/collections/library', desc: 'Knowledge Base' },
     ]
   },
   {
-    id: 'sports', label: 'SPORTS', href: '/sports', icon: <Trophy size={14} />,
+    id: 'sports', label: 'SPORTS', href: '/sports', icon: <Trophy size={16} />,
     subItems: [
-       { label: 'The Breakdown', href: '/sports/breakdown' },
-       { label: 'NFL Hub', href: '/sports/nfl' },
-       { label: 'NBA Hub', href: '/sports/nba' },
-       { label: 'Formula 1', href: '/sports/f1' },
-       { label: 'NRL Matrix', href: '/sports/nrl' },
-       { label: 'PGA Golf', href: '/sports/golf' },
+       { label: 'Match Center', href: '/sports/match-center', desc: 'Live Scores' },
+       { label: 'PGA Golf', href: '/sports/golf', desc: 'Tour Updates' },
+       { label: 'NBA Hub', href: '/sports/nba', desc: 'Basketball' },
+       { label: 'NFL Hub', href: '/sports/nfl', desc: 'Football' },
     ]
   }
 ];
 
 export default function Header() {
   const pathname = usePathname();
-  const { user, profile, signOut, isAdmin } = useAuth();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isVisible, setIsVisible] = useState(true);
+  const { user, profile, signOut, isAdmin, refreshProfile } = useAuth();
+  const [activeMenu, setActiveMenu] = useState<'NONE' | 'MOBILE' | 'WALLET'>('NONE');
+  const [hidden, setHidden] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
-  // Check for elevated privileges
+  const { scrollY } = useScroll();
+
+  useMotionValueEvent(scrollY, "change", (latest) => {
+    if (activeMenu !== 'NONE') {
+      setHidden(false);
+      return;
+    }
+    const previous = scrollY.getPrevious() || 0;
+    if (latest > previous && latest > 150) {
+      setHidden(true);
+    } else {
+      setHidden(false);
+    }
+    setIsScrolled(latest > 20);
+  });
+
+  // Body Scroll Lock
+  useEffect(() => {
+    if (activeMenu !== 'NONE') {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [activeMenu]);
+
   const isElevated = isAdmin || profile?.role === 'owner';
   const isOwner = profile?.role === 'owner';
 
   const getActiveState = (id: string) => {
       switch(id) {
-          case 'astro': return pathname?.includes('/astro') || pathname?.includes('/weather') || pathname?.includes('/planetarium');
+          case 'latest': return pathname?.includes('/astro') || pathname?.includes('/weather') || pathname?.includes('/planetarium');
           case 'play': return pathname?.startsWith('/play') || pathname?.includes('/trivia');
           case 'market': return pathname?.startsWith('/market');
           case 'archive': return (pathname?.startsWith('/collections') && !pathname?.includes('/astro') && !pathname?.includes('/weather') && !pathname?.includes('/planetarium') && !pathname?.includes('/trivia')) || pathname?.startsWith('/gaming') || pathname?.startsWith('/automotive');
@@ -80,137 +100,165 @@ export default function Header() {
   };
 
   useEffect(() => {
-    setIsMobileMenuOpen(false);
-    setIsVisible(true);
+    setActiveMenu('NONE');
   }, [pathname]);
-
-  useEffect(() => {
-    let lastScrollY = window.scrollY;
-    const handleScroll = () => {
-      if (isMobileMenuOpen) { setIsVisible(true); return; }
-      const currentScrollY = window.scrollY;
-      if (currentScrollY <= 0) { setIsVisible(true); lastScrollY = 0; return; }
-      const isScrollingDown = currentScrollY > lastScrollY;
-      if (Math.abs(currentScrollY - lastScrollY) > 10) {
-        setIsVisible(!(isScrollingDown && currentScrollY > 80));
-      }
-      lastScrollY = currentScrollY;
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [isMobileMenuOpen]);
 
   if (pathname === '/play/poker' || pathname === '/collections/planetarium') return null;
 
   return (
     <>
-      <header className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 transform ${isVisible ? 'translate-y-0' : '-translate-y-full'} ${isElevated ? 'bg-zinc-950/90 border-b border-red-500/20 shadow-[0_4px_30px_-10px_rgba(239,68,68,0.2)]' : 'bg-zinc-950/80 backdrop-blur-xl border-b border-white/5'}`}>
-        <div className="max-w-[1800px] mx-auto px-4 md:px-8 h-14 md:h-24 flex items-center justify-between gap-8">
-          
-          {/* LEFT: BRANDING */}
-          <div className="flex items-center gap-12">
-              <Link href="/" className="flex items-center gap-4 group">
-                  <div className={`relative w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-2xl shadow-[0_0_30px_rgba(223,255,0,0.2)] group-hover:shadow-[0_0_50px_rgba(223,255,0,0.4)] group-hover:scale-105 transition-all duration-500 overflow-hidden ${isElevated ? 'bg-red-600' : 'bg-[#DFFF00]'}`}>
-                      <span className={`font-black text-xl md:text-2xl relative z-10 ${isElevated ? 'text-white' : 'text-black'}`}>Z</span>
-                      <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent" />
-                  </div>
-                  <div className="hidden md:flex flex-col">
-                      <span className={`font-black text-2xl leading-none tracking-tighter italic uppercase transition-colors ${isElevated ? 'text-red-500 group-hover:text-white' : 'text-white group-hover:text-[#DFFF00]'}`}>Zinc</span>
-                      <div className="flex items-center gap-2">
-                         <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${isElevated ? 'bg-red-500' : 'bg-[#DFFF00]'}`} />
-                         <span className="font-mono text-[8px] font-black text-zinc-500 tracking-[0.4em] uppercase">{isOwner ? 'OWNER_ACCESS' : isElevated ? 'ADMIN_ACCESS' : 'UPLINK_ACTIVE'}</span>
-                      </div>
-                  </div>
-              </Link>
+      <motion.header
+        variants={{ visible: { y: 0 }, hidden: { y: -100 } }}
+        animate={hidden ? "hidden" : "visible"}
+        transition={{ duration: 0.35, ease: "easeInOut" }}
+        className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 ${isScrolled ? 'py-3' : 'py-6'}`}
+      >
+        <div className="max-w-[1600px] mx-auto px-4 md:px-8">
+          <div className={`relative flex items-center justify-between gap-4 p-2 md:p-3 rounded-[2rem] border transition-all duration-500 shadow-2xl ${isScrolled ? 'bg-black/60 backdrop-blur-2xl border-white/10' : 'bg-transparent border-transparent'} ${isElevated && isScrolled ? 'border-red-500/30 bg-red-950/10' : ''}`}>
+            <div className="absolute inset-0 bg-gradient-to-r from-white/[0.02] to-transparent pointer-events-none" />
+            
+            {/* LEFT: BRANDING */}
+            <div className="flex items-center gap-8 md:gap-12 relative z-10">
+                <Link href="/" className="flex items-center gap-4 group">
+                    <div className={`relative w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-2xl shadow-lg transition-all duration-500 bg-[#DFFF00] shadow-[#DFFF00]/20 group-hover:scale-110 group-hover:rotate-3`}>
+                        <span className={`font-black text-xl md:text-2xl relative z-10 text-black`}>Z</span>
+                    </div>
+                    <div className="hidden md:flex flex-col leading-none">
+                        <span className="font-black text-2xl tracking-tighter uppercase text-white transition-colors">
+                            <span className="text-[#DFFF00]">Z</span>inc
+                        </span>
+                        <div className="flex items-center gap-2 mt-1">
+                           <div className={`w-1 h-1 rounded-full animate-pulse bg-[#DFFF00]`} />
+                           <span className="font-mono text-[7px] font-black text-zinc-500 tracking-[0.4em] uppercase">{isOwner ? 'Owner' : isElevated ? 'Administrator' : 'Active'}</span>
+                        </div>
+                    </div>
+                </Link>
 
-              <nav className="hidden xl:flex items-center gap-1">
-                  {NAV_CONFIG.map((item) => (
-                      <NavLink key={item.id} href={item.href} active={getActiveState(item.id)} icon={item.icon} subItems={item.subItems} isElevated={isElevated}>
-                        {item.label}
-                      </NavLink>
-                  ))}
-              </nav>
-          </div>
+                <nav className="hidden xl:flex items-center gap-1">
+                    {NAV_CONFIG.map((item) => (
+                        <NavLink key={item.id} {...item} active={getActiveState(item.id)} />
+                    ))}
+                </nav>
+            </div>
 
-          {/* RIGHT: ACTIONS */}
-          <div className="flex items-center gap-2 md:gap-6">
-              {user && profile && (
-                <div className="xl:hidden">
-                  <Wallet />
-                </div>
-              )}
+            {/* RIGHT: COMMAND CENTER */}
+            <div className="flex items-center gap-2 md:gap-4 relative z-10">
+                {user && profile ? (
+                    <div className="flex items-center gap-2 md:gap-4">
+                        <div className="hidden md:block">
+                            <Wallet />
+                        </div>
+                        
+                        <div className="flex items-center gap-2 md:gap-3 ml-2">
+                            <Link href="/profile" className="flex items-center gap-3 p-1.5 md:p-2 bg-zinc-900/50 border border-white/5 rounded-2xl hover:border-[#DFFF00]/50 transition-all group">
+                                <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-zinc-950 flex items-center justify-center text-zinc-500 group-hover:text-[#DFFF00] transition-colors relative overflow-hidden">
+                                    <UserIcon size={18} />
+                                    <div className="absolute inset-0 bg-[#DFFF00]/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </div>
+                                <div className="hidden sm:flex flex-col pr-4 text-right">
+                                    <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest leading-none mb-1 group-hover:text-zinc-400 uppercase">{profile.username}</span>
+                                    <span className="text-[10px] font-black text-white uppercase tracking-tighter italic leading-none">Profile</span>
+                                </div>
+                            </Link>
 
-              <div className="hidden lg:flex items-center gap-8">
-                  {user && profile ? (
-                      <div className="flex items-center gap-6 animate-in fade-in duration-700">
-                          <div className="hidden 2xl:flex flex-col items-end">
-                             <span className="text-[8px] font-mono font-black text-zinc-600 uppercase tracking-widest leading-none mb-1">Status</span>
-                             <span className={`text-[10px] font-black uppercase tracking-tighter italic ${isElevated ? 'text-red-500' : 'text-[#DFFF00]'}`}>Zinc_OS_v4.2</span>
-                          </div>
-
-                          <Wallet />
-                          
-                          <div className="flex items-center gap-5 pl-6 border-l border-white/10">
-                              {isElevated && (
-                                <Link href="/admin" className="p-2.5 bg-red-500/10 text-red-500 hover:text-white hover:bg-red-500 rounded-xl transition-all relative">
-                                  <Shield size={18} />
-                                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-white rounded-full flex items-center justify-center"><span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" /></span>
-                                </Link>
-                              )}
-
-                              <Link href="/profile" className="flex flex-col items-end group">
-                                  <span className={`text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] transition-colors leading-none mb-1 ${isElevated ? 'group-hover:text-red-500' : 'group-hover:text-[#DFFF00]'}`}>{isOwner ? 'System Owner' : isElevated ? 'Administrator' : 'Operator'}</span>
-                                  <span className="text-sm font-black text-white uppercase tracking-tight italic">{profile.username}</span>
-                              </Link>
-                              
-                              <button onClick={signOut} className="p-2.5 bg-zinc-900 text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-xl transition-all border border-white/5">
+                            <button onClick={signOut} className="hidden sm:block p-3 md:p-4 bg-zinc-950 text-zinc-600 hover:text-red-500 hover:bg-red-500/10 rounded-2xl transition-all border border-white/5">
                                 <LogOut size={18} />
-                              </button>
-                          </div>
-                      </div>
-                  ) : (
-                      <Link href="/login" className="px-8 py-3 bg-[#DFFF00] text-black font-black text-xs uppercase tracking-[0.2em] rounded-xl hover:bg-white hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] transition-all flex items-center gap-3 italic">
-                        <LogIn size={16} /> Login_Entry
-                      </Link>
-                  )}
-              </div>
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <Link href="/login" className="relative group px-6 md:px-8 py-3 bg-[#DFFF00] text-black font-black text-xs uppercase tracking-[0.2em] rounded-2xl hover:bg-white transition-all flex items-center gap-3 overflow-hidden">
+                        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                        <LogIn size={16} className="relative z-10" /> 
+                        <span className="relative z-10 italic uppercase">Sign In</span>
+                    </Link>
+                )}
 
-              <button className="xl:hidden p-3 bg-zinc-900 text-[#DFFF00] rounded-xl border border-white/5 shadow-lg active:scale-95 transition-all" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-                  {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-              </button>
+                <button 
+                    className={`p-3 md:p-4 rounded-2xl border transition-all active:scale-90 ${activeMenu !== 'NONE' ? 'bg-[#DFFF00] text-black border-[#DFFF00]' : 'bg-zinc-900 text-[#DFFF00] border-white/5'}`}
+                    onClick={() => setActiveMenu(activeMenu === 'MOBILE' ? 'NONE' : 'MOBILE')}
+                >
+                    {activeMenu === 'MOBILE' ? <X size={20} /> : <LayoutGrid size={20} />}
+                </button>
+            </div>
           </div>
         </div>
-      </header>
+      </motion.header>
 
-      {/* MOBILE NAV OVERLAY */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
+      {/* --- MOBILE OVERLAY --- */}
+      <AnimatePresence mode="wait">
+        {activeMenu !== 'NONE' && (
             <motion.div 
-                initial={{ opacity: 0, x: "100%" }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: "100%" }}
-                transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                className="fixed inset-0 z-[99] bg-zinc-950 flex flex-col p-6 pt-32 gap-4 overflow-y-auto"
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[99] bg-black/95 backdrop-blur-3xl flex flex-col pt-32 overflow-hidden"
             >
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay pointer-events-none" />
-                
-                {NAV_CONFIG.map((item) => (
-                    <MobileNavLink key={item.id} {...item} active={getActiveState(item.id)} onClick={() => setIsMobileMenuOpen(false)} />
-                ))}
-                
-                <div className="mt-auto pt-8 border-t border-white/5 flex flex-col gap-4">
-                    {user ? (
-                        <div className="bg-zinc-900/50 p-6 rounded-3xl border border-white/5 flex flex-col gap-6">
-                            <div className="flex justify-between items-center">
-                                <div className="flex flex-col">
-                                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1">Current User</span>
-                                    <span className="text-xl font-black italic text-white uppercase tracking-tighter">{profile?.username}</span>
-                                </div>
-                                <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)} className="p-3 bg-zinc-800 rounded-2xl text-[#DFFF00]"><UserIcon size={20}/></Link>
-                            </div>
-                            <button onClick={signOut} className="w-full py-4 bg-red-500/10 text-red-500 font-black text-[10px] uppercase tracking-[0.3em] rounded-2xl border border-red-500/20">Disconnect_Uplink</button>
+                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay pointer-events-none" />
+                <div className="absolute top-1/4 -right-20 w-96 h-96 bg-[#DFFF00]/10 blur-[120px] rounded-full pointer-events-none" />
+                <div className="absolute bottom-1/4 -left-20 w-96 h-96 bg-indigo-600/10 blur-[120px] rounded-full pointer-events-none" />
+
+                <div className="flex-1 overflow-y-auto px-6 pb-48">
+                    <div className="max-w-2xl mx-auto w-full space-y-8">
+                        
+                        {/* MENU SWITCHER */}
+                        <div className="flex p-1 bg-zinc-900/50 rounded-2xl border border-white/5">
+                            <button onClick={() => setActiveMenu('MOBILE')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeMenu === 'MOBILE' ? 'bg-[#DFFF00] text-black shadow-lg' : 'text-zinc-500'}`}>Navigation</button>
+                            {user && <button onClick={() => setActiveMenu('WALLET')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeMenu === 'WALLET' ? 'bg-[#DFFF00] text-black shadow-lg' : 'text-zinc-500'}`}>Wallet</button>}
                         </div>
-                    ) : (
-                        <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="w-full py-5 bg-[#DFFF00] text-black font-black text-[10px] uppercase tracking-[0.3em] rounded-2xl text-center shadow-[0_0_30px_rgba(223,255,0,0.2)]">Login_Access</Link>
-                    )}
+
+                        <AnimatePresence mode="wait">
+                            {activeMenu === 'MOBILE' && (
+                                <motion.div key="nav" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-3">
+                                    <div className="grid grid-cols-2 gap-3 mb-6">
+                                        <Link href="/play" onClick={() => setActiveMenu('NONE')} className="p-6 bg-zinc-900/50 border border-white/5 rounded-3xl flex flex-col gap-4 group active:scale-95 transition-all">
+                                            <div className="p-3 bg-zinc-950 rounded-2xl w-fit text-[#DFFF00] border border-white/5 group-hover:bg-[#DFFF00] group-hover:text-black transition-colors"><Gamepad2 size={24} /></div>
+                                            <span className="font-black text-xl italic tracking-tighter uppercase">Play</span>
+                                        </Link>
+                                        <Link href="/market" onClick={() => setActiveMenu('NONE')} className="p-6 bg-zinc-900/50 border border-white/5 rounded-3xl flex flex-col gap-4 group active:scale-95 transition-all">
+                                            <div className="p-3 bg-zinc-950 rounded-2xl w-fit text-[#DFFF00] border border-white/5 group-hover:bg-[#DFFF00] group-hover:text-black transition-colors"><Package size={24} /></div>
+                                            <span className="font-black text-xl italic tracking-tighter uppercase">Market</span>
+                                        </Link>
+                                    </div>
+                                    <div className="space-y-3 pb-12">
+                                        {NAV_CONFIG.filter(n => n.id !== 'play' && n.id !== 'market').map((item) => (
+                                            <MobileNavLink key={item.id} {...item} active={getActiveState(item.id)} onClick={() => setActiveMenu('NONE')} />
+                                        ))}
+                                    </div>
+                                </motion.div>
+                            )}
+
+                            {activeMenu === 'WALLET' && (
+                                <motion.div key="wallet" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                                    <Wallet isMobile={true} onClose={() => setActiveMenu('NONE')} />
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                </div>
+                
+                {/* PERSISTENT MOBILE FOOTER */}
+                <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black via-black to-transparent pt-12 z-50">
+                    <div className="max-w-lg mx-auto w-full">
+                        {user ? (
+                            <div className="bg-zinc-900/80 p-6 rounded-[2.5rem] border border-white/10 flex flex-col gap-6 backdrop-blur-xl shadow-2xl">
+                                <div className="flex justify-between items-center">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-2xl bg-[#DFFF00] flex items-center justify-center text-black shadow-lg shadow-[#DFFF00]/20 transition-transform active:scale-90"><UserIcon size={24}/></div>
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] font-mono font-black text-zinc-500 uppercase tracking-[0.2em]">{isElevated ? 'Administrator' : 'Active'}</span>
+                                            <span className="text-2xl font-black italic text-white uppercase tracking-tighter leading-none">{profile?.username}</span>
+                                        </div>
+                                    </div>
+                                    <Link href="/profile" onClick={() => setActiveMenu('NONE')} className="p-4 bg-zinc-800 rounded-2xl text-white border border-white/10 active:scale-90 transition-all"><Command size={20}/></Link>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <Link href="/profile" onClick={() => setActiveMenu('NONE')} className="py-4 bg-zinc-950 border border-white/5 rounded-2xl text-center text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-colors">My Profile</Link>
+                                    <button onClick={signOut} className="py-4 bg-red-500/10 text-red-500 font-black text-[10px] uppercase tracking-widest rounded-2xl border border-red-500/20 active:bg-red-500 active:text-white transition-all">Sign Out</button>
+                                </div>
+                            </div>
+                        ) : (
+                            <Link href="/login" onClick={() => setActiveMenu('NONE')} className="w-full py-6 bg-[#DFFF00] text-black font-black text-xs uppercase tracking-[0.3em] rounded-[2rem] text-center shadow-[0_0_50px_rgba(223,255,0,0.3)] active:scale-95 transition-all">Sign In</Link>
+                        )}
+                    </div>
                 </div>
             </motion.div>
         )}
@@ -219,46 +267,88 @@ export default function Header() {
   );
 }
 
-const NavLink = ({ href, active, icon, children, subItems }: any) => (
-    <div className="relative group flex items-center h-20">
-        <Link href={href} className={`flex items-center gap-3 px-6 py-2.5 text-[11px] font-black uppercase tracking-[0.2em] transition-all rounded-xl relative z-10 italic ${active ? 'text-black bg-[#DFFF00] shadow-[0_0_25px_rgba(223,255,0,0.2)]' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}>
-            {icon} {children}
-        </Link>
+const NavLink = ({ href, active, icon, label, subItems }: any) => {
+    const [isHovered, setIsHovered] = useState(false);
 
-        {subItems && subItems.length > 0 && (
-            <div className="absolute top-full left-0 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-4 z-[110]">
-                 <div className="pt-4 pb-2 px-2 bg-zinc-950 border border-white/5 rounded-2xl shadow-2xl flex flex-col gap-1 ring-1 ring-white/5 mt-2">
-                    {subItems.map((item: any) => (
-                        <Link key={item.href} href={item.href} className="flex items-center justify-between px-4 py-3.5 text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-white hover:bg-[#DFFF00]/10 rounded-xl transition-all group/item">
-                            <span>{item.label}</span>
-                            <ChevronRight size={14} className="opacity-0 -translate-x-2 group-hover/item:opacity-100 group-hover/item:translate-x-0 transition-all text-[#DFFF00]" />
-                        </Link>
-                    ))}
-                 </div>
-            </div>
-        )}
-    </div>
-);
+    return (
+        <div className="relative group flex items-center h-16" onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
+            <Link href={href} className={`flex items-center gap-3 px-5 py-2.5 text-[11px] font-black uppercase tracking-[0.2em] transition-all rounded-xl relative z-10 italic ${active ? 'text-black bg-[#DFFF00] shadow-lg shadow-[#DFFF00]/20' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}>
+                {icon} {label}
+            </Link>
+
+            <AnimatePresence>
+                {isHovered && subItems && subItems.length > 0 && (
+                    <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} transition={{ duration: 0.2 }} className="absolute top-[calc(100%-8px)] left-0 w-72 pt-4 z-[110]">
+                        <div className="p-2 bg-zinc-950/95 backdrop-blur-3xl border border-white/10 rounded-3xl shadow-[0_30px_100px_rgba(0,0,0,0.8)] flex flex-col gap-1 ring-1 ring-white/5">
+                            <div className="px-4 py-2 border-b border-white/5 mb-1 flex items-center justify-between">
+                                <span className="text-[8px] font-mono font-black text-zinc-600 uppercase tracking-widest">Categories</span>
+                                <Terminal size={10} className="text-zinc-700" />
+                            </div>
+                            {subItems.map((item: any) => (
+                                <Link key={item.href} href={item.href} className="flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all hover:bg-[#DFFF00]/10 group/item">
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-white group-hover/item:text-[#DFFF00] transition-colors">{item.label}</span>
+                                        <span className="text-[8px] font-mono text-zinc-600 uppercase mt-0.5">{item.desc}</span>
+                                    </div>
+                                    <ChevronRight size={14} className="opacity-0 -translate-x-2 group-hover/item:opacity-100 group-hover/item:translate-x-0 transition-all text-[#DFFF00]" />
+                                </Link>
+                            ))}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+};
 
 const MobileNavLink = ({ href, icon, label, subItems, active, onClick }: any) => {
     const [isOpen, setIsOpen] = useState(false);
+    
     return (
-        <div className="flex flex-col gap-2">
-            <div className={`flex items-center justify-between p-1.5 rounded-2xl border transition-all ${active ? 'bg-[#DFFF00] border-[#DFFF00]' : 'bg-zinc-900/50 border-white/5'}`}>
-                <Link href={href} onClick={onClick} className={`flex-1 py-3 px-4 font-black text-xs uppercase tracking-[0.2em] italic ${active ? 'text-black' : 'text-zinc-400'}`}>{label}</Link>
+        <div className="flex flex-col gap-1">
+            <div className={`flex items-center justify-between rounded-2xl border transition-all duration-300 ${active ? 'bg-[#DFFF00] border-[#DFFF00]' : 'bg-zinc-900/50 border-white/5'}`}>
+                <Link 
+                    href={href} 
+                    onClick={onClick} 
+                    className={`flex-1 py-4 px-5 font-black text-lg uppercase tracking-tight italic flex items-center gap-4 ${active ? 'text-black' : 'text-zinc-400'}`}
+                >
+                    <span className={`p-2.5 rounded-xl transition-colors ${active ? 'bg-black/10 text-black' : 'bg-zinc-950 text-zinc-600'}`}>{icon}</span>
+                    {label}
+                </Link>
                 {subItems?.length > 0 && (
-                    <button onClick={() => setIsOpen(!isOpen)} className={`p-3 rounded-xl transition-colors ${active ? 'bg-black/10 text-black' : 'text-zinc-600 hover:bg-white/5'}`}>
-                        <ChevronDown className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} size={18} />
+                    <button 
+                        onClick={(e) => {
+                            e.preventDefault();
+                            setIsOpen(!isOpen);
+                        }} 
+                        className={`p-5 rounded-r-2xl transition-all border-l ${active ? 'border-black/10 text-black' : 'border-white/5 text-zinc-600'}`}
+                    >
+                        <ChevronDown className={`transition-transform duration-500 ${isOpen ? 'rotate-180' : ''}`} size={24} />
                     </button>
                 )}
             </div>
-            {isOpen && subItems?.length > 0 && (
-                <div className="flex flex-col gap-1 pl-4 border-l border-zinc-800 ml-6 my-2">
-                    {subItems.map((item: any) => (
-                        <Link key={item.href} href={item.href} onClick={onClick} className="py-3 px-4 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 hover:text-[#DFFF00] transition-colors">{item.label}</Link>
-                    ))}
-                </div>
-            )}
+            <AnimatePresence>
+                {isOpen && subItems?.length > 0 && (
+                    <motion.div 
+                        initial={{ height: 0, opacity: 0 }} 
+                        animate={{ height: 'auto', opacity: 1 }} 
+                        exit={{ height: 0, opacity: 0 }} 
+                        className="flex flex-col gap-1 pl-4 pr-2 overflow-hidden bg-white/[0.02] rounded-2xl border border-white/5 mt-1"
+                    >
+                        {subItems.map((item: any) => (
+                            <Link 
+                                key={item.href} 
+                                href={item.href} 
+                                onClick={onClick} 
+                                className="py-5 px-6 text-xs font-black uppercase tracking-widest text-zinc-500 border-b border-white/5 last:border-0 hover:text-[#DFFF00] transition-colors flex justify-between items-center group"
+                            >
+                                <span>{item.label}</span>
+                                <ChevronRight size={14} className="text-zinc-800 group-hover:text-[#DFFF00] transition-colors" />
+                            </Link>
+                        ))}
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

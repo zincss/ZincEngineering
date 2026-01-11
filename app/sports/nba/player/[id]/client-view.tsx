@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Activity, User, BarChart3, Shield, GraduationCap, MapPin, Calendar, Timer, History, Trophy, AlertCircle } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { getPlayerProfile, getPlayerGameLog } from '../../actions';
+import FavoriteButton from '@/app/sports/components/FavoriteButton';
 
 const STAT_CONFIG = [
     { label: 'PTS', index: 13 },
@@ -85,6 +86,10 @@ export default function PlayerPage() {
                         
                         <h1 className="text-5xl md:text-8xl font-black uppercase text-white leading-none tracking-tighter mb-8">{data.name}</h1>
                         
+                        <div className="flex justify-center md:justify-start mb-8">
+                            <FavoriteButton playerId={id} league="nba" playerName={data.name} headshotUrl={data.headshot} />
+                        </div>
+
                         {/* Quick Bio Bar */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 border-t border-zinc-800 pt-6">
                              <div className="flex items-center gap-3">

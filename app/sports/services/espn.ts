@@ -454,3 +454,40 @@ export const getGameResult = async (league: League, gameId: string) => {
         };
     } catch (e) { return null; }
 };
+
+export const getLiveMatches = async () => {
+    const leagues: ('nba' | 'nfl')[] = ['nba', 'nfl'];
+    const results = await Promise.all(leagues.map(async (l) => {
+        const matches = await getScoreboard(l);
+        return matches.map((m: any) => ({ ...m, league: l }));
+    }));
+    
+    // Flatten and filter for LIVE or recently finished
+    return results.flat().filter(m => m.isLive || m.status.includes('Final'));
+};
+
+export const getLiveGolf = async () => {
+    try {
+        const res = await fetch('https://site.api.espn.com/apis/site/v2/sports/golf/leaderboard?league=pga', { headers: HEADERS, next: { revalidate: 60 } });
+        const data = await res.json();
+        const event = data.events?.[0];
+        if (!event) return null;
+
+        const comp = event.competitions?.[0];
+        const isLive = event.status?.type?.state === 'in';
+
+        return {
+            id: event.id,
+            name: event.name,
+            league: 'golf',
+            status: isLive ? 'LIVE' : event.status?.type?.shortDetail,
+            isLive,
+            venue: comp?.venue?.fullName,
+            leaders: comp?.competitors?.slice(0, 5).map((c: any) => ({
+                name: c.athlete.displayName,
+                score: c.statistics?.find((s:any) => s.name === 'score')?.displayValue || 'E',
+                pos: c.status?.positionDisplayName
+            }))
+        };
+    } catch (e) { return null; }
+};

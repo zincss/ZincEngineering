@@ -11,7 +11,7 @@ import {
 } from 'framer-motion';
 import { 
   ArrowRight, Activity, ShieldCheck, Cpu,
-  Info, X, MoveRight, Rocket, Globe, Eye, Star, Terminal, CloudRain 
+  Info, X, MoveRight, Rocket, Globe, Eye, Star, Terminal, CloudRain, LayoutGrid, Trophy, Gamepad2, FolderOpen, TrendingUp, Layers
 } from 'lucide-react';
 import { COMPANIES } from './play/stocks/data';
 import { getCurrentPrice } from './play/stocks/utils';
@@ -19,351 +19,193 @@ import { getCurrentPrice } from './play/stocks/utils';
 // --- CUSTOM ANIMATED ICONS ---
 
 const AnimatedTrophy = () => {
-
   const controls = useAnimation();
-
   return (
-
     <motion.svg
-
       xmlns="http://www.w3.org/2000/svg"
-
       width="18" height="18" viewBox="0 0 24 24" fill="none"
-
       stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-
       onMouseEnter={() => controls.start("hover")}
-
       onMouseLeave={() => controls.start("normal")}
-
     >
-
       <motion.path 
-
         d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" 
-
         variants={{ hover: { rotate: -10 }, normal: { rotate: 0 } }} 
-
         animate={controls}
-
       />
-
       <motion.path 
-
         d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" 
-
         variants={{ hover: { rotate: 10 }, normal: { rotate: 0 } }} 
-
         animate={controls}
-
       />
-
       <motion.path d="M4 22h16" />
-
       <motion.path d="M10 14.66V22" />
-
       <motion.path d="M14 14.66V22" />
-
       <motion.path 
-
         d="M18 2H6v7c0 3.31 2.69 6 6 6s6-2.69 6-6V2Z" 
-
         variants={{ hover: { y: -1 }, normal: { y: 0 } }}
-
         animate={controls}
-
       />
-
     </motion.svg>
-
   );
-
 };
-
-
 
 const AnimatedGlobe = () => {
-
   const controls = useAnimation();
-
   return (
-
     <motion.svg
-
       xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-
       onMouseEnter={() => controls.start("hover")}
-
       onMouseLeave={() => controls.start("normal")}
-
     >
-
       <motion.circle cx="12" cy="12" r="10" />
-
       <motion.path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" 
-
         variants={{ hover: { rotate: 180 }, normal: { rotate: 0 } }}
-
         transition={{ duration: 1, ease: "easeInOut" }}
-
         animate={controls}
-
       />
-
       <motion.path d="M2 12h20" 
-
          variants={{ hover: { scaleX: 1.1 }, normal: { scaleX: 1 } }}
-
          animate={controls}
-
       />
-
     </motion.svg>
-
   );
-
 };
-
-
-
-
 
 const AnimatedGamepad = () => {
-
   const controls = useAnimation();
-
   return (
-
     <div onMouseEnter={() => controls.start("hover")} onMouseLeave={() => controls.start("normal")}>
-
       <motion.svg
-
         xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-
       >
-
         <line x1="6" x2="10" y1="12" y2="12" />
-
         <line x1="8" x2="8" y1="10" y2="14" />
-
         <line x1="15" x2="15.01" y1="13" y2="13" />
-
         <line x1="18" x2="18.01" y1="11" y2="11" />
-
         <motion.rect 
-
           x="2" y="6" width="20" height="12" rx="2"
-
           variants={{ 
-
             hover: { rotate: [0, -2, 2, -2, 2, 0], transition: { duration: 0.4 } }, 
-
             normal: { rotate: 0 } 
-
           }}
-
           animate={controls}
-
         />
-
       </motion.svg>
-
     </div>
-
   );
-
 };
-
-
 
 const AnimatedLayers = () => {
-
   const controls = useAnimation();
-
   return (
-
     <motion.svg
-
       xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-
       onMouseEnter={() => controls.start("hover")}
-
       onMouseLeave={() => controls.start("normal")}
-
     >
-
       <motion.path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z" 
-
         variants={{ hover: { y: -2 }, normal: { y: 0 } }} animate={controls}
-
       />
-
       <motion.path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65" 
-
         variants={{ hover: { y: 2 }, normal: { y: 0 } }} animate={controls}
-
       />
-
       <motion.path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65" 
-
         variants={{ hover: { y: 0 }, normal: { y: 0 } }} animate={controls}
-
       />
-
     </motion.svg>
-
   );
-
 };
-
-
 
 const AnimatedTrend = () => {
-
   const controls = useAnimation();
-
   return (
-
     <motion.svg
-
       xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-
       onMouseEnter={() => controls.start("hover")}
-
       onMouseLeave={() => controls.start("normal")}
-
     >
-
       <motion.polyline points="23 6 13.5 15.5 8.5 10.5 1 18" 
-
         initial={{ pathLength: 1 }}
-
         variants={{ 
-
           hover: { pathLength: [0, 1], transition: { duration: 0.6, ease: "easeInOut" } },
-
           normal: { pathLength: 1 }
-
         }}
-
         animate={controls}
-
       />
-
       <motion.polyline points="17 6 23 6 23 12" 
-
         variants={{ 
-
           hover: { x: 2, y: -2, transition: { repeat: Infinity, repeatType: "reverse" } },
-
           normal: { x: 0, y: 0 }
-
         }}
-
         animate={controls}
-
       />
-
     </motion.svg>
-
   );
-
 };
-
-
 
 const AnimatedWeather = () => {
-
   const controls = useAnimation();
-
   return (
-
     <motion.svg
-
       xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-
       onMouseEnter={() => controls.start("hover")}
-
       onMouseLeave={() => controls.start("normal")}
-
     >
-
       <motion.path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" 
-
          variants={{ hover: { x: [0, 1, -1, 0], transition: { repeat: Infinity, duration: 2 } } }}
-
          animate={controls}
-
       />
-
       <motion.path d="M16 14v6" 
-
          variants={{ hover: { y: [0, 5], opacity: [0, 1, 0], transition: { repeat: Infinity, duration: 0.8 } } }}
-
          animate={controls}
-
       />
-
       <motion.path d="M8 14v6" 
-
          variants={{ hover: { y: [0, 5], opacity: [0, 1, 0], transition: { repeat: Infinity, duration: 0.8, delay: 0.2 } } }}
-
          animate={controls}
-
       />
-
       <motion.path d="M12 16v6" 
-
          variants={{ hover: { y: [0, 5], opacity: [0, 1, 0], transition: { repeat: Infinity, duration: 0.8, delay: 0.4 } } }}
-
          animate={controls}
-
       />
-
     </motion.svg>
-
   );
-
 };
 
-
+const AnimatedMatchCenter = () => {
+  const controls = useAnimation();
+  return (
+    <motion.svg
+      xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      onMouseEnter={() => controls.start("hover")}
+      onMouseLeave={() => controls.start("normal")}
+    >
+      <motion.path d="M12 2v20" variants={{ hover: { opacity: [1, 0.5, 1], transition: { repeat: Infinity, duration: 1 } } }} animate={controls} />
+      <motion.path d="M2 12h20" variants={{ hover: { opacity: [1, 0.5, 1], transition: { repeat: Infinity, duration: 1, delay: 0.5 } } }} animate={controls} />
+      <motion.circle cx="12" cy="12" r="10" variants={{ hover: { scale: [1, 1.1, 1], transition: { repeat: Infinity, duration: 2 } } }} animate={controls} />
+      <motion.circle cx="12" cy="12" r="2" fill="currentColor" variants={{ hover: { scale: [1, 1.5, 1], transition: { repeat: Infinity, duration: 1 } } }} animate={controls} />
+    </motion.svg>
+  );
+};
 
 const AnimatedTerminal = () => {
-
   const controls = useAnimation();
-
   return (
-
     <motion.svg
-
       xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-
       onMouseEnter={() => controls.start("hover")}
-
       onMouseLeave={() => controls.start("normal")}
-
     >
-
       <polyline points="4 17 10 11 4 5" />
-
       <motion.line x1="12" x2="20" y1="19" y2="19" 
-
         variants={{ 
-
           hover: { opacity: [1, 0, 1], transition: { duration: 0.8, repeat: Infinity } },
-
           normal: { opacity: 1 }
-
         }}
-
         animate={controls}
-
       />
-
     </motion.svg>
-
   );
-
 };
 
 // --- UTILITY: MOUSE-FOLLOW SPOTLIGHT ---
@@ -643,16 +485,19 @@ export default function Home() {
 
             <div className="relative w-full max-w-[1400px] mx-auto flex flex-col items-center text-center">
               
-              {/* Weather Quick Link - Minimalist Aesthetic */}
+              {/* Hero Quick Links */}
               <motion.div 
                 initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1 }}
-                className="mb-12"
+                className="mb-12 flex items-center gap-8"
               >
-                <Link href="/collections/weather" className="group flex items-center gap-4 hover:opacity-70 transition-opacity">
+                <Link href="/collections/weather" className="group flex items-center gap-3 hover:opacity-70 transition-opacity">
                   <CloudRain size={14} className="text-[#DFFF00]" />
-                  <span className="text-[10px] font-black text-[#DFFF00] tracking-[0.4em] uppercase italic">
-                    Weather //
-                  </span>
+                  <span className="text-[10px] font-black text-[#DFFF00] tracking-[0.4em] uppercase italic">Weather</span>
+                </Link>
+                <div className="h-3 w-px bg-zinc-800" />
+                <Link href="/sports/match-center" className="group flex items-center gap-3 hover:opacity-70 transition-opacity">
+                  <Activity size={14} className="text-[#DFFF00]" />
+                  <span className="text-[10px] font-black text-[#DFFF00] tracking-[0.4em] uppercase italic">Match Center</span>
                 </Link>
               </motion.div>
 
@@ -661,7 +506,7 @@ export default function Home() {
                  
                  <div className="flex flex-col md:flex-row items-center gap-8 md:gap-16 relative">
                      
-                     {/* Emblem - ABSOLUTELY STILL */}
+                     {/* Emblem */}
                      <div 
                        onClick={() => setCinematicMode(true)}
                        className="relative group cursor-pointer shrink-0"
@@ -673,13 +518,12 @@ export default function Home() {
                         </div>
                      </div>
 
-                     {/* Main Text - ABSOLUTELY STILL */}
+                     {/* Main Text */}
                      <div className="relative select-none">
                         <h1 className="text-6xl md:text-8xl lg:text-[10rem] font-black text-white tracking-[0.1em] drop-shadow-2xl leading-[0.8] text-center md:text-left uppercase italic">
                            ZINC
                         </h1>
                         
-                        {/* ABSOLUTE POSITIONED ROTATING LINE - Zero Layout Shift */}
                         <div className="absolute top-[85%] left-0 right-0 md:left-1 flex items-center justify-center md:justify-start h-12 md:h-20 lg:h-24 overflow-visible">
                            <AnimatePresence mode="wait">
                              <motion.div 
@@ -741,30 +585,10 @@ export default function Home() {
             <GlobalTicker />
           </motion.div>
 
-          {/* --- GRID SYSTEM --- */}
+          {/* --- MODULES SECTION --- */}
           <section id="modules-grid" className="relative z-20 max-w-[1600px] mx-auto px-4 md:px-8 py-40">
+            <SectionHeader title="System Modules" icon={<Activity size={16} />} />
             
-            <div className="flex items-center justify-between mb-12 px-4 md:px-0">
-               <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-zinc-900 rounded-full flex items-center justify-center border border-zinc-800">
-                     <Activity size={20} className="text-[#DFFF00]" />
-                  </div>
-                  <div>
-                     <h2 className="text-2xl md:text-3xl font-black text-white uppercase italic tracking-tighter">
-                        System <span className="text-zinc-600">Modules</span>
-                     </h2>
-                     <span className="font-mono text-[10px] font-bold text-[#DFFF00] uppercase tracking-widest">
-                        v3.1 // Interconnected
-                     </span>
-                  </div>
-               </div>
-               <div className="hidden md:flex items-center gap-2 text-zinc-600">
-                  <div className="w-2 h-2 rounded-full bg-[#DFFF00] animate-pulse" />
-                  <span className="font-mono text-[10px] uppercase tracking-widest">Live</span>
-               </div>
-            </div>
-
-            {/* MONOLITH GRID CONTAINER */}
             <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-[300px] gap-[1px] bg-zinc-800 border border-zinc-800 rounded-[2rem] overflow-hidden shadow-2xl">
               
               {/* 1. SPORTS (Col 3) */}
@@ -844,7 +668,6 @@ export default function Home() {
                         <p className="font-mono text-[10px] text-zinc-500 mt-1 uppercase tracking-widest group-hover:text-black/60">Zinc Exchange //</p>
                      </div>
                      
-                     {/* SCROLLING TICKER */}
                      <div className="w-full overflow-hidden border-t border-zinc-800 pt-4 group-hover:border-black/10 transition-colors">
                         <motion.div 
                              initial={{ x: 0 }}
@@ -904,7 +727,7 @@ export default function Home() {
 
           {/* --- LOGS SECTION --- */}
           <section id="system-logs" className="relative z-20 max-w-[1600px] mx-auto px-4 md:px-8 pb-40">
-            <SectionHeader title="System Terminal // Root Access" icon={<Terminal size={16} />} />
+            <SectionHeader title="System Logs" icon={<Terminal size={16} />} />
             
             <div className="relative rounded-[4rem] bg-black/40 border border-white/10 backdrop-blur-3xl overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.6)]">
                <div className="h-16 bg-white/[0.03] border-b border-white/5 flex items-center justify-between px-10 relative overflow-hidden">
@@ -913,7 +736,7 @@ export default function Home() {
                   <div className="flex items-center gap-8 relative z-10">
                      <div className="flex items-center gap-3">
                         <div className="w-2 h-2 rounded-full bg-[#DFFF00] shadow-[0_0_15px_#DFFF00]" />
-                        <span className="text-[10px] font-black text-[#DFFF00] uppercase tracking-[0.3em]">Console_Active</span>
+                        <span className="text-[10px] font-black text-[#DFFF00] uppercase tracking-[0.3em]">Archives Online</span>
                      </div>
                      <div className="h-5 w-px bg-white/10" />
                      <div className="flex items-center gap-3 opacity-40">
@@ -923,10 +746,7 @@ export default function Home() {
                   </div>
 
                   <div className="flex items-center gap-6 opacity-30 relative z-10">
-                     <div className="flex gap-1.5">
-                        {[0,1,2].map(i => <div key={i} className="w-1.5 h-1.5 bg-white rounded-full" />)}
-                     </div>
-                     <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white">SECURE_CONNECTION</span>
+                     <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white italic">Recent Activity</span>
                   </div>
                </div>
                

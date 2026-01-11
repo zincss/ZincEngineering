@@ -104,7 +104,7 @@ export default function StockMarketPage() {
         ? stocks.filter(s => portfolio.some(p => p.ticker === s.ticker))
         : stocks.filter(s => s.category === selectedCategory);
 
-  const categories = ['ALL', 'PORTFOLIO', 'TECH', 'FINANCE', 'ENERGY', 'CONSUMER', 'HEALTH', 'COMMODITIES'];
+  const categories = ['ALL', 'PORTFOLIO', 'TECH', 'FINANCE', 'ENERGY', 'CONSUMER', 'HEALTH', 'COMMODITIES', 'AEROSPACE', 'MISC'];
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-4 pb-32 relative overflow-x-hidden font-mono">

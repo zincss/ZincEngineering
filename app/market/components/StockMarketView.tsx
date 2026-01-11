@@ -89,7 +89,7 @@ const StockCard = ({ stock, owned, onSelect }: any) => {
 
 const SectionHeader = ({ title, sub, icon: Icon }: any) => (
     <div className="flex items-center gap-4 mb-8 px-2">
-        <div className="p-2 bg-zinc-900 rounded-xl border border-white/5 text-zinc-500"><Icon size={16} /></div>
+        <div className="p-2 bg-zinc-900 rounded-lg border border-white/5 text-[#DFFF00]"><Icon size={18} /></div>
         <div className="flex flex-col">
             <span className="text-[8px] font-bold text-zinc-600 uppercase tracking-widest leading-none mb-1">{sub}</span>
             <h3 className="text-xl font-black uppercase italic text-white tracking-tight">{title}</h3>

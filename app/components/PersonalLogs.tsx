@@ -1,9 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Terminal, PenTool, Save, X, Calendar, Hash, ChevronRight, Lock, Unlock, Key, Edit, Trash2, Loader2, Maximize2, LogOut } from 'lucide-react';
+import { 
+    X, Calendar, ChevronRight, 
+    Lock, Unlock, Key, Edit, Trash2, Loader2, LogOut, 
+    MessageSquare, Save, Clock, Plus, ExternalLink
+} from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from '../context/AuthContext';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface LogEntry {
   id: string;
@@ -16,7 +21,7 @@ interface LogEntry {
 
 export default function PersonalLogs() {
   const supabase = createClient();
-  const { isAdmin } = useAuth(); // FIX: Use the auth context to check for admin status
+  const { isAdmin } = useAuth();
 
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,12 +30,10 @@ export default function PersonalLogs() {
   const [showAuthInput, setShowAuthInput] = useState(false);
   const [accessCode, setAccessCode] = useState('');
   
-  // State for editing and viewing
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewLog, setViewLog] = useState<LogEntry | null>(null);
   const [newLog, setNewLog] = useState({ title: '', content: '', tags: '' });
 
-  // --- FETCH LOGS ---
   const fetchLogs = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -38,49 +41,19 @@ export default function PersonalLogs() {
       .select('*')
       .order('date', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching logs:', error);
-    } else {
-      setLogs(data as LogEntry[] || []);
-    }
+    if (error) console.error('Error fetching logs:', error);
+    else setLogs(data as LogEntry[] || []);
     setLoading(false);
   };
 
   useEffect(() => {
-    // FIX: Only grant access if the user is an admin
-    if (isAdmin) {
-      setIsAuthenticated(true);
-    }
-
+    if (isAdmin) setIsAuthenticated(true);
     fetchLogs();
-
-    const channel = supabase
-      .channel('personal_logs_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'personal_logs' }, () => {
-        fetchLogs();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [isAdmin]); // Depend on isAdmin so it updates when auth state loads
-
-  // --- AUTH HANDLERS ---
-  const handleAccessRequest = () => {
-    if (isAuthenticated) {
-      if (isWriting) {
-        resetForm();
-      } else {
-        setIsWriting(true);
-      }
-      return;
-    }
-    setShowAuthInput(true);
-  };
+    const channel = supabase.channel('personal_logs_changes').on('postgres_changes', { event: '*', schema: 'public', table: 'personal_logs' }, () => fetchLogs()).subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [isAdmin]);
 
   const verifyCode = () => {
-    // Keeps your manual override code active as well
     if (accessCode === '1698') {
       setIsAuthenticated(true);
       setShowAuthInput(false);
@@ -88,354 +61,224 @@ export default function PersonalLogs() {
       setAccessCode('');
     } else {
       setAccessCode('');
-      alert('ACCESS DENIED: INVALID SECURITY PROTOCOL');
-    }
-  };
-
-  const handleLogout = async () => {
-    // Logs out locally from this component view
-    setIsAuthenticated(false);
-    setIsWriting(false);
-    setEditingId(null);
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') verifyCode();
-  };
-
-  // --- CRUD OPERATIONS ---
-  const resetForm = () => {
-    setIsWriting(false);
-    setEditingId(null);
-    setNewLog({ title: '', content: '', tags: '' });
-  };
-
-  const handleEdit = (log: LogEntry) => {
-    if (!isAuthenticated) {
-        setShowAuthInput(true);
-        return;
-    }
-    setViewLog(null);
-    setNewLog({
-        title: log.title,
-        content: log.content,
-        tags: log.tags.join(', ')
-    });
-    setEditingId(log.id);
-    setIsWriting(true);
-    
-    const formElement = document.getElementById('log-editor');
-    if (formElement) formElement.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!isAuthenticated) return;
-    if (confirm('CONFIRM DELETION PROTOCOL? THIS ACTION CANNOT BE UNDONE.')) {
-      setLogs(prev => prev.filter(l => l.id !== id));
-      if (viewLog?.id === id) setViewLog(null);
-      
-      const { error } = await supabase.from('personal_logs').delete().eq('id', id);
-      if (error) {
-        alert('ERROR DELETING ENTRY');
-        fetchLogs();
-      } else if (editingId === id) {
-        resetForm();
-      }
+      alert('Invalid code.');
     }
   };
 
   const handleSave = async () => {
     if (!newLog.title || !newLog.content) return;
-
     const entry: LogEntry = {
       id: editingId || `LOG_${Date.now()}`,
       date: editingId ? logs.find(l => l.id === editingId)?.date || new Date().toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-      title: newLog.title.toUpperCase(),
+      title: newLog.title,
       content: newLog.content,
-      tags: newLog.tags.split(',').map(t => t.trim().toUpperCase()).filter(t => t),
+      tags: newLog.tags.split(',').map(t => t.trim()).filter(t => t),
       status: 'PUBLIC'
     };
-
-    if (editingId) {
-      setLogs(prev => prev.map(l => l.id === editingId ? entry : l));
-    } else {
-      setLogs(prev => [entry, ...prev]);
-    }
-
     const { error } = await supabase.from('personal_logs').upsert(entry);
-
-    if (error) {
-      console.error('Save Error:', error);
-      alert('DATABASE WRITE FAILED');
+    if (!error) {
+      setIsWriting(false);
+      setEditingId(null);
+      setNewLog({ title: '', content: '', tags: '' });
       fetchLogs();
-    } else {
-      resetForm();
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (!isAuthenticated) return;
+    if (confirm('Delete this post?')) {
+      const { error } = await supabase.from('personal_logs').delete().eq('id', id);
+      if (!error) fetchLogs();
+    }
+  };
+
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center py-20 text-zinc-700 gap-4">
+        <Loader2 className="animate-spin text-[#DFFF00]" size={32} />
+        <span className="font-sans text-xs font-bold uppercase tracking-widest animate-pulse">Loading Updates...</span>
+    </div>
+  );
+
   return (
-    <section className="relative">
+    <div className="w-full space-y-12">
       
       {/* HEADER CONTROLS */}
-      <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-6">
-        <div className="flex items-center gap-2">
-           {/* DECORATIVE LINE */}
-        </div>
+      <div className="flex items-center justify-between px-2">
+          <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-zinc-800 bg-zinc-900/50 text-zinc-500 font-sans text-[10px] font-bold uppercase tracking-widest">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#DFFF00] animate-pulse shadow-[0_0_8px_#DFFF00]" />
+                  Latest News
+              </div>
+          </div>
 
-        <div className="flex items-center gap-4 w-full md:w-auto justify-center md:justify-end">
-            {/* AUTH INDICATOR */}
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-full border font-mono text-[10px] uppercase tracking-widest backdrop-blur-md ${isAuthenticated ? 'border-[#DFFF00] text-[#DFFF00] bg-[#DFFF00]/10' : 'border-zinc-800 text-zinc-500 bg-zinc-900/50'}`}>
-                {isAuthenticated ? <Unlock size={12} /> : <Lock size={12} />}
-                <span className="hidden sm:inline">{isAuthenticated ? 'ADMIN_ACCESS_GRANTED' : 'READ_ONLY_MODE'}</span>
-            </div>
-
-            {/* DEV LOGIN / LOGOUT */}
-            {isAuthenticated ? (
-                <button 
-                    onClick={handleLogout}
-                    className="flex items-center gap-2 px-4 py-2 rounded-full border border-zinc-800 bg-zinc-900/50 text-zinc-500 hover:text-red-500 hover:border-red-500 font-mono text-[10px] uppercase tracking-widest transition-all"
-                >
-                    <LogOut size={12} />
-                    <span className="hidden sm:inline">LOGOUT</span>
-                </button>
-            ) : (
-                <button 
-                    onClick={() => setShowAuthInput(true)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-full border border-zinc-800 bg-zinc-900/50 text-zinc-500 hover:text-[#DFFF00] hover:border-[#DFFF00] font-mono text-[10px] uppercase tracking-widest transition-all"
-                >
-                    <Key size={12} />
-                    <span className="hidden sm:inline">DEV_LOGIN</span>
-                </button>
-            )}
-
-            <button 
-                onClick={handleAccessRequest}
-                className={`
-                    flex items-center gap-2 px-6 py-2 rounded-full font-mono text-xs font-bold uppercase tracking-widest transition-all shadow-lg
-                    ${isWriting 
-                    ? 'bg-red-500 text-white hover:bg-red-600' 
-                    : 'bg-zinc-100 text-black hover:bg-[#DFFF00] hover:scale-105'
-                    }
-                `}
-            >
-                {isWriting ? <><X size={14} /> CANCEL</> : <><PenTool size={14} /> NEW_ENTRY</>}
-            </button>
-        </div>
+          <div className="flex items-center gap-3">
+              {isAuthenticated ? (
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => { setIsWriting(!isWriting); setEditingId(null); }} className="px-5 py-2 bg-white text-black rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[#DFFF00] transition-colors shadow-lg">
+                        {isWriting ? 'Cancel' : 'New Post'}
+                    </button>
+                    <button onClick={() => setIsAuthenticated(false)} className="p-2 text-zinc-600 hover:text-red-500 transition-colors"><LogOut size={18}/></button>
+                  </div>
+              ) : (
+                  <button onClick={() => setShowAuthInput(true)} className="p-2 text-zinc-800 hover:text-white transition-colors"><Key size={18}/></button>
+              )}
+          </div>
       </div>
 
-      {/* ACCESS CODE MODAL */}
-      {showAuthInput && !isAuthenticated && (
-        <div className="mb-12 rounded-[2.5rem] bg-white/[0.02] border border-red-500/30 p-8 md:p-12 backdrop-blur-2xl animate-in fade-in slide-in-from-top-4 relative overflow-hidden flex flex-col items-center justify-center text-center shadow-2xl">
-            <div className="absolute inset-0 bg-red-500/[0.02] animate-pulse pointer-events-none" />
-            <Lock size={48} className="text-red-500 mb-6 drop-shadow-[0_0_15px_rgba(239,68,68,0.4)]" />
-            <h3 className="text-xl font-black text-white uppercase tracking-widest mb-2">Restricted Access</h3>
-            <p className="text-zinc-500 font-mono text-xs mb-8">ENTER SECURITY CLEARANCE CODE TO PROCEED</p>
-            
-            <div className="flex items-center gap-2 w-full max-w-xs relative mb-8">
-                <Key size={16} className="absolute left-6 text-zinc-500 z-10" />
-                <input 
+      <AnimatePresence>
+          {showAuthInput && (
+              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="p-8 bg-zinc-900 border border-zinc-800 rounded-3xl flex flex-col items-center text-center max-w-sm mx-auto shadow-2xl">
+                  <Lock size={24} className="text-[#DFFF00] mb-4" />
+                  <h3 className="text-white font-bold text-sm mb-6">Admin Access</h3>
+                  <input 
                     type="password" 
-                    value={accessCode}
-                    onChange={(e) => setAccessCode(e.target.value)}
-                    onKeyDown={handleKeyPress}
+                    value={accessCode} 
+                    onChange={e => setAccessCode(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && verifyCode()}
+                    className="bg-black border border-zinc-800 rounded-xl px-4 py-3 text-center text-white focus:border-[#DFFF00] outline-none mb-6 w-full font-mono"
+                    placeholder="Enter Code"
                     autoFocus
-                    className="w-full bg-black/40 border border-white/10 rounded-full py-4 pl-12 pr-6 text-white font-mono text-center tracking-[0.5em] focus:outline-none focus:border-red-500 transition-all uppercase placeholder:text-zinc-800 shadow-inner"
-                    placeholder="••••"
-                />
-            </div>
-            
-            <div className="flex gap-4">
-                 <button onClick={() => setShowAuthInput(false)} className="px-6 py-2 rounded-full border border-white/10 text-xs font-mono text-zinc-500 hover:text-white uppercase hover:bg-white/5 transition-colors">Cancel</button>
-                 <button onClick={verifyCode} className="px-8 py-2 rounded-full bg-red-500 text-white text-xs font-bold hover:bg-red-600 uppercase tracking-widest transition-colors shadow-[0_0_20px_rgba(239,68,68,0.2)]">Verify</button>
-            </div>
-        </div>
-      )}
-
-      {/* EDITOR */}
-      {isWriting && isAuthenticated && (
-        <div id="log-editor" className="mb-12 rounded-[2.5rem] bg-white/[0.03] backdrop-blur-3xl border border-[#DFFF00]/30 p-8 md:p-10 animate-in fade-in slide-in-from-top-4 relative overflow-hidden group shadow-2xl">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#DFFF00]/[0.02] to-transparent pointer-events-none" />
-          <div className="absolute top-8 right-10 opacity-50">
-             <div className="text-[10px] font-mono font-bold text-[#DFFF00] bg-[#DFFF00]/10 px-3 py-1 rounded-full border border-[#DFFF00]/20">
-                {editingId ? 'EDIT_MODE // MODIFYING' : 'WRITE_MODE // NEW_ENTRY'}
-             </div>
-          </div>
-
-          <div className="grid gap-6 mt-4 relative z-10">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <label className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest ml-2">Subject Line</label>
-                <input 
-                  type="text" 
-                  value={newLog.title}
-                  onChange={(e) => setNewLog({...newLog, title: e.target.value})}
-                  className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-white font-mono text-sm focus:outline-none focus:border-[#DFFF00] focus:ring-1 focus:ring-[#DFFF00]/50 transition-all uppercase placeholder:text-zinc-800"
-                  placeholder="ENTER_SUBJECT..."
-                />
-              </div>
-              <div className="space-y-3">
-                <label className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest ml-2">Tags</label>
-                <input 
-                  type="text" 
-                  value={newLog.tags}
-                  onChange={(e) => setNewLog({...newLog, tags: e.target.value})}
-                  className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-white font-mono text-sm focus:outline-none focus:border-[#DFFF00] focus:ring-1 focus:ring-[#DFFF00]/50 transition-all uppercase placeholder:text-zinc-800"
-                  placeholder="SYSTEM, DEV, UPDATE..."
-                />
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <label className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest ml-2">Log Content</label>
-              <textarea 
-                value={newLog.content}
-                onChange={(e) => setNewLog({...newLog, content: e.target.value})}
-                className="w-full h-80 bg-black/40 border border-white/10 rounded-3xl p-6 text-zinc-300 font-mono text-sm focus:outline-none focus:border-[#DFFF00] focus:ring-1 focus:ring-[#DFFF00]/50 transition-all resize-none placeholder:text-zinc-800 custom-scrollbar"
-                placeholder="INITIALIZING WRITE PROTOCOL..."
-              />
-            </div>
-
-            <button 
-              onClick={handleSave}
-              className="w-full bg-[#DFFF00] hover:bg-white text-black font-black uppercase py-5 rounded-2xl transition-all hover:scale-[1.01] hover:shadow-[0_0_30px_rgba(223,255,0,0.3)] flex items-center justify-center gap-3"
-            >
-              <Save size={18} />
-              {editingId ? 'UPDATE DATABASE ENTRY' : 'COMMIT TO DATABASE'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* VIEW MODAL */}
-      {viewLog && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xl animate-in fade-in duration-200" onClick={() => setViewLog(null)}>
-            <div 
-                className="bg-zinc-950/90 border border-white/10 w-full max-w-4xl max-h-[85vh] flex flex-col rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300"
-                onClick={(e) => e.stopPropagation()}
-            >
-                {/* Modal Header */}
-                <div className="p-8 pb-4 bg-white/[0.02] border-b border-white/5 flex justify-between items-start">
-                    <div>
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[#DFFF00] font-mono text-[10px] font-bold mb-4">
-                             <Calendar size={12} /> 
-                             {viewLog.date}
-                        </div>
-                        <h2 className="text-3xl md:text-5xl font-black text-white uppercase leading-none tracking-tight">{viewLog.title}</h2>
-                    </div>
-                    <button onClick={() => setViewLog(null)} className="bg-white/5 hover:bg-white hover:text-black text-zinc-500 rounded-full p-3 transition-colors">
-                        <X size={20} />
-                    </button>
-                </div>
-                
-                {/* Modal Content */}
-                <div className="p-8 pt-4 overflow-y-auto custom-scrollbar flex-1">
-                    <div className="prose prose-invert prose-lg max-w-none font-mono text-zinc-400 whitespace-pre-wrap leading-relaxed">
-                        {viewLog.status === 'ENCRYPTED' && !isAuthenticated 
-                            ? '/// CONTENT REDACTED /// ENCRYPTION KEY REQUIRED ///' 
-                            : viewLog.content}
-                    </div>
-                </div>
-
-                {/* Modal Footer */}
-                <div className="p-6 bg-white/[0.02] border-t border-white/5 flex justify-between items-center">
-                    <div className="flex gap-2">
-                         {viewLog.tags.map(t => (
-                             <span key={t} className="text-[10px] font-bold bg-black/40 border border-white/10 text-zinc-400 px-3 py-1 rounded-full uppercase tracking-wider">{t}</span>
-                         ))}
-                    </div>
-                    
-                    {isAuthenticated && (
-                        <button 
-                            onClick={() => handleEdit(viewLog)}
-                            className="flex items-center gap-2 text-xs font-bold text-black bg-[#DFFF00] px-6 py-2 rounded-full hover:bg-white transition-colors uppercase tracking-widest shadow-[0_0_15px_rgba(223,255,0,0.2)]"
-                        >
-                            <Edit size={14} /> Edit Entry
-                        </button>
-                    )}
-                </div>
-            </div>
-        </div>
-      )}
-
-      {/* LOGS GRID */}
-      {loading ? (
-         <div className="flex flex-col items-center justify-center py-20 text-zinc-600 gap-4">
-            <Loader2 size={32} className="animate-spin text-[#DFFF00]" />
-            <span className="text-[10px] font-mono uppercase tracking-widest">Fetching Archives...</span>
-         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {logs.length === 0 && (
-              <div className="col-span-full py-20 text-center rounded-[2.5rem] border border-white/5 bg-white/[0.02] backdrop-blur-xl">
-                  <Terminal className="w-12 h-12 text-zinc-700 mx-auto mb-4" />
-                  <span className="text-zinc-500 font-mono text-sm uppercase tracking-widest">No Logs Found In Archive</span>
-              </div>
+                  />
+                  <button onClick={() => setShowAuthInput(false)} className="text-xs font-bold text-zinc-600 hover:text-white uppercase tracking-widest">Cancel</button>
+              </motion.div>
           )}
-          
-          {logs.map((log) => (
-            <div 
-              key={log.id} 
-              onClick={() => setViewLog(log)}
-              className="group relative bg-white/[0.02] border border-white/5 hover:border-[#DFFF00]/40 rounded-[2rem] p-6 flex flex-col h-80 cursor-pointer hover:bg-white/[0.05] backdrop-blur-xl transition-all duration-500 hover:-translate-y-1 hover:shadow-2xl overflow-hidden"
-            >
-              {/* Background Glow */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-[#DFFF00]/[0.03] blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-              
-              {/* Header */}
-              <div className="relative z-10 flex justify-between items-start mb-4">
-                  <div className="flex items-center gap-2 text-zinc-500 text-[10px] font-mono font-bold uppercase tracking-widest bg-white/5 px-2 py-1 rounded-lg border border-white/5 group-hover:border-[#DFFF00]/20 group-hover:text-zinc-300 transition-all">
-                      <Calendar size={10} /> {log.date}
-                  </div>
-                  <div className="text-zinc-700 group-hover:text-[#DFFF00] transition-colors drop-shadow-[0_0_8px_currentColor]">
-                      {log.status === 'ENCRYPTED' ? <Lock size={16} /> : <Hash size={16} />}
-                  </div>
-              </div>
 
-              {/* Title */}
-              <h3 className="relative z-10 text-2xl font-black text-white uppercase leading-none mb-4 group-hover:text-white transition-colors line-clamp-2 tracking-tighter">
-                 {log.title}
-              </h3>
-
-              {/* Preview */}
-              <p className="relative z-10 text-zinc-500 font-mono text-xs leading-relaxed line-clamp-4 group-hover:text-zinc-400 transition-colors flex-1">
-                 {log.status === 'ENCRYPTED' ? '/// ENCRYPTED CONTENT ///' : log.content}
-              </p>
-
-              {/* Footer */}
-              <div className="relative z-10 pt-4 mt-4 border-t border-white/5 flex items-center justify-between">
-                  <div className="flex gap-2">
-                      {log.tags.slice(0, 2).map(tag => (
-                        <span key={tag} className="text-[9px] font-bold text-zinc-500 bg-white/5 border border-white/5 px-2 py-1 rounded-md uppercase group-hover:text-zinc-300 transition-colors">
-                          {tag}
-                        </span>
-                      ))}
-                  </div>
-                  <div className="w-8 h-8 rounded-full bg-white/5 border border-white/5 flex items-center justify-center text-zinc-600 group-hover:bg-[#DFFF00] group-hover:text-black transition-all">
-                      <ChevronRight size={14} />
-                  </div>
-              </div>
-
-              {/* Auth Actions */}
-              {isAuthenticated && (
-                  <div className="absolute top-4 right-4 z-20 flex gap-2 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 duration-300">
-                      <button 
-                          onClick={(e) => { e.stopPropagation(); handleEdit(log); }}
-                          className="p-2 bg-white/5 border border-white/10 text-white rounded-full hover:bg-[#DFFF00] hover:text-black transition-colors"
-                      >
-                          <Edit size={12} />
-                      </button>
-                      <button 
-                          onClick={(e) => { e.stopPropagation(); handleDelete(log.id); }}
-                          className="p-2 bg-white/5 border border-white/10 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-colors"
-                      >
-                          <Trash2 size={12} />
+          {isWriting && (
+              <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="p-10 bg-zinc-900 border border-zinc-800 rounded-[3rem] space-y-6 max-w-4xl mx-auto shadow-2xl">
+                  <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                              <label className="text-xs font-bold text-zinc-500 ml-1">Title</label>
+                              <input 
+                                value={newLog.title} 
+                                onChange={e => setNewLog({...newLog, title: e.target.value})}
+                                className="w-full bg-black border border-zinc-800 rounded-2xl px-6 py-4 text-white font-bold focus:border-[#DFFF00] outline-none transition-colors"
+                                placeholder="Update Title"
+                              />
+                          </div>
+                          <div className="space-y-2">
+                              <label className="text-xs font-bold text-zinc-500 ml-1">Tags</label>
+                              <input 
+                                value={newLog.tags} 
+                                onChange={e => setNewLog({...newLog, tags: e.target.value})}
+                                className="w-full bg-black border border-zinc-800 rounded-2xl px-6 py-4 text-white focus:border-[#DFFF00] outline-none transition-colors"
+                                placeholder="News, Sports, Tech"
+                              />
+                          </div>
+                      </div>
+                      <div className="space-y-2">
+                          <label className="text-xs font-bold text-zinc-500 ml-1">Content</label>
+                          <textarea 
+                            value={newLog.content} 
+                            onChange={e => setNewLog({...newLog, content: e.target.value})}
+                            className="w-full h-64 bg-black border border-zinc-800 rounded-3xl p-8 text-zinc-300 font-sans text-sm resize-none focus:border-[#DFFF00] outline-none transition-colors custom-scrollbar"
+                            placeholder="Write your update here..."
+                          />
+                      </div>
+                      <button onClick={handleSave} className="w-full py-5 bg-[#DFFF00] text-black font-black uppercase tracking-widest rounded-2xl hover:bg-white transition-all flex items-center justify-center gap-3 shadow-xl">
+                          <Save size={18}/> Publish Post
                       </button>
                   </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
+              </motion.div>
+          )}
+      </AnimatePresence>
+
+      {/* REFINED FEED */}
+      <div className="grid grid-cols-1 gap-8">
+          {logs.length === 0 ? (
+              <div className="py-40 text-center border-2 border-dashed border-zinc-900 rounded-[3rem] bg-zinc-900/20">
+                  <MessageSquare size={48} className="text-zinc-800 mx-auto mb-4" />
+                  <p className="text-zinc-600 font-bold uppercase tracking-widest text-xs">No updates yet</p>
+              </div>
+          ) : (
+              logs.map((log) => (
+                  <motion.div 
+                    key={log.id} 
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    className="group bg-zinc-900/40 border border-zinc-800/50 hover:border-zinc-700 rounded-[2.5rem] p-8 md:p-12 transition-all duration-500 relative overflow-hidden flex flex-col md:flex-row gap-10"
+                  >
+                      {/* Date Column */}
+                      <div className="md:w-48 shrink-0 flex flex-col">
+                          <div className="flex items-center gap-3 text-[#DFFF00] mb-2 font-sans font-bold text-xs uppercase tracking-widest">
+                              <Calendar size={14} />
+                              {new Date(log.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </div>
+                          <div className="text-[10px] text-zinc-600 font-bold uppercase tracking-[0.2em]">Published By Zinc</div>
+                          
+                          {/* Tags */}
+                          <div className="mt-6 flex flex-wrap gap-2">
+                              {log.tags.map(tag => (
+                                  <span key={tag} className="text-[9px] font-bold text-zinc-500 bg-zinc-950 px-2.5 py-1 rounded-lg border border-zinc-800 uppercase tracking-tighter">#{tag}</span>
+                              ))}
+                          </div>
+                      </div>
+
+                      {/* Content Column */}
+                      <div className="flex-1 space-y-6">
+                          <h3 className="text-3xl md:text-4xl font-black text-white leading-tight tracking-tight group-hover:text-[#DFFF00] transition-colors">{log.title}</h3>
+                          <p className="text-zinc-400 font-sans text-base leading-relaxed max-w-3xl whitespace-pre-wrap">{log.content}</p>
+                          
+                          <div className="pt-6 flex items-center justify-between border-t border-zinc-800/50">
+                              <button onClick={() => setViewLog(log)} className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-[#DFFF00] hover:translate-x-2 transition-all group/btn">
+                                  Read Full Post <ChevronRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+                              </button>
+
+                              {isAuthenticated && (
+                                  <div className="flex gap-2">
+                                      <button onClick={() => { setEditingId(log.id); setNewLog({ title: log.title, content: log.content, tags: log.tags.join(', ') }); setIsWriting(true); }} className="p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-500 hover:text-white transition-colors"><Edit size={14}/></button>
+                                      <button onClick={() => handleDelete(log.id)} className="p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-500 hover:text-red-500 transition-colors"><Trash2 size={14}/></button>
+                                  </div>
+                              )}
+                          </div>
+                      </div>
+
+                      {/* Background Visual */}
+                      <div className="absolute top-0 right-0 w-64 h-64 bg-[#DFFF00]/[0.02] blur-[100px] rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </motion.div>
+              ))
+          )}
+      </div>
+
+      {/* FULL POST MODAL */}
+      <AnimatePresence>
+          {viewLog && (
+              <motion.div 
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/90 backdrop-blur-2xl"
+                onClick={() => setViewLog(null)}
+              >
+                  <motion.div 
+                    initial={{ scale: 0.95, y: 40 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 40 }}
+                    className="bg-zinc-950 border border-white/10 w-full max-w-4xl rounded-[3rem] p-10 md:p-16 shadow-2xl relative overflow-hidden"
+                    onClick={e => e.stopPropagation()}
+                  >
+                      <button onClick={() => setViewLog(null)} className="absolute top-8 right-8 p-3 bg-zinc-900 hover:bg-white hover:text-black rounded-full transition-all border border-zinc-800"><X size={24}/></button>
+                      
+                      <div className="mb-12">
+                          <div className="flex items-center gap-3 text-[#DFFF00] font-sans font-bold text-xs uppercase tracking-widest mb-6">
+                              <Calendar size={14} />
+                              {new Date(viewLog.date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+                          </div>
+                          <h2 className="text-5xl md:text-7xl font-black text-white tracking-tighter leading-none">{viewLog.title}</h2>
+                      </div>
+
+                      <div className="prose prose-invert max-w-none">
+                          <p className="text-zinc-400 font-sans text-lg leading-relaxed whitespace-pre-wrap">
+                              {viewLog.content}
+                          </p>
+                      </div>
+
+                      <div className="mt-16 pt-10 border-t border-zinc-900 flex flex-wrap gap-3">
+                          {viewLog.tags.map(t => (
+                              <span key={t} className="px-5 py-2 bg-zinc-900 border border-zinc-800 rounded-full text-[10px] font-black uppercase tracking-widest text-zinc-500">#{t}</span>
+                          ))}
+                      </div>
+                  </motion.div>
+              </motion.div>
+          )}
+      </AnimatePresence>
+    </div>
   );
 }

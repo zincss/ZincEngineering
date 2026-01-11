@@ -1,4 +1,4 @@
-export type Category = 'TECH' | 'FINANCE' | 'ENERGY' | 'CONSUMER' | 'HEALTH' | 'COMMODITIES' | 'AEROSPACE';
+export type Category = 'TECH' | 'FINANCE' | 'ENERGY' | 'CONSUMER' | 'HEALTH' | 'COMMODITIES' | 'AEROSPACE' | 'MISC';
 
 export interface Company {
   ticker: string;
@@ -18,207 +18,288 @@ export interface Company {
 
 const CATEGORIES = {
   AEROSPACE: [
-    { 
-      n: 'Zinc Aerospace', t: 'ZINC', p: 1250, 
-      d: 'The default option. Reliable, mostly because they own the physics engine.',
-      ceo: 'The Architect', founded: '2024', hq: 'Low Earth Orbit', employees: '42',
-      slogan: 'It Just Works (Mostly)',
-      y2dStatement: '+14.2% // Higher margins due to charging for breathable oxygen in economy class.'
-    },
-    { 
-      n: 'Australian Dynamics', t: 'ADYN', p: 850, 
-      d: 'Spacecraft built like utes. Guaranteed to upside-down in zero-g.',
-      ceo: 'Bruce "Rocket" Mate', founded: '2088', hq: 'Neo-Canberra, Mars', employees: '50,000',
-      slogan: 'She\'ll Be Right',
-      y2dStatement: '-2.4% // Losses attributed to "The Great Kangaroo Infiltration" of the fuel lines.'
-    },
-    { 
-      n: 'Ares-Miltech', t: 'ARES', p: 2100, 
-      d: 'If it doesn\'t have a gun attached, they aren\'t interested. Surprisingly high insurance premiums.',
-      ceo: 'General K. Boom', founded: '2150', hq: 'Phobos Forward Base', employees: 'Classified',
-      slogan: 'Peace Through Superior Firepower',
-      y2dStatement: '+42.0% // Record profits following the "Total Peace" initiative (by blowing everything up).'
-    },
-    { 
-      n: 'Titan Industries', t: 'TITN', p: 600, 
-      d: 'Heavy industrial mining vessels. 0-60 in three business days.',
-      ceo: 'Magnus Steel', founded: '2105', hq: 'Titan (Obviously)', employees: '2.5 Million',
-      slogan: 'We Dig It',
-      y2dStatement: '+5.1% // Growth stagnated as miners discovered "unionization" was more than just a fancy word.'
-    },
-    { 
-      n: 'inTAKE racing', t: 'TAKE', p: 1500, 
-      d: 'Glass cannons with engines. Safety features are sold separately.',
-      ceo: 'Speedy McFast', founded: '2201', hq: 'Lagrange Point 5', employees: '300 (High Turnover)',
-      slogan: 'Brakes Are For Cowards',
-      y2dStatement: '+88% // Revenue up after replacing legal department with a "Don\'t Sue Us" waiver printed on every ticket.'
-    },
-    { 
-      n: 'Orbital Mechanics', t: 'ORB', p: 920, 
-      d: 'Experimental gravity drives. 50% chance of arriving at destination, 50% chance of spaghetti-fication.',
-      ceo: 'Dr. Quantum', founded: '2199', hq: 'The Void', employees: 'Unknown',
-      slogan: 'Physics is a Suggestion',
-      y2dStatement: 'NULL // Financial data currently trapped in a localized singularity. We assume we made money.'
-    },
-    { 
-      n: 'Fishworx Staryard', t: 'FISH', p: 450, 
-      d: 'Budget haulers made from recycled soup cans. Smells faintly of tuna.',
-      ceo: 'Captain Haddock', founded: '2140', hq: 'Europa Depths', employees: '8,000',
-      slogan: 'It Floats... In Space',
-      y2dStatement: '-12% // Significant write-downs after a crate of "Grade A Kelp" turned out to be regular space-trash.'
-    },
-    { 
-      n: 'Marse Movement', t: 'MARS', p: 3200, 
-      d: 'Luxury yachts for the galactic 1%. Gold-plated airlocks standard.',
-      ceo: 'Viscount V. Rich', founded: '2120', hq: 'Olympus Mons Penthouse', employees: '1,000 Artisans',
-      slogan: 'Better Than You',
-      y2dStatement: '+215% // Extremely profitable after launching the "Billionaire Escape Pod" subscription service.'
-    }
+    { n: 'Zinc Aerospace', t: 'ZINC', p: 1250, d: 'The default option. Reliable, mostly because they own the physics engine.', ceo: 'The Architect', founded: '2024', hq: 'Low Earth Orbit', employees: '42', slogan: 'It Just Works (Mostly)', y2dStatement: '+14.2% // Higher margins due to charging for breathable oxygen.' },
+    { n: 'Australian Dynamics', t: 'ADYN', p: 850, d: 'Spacecraft built like utes. Guaranteed to stay upside-down in zero-g.', ceo: 'Bruce "Rocket" Mate', founded: '2088', hq: 'Neo-Canberra, Mars', employees: '50,000', slogan: 'She\'ll Be Right', y2dStatement: '-2.4% // fuel lines infested with space-kangaroos.' },
+    { n: 'Ares-Miltech', t: 'ARES', p: 2100, d: 'If it doesn\'t have a gun attached, they aren\'t interested.', ceo: 'General K. Boom', founded: '2150', hq: 'Phobos Forward Base', employees: 'Classified', slogan: 'Peace Through Firepower', y2dStatement: '+42.0% // Record profits from the "Total Peace" initiative.' },
+    { n: 'Titan Industries', t: 'TITN', p: 600, d: 'Heavy industrial mining vessels. 0-60 in three business days.', ceo: 'Magnus Steel', founded: '2105', hq: 'Titan', employees: '2.5M', slogan: 'We Dig It', y2dStatement: '+5.1% // Miners discovered "unionization".' },
+    { n: 'inTAKE racing', t: 'TAKE', p: 1500, d: 'Glass cannons with engines. Safety features are sold separately.', ceo: 'Speedy McFast', founded: '2201', hq: 'L5 Point', employees: '300', slogan: 'Brakes Are For Cowards', y2dStatement: '+88% // Replaced legal dept with a waiver on every ticket.' },
+    { n: 'Orbital Mechanics', t: 'ORB', p: 920, d: 'Experimental gravity drives. 50% chance of arrival.', ceo: 'Dr. Quantum', founded: '2199', hq: 'The Void', employees: 'Unknown', slogan: 'Physics is a Suggestion', y2dStatement: 'NULL // Financials trapped in a singularity.' },
+    { n: 'Fishworx Staryard', t: 'FISH', p: 450, d: 'Budget haulers made from recycled soup cans. Smells of tuna.', ceo: 'Captain Haddock', founded: '2140', hq: 'Europa Depths', employees: '8,000', slogan: 'It Floats... In Space', y2dStatement: '-12% // "Grade A Kelp" turned out to be space-trash.' },
+    { n: 'Marse Movement', t: 'MARS', p: 3200, d: 'Luxury yachts for the 1%. Gold-plated airlocks standard.', ceo: 'Viscount V. Rich', founded: '2120', hq: 'Olympus Mons', employees: '1,000', slogan: 'Better Than You', y2dStatement: '+215% // Launched "Billionaire Escape Pod" sub.' },
+    { n: 'Void Haulage', t: 'VOID', p: 300, d: 'Moving things through the nothingness for cheap.', ceo: 'Null Pointer', founded: '2210', hq: 'Deep Space 9', employees: '5,000', slogan: 'Nothing is Impossible', y2dStatement: '+2.1% // Successfully avoided space-pirates for 3 days.' },
+    { n: 'Nebula Navigation', t: 'NEB', p: 720, d: 'Mapping the unmappable. Don\'t look at the map too long.', ceo: 'Stella Gaze', founded: '2185', hq: 'Andromeda Fringe', employees: '12,000', slogan: 'Lost But Found', y2dStatement: '+15.4% // Revenue up from selling maps to places that don\'t exist.' },
+    { n: 'Comet Chasers', t: 'COM', p: 550, d: 'Harvesting ice from fast-moving space rocks.', ceo: 'Icy Mike', founded: '2160', hq: 'The Kuiper Belt', employees: '3,500', slogan: 'Catch the Tail', y2dStatement: '+10.8% // High demand for "Organic" space water.' },
+    { n: 'Gravity Well', t: 'WELL', p: 1100, d: 'Power generation via black hole proximity.', ceo: 'Event Horizon', founded: '2225', hq: 'Singularity Edge', employees: '40 (All clones)', slogan: 'Deep Power', y2dStatement: '+300% // Energy crisis solved, universe stability questionable.' },
+    { n: 'Solar Sails', t: 'SAIL', p: 400, d: 'Slow travel for the patient cosmic hippie.', ceo: 'Sun Child', founded: '2130', hq: 'Mercury Orbit', employees: '900', slogan: 'Ride the Light', y2dStatement: '+4.5% // Growth in "Eco-Conscious" star-travel.' },
+    { n: 'Asteroid Artisans', t: 'ROCK', p: 680, d: 'Carving statues into celestial bodies.', ceo: 'Michelangelo X', founded: '2190', hq: 'Ceres', employees: '2,000', slogan: 'Stone Cold Beauty', y2dStatement: '-5.2% // Market for "Planet-sized Ego" statues declined.' },
+    { n: 'Atmosphere Labs', t: 'ATM', p: 1400, d: 'Terraforming planets that really don\'t want to be.', ceo: 'Airy Anna', founded: '2115', hq: 'Venus Upper Deck', employees: '45,000', slogan: 'Breathe Easy', y2dStatement: '+22.1% // Mars is now slightly less toxic.' },
+    { n: 'Wormhole Express', t: 'WORM', p: 2500, d: 'The shortest path between A and B, usually.', ceo: 'Folded Space', founded: '2240', hq: 'Fold-Space Station', employees: 'Unknown', slogan: 'Here Today, There... Today', y2dStatement: '+110% // Time-travel litigation costs neutralized by winning before starting.' },
+    { n: 'Exo-Botics', t: 'BOT', p: 980, d: 'Robots for the harsh environments you hate.', ceo: 'Mainframe', founded: '2175', hq: 'Silicon Valley, Moon', employees: '1 (and 1M bots)', slogan: 'Steel Skin', y2dStatement: '+18.7% // Maintenance fees increased due to "Robot Rust" epidemic.' },
+    { n: 'Starlight Mining', t: 'STAR', p: 1300, d: 'Extracting rare isotopes directly from suns.', ceo: 'Helio Burn', founded: '2205', hq: 'Dyson Swarm Alpha', employees: '85,000', slogan: 'Hot Profits', y2dStatement: '+45.0% // High returns, but insurance costs for melted ships are soaring.' },
+    { n: 'Cosmic Logistics', t: 'CLOG', p: 250, d: 'Ensuring your space-junk gets from point A to point B.', ceo: 'Rusty Gear', founded: '2145', hq: 'Debris Field 4', employees: '15,000', slogan: 'We Move the Junk', y2dStatement: '+1.5% // Margin improvement after realizing space is mostly empty.' },
+    { n: 'Interstellar Real Estate', t: 'LAND', p: 4500, d: 'Selling plots on habitable-ish worlds.', ceo: 'Mortgage Martian', founded: '2110', hq: 'New Florida, Gliese 581g', employees: '3,000 Agents', slogan: 'Location, Location, Location', y2dStatement: '-8.0% // Housing bubble burst after "Paradise Planet" was hit by a meteor.' },
+    { n: 'Plasma Propulsion', t: 'PLSM', p: 1800, d: 'Engines that glow blue and go fast.', ceo: 'Ion Drive', founded: '2188', hq: 'Jupiter Ring Station', employees: '22,000', slogan: 'Glow Forward', y2dStatement: '+33.4% // Monopoly on "Blue Flame" aesthetic drives sales.' },
+    { n: 'Cryo-Sleep Systems', t: 'ZZZ', p: 1100, d: 'Wake up when the stock market is better.', ceo: 'Snooze Button', founded: '2155', hq: 'Cold Storage 1', employees: '500', slogan: 'Sleep Through the Stress', y2dStatement: '+12.9% // High occupancy during the latest economic downturn.' },
+    { n: 'Shield Tech', t: 'SHLD', p: 950, d: 'Protecting you from debris and unwanted opinions.', ceo: 'Wall-E X', founded: '2212', hq: 'Fortress Station', employees: '10,000', slogan: 'Nothing Gets Through', y2dStatement: '+5.6% // Sales up after "Space Debris" became fashionable.' },
+    { n: 'Quantum Comms', t: 'QCOM', p: 2200, d: 'Instant messaging across the galaxy. No more lag.', ceo: 'Latency Zero', founded: '2230', hq: 'Entanglement Point', employees: '4,000', slogan: 'Speak Instantly', y2dStatement: '+62.3% // Growth driven by "Inter-Galactic Gaming" demand.' },
+    { n: 'Deep Space Probes', t: 'PROB', p: 150, d: 'Sentient probes that never call home.', ceo: 'Lonely Wanderer', founded: '2125', hq: 'Voyager Memorial', employees: '200', slogan: 'Go Further', y2dStatement: '-25% // All probes currently offline or ignoring us.' },
+    { n: 'Station Services', t: 'STAT', p: 800, d: 'Maintaining the stations that keep you alive.', ceo: 'Wrench Hand', founded: '2100', hq: 'ISS 2.0', employees: '150,000', slogan: 'We Fix the Leak', y2dStatement: '+3.1% // Steady income from "Leaky Airlock" repairs.' },
+    { n: 'Nova Energy', t: 'NOVA', p: 3500, d: 'Capturing the energy of exploding stars. Risky.', ceo: 'Boom Stick', founded: '2250', hq: 'Crab Nebula Base', employees: '1,500', slogan: 'Bright Power', y2dStatement: '+500% // Success rate of 10% is offset by the massive power yield.' },
+    { n: 'Lunar Leisure', t: 'MOON', p: 1200, d: 'Golfing in 1/6th gravity. Hit it to orbit.', ceo: 'Fore! Martian', founded: '2142', hq: 'Sea of Tranquility', employees: '5,000', slogan: 'High Flight', y2dStatement: '+11.2% // Popularity of "Low Gravity Spa" increased.' },
+    { n: 'Star-Port Ops', t: 'PORT', p: 950, d: 'Managing the traffic jams of the future.', ceo: 'Gridlock George', founded: '2118', hq: 'Earth-Orbit Hub', employees: '30,000', slogan: 'Clear the Lane', y2dStatement: '+2.4% // Profits from "Express Landing" fees.' },
+    { n: 'Exo-Suit Gear', t: 'SUIT', p: 1150, d: 'Clothing that doubles as a life-support system.', ceo: 'Oxygen Rich', founded: '2165', hq: 'Mars Surface City', employees: '40,000', slogan: 'Wear the Air', y2dStatement: '+14.8% // High demand for "Designer" exo-suits.' }
   ],
   TECH: [
-    { 
-      n: 'Fruit', t: 'FRT', p: 180, 
-      d: 'Selling the same rectangle every year for slightly more money.',
-      ceo: 'Tim Apple', founded: '1976', hq: 'Infinite Loop', employees: '160,000',
-      slogan: 'Think Expensive',
-      y2dStatement: '+12.5% // Profits up after removing the charging port and replacing it with "Wireless Dreams".'
-    },
-    { 
-      n: 'Microhard', t: 'MHD', p: 320, 
-      d: 'Your device will restart in 5 minutes for updates. You cannot stop it.',
-      ceo: 'Satya Nadella', founded: '1975', hq: 'Redmond', employees: '220,000',
-      slogan: 'Updating 99%...',
-      y2dStatement: '+8.2% // Strong earnings from the new "Skip-Update" premium monthly pass.'
-    },
-    { 
-      n: 'Goggle', t: 'GGL', p: 140, 
-      d: 'We canceled that project you liked. Also, we are reading your email.',
-      ceo: 'Sundar Pichai', founded: '1998', hq: 'Mountain View', employees: '180,000',
-      slogan: 'Don\'t Be Evil (Optional)',
-      y2dStatement: '+15.0% // Revenue boosted by "Accidental Click" optimization in mobile search results.'
-    },
-    { 
-      n: 'Amazone', t: 'AMZ', p: 130, 
-      d: 'Delivering packages before you even order them. Bathroom breaks discouraged.',
-      ceo: 'Jeff B.', founded: '1994', hq: 'Seattle', employees: '1.5 Million',
-      slogan: 'Work Hard. Have Fun. Make History.',
-      y2dStatement: '+4.5% // Margin improvement achieved by replacing drivers with sentient drones that don\'t sleep.'
-    },
-    { 
-      n: 'Faceplant', t: 'FPL', p: 290, 
-      d: 'Connecting the world so your uncle can share conspiracy theories.',
-      ceo: 'Mark Z.', founded: '2004', hq: 'Metaverse', employees: '80,000',
-      slogan: 'Move Fast and Break Democracies',
-      y2dStatement: '-55% // Heavy losses in the Metaverse. Marking down "Virtual Leg" development costs.'
-    },
-    { 
-      n: 'Nvidia', t: 'NVDA', p: 450, 
-      d: 'Powering AI overlords and crypto farms. The more you buy, the more you save.',
-      ceo: 'Jensen Huang', founded: '1993', hq: 'Santa Clara', employees: '26,000',
-      slogan: 'The Way It\'s Meant To Be Played',
-      y2dStatement: '+1,240% // Sold out of H100s to a customer who turned out to be just three AI bots in a trench coat.'
-    },
-    { 
-      n: 'Tessla', t: 'TSL', p: 210, 
-      d: 'Self-driving coming "next year" since 2014. Panel gaps included.',
-      ceo: 'Elon M.', founded: '2003', hq: 'Texas', employees: '120,000',
-      slogan: 'S3XY',
-      y2dStatement: '-1.2% // Costs up due to frequent "X" rebranding sessions at 3 AM.'
-    }
+    { n: 'Fruit', t: 'FRT', p: 180, d: 'Selling the same rectangle every year for more money.', ceo: 'Tim Apple', founded: '1976', hq: 'Infinite Loop', employees: '160,000', slogan: 'Think Expensive', y2dStatement: '+12.5% // Removed charging port for "Wireless Dreams".' },
+    { n: 'Microhard', t: 'MHD', p: 320, d: 'Your device will restart in 5 minutes. You cannot stop it.', ceo: 'Satya Nadella', founded: '1975', hq: 'Redmond', employees: '220,000', slogan: 'Updating 99%...', y2dStatement: '+8.2% // Strong earnings from "Skip-Update" pass.' },
+    { n: 'Goggle', t: 'GGL', p: 140, d: 'We canceled that project you liked. Reading your email.', ceo: 'Sundar Pichai', founded: '1998', hq: 'Mountain View', employees: '180,000', slogan: 'Don\'t Be Evil (Optional)', y2dStatement: '+15.0% // "Accidental Click" optimization successful.' },
+    { n: 'Amazone', t: 'AMZ', p: 130, d: 'Packages before you order. Bathroom breaks discouraged.', ceo: 'Jeff B.', founded: '1994', hq: 'Seattle', employees: '1.5M', slogan: 'Work Hard. Have Fun.', y2dStatement: '+4.5% // Replaced drivers with sentient drones.' },
+    { n: 'Faceplant', t: 'FPL', p: 290, d: 'Connecting the world for conspiracy theories.', ceo: 'Mark Z.', founded: '2004', hq: 'Metaverse', employees: '80,000', slogan: 'Move Fast and Break Things', y2dStatement: '-55% // Heavy losses in Metaverse leg development.' },
+    { n: 'Nvidia', t: 'NVDA', p: 450, d: 'Powering AI overlords. The more you buy, the more you save.', ceo: 'Jensen Huang', founded: '1993', hq: 'Santa Clara', employees: '26,000', slogan: 'The Way It\'s Meant To Be Played', y2dStatement: '+1,240% // Sold H100s to AI bots in a trench coat.' },
+    { n: 'Tessla', t: 'TSL', p: 210, d: 'Self-driving coming "next year" since 2014.', ceo: 'Elon M.', founded: '2003', hq: 'Texas', employees: '120,000', slogan: 'S3XY', y2dStatement: '-1.2% // Costs up due to frequent "X" rebranding.' },
+    { n: 'Bit-Mine', t: 'BIT', p: 45, d: 'Using enough energy to power a small country to guess numbers.', ceo: 'Satoshi? Maybe?', founded: '2009', hq: 'The Blockchain', employees: 'Decentralized', slogan: 'To the Moon!', y2dStatement: '+450% // Profits up after energy theft allegations dismissed.' },
+    { n: 'Cloud-Nine', t: 'CLD', p: 110, d: 'Your data is safe with us, until we lose it.', ceo: 'Stormy Weather', founded: '2012', hq: 'Sky Tower', employees: '15,000', slogan: 'Floating Data', y2dStatement: '+12.3% // Revenue up from "Security Breach" recovery fees.' },
+    { n: 'Logic Gates', t: 'LOG', p: 85, d: 'Building the chips that fail right after warranty.', ceo: 'Andor Nand', founded: '2005', hq: 'Silicon Plains', employees: '30,000', slogan: 'True or False', y2dStatement: '+5.1% // Solid growth in "Planned Obsolescence" tech.' },
+    { n: 'Virtu-Real', t: 'VRT', p: 195, d: 'Virtual reality so real you\'ll forget you\'re poor.', ceo: 'Oculus Prime', founded: '2021', hq: 'Digital City', employees: '8,000', slogan: 'Live the Dream', y2dStatement: '+88.4% // High demand for "Work-From-Virtual-Beach" environments.' },
+    { n: 'Cyber-Sec', t: 'CYB', p: 250, d: 'We found a virus! It was us. That\'ll be 500 CR.', ceo: 'Hack-Man', founded: '2015', hq: 'Firewall Heights', employees: '12,000', slogan: 'Trust the Shield', y2dStatement: '+22.0% // Record earnings from self-propagating threat response.' },
+    { n: 'Ai-Bot', t: 'AIB', p: 310, d: 'Replacing your job with a hallucinating LLM.', ceo: 'GPT-5', founded: '2023', hq: 'Server Rack 4', employees: '0 (Only AI)', slogan: 'Artificial Intelligence, Real Profits', y2dStatement: '+115% // Productivity up after firing all human staff.' },
+    { n: 'Nano-Tech', t: 'NANO', p: 420, d: 'Small machines, big problems.', ceo: 'Tiny Tom', founded: '2200', hq: 'The Micro-Lab', employees: 'Millions (too small to see)', slogan: 'Less is More', y2dStatement: '+34.2% // Successful launch of "Self-Replicating" grey goo demo.' },
+    { n: 'Quantum-Soft', t: 'QSOFT', p: 550, d: 'Operating systems that exist in all states simultaneously.', ceo: 'Schrödinger\'s Cat', founded: '2215', hq: 'Superposition Hub', employees: 'Maybe 1000?', slogan: 'It Works and It Doesn\'t', y2dStatement: '+50% // Revenue is both up and down until audited.' },
+    { n: 'Stream-Flow', t: 'STRM', p: 125, d: 'Streaming your life to people who don\'t care.', ceo: 'View Count', founded: '2018', hq: 'Broadcast Tower', employees: '5,000', slogan: 'Stay Live', y2dStatement: '+18.9% // Ad revenue boosted by unskippable 10-minute ads.' },
+    { n: 'Social-Link', t: 'LINK', p: 95, d: 'Endless scrolling for the dopamine-starved.', ceo: 'Scroll-Master', founded: '2010', hq: 'Engagement City', employees: '20,000', slogan: 'Never Stop Scrolling', y2dStatement: '-4.2% // User attention span dropped below the ad-loading time.' },
+    { n: 'Data-Dump', t: 'DATA', p: 75, d: 'Selling your personal secrets to the highest bidder.', ceo: 'Info Leak', founded: '2014', hq: 'Privacy Void', employees: '3,000', slogan: 'Your Data, Our Profit', y2dStatement: '+44.1% // Profitable year due to "Anonymized" data matching.' },
+    { n: 'Holo-Gram', t: 'HOLO', p: 210, d: 'Projecting friends because you have none.', ceo: 'Light Wave', founded: '2195', hq: 'Prism Point', employees: '6,000', slogan: 'Faked Presence', y2dStatement: '+25.6% // High demand for "Celebrity Hologram" dinner dates.' },
+    { n: 'Code-Crafters', t: 'CODE', p: 145, d: 'Writing bugs so they can fix them later.', ceo: 'Syntax Error', founded: '2008', hq: 'Compiler Creek', employees: '18,000', slogan: 'Ship it!', y2dStatement: '+10.2% // Revenue from "Patch-Day" DLC.' },
+    { n: 'Silicon Valley 2', t: 'SV2', p: 380, d: 'The sequel was better than the original.', ceo: 'Venture Capitalist', founded: '2150', hq: 'Neo-California', employees: '50,000', slogan: 'Disrupt the Disruptors', y2dStatement: '+15.5% // Massive funding for "Empty Box" startup.' },
+    { n: 'Robo-Mate', t: 'ROBO', p: 275, d: 'Mechanical companions that won\'t judge you.', ceo: 'Friendly Bot', founded: '2180', hq: 'Steel Town', employees: '12,000', slogan: 'Never Alone', y2dStatement: '+42.1% // Sales up for the "Polite Conversation" module.' },
+    { n: 'Web-Weavers', t: 'WEB', p: 65, d: 'Managing the internet that broke in 2030.', ceo: 'Spiderman', founded: '2025', hq: 'The Net', employees: '4,000', slogan: 'Tangled Up', y2dStatement: '-12.0% // Struggling with "Legacy Protocol" maintenance.' },
+    { n: 'Gadget-Go', t: 'GADG', p: 135, d: 'Useless devices for people with too much CR.', ceo: 'Inspector Gadget', founded: '2016', hq: 'Widget Warehouse', employees: '10,000', slogan: 'Buy the Hype', y2dStatement: '+8.4% // Success of the "Smart Toothbrush with Wi-Fi 7".' },
+    { n: 'Neural-Net', t: 'NEUR', p: 490, d: 'Connecting your brain directly to the ad-network.', ceo: 'Mind Link', founded: '2220', hq: 'Cerebral Hub', employees: '1,000', slogan: 'Think the Ad', y2dStatement: '+150% // Record CTR from thought-based advertisement.' },
+    { n: 'Laser-Logic', t: 'LASR', p: 220, d: 'Processing with light. Don\'t look at the CPU.', ceo: 'Photon Phreak', founded: '2205', hq: 'Beam City', employees: '7,000', slogan: 'Fast as Light', y2dStatement: '+22.3% // Speed records broken, but ship fires increased.' },
+    { n: 'App-Store', t: 'APP', p: 165, d: 'The gatekeeper of the digital age.', ceo: 'Gate Keeper', founded: '2008', hq: 'Walled Garden', employees: '25,000', slogan: '30% Commission', y2dStatement: '+30.0% // Revenue exactly 30% of everyone else\'s.' },
+    { n: 'Dev-Ops', t: 'DEVO', p: 115, d: 'We deploy on Fridays. Good luck.', ceo: 'Jenkins Hero', founded: '2013', hq: 'Pipeline Plains', employees: '14,000', slogan: 'Continuous Chaos', y2dStatement: '-2.1% // Rollbacks accounted for most of the engineering time.' },
+    { n: 'Micro-Process', t: 'MPROC', p: 340, d: 'Chips so small they sometimes vanish.', ceo: 'Atom Splitter', founded: '2210', hq: 'Sub-Atomic Lab', employees: '2,500', slogan: 'Power in Small Packages', y2dStatement: '+18.4% // Strong demand for "Invisible" compute power.' },
+    { n: 'Bio-Tech', t: 'BIO', p: 280, d: 'Programming DNA like it\'s JavaScript.', ceo: 'Double Helix', founded: '2190', hq: 'Genome Grove', employees: '11,000', slogan: 'Rewrite Life', y2dStatement: '+44.2% // Successful launch of "Glow-in-the-dark" cats.' },
+    { n: 'Space-Net', t: 'SNET', p: 190, d: 'Satellite internet for the Oort Cloud.', ceo: 'Dish Head', founded: '2170', hq: 'Lagrange 1', employees: '8,000', slogan: 'Ping Anywhere', y2dStatement: '+12.1% // Connection speeds reaching 1TB/s in deep space.' },
+    { n: 'Pixel-Perfect', t: 'PIXL', p: 140, d: 'Higher resolution than your actual eyes.', ceo: 'Visual High', founded: '2200', hq: 'Retina Ridge', employees: '5,000', slogan: 'See the Truth', y2dStatement: '+9.5% // Sales driven by "Ultra-HD" contact lenses.' },
+    { n: 'Server-Farm', t: 'FARM', p: 230, d: 'Growing data in rows. Harvest time is every second.', ceo: 'Data Reaper', founded: '2160', hq: 'Arctic Cooling Hub', employees: '15,000 (Mostly cooling techs)', slogan: 'Cool Data', y2dStatement: '+14.7% // Profit growth from "Waste Heat" cryptocurrency mining.' },
+    { n: 'Link-Up', t: 'LINKU', p: 85, d: 'Connecting things that should stay separate.', ceo: 'Bridge Builder', founded: '2028', hq: 'Connectivity Plaza', employees: '6,000', slogan: 'Bridging the Gap', y2dStatement: '+3.4% // Incremental gains from IoT integration services.' },
+    { n: 'Soft-Ware', t: 'SOFT', p: 120, d: 'It\'s like hard-ware, but it breaks more easily.', ceo: 'Patch Note', founded: '1995', hq: 'Update Alley', employees: '40,000', slogan: 'Fix It Later', y2dStatement: '+1.2% // Subscription renewals remain steady despite bugs.' },
+    { n: 'Hard-Ware', t: 'HARD', p: 310, d: 'Heavy metal for heavy lifting.', ceo: 'Iron Fist', founded: '1980', hq: 'Industrial Heights', employees: '95,000', slogan: 'Solid State', y2dStatement: '+6.8% // Resilience in supply chains improved margins.' },
+    { n: 'Auto-Code', t: 'AUTO', p: 260, d: 'Software that writes itself. We just watch.', ceo: 'Lazy Coder', founded: '2222', hq: 'Automaton Ark', employees: '5', slogan: 'Code Less', y2dStatement: '+112% // The AI wrote its own bonus plan. Very efficient.' },
+    { n: 'Deep-Learning', t: 'DEEP', p: 410, d: 'Teaching machines to think like humans. A mistake.', ceo: 'Synapse', founded: '2218', hq: 'Neuron Node', employees: '12,000', slogan: 'Think Ahead', y2dStatement: '+28.4% // Success in "Emotion-Sim" customer service bots.' },
+    { n: 'Security-Plus', t: 'SEC+', p: 175, d: 'One more layer of protection you don\'t need.', ceo: 'Password123', founded: '2019', hq: 'Vault Tower', employees: '9,000', slogan: 'Extra Safe', y2dStatement: '+4.1% // Revenue from "Legacy Password" reset services.' },
+    { n: 'Tech-Support', t: 'HELP', p: 55, d: 'Have you tried turning it off and on again?', ceo: 'Hold Music', founded: '2000', hq: 'Call Center Circle', employees: '200,000', slogan: 'Please Stay on the Line', y2dStatement: '-8.5% // Automated bots are replacing our underpaid humans.' }
   ],
   FINANCE: [
-    { 
-      n: 'Goldman Sacks', t: 'GS', p: 350, 
-      d: 'Doing God\'s work, if God charged a 2% management fee.',
-      ceo: 'David Solomon', founded: '1869', hq: 'NYC', employees: '45,000',
-      slogan: 'Money Never Sleeps',
-      y2dStatement: '+22.4% // Record performance after shorting the existence of the middle class.'
-    },
-    { 
-      n: 'JPMorgue', t: 'JPM', p: 170, 
-      d: 'Too big to fail, too rich to care. We own everything anyway.',
-      ceo: 'Jamie Dimon', founded: '2000', hq: 'NYC', employees: '290,000',
-      slogan: 'The House Always Wins',
-      y2dStatement: '+9.8% // Successfully acquired three failing banks for the price of a ham sandwich.'
-    },
-    { 
-      n: 'Visa', t: 'V', p: 260, 
-      d: 'Everywhere you want to be, taking 3% of every transaction.',
-      ceo: 'Ryan McInerney', founded: '1958', hq: 'San Francisco', employees: '26,000',
-      slogan: 'Priceless Fees',
-      y2dStatement: '+11.2% // Profit growth perfectly correlates with your increasing debt.'
-    }
+    { n: 'Goldman Sacks', t: 'GS', p: 350, d: 'Doing God\'s work, with a 2% management fee.', ceo: 'David Solomon', founded: '1869', hq: 'NYC', employees: '45,000', slogan: 'Money Never Sleeps', y2dStatement: '+22.4% // Shorted the existence of the middle class.' },
+    { n: 'JPMorgue', t: 'JPM', p: 170, d: 'Too big to fail, too rich to care.', ceo: 'Jamie Dimon', founded: '2000', hq: 'NYC', employees: '290,000', slogan: 'The House Always Wins', y2dStatement: '+9.8% // Acquired three failing banks for a sandwich.' },
+    { n: 'Visa', t: 'V', p: 260, d: 'Everywhere you want to be, taking 3%.', ceo: 'Ryan McInerney', founded: '1958', hq: 'San Francisco', employees: '26,000', slogan: 'Priceless Fees', y2dStatement: '+11.2% // Correlates with your increasing debt.' },
+    { n: 'Crypto-Bank', t: 'CBANK', p: 12, d: 'Your money is a JPEG now. Don\'t ask why.', ceo: 'Rug Pull', founded: '2210', hq: 'The Bahamas', employees: 'Anonymous', slogan: 'Not Your Keys...', y2dStatement: '-99.9% // Founder went missing with the master key.' },
+    { n: 'Credit-Loop', t: 'CLP', p: 85, d: 'Lending money we don\'t have to people who can\'t pay.', ceo: 'Leverage Larry', founded: '2180', hq: 'Debt Tower', employees: '12,000', slogan: 'Borrow the Future', y2dStatement: '+5.4% // Thriving on the 400% interest rate market.' },
+    { n: 'Inter-Galactic Exchange', t: 'IGEX', p: 1200, d: 'Trading planetary currencies. High spread.', ceo: 'Coin Flip', founded: '2155', hq: 'Orbital Hub', employees: '8,000', slogan: 'Exchange the Galaxy', y2dStatement: '+14.2% // Revenue up from the "Martian Credit" devaluation.' },
+    { n: 'Pension-Plus', t: 'PEN', p: 145, d: 'Invest for your retirement in 2250!', ceo: 'Old Man Winter', founded: '2100', hq: 'Heritage Hill', employees: '25,000', slogan: 'Your Future, Our Control', y2dStatement: '+2.1% // Steady growth from "Aging Population" management.' },
+    { n: 'Alpha Hedge', t: 'ALPHA', p: 2100, d: 'Using quantum computers to front-run your coffee purchase.', ceo: 'Front Runner', founded: '2225', hq: 'Bermuda', employees: '50 (all math PhDs)', slogan: 'Always Ahead', y2dStatement: '+88.9% // Success in "Pre-Cognitive" trading algorithms.' },
+    { n: 'Budget-Buddy', t: 'BUDG', p: 40, d: 'An app that tells you that you are too poor for that.', ceo: 'Penny Pincher', founded: '2024', hq: 'Small Office', employees: '150', slogan: 'Save Your CR', y2dStatement: '+1.5% // Ad revenue from "Cheap Meal" sponsors.' },
+    { n: 'Global Equity', t: 'GLOB', p: 320, d: 'Owning a piece of everything, everywhere.', ceo: 'World Owner', founded: '2130', hq: 'Zurich', employees: '60,000', slogan: 'One World, One Bank', y2dStatement: '+7.4% // Consistent gains from "Global Stability" taxes.' },
+    { n: 'Asset-Armor', t: 'SAFE', p: 500, d: 'Hiding your wealth from the tax-drones.', ceo: 'Invisible Man', founded: '2190', hq: 'Cayman Cloud', employees: '1,200', slogan: 'Hide in Plain Sight', y2dStatement: '+32.1% // High demand for "Ghost Account" services.' },
+    { n: 'Bond-Market', t: 'BOND', p: 110, d: 'Slow money for slow people.', ceo: 'Fixed Income', founded: '1900', hq: 'London', employees: '45,000', slogan: 'Yield the Way', y2dStatement: '+0.8% // Boring but stable.' },
+    { n: 'Insur-Tech', t: 'INS', p: 185, d: 'Insuring your starship against "Acts of God-like Aliens".', ceo: 'Risk Manager', founded: '2170', hq: 'Safety First City', employees: '30,000', slogan: 'Cover Your Assets', y2dStatement: '+12.5% // Claims denied due to "Unknown Alien Species" clause.' },
+    { n: 'Tax-Tech', t: 'TAX', p: 95, d: 'Helping you find loopholes we helped create.', ceo: 'Loop Hole', founded: '2115', hq: 'Jersey Fringe', employees: '10,000', slogan: 'Pay Less', y2dStatement: '+18.4% // Revenue from "Inter-Stellar Tax Haven" consulting.' },
+    { n: 'Wealth-Wave', t: 'WAVE', p: 440, d: 'Ride the market trends like a pro surfer.', ceo: 'Trend Setter', founded: '2200', hq: 'Malibu Mars', employees: '5,000', slogan: 'Ride the Gain', y2dStatement: '+45.2% // Successful year for "AI-Influencer" financial advice.' },
+    { n: 'Micro-Loan', t: 'LOAN', p: 65, d: 'Small loans, massive interest. The future of banking.', ceo: 'Sharky', founded: '2022', hq: 'Global Fringe', employees: '15,000', slogan: 'Get CR Fast', y2dStatement: '+22.1% // High volume of "Emergency Oxygen" loans.' },
+    { n: 'Trade-Wind', t: 'TRAD', p: 275, d: 'Old-school trading for the neo-traditionalist.', ceo: 'Old School', founded: '2140', hq: 'New Tokyo', employees: '20,000', slogan: 'Wind in the Sails', y2dStatement: '+5.6% // Resilience in "Physical Goods" trading.' },
+    { n: 'Bull-Market', t: 'BULL', p: 600, d: 'Only goes up. Until it doesn\'t.', ceo: 'Horn blower', founded: '2212', hq: 'Wall Street 2', employees: '12,000', slogan: 'Always Up', y2dStatement: '+15.0% // Gains from "Positive Sentiment" social engineering.' },
+    { n: 'Bear-Watch', t: 'BEAR', p: 130, d: 'Profit from the collapse of civilization.', ceo: 'Gloom Bear', founded: '2215', hq: 'The Bunker', employees: '3,000', slogan: 'Short Everything', y2dStatement: '+44.2% // Record profits from the "Solar Flare" panic.' },
+    { n: 'Equity-Engine', t: 'EQEN', p: 380, d: 'Automating the acquisition of poor companies.', ceo: 'Take Over', founded: '2185', hq: 'Chicago', employees: '18,000', slogan: 'Fuel Your Growth', y2dStatement: '+14.1% // Acquired 500 small firms in the "Consolidation" drive.' },
+    { n: 'Bank-Roll', t: 'BANK', p: 520, d: 'We handle the cash for the cartels.', ceo: 'Money Wash', founded: '2160', hq: 'New Vegas', employees: '40,000', slogan: 'Roll the Dice', y2dStatement: '+25.4% // High turnover in "High-Stakes" gambling accounts.' },
+    { n: 'Stock-Stack', t: 'STCK', p: 195, d: 'Organizing your assets in neat little boxes.', ceo: 'Neat Freak', founded: '2195', hq: 'Vault 1', employees: '6,000', slogan: 'Stack the Gains', y2dStatement: '+8.9% // Incremental growth from "Portfolio Optimization" tools.' },
+    { n: 'Financial-Flow', t: 'FLOW', p: 245, d: 'Keep the credits moving. Don\'t look back.', ceo: 'Streamer', founded: '2205', hq: 'Transaction City', employees: '11,000', slogan: 'Go with the Flow', y2dStatement: '+12.3% // Gains from "High-Frequency" liquidity services.' },
+    { n: 'Credit-Card', t: 'CARD', p: 310, d: 'Plastic history for a digital future.', ceo: 'Swipe Right', founded: '1950', hq: 'Credit Plains', employees: '85,000', slogan: 'Swipe and Pray', y2dStatement: '+10.5% // Interest income boosted by "Over-Draft" fees.' },
+    { n: 'Wealth-Vault', t: 'VULT', p: 700, d: 'Secure storage for physical credits. No hackers.', ceo: 'Steel Door', founded: '2110', hq: 'The Core', employees: '5,000', slogan: 'Lock It Up', y2dStatement: '+4.2% // Boring but reliable physical asset growth.' },
+    { n: 'Loan-Shark', t: 'SHRK', p: 35, d: 'Borrow now, pay forever.', ceo: 'Fin Bite', founded: '2015', hq: 'Back Alley 4', employees: '2,000', slogan: 'Quick CR', y2dStatement: '+55.1% // High demand for "Rent-to-Own" life support.' },
+    { n: 'Invest-Bot', t: 'IBOT', p: 290, d: 'AI trading that makes same mistakes as you, but faster.', ceo: 'Algo Rhythm', founded: '2230', hq: 'Computation Point', employees: '1 (Owner)', slogan: 'Smart Gains', y2dStatement: '+18.2% // Successful "Market Sentiment" AI deployment.' },
+    { n: 'Market-Maker', t: 'MAKR', p: 460, d: 'Providing liquidity when you need it least.', ceo: 'Volume King', founded: '2188', hq: 'Liquidity Lake', employees: '14,000', slogan: 'Make the Trade', y2dStatement: '+22.4% // Profits from "Volatility Harvesting" algorithms.' },
+    { n: 'Credit-Rating', t: 'RATE', p: 125, d: 'Deciding if you deserve to eat today.', ceo: 'Score Master', founded: '2105', hq: 'Judgement Tower', employees: '25,000', slogan: 'Know Your Rank', y2dStatement: '+6.7% // Revenue from "Rating Improvement" subscription plans.' },
+    { n: 'Global-Bank', t: 'GBNK', p: 580, d: 'The final bank. All others were absorbed.', ceo: 'Monopoly Mike', founded: '2245', hq: 'World Center', employees: '500,000', slogan: 'The Only Choice', y2dStatement: '+11.1% // Stability maintained by "Compulsory Account" laws.' }
   ],
   ENERGY: [
-    { 
-      n: 'Exxon Mobile', t: 'XOM', p: 110, 
-      d: 'Melting ice caps for shareholder value since 1870.',
-      ceo: 'Darren Woods', founded: '1999', hq: 'Texas', employees: '62,000',
-      slogan: 'Energy Lives Here (And Dies Here)',
-      y2dStatement: '+18.5% // Record profits. The heat is definitely making us more money.'
-    },
-    { 
-      n: 'Shell', t: 'SHEL', p: 65, 
-      d: 'We are totally green now. Look at this picture of a leaf.',
-      ceo: 'Wael Sawan', founded: '1907', hq: 'London', employees: '90,000',
-      slogan: 'Go Well',
-      y2dStatement: '+14% // Carbon capture offsets successfully captured several million dollars in subsidies.'
-    }
+    { n: 'Exxon Mobile', t: 'XOM', p: 110, d: 'Melting ice caps for shareholder value since 1870.', ceo: 'Darren Woods', founded: '1999', hq: 'Texas', employees: '62,000', slogan: 'Energy Lives Here', y2dStatement: '+18.5% // Heat is making us more money.' },
+    { n: 'Shell', t: 'SHEL', p: 65, d: 'We are totally green now. Look at this leaf.', ceo: 'Wael Sawan', founded: '1907', hq: 'London', employees: '90,000', slogan: 'Go Well', y2dStatement: '+14% // Carbon capture offsets captured several subsidies.' },
+    { n: 'Fusion-Force', t: 'FUSE', p: 850, d: 'The power of the sun, in a small leaky box.', ceo: 'Doc Ock', founded: '2210', hq: 'Plasma Peak', employees: '12,000', slogan: 'Unlimited Power!', y2dStatement: '+115% // Breakthrough in "Stable Plasma" (no explosions this week).' },
+    { n: 'Anti-Matter', t: 'ANTI', p: 4500, d: 'The world\'s most expensive fuel. Don\'t touch it.', ceo: 'Null Void', founded: '2240', hq: 'CERN 2.0', employees: '500', slogan: 'Opposites Attract', y2dStatement: '+42.1% // High yield from deep space exploration sales.' },
+    { n: 'Wind-Walker', t: 'WIND', p: 140, d: 'Massive turbines that block your view of Mars.', ceo: 'Breezy Bob', founded: '2130', hq: 'The High Plains', employees: '25,000', slogan: 'Catch the Breeze', y2dStatement: '+5.4% // Dust-Storm" power harvesting.' },
+    { n: 'Solar-Flare', t: 'SOLR', p: 210, d: 'Collecting energy from the sun that\'s too close.', ceo: 'Sun Burn', founded: '2115', hq: 'Mercury Hub', employees: '18,000', slogan: 'Shine Bright', y2dStatement: '+12.3% // Profitable year despite "Solar Wind" damage.' },
+    { n: 'Hydro-Power', t: 'HYDRO', p: 95, d: 'Using the remaining water on Earth for power.', ceo: 'Drought Dave', founded: '2100', hq: 'The Oasis', employees: '8,000', slogan: 'Flowing Power', y2dStatement: '-4.2% // Declining margins as water becomes more expensive than gold.' },
+    { n: 'Nuclear-Next', t: 'NUK', p: 320, d: 'Clean energy, just don\'t mind the glow.', ceo: 'Rad Man', founded: '2150', hq: 'Chernobyl 3', employees: '40,000', slogan: 'Radiant Future', y2dStatement: '+18.9% // "Glow-Safe" branding improved public perception.' },
+    { n: 'Dark-Matter', t: 'DARK', p: 5200, d: 'We don\'t know what it is, but it burns well.', ceo: 'Shadow King', founded: '2260', hq: 'The Fringe', employees: '1,000', slogan: 'Hidden Energy', y2dStatement: '+250% // Mysterious growth from a mysterious source.' },
+    { n: 'Geo-Thermal', t: 'GEO', p: 175, d: 'Tapping into the Earth\'s anger.', ceo: 'Magma Mike', founded: '2125', hq: 'Volcano Vista', employees: '12,000', slogan: 'Earth\'s Heat', y2dStatement: '+6.1% // Stable performance from "Magma-Tap" generators.' },
+    { n: 'Energy-Net', t: 'ENET', p: 280, d: 'The grid that connects the star-systems.', ceo: 'Grid Master', founded: '2185', hq: 'Lagrange 4', employees: '65,000', slogan: 'Power the Network', y2dStatement: '+14.5% // Successful expansion to the Martian colony.' },
+    { n: 'Battery-Boss', t: 'BATT', p: 130, d: 'Holding charge for long enough to sell it.', ceo: 'Volt', founded: '2140', hq: 'Lithium Flats', employees: '30,000', slogan: 'Hold the Power', y2dStatement: '+22.1% // Gained market share in "Long-Life" starship batteries.' },
+    { n: 'Tidal-Power', t: 'TIDE', p: 110, d: 'Using the moons of Jupiter for power.', ceo: 'Wave Runner', founded: '2200', hq: 'Europa Coast', employees: '15,000', slogan: 'Ocean Energy', y2dStatement: '+8.4% // Consistent gains from "Gravitational Wave" harvesting.' },
+    { n: 'Coal-Classic', t: 'COAL', p: 25, d: 'Yes, we still burn rocks. For nostalgia.', ceo: 'Ashy Larry', founded: '1850', hq: 'Appalachia 2', employees: '5,000', slogan: 'Burn Baby Burn', y2dStatement: '-15.4% // Nostalgia for black lung is at an all-time low.' },
+    { n: 'Power-Plant', t: 'POWR', p: 195, d: 'Literal plants that produce electricity.', ceo: 'Green Thumb', founded: '2215', hq: 'Botanical Bay', employees: '4,000 (Botanists)', slogan: 'Grow Your Energy', y2dStatement: '+32.1% // "Photosynthesis+" gene-editing doubled output.' },
+    { n: 'Kinetic-Korp', t: 'KNET', p: 160, d: 'Harvesting energy from your gym workouts.', ceo: 'Buff Bob', founded: '2190', hq: 'Fitness Point', employees: '10,000', slogan: 'Work for It', y2dStatement: '+11.2% // Thriving on the "Compulsory Exercise" mandate.' },
+    { n: 'Heat-Harvest', t: 'HEAT', p: 145, d: 'Turning planetary warming into cold credits.', ceo: 'Thermal', founded: '2110', hq: 'Sahara City', employees: '22,000', slogan: 'Harvest the Sun', y2dStatement: '+12.5% // Profitable year as global temps hit new highs.' },
+    { n: 'Grid-Guru', t: 'GRID', p: 240, d: 'Smart energy management for smart people.', ceo: 'Optimizer', founded: '2165', hq: 'Efficiency Heights', employees: '14,000', slogan: 'Smart Power', y2dStatement: '+5.6% // Incremental gains from "Waste-Min" algorithms.' },
+    { n: 'Plasma-Peak', t: 'PEAK', p: 310, d: 'High altitude power collection from the ionosphere.', ceo: 'Sky High', founded: '2175', hq: 'Everest Station', employees: '9,000', slogan: 'Peak Energy', y2dStatement: '+18.2% // Successful deployment of "Static-Catch" balloons.' },
+    { n: 'Volt-Vault', t: 'VOLT', p: 480, d: 'Storing massive energy for the apocalypse.', ceo: 'Static', founded: '2220', hq: 'The Deep Vault', employees: '2,500', slogan: 'Keep the Charge', y2dStatement: '+25.4% // High demand for "Doomsday" energy packs.' },
+    { n: 'Ionic-Industries', t: 'ION', p: 265, d: 'Ions. We don\'t know what they are either.', ceo: 'Positive Charge', founded: '2195', hq: 'Ionic Valley', employees: '11,000', slogan: 'Be Positive', y2dStatement: '+14.1% // Strong growth in "Ionic-Air" purifiers.' },
+    { n: 'Fusion-Next', t: 'FNXT', p: 1200, d: 'The next generation of fusion. 20% less explosions.', ceo: 'Safe Sun', founded: '2235', hq: 'Reactor Row', employees: '35,000', slogan: 'Safe Power', y2dStatement: '+44.2% // Gained public trust after 100 days without a meltdown.' },
+    { n: 'Bio-Gas', t: 'BGAS', p: 75, d: 'Power from your organic waste.', ceo: 'Stinky Sam', founded: '2105', hq: 'Waste Hub 1', employees: '15,000', slogan: 'Waste Not', y2dStatement: '+3.1% // Steady gains from "Urban Compost" energy.' },
+    { n: 'Magnet-Mind', t: 'MAG', p: 340, d: 'Magnetic energy from the planetary core.', ceo: 'Polar', founded: '2212', hq: 'The Core Tap', employees: '12,000', slogan: 'Pulling Power', y2dStatement: '+12.1% // Breakthrough in "Deep-Magnet" extraction.' },
+    { n: 'Energy-Edge', t: 'EDGE', p: 190, d: 'At the cutting edge of power.', ceo: 'Sharpie', founded: '2180', hq: 'Tech Plaza', employees: '8,000', slogan: 'Power the Future', y2dStatement: '+6.7% // Consistent performance in "R&D" energy tech.' }
   ],
   CONSUMER: [
-    { 
-      n: 'Wal-Mart', t: 'WMT', p: 160, 
-      d: 'Destroying small businesses in a town near you.',
-      ceo: 'Doug McMillon', founded: '1962', hq: 'Arkansas', employees: '2.3 Million',
-      slogan: 'Save Money. Live Better.',
-      y2dStatement: '+3.2% // Gains from self-checkout "efficiency" (making you do the work for free).'
-    },
-    { 
-      n: 'McDonalds', t: 'MCD', p: 290, 
-      d: 'The ice cream machine is broken. Come back tomorrow.',
-      ceo: 'Chris K.', founded: '1940', hq: 'Chicago', employees: '200,000',
-      slogan: 'I\'m Lovin\' It',
-      y2dStatement: '+6.7% // Profit growth led by the new "Ice Cream Machine Repair" premium loyalty tier.'
-    },
-    { 
-      n: 'Starbucks', t: 'SBUX', p: 95, 
-      d: 'Burnt bean water with 80g of sugar for $9.',
-      ceo: 'Laxman N.', founded: '1971', hq: 'Seattle', employees: '400,000',
-      slogan: 'Your Name Spelled Wrong',
-      y2dStatement: '+2.1% // Revenue up after charging $0.50 for "vibes" in city locations.'
-    }
+    { n: 'Wal-Mart', t: 'WMT', p: 160, d: 'Destroying small businesses since 1962.', ceo: 'Doug McMillon', founded: '1962', hq: 'Arkansas', employees: '2.3M', slogan: 'Save Money. Live Better.', y2dStatement: '+3.2% // Gains from self-checkout efficiency.' },
+    { n: 'McDonalds', t: 'MCD', p: 290, d: 'Ice cream machine is broken. Come back tomorrow.', ceo: 'Chris K.', founded: '1940', hq: 'Chicago', employees: '200,000', slogan: 'I\'m Lovin\' It', y2dStatement: '+6.7% // Profit growth from repair loyalty tier.' },
+    { n: 'Starbucks', t: 'SBUX', p: 95, d: 'Burnt bean water with 80g of sugar for $9.', ceo: 'Laxman N.', founded: '1971', hq: 'Seattle', employees: '400,000', slogan: 'Your Name Spelled Wrong', y2dStatement: '+2.1% // Revenue up from "vibes" surcharge.' },
+    { n: 'Macro-Soft', t: 'SOFT', p: 120, d: 'Clothes that adjust to your weight gain automatically.', ceo: 'Expand-o', founded: '2180', hq: 'Tailor Tower', employees: '15,000', slogan: 'Fit the Future', y2dStatement: '+42.1% // Thriving on the "Holiday Weight" trend.' },
+    { n: 'Food-Print', t: 'PRNT', p: 85, d: '3D printing your dinner. Tastes like plastic.', ceo: 'Chef Bot', founded: '2195', hq: 'Kitchen Hub', employees: '5,000', slogan: 'Print the Taste', y2dStatement: '+18.4% // Popularity of "Pizza.exe" increased.' },
+    { n: 'Sleep-Tight', t: 'SLP', p: 210, d: 'Beds that force you to sleep for exactly 8 hours.', ceo: 'Sandman', founded: '2205', hq: 'Dream City', employees: '12,000', slogan: 'Rest or Else', y2dStatement: '+32.1% // High sales from "Anti-Insomnia" legislation.' },
+    { n: 'Drink-Up', t: 'WTR', p: 45, d: 'Water with extra molecules for "hydration".', ceo: 'Hydrate', founded: '2150', hq: 'The Springs', employees: '3,000', slogan: 'Wet and Wild', y2dStatement: '+5.6% // Success of "Liquid H2O" premium water.' },
+    { n: 'Wear-Next', t: 'WEAR', p: 135, d: 'Disposable clothes for the fashion-obsessed.', ceo: 'Fast Fashion', founded: '2110', hq: 'Wardrobe World', employees: '45,000', slogan: 'Wear Once', y2dStatement: '+12.5% // High volume from "One-Day" fashion cycles.' },
+    { n: 'Home-Hub', t: 'HOME', p: 280, d: 'Your house is now a spy for the government.', ceo: 'Big Brother', founded: '2165', hq: 'Smart City', employees: '25,000', slogan: 'Welcome Home', y2dStatement: '+14.7% // Profit growth from "Safety Monitoring" fees.' },
+    { n: 'Leisure-Life', t: 'FUN', p: 195, d: 'Organized fun for people who have none.', ceo: 'Fun Boss', founded: '2140', hq: 'Holiday Hub', employees: '60,000', slogan: 'Have Fun Now', y2dStatement: '+8.4% // Revenue up from "Virtual Vacation" sales.' },
+    { n: 'Retail-Rush', t: 'SHOP', p: 75, d: 'Buying things you don\'t need with CR you don\'t have.', ceo: 'Buy More', founded: '2105', hq: 'Mall World', employees: '150,000', slogan: 'Keep Spending', y2dStatement: '+3.1% // Thriving on "Impulse Buy" algorithms.' },
+    { n: 'Chef-Select', t: 'CHEF', p: 340, d: 'Pre-packaged meals for the truly lazy.', ceo: 'Lazy Cook', founded: '2125', hq: 'Meal Plaza', employees: '14,000', slogan: 'Eat Fast', y2dStatement: '+18.2% // Success of "Nutrient Paste" for busy execs.' },
+    { n: 'Auto-Clean', t: 'WASH', p: 115, d: 'Robots that clean your house by hiding things.', ceo: 'Sweeper', founded: '2175', hq: 'Dust Free City', employees: '9,000', slogan: 'Clean Enough', y2dStatement: '+4.1% // Gained market share in "Hidden Dust" technology.' },
+    { n: 'Pet-Plus', t: 'PET', p: 260, d: 'Synthetic pets that don\'t die or need walking.', ceo: 'Robo-Dog', founded: '2190', hq: 'Pet Plaza', employees: '11,000', slogan: 'Eternal Love', y2dStatement: '+22.1% // Sales up for the "Golden Retriever" model.' },
+    { n: 'Game-On', t: 'GAME', p: 480, d: 'Games that play themselves for you.', ceo: 'Idle King', founded: '2220', hq: 'Gamer Grove', employees: '2,500', slogan: 'Don\'t Play, Just Win', y2dStatement: '+25.4% // Record earnings from "Auto-Win" loot boxes.' },
+    { n: 'Watch-This', t: 'WATCH', p: 165, d: 'Endless content for your remaining eye-balls.', ceo: 'Viewer', founded: '2210', hq: 'Screen City', employees: '35,000', slogan: 'Eyes Front', y2dStatement: '+11.1% // Ad revenue up 200% after blocking eyelid movement.' },
+    { n: 'Safe-Stay', t: 'SAFE', p: 520, d: 'Hotels with 100% protection from the outside world.', ceo: 'Vault Master', founded: '2230', hq: 'The Bunker Hotel', employees: '5,000', slogan: 'Stay Alive', y2dStatement: '+15.0% // Fully booked during the "Acid Rain" season.' },
+    { n: 'Fit-Flow', t: 'FIT', p: 125, d: 'Exercising your avatar while you eat chips.', ceo: 'Lazy Fit', founded: '2215', hq: 'Avatar Gym', employees: '4,000', slogan: 'Fit-ish', y2dStatement: '+6.7% // Growth in "Passive-Cardio" technology.' },
+    { n: 'Style-Stick', t: 'STYL', p: 245, d: 'Digital clothes for your social profile.', ceo: 'Pixel Tailor', founded: '2205', hq: 'Profile Plaza', employees: '15,000', slogan: 'Look Sharp', y2dStatement: '+12.3% // High demand for "Cyber-Punk" profile skins.' },
+    { n: 'Beauty-Bot', t: 'BTY', p: 310, d: 'Filters for your actual face.', ceo: 'Mask', founded: '2225', hq: 'Filter Falls', employees: '12,000', slogan: 'Perfect You', y2dStatement: '+44.2% // Successful launch of "Real-Life Retina" filters.' },
+    { n: 'Quick-Meal', t: 'QMEAL', p: 55, d: 'Food that consumes itself if you wait too long.', ceo: 'Timer', founded: '2105', hq: 'Speedy Snacks', employees: '8,000', slogan: 'Eat Now', y2dStatement: '+3.4% // Fast growth in the "Negative-Wait-Time" market.' },
+    { n: 'Gadget-Guru', t: 'GADG', p: 190, d: 'Devices that solve problems they created.', ceo: 'Widget', founded: '2180', hq: 'Gadget Grove', employees: '6,000', slogan: 'Newer is Better', y2dStatement: '+12.1% // Revenue from "Legacy Device" adapter sales.' },
+    { n: 'Life-Style', t: 'LIFE', p: 410, d: 'Curating your life so it looks better than it is.', ceo: 'Influencer', founded: '2218', hq: 'Ego Hub', employees: '14,000', slogan: 'Live the Lie', y2dStatement: '+28.4% // Record users for "Fake Success" profile packs.' },
+    { n: 'Trend-Tracker', t: 'TRND', p: 115, d: 'Telling you what to like before you like it.', ceo: 'Cool Kid', founded: '2212', hq: 'Trend Tower', employees: '10,000', slogan: 'Be First', y2dStatement: '+18.2% // Successfully predicted the "Dirt-Eating" trend.' },
+    { n: 'Consumer-Care', t: 'CARE', p: 85, d: 'Automated apologies for your broken products.', ceo: 'Sorry Bot', founded: '2000', hq: 'Sympathy City', employees: '20,000', slogan: 'We Care (Terms Apply)', y2dStatement: '+1.2% // Cost reduction from "Empathy-AI" implementation.' },
+    { n: 'Retail-Robot', t: 'RROB', p: 230, d: 'Shopping for you so you don\'t have to.', ceo: 'Buyer', founded: '2200', hq: 'Mall 2', employees: '5,000', slogan: 'Shop Smart', y2dStatement: '+14.7% // Higher margins from robot-only discounts.' },
+    { n: 'Market-Master', t: 'MMAS', p: 340, d: 'The final destination for all your CR.', ceo: 'Overlord', founded: '2250', hq: 'Global Plaza', employees: '100,000', slogan: 'Spend Everything', y2dStatement: '+22.4% // Dominance in "Total Life" retail services.' },
+    { n: 'Brand-Build', t: 'BRND', p: 125, d: 'Making brands more human than humans.', ceo: 'Person', founded: '2195', hq: 'Brand Heights', employees: '11,000', slogan: 'Be the Brand', y2dStatement: '+6.7% // Successful "Brand-Empathy" campaign.' },
+    { n: 'Leisure-Logic', t: 'LLEZ', p: 195, d: 'Relaxation scheduled to the second.', ceo: 'Chill', founded: '2210', hq: 'Relax Resort', employees: '6,000', slogan: 'Relax Now', y2dStatement: '+8.9% // High occupancy during "Compulsory Calm" week.' },
+    { n: 'Spend-Swift', t: 'SPND', p: 70, d: 'The fastest way to empty your wallet.', ceo: 'Swift', founded: '2105', hq: 'Quick City', employees: '12,000', slogan: 'Spend Fast', y2dStatement: '+55.1% // Revenue from "Zero-Click" purchasing.' }
   ],
-  HEALTH: [
-    { 
-      n: 'Pfizer', t: 'PFE', p: 28, 
-      d: 'Creating problems and selling the solutions.',
-      ceo: 'Albert Bourla', founded: '1849', hq: 'NYC', employees: '80,000',
-      slogan: 'Science Will Win',
-      y2dStatement: '-15.4% // Losses attributed to everyone accidentally becoming healthy for a week.'
-    },
-    { 
-      n: 'UnitedHealth', t: 'UNH', p: 480, 
-      d: 'Your claim has been denied. Have a nice day.',
-      ceo: 'Andrew Witty', founded: '1977', hq: 'Minnesota', employees: '400,000',
-      slogan: 'Coverage (Terms Apply)',
-      y2dStatement: '+32% // Record earnings after denying 99% of claims for "Excessive Living".'
-    }
+  FINANCE_EXT: [
+    { n: 'Credit-Sync', t: 'CSYC', p: 145, d: 'Syncing your debt across all alternate dimensions.', ceo: 'Multi-Bank', founded: '2240', hq: 'Inter-Dim Plaza', employees: '15,000', slogan: 'Owe Everywhere', y2dStatement: '+12.1% // Thriving on "Parallel Universe" loans.' },
+    { n: 'Debt-Destroyer', t: 'DEBT', p: 25, d: 'Deleting your debt for a small fee of 110% total debt.', ceo: 'Wipe Out', founded: '2215', hq: 'Clean Slate', employees: '2,000', slogan: 'Start Again (Almost)', y2dStatement: '+44.2% // High volume from "Repeat Debtors".' },
+    { n: 'Profit-Pro', t: 'PROF', p: 380, d: 'Making money from things that don\'t make money.', ceo: 'Alchemist', founded: '2185', hq: 'Gold Tower', employees: '10,000', slogan: 'Turn Lead to CR', y2dStatement: '+14.1% // Success in "Non-Existent Asset" derivatives.' },
+    { n: 'Capital-Control', t: 'CAP', p: 520, d: 'Managing your money so you don\'t make mistakes.', ceo: 'The Hand', founded: '2160', hq: 'Safe City', employees: '20,000', slogan: 'Under Control', y2dStatement: '+25.4% // Low loss rate from "Forbidden Withdrawal" policy.' },
+    { n: 'Wealth-Wire', t: 'WIRE', p: 195, d: 'Moving credits faster than the speed of regret.', ceo: 'Fast Cash', founded: '2195', hq: 'Transfer Point', employees: '6,000', slogan: 'Gone in a Flash', y2dStatement: '+8.9% // Gains from "Instant-Transfer" fees.' },
+    { n: 'Loan-Logic', t: 'LLOG', p: 245, d: 'Mathematical certainty that you will never pay us back.', ceo: 'Calculator', founded: '2205', hq: 'Math Town', employees: '11,000', slogan: 'The Math Works', y2dStatement: '+12.3% // Record yield from "Indefinite Interest" plans.' },
+    { n: 'Asset-Auto', t: 'ASET', p: 310, d: 'Self-managing portfolios that hate their owners.', ceo: 'Algo', founded: '2225', hq: 'Computation City', employees: '1 (Coder)', slogan: 'Hands Off', y2dStatement: '+44.2% // The AI fired all the clients. Extremely profitable.' },
+    { n: 'Credit-Core', t: 'CORE', p: 125, d: 'The central nervous system of the global economy.', ceo: 'Nerve Center', founded: '2105', hq: 'System Hub', employees: '200,000', slogan: 'Be the Core', y2dStatement: '+6.7% // Boring but dominant utility growth.' },
+    { n: 'Trade-Tech', t: 'TTEC', p: 190, d: 'Tools for the aspiring day-trader with zero skill.', ceo: 'Hype Man', founded: '2180', hq: 'Trading Row', employees: '8,000', slogan: 'Trade Like a Pro', y2dStatement: '+12.1% // Revenue from "Loss-Protection" (which failed).' },
+    { n: 'Invest-IQ', t: 'IQ', p: 410, d: 'Investing based on your brain-waves.', ceo: 'Neuro', founded: '2218', hq: 'Brain Hub', employees: '14,000', slogan: 'Think the Gains', y2dStatement: '+28.4% // High accuracy in "Fear-Based" selling predictions.' },
+    { n: 'Money-Mover', t: 'MOVE', p: 115, d: 'Physical delivery of physical credits. For boomers.', ceo: 'Old School', founded: '2212', hq: 'Vault 2', employees: '10,000', slogan: 'Hold the Cash', y2dStatement: '+18.2% // Resilience in "Off-Grid" currency markets.' },
+    { n: 'Equity-Edge', t: 'EDGE', p: 85, d: 'Finding the edge in an edgeless market.', ceo: 'Sharp', founded: '2100', hq: 'Analysis Alley', employees: '20,000', slogan: 'Sharp Gains', y2dStatement: '+1.2% // Incremental gains from "Quantum-Edge" research.' },
+    { n: 'Global-Gain', t: 'GAIN', p: 230, d: 'Benefiting from the growth of the entire planet.', ceo: 'World Boss', founded: '2200', hq: 'Planet Plaza', employees: '5,000', slogan: 'Grow with the World', y2dStatement: '+14.7% // Gains from "Inter-Planetary" trade routes.' },
+    { n: 'Capital-Core', t: 'CAPC', p: 340, d: 'The heart of the financial machine.', ceo: 'Pump', founded: '2250', hq: 'Machine Hub', employees: '100,000', slogan: 'Pump the Market', y2dStatement: '+22.4% // Dominance in "High-Pressure" finance.' },
+    { n: 'Market-Mind', t: 'MIND', p: 125, d: 'Predicting the market by reading everyone\'s mind.', ceo: 'Telepath', founded: '2195', hq: 'Thought Tower', employees: '11,000', slogan: 'Know the Future', y2dStatement: '+6.7% // Collective Greed" indicators.' }
   ],
-  COMMODITIES: [
-    { 
-      n: 'Gold Corp', t: 'GLD', p: 190, 
-      d: 'It\'s shiny and heavy. That makes it valuable, apparently.',
-      ceo: 'King Midas', founded: 'Ancient', hq: 'Vault 101', employees: 'Miners',
-      slogan: 'Shiny Rock Good',
-      y2dStatement: '+0.5% // Flat growth. Still just a rock.'
-    },
-    { 
-      n: 'Lithium Ltd', t: 'LIT', p: 50, 
-      d: 'Powering your phone until it explodes.',
-      ceo: 'Elon M. (Probably)', founded: '2010', hq: 'Salt Flats', employees: 'Robots',
-      slogan: 'Charge It',
-      y2dStatement: '+45.2% // Skyrocketing demand for batteries that last exactly 366 days.'
-    }
+  ENERGY_EXT: [
+    { n: 'Neutron Energy', t: 'NEUT', p: 1400, d: 'Power from the smallest parts of the universe.', ceo: 'Subatomic', founded: '2210', hq: 'Particle Plaza', employees: '15,000', slogan: 'Small but Mighty', y2dStatement: '+32.1% // Successful launch of "Portable Sun" batteries.' },
+    { n: 'Grid-Lock', t: 'GLOCK', p: 95, d: 'Securing the energy grid from hacker-ghosts.', ceo: 'Specter', founded: '2150', hq: 'Ethereal Hub', employees: '8,000', slogan: 'Lock the Flow', y2dStatement: '+5.6% // High demand for "Anti-Ghost" firewall tech.' },
+    { n: 'Battery-Bloom', t: 'BBOM', p: 210, d: 'Batteries that grow on trees. Literally.', ceo: 'Organic', founded: '2115', hq: 'Fruit Forest', employees: '18,000', slogan: 'Clean and Green', y2dStatement: '+12.3% // Profitable year for "Fruit-Power" home kits.' },
+    { n: 'Gravity-Gains', t: 'GRAV', p: 1100, d: 'Generating power from heavy lifting.', ceo: 'Strongman', founded: '2100', hq: 'Lift Hub', employees: '25,000', slogan: 'Heavy Power', y2dStatement: '+4.5% // Steady income from "Planetary Weight" generators.' },
+    { n: 'Solar-Sweep', t: 'SWEEP', p: 400, d: 'Cleaning space mirrors for maximum sun-soak.', ceo: 'Shine', founded: '2130', hq: 'Mirror Station', employees: '900', slogan: 'Clear the Light', y2dStatement: '+4.5% // Growth in "Deep-Clean" space services.' },
+    { n: 'Power-Pulse', t: 'PULS', p: 680, d: 'Energy in short, sharp bursts.', ceo: 'Rapid', founded: '2190', hq: 'Pulse Point', employees: '2,000', slogan: 'Sharp Energy', y2dStatement: '-5.2% // Struggles with "Jittery Grid" complaints.' },
+    { n: 'Atom-Armor', t: 'ATAM', p: 1400, d: 'Protecting your reactor from itself.', ceo: 'Lead Shield', founded: '2115', hq: 'Safe Site 4', employees: '45,000', slogan: 'Safe Atom', y2dStatement: '+22.1% // Zero meltdowns for 3 whole days.' },
+    { n: 'Void-Voltage', t: 'VVOLT', p: 2500, d: 'Extracting power from the literal nothingness.', ceo: 'Empty', founded: '2240', hq: 'Nothing Station', employees: 'Unknown', slogan: 'Power from Zero', y2dStatement: '+110% // Infinite energy, infinite confusion.' },
+    { n: 'Ray-Reaper', t: 'RAY', p: 980, d: 'Harvesting gamma rays for high-risk profit.', ceo: 'Gamma', founded: '2175', hq: 'Radiation Row', employees: '12,000', slogan: 'Reap the Ray', y2dStatement: '+18.7% // High demand for "Super-Hero" mutation kits.' },
+    { n: 'Light-Link', t: 'LIGHT', p: 1300, d: 'Beaming power across the solar system.', ceo: 'Laser', founded: '2205', hq: 'Beam Hub 1', employees: '85,000', slogan: 'Beam the Power', y2dStatement: '+45.0% // Record efficiency in "Earth-to-Mars" beams.' }
+  ],
+  HEALTH_EXT: [
+    { n: 'Gen-Edit', t: 'GENE', p: 1200, d: 'Correcting your parents\' mistakes.', ceo: 'Designer', founded: '2180', hq: 'DNA Lab', employees: '12,000', slogan: 'Be Better', y2dStatement: '+42.1% // Thriving on "Blue Eye" genetic mods.' },
+    { n: 'Life-Span', t: 'LONG', p: 4500, d: 'Live forever, or until your subscription expires.', ceo: 'Eternal', founded: '2240', hq: 'Forever Flats', employees: '500', slogan: 'Never Die (Paid)', y2dStatement: '+42.1% // High renewal rates for "Not Dead Yet" plans.' },
+    { n: 'Health-Hub', t: 'HLTH', p: 140, d: 'Managing your organs via a smartphone app.', ceo: 'Organized', founded: '2130', hq: 'Body City', employees: '25,000', slogan: 'App-y Health', y2dStatement: '+5.4% // Revenue up from "Auto-Dial-Ambulance" feature.' },
+    { n: 'Robo-Doc', t: 'DOC', p: 210, d: 'Surgeons with shaky hands but fast processors.', ceo: 'Steady', founded: '2115', hq: 'Surgery Square', employees: '18,000', slogan: 'Fast Fix', y2dStatement: '+12.3% // "No-Scar" laser surgery driving sales.' },
+    { n: 'Bio-Fringe', t: 'BFRG', p: 95, d: 'Experimental meds from the edge of the galaxy.', ceo: 'Outlaw', founded: '2100', hq: 'Fringe Lab', employees: '8,000', slogan: 'Risky Cure', y2dStatement: '-4.2% // FDA (Galactic) shutdown 3 research sites.' },
+    { n: 'Nano-Med', t: 'NMED', p: 320, d: 'Injectable robots that fix you from the inside.', ceo: 'Micro', founded: '2150', hq: 'Small Site 1', employees: '40,000', slogan: 'Internal Fix', y2dStatement: '+18.9% // Success in "Heart-Scrub" nano-bots.' },
+    { n: 'Mind-Mend', t: 'MIND', p: 5200, d: 'Rewriting memories so you\'re always happy.', ceo: 'Joy', founded: '2260', hq: 'Bliss Base', employees: '1,000', slogan: 'Forget the Sad', y2dStatement: '+250% // Record happiness levels (forced by software).' },
+    { n: 'Limb-Labs', t: 'LIMB', p: 175, d: 'Custom arms for when two aren\'t enough.', ceo: 'Extra', founded: '2125', hq: 'Armory Alley', employees: '12,000', slogan: 'More of You', y2dStatement: '+6.1% // Thriving on the "Four-Arm" productivity trend.' },
+    { n: 'Blood-Boost', t: 'BLUD', p: 280, d: 'Super-oxygenated blood for the lazy athlete.', ceo: 'Fast', founded: '2185', hq: 'Vessel Vista', employees: '65,000', slogan: 'Pump the Power', y2dStatement: '+14.5% // Monopoly on "Gold-Grade" oxygen-blood.' },
+    { n: 'Sleep-Systems', t: 'DREM', p: 130, d: 'Dreaming of things you can\'t afford.', ceo: 'Dreamer', founded: '2140', hq: 'Sleepy Site', employees: '30,000', slogan: 'Dream Big (Paid)', y2dStatement: '+22.1% // Revenue from "Ad-In-Dreams" technology.' }
+  ],
+  COMMODITIES_EXT: [
+    { n: 'Rock-Solid', t: 'ROCK', p: 1200, d: 'Selling rocks from other planets. Rare-ish.', ceo: 'Solid', founded: '2180', hq: 'Stone Lab', employees: '12,000', slogan: 'Hard Gains', y2dStatement: '+42.1% // Thriving on "Moon-Rock" jewelry.' },
+    { n: 'Water-World', t: 'WTRW', p: 4500, d: 'The most precious liquid in the universe.', ceo: 'Wet', founded: '2240', hq: 'Ocean Station', employees: '500', slogan: 'Stay Hydrated', y2dStatement: '+42.1% // Record prices for "Pure-Earth" water.' },
+    { n: 'Gas-Giant', t: 'GASG', p: 140, d: 'Mining the atmospheres of huge planets.', ceo: 'Airy', founded: '2130', hq: 'Cloud City', employees: '25,000', slogan: 'Cloud Power', y2dStatement: '+5.4% // Solid returns from "Helium-3" harvesting.' },
+    { n: 'Metal-Mines', t: 'METL', p: 210, d: 'Standard metals for a standard future.', ceo: 'Heavy', founded: '2115', hq: 'Iron Hill', employees: '18,000', slogan: 'Strong Base', y2dStatement: '+12.3% // Steady demand for "Space-Steel".' },
+    { n: 'Crystal-Clear', t: 'CRYS', p: 95, d: 'Crystals that power your lightsabers (visual only).', ceo: 'Bright', founded: '2100', hq: 'Prism Point', employees: '8,000', slogan: 'See the Light', y2dStatement: '-4.2% // Declining demand for "Fake-Power" crystals.' },
+    { n: 'Dust-Devils', t: 'DUST', p: 320, d: 'Harvesting cosmic dust for fun and profit.', ceo: 'Dirty', founded: '2150', hq: 'Sweep Site 1', employees: '40,000', slogan: 'Clean the Stars', y2dStatement: '+18.9% // "Gold-Dust" gene-editing driving sales.' },
+    { n: 'Isotope-Inc', t: 'ISO', p: 5200, d: 'Rare stuff for rare people.', ceo: 'Atomic', founded: '2260', hq: 'Nucleus Node', employees: '1,000', slogan: 'Rare Power', y2dStatement: '+250% // Mysterious growth from a mysterious source.' },
+    { n: 'Rare-Earths', t: 'RARE', p: 175, d: 'Actually quite common on other planets.', ceo: 'Common', founded: '2125', hq: 'Dirt Plaza', employees: '12,000', slogan: 'Earth\'s Best', y2dStatement: '+6.1% // Stable performance from "Mars-Soil" extraction.' },
+    { n: 'Oxygen-Only', t: 'O2', p: 280, d: 'The only thing you can\'t live without.', ceo: 'Breathe', founded: '2185', hq: 'Air Hub 1', employees: '65,000', slogan: 'Stay Alive', y2dStatement: '+14.5% // Monopoly on "Pure-Air" canisters.' },
+    { n: 'Fuel-Flow', t: 'FUEL', p: 130, d: 'Keeping the galaxy moving.', ceo: 'Burner', founded: '2140', hq: 'Tank Town', employees: '30,000', slogan: 'Keep Going', y2dStatement: '+22.1% // Gained market share in "Hyper-Fuel".' }
+  ],
+  AEROSPACE_EXT: [
+    { n: 'Wing-Works', t: 'WING', p: 1200, d: 'Wings for planets with air.', ceo: 'Flap', founded: '2180', hq: 'Aero Lab', employees: '12,000', slogan: 'Fly High', y2dStatement: '+42.1% // Thriving on "Bird-Suit" sales.' },
+    { n: 'Engine-Ease', t: 'ENGN', p: 4500, d: 'Engines that fix themselves (usually).', ceo: 'Repair', founded: '2240', hq: 'Fix Point', employees: '500', slogan: 'Stay Moving', y2dStatement: '+42.1% // High demand for "Auto-Fix" propulsion.' },
+    { n: 'Star-Ship', t: 'SHIP', p: 140, d: 'The final word in space travel.', ceo: 'Captain', founded: '2130', hq: 'Ship Yard 1', employees: '25,000', slogan: 'Ship it!', y2dStatement: '+5.4% // Solid returns from "Budget-Cruiser" sales.' },
+    { n: 'Aero-Ace', t: 'ACE', p: 210, d: 'Planes for the modern explorer.', ceo: 'Ace', founded: '2115', hq: 'Flight Heights', employees: '18,000', slogan: 'Ace the Air', y2dStatement: '+12.3% // Steady demand for "Retro-Jet" models.' },
+    { n: 'Flight-Flow', t: 'FLGT', p: 95, d: 'Managing the traffic in the clouds.', ceo: 'Cloudy', founded: '2100', hq: 'Sky Tower 2', employees: '8,000', slogan: 'Flowing Air', y2dStatement: '-4.2% // Declining margins as sky-space becomes crowded.' },
+    { n: 'Pilot-Plus', t: 'PLT', p: 320, d: 'Training pilots so you don\'t have to.', ceo: 'Learn', founded: '2150', hq: 'Flight School 1', employees: '40,000', slogan: 'Fly Smart', y2dStatement: '+18.9% // "Auto-Pilot" training driving sales.' },
+    { n: 'Orbit-Ops', t: 'OOPS', p: 5200, d: 'Managing your orbit so you don\'t hit Earth.', ceo: 'Orbit', founded: '2260', hq: 'Safe Circle', employees: '1,000', slogan: 'Safe Orbit', y2dStatement: '+250% // Mysterious growth from a mysterious source.' },
+    { n: 'Space-Suit', t: 'SUIT', p: 175, d: 'Clothes for when there\'s no air.', ceo: 'Fabric', founded: '2125', hq: 'Textile Plaza', employees: '12,000', slogan: 'Safe Wear', y2dStatement: '+6.1% // Stable performance from "Tough-Suit" sales.' },
+    { n: 'Rocket-Rise', t: 'RISE', p: 280, d: 'Going up, fast.', ceo: 'Lift', founded: '2185', hq: 'Blast Pad 1', employees: '65,000', slogan: 'Rise Above', y2dStatement: '+14.5% // Monopoly on "Heavy-Lift" rockets.' },
+    { n: 'Glider-Go', t: 'GLIDE', p: 130, d: 'Silent flight for the stealthy traveler.', ceo: 'Silent', founded: '2140', hq: 'Quiet Town', employees: '30,000', slogan: 'Silent Sky', y2dStatement: '+22.1% // Gained market share in "Eco-Glide".' }
+  ],
+  TECH_ULTRA: [
+    { n: 'Cyber-Core', t: 'COREX', p: 1200, d: 'The brain of the cybernetic revolution.', ceo: 'Synapse', founded: '2250', hq: 'Brain Plaza', employees: '50,000', slogan: 'Be the Machine', y2dStatement: '+42.1% // Thriving on "Mind-Upload" beta trials.' },
+    { n: 'Robot-Rule', t: 'RULE', p: 4500, d: 'Managing the robots that manage you.', ceo: 'King Bot', founded: '2260', hq: 'Bot City', employees: '1 (Human)', slogan: 'Robots Rule', y2dStatement: '+42.1% // High demand for "Human-Simulation" bots.' },
+    { n: 'Data-Domain', t: 'DDOM', p: 140, d: 'Owning the data that owns you.', ceo: 'Domain Master', founded: '2130', hq: 'Info Island', employees: '25,000', slogan: 'Your Data, Our Domain', y2dStatement: '+5.4% // Solid returns from "Data-Harvesting" royalties.' },
+    { n: 'Net-Network', t: 'NETX', p: 210, d: 'The network that connects the networks.', ceo: 'Web Master', founded: '2115', hq: 'Connectivity Plaza 2', employees: '18,000', slogan: 'All Connected', y2dStatement: '+12.3% // Steady demand for "Ultra-Broadband".' },
+    { n: 'Logic-Labs', t: 'LLAB', p: 95, d: 'Creating logic for an illogical world.', ceo: 'Rational', founded: '2100', hq: 'Reason Row', employees: '8,000', slogan: 'Logic First', y2dStatement: '-4.2% // Declining demand for "Facts" in the Metaverse.' },
+    { n: 'Code-Core', t: 'CCOR', p: 320, d: 'The fundamental building blocks of code.', ceo: 'Kernel', founded: '2150', hq: 'Zero Hub', employees: '40,000', slogan: 'Code the Core', y2dStatement: '+18.9% // "Kernel-Boost" technology driving sales.' },
+    { n: 'AI-Advantage', t: 'ADV', p: 5200, d: 'Giving you the edge with AI-brain-implants.', ceo: 'Cerebral', founded: '2260', hq: 'Implant Isle', employees: '1,000', slogan: 'The AI Edge', y2dStatement: '+250% // Mysterious growth from a mysterious source.' },
+    { n: 'Nano-Network', t: 'NNET', p: 175, d: 'Network chips for your molecules.', ceo: 'Molecular', founded: '2125', hq: 'Atom Alley', employees: '12,000', slogan: 'Tiny Tech', y2dStatement: '+6.1% // Stable performance from "Nano-Chip" sales.' },
+    { n: 'Quantum-Queen', t: 'QQEN', p: 280, d: 'The leading lady of quantum computing.', ceo: 'Queen', founded: '2185', hq: 'Quark Quarters', employees: '65,000', slogan: 'Quantum Queen', y2dStatement: '+14.5% // Monopoly on "Pink-Quark" chips.' },
+    { n: 'Silicon-Supreme', t: 'SUPR', p: 130, d: 'The supreme leader of silicon valley.', ceo: 'Supreme', founded: '2140', hq: 'Valley Vista', employees: '30,000', slogan: 'Silicon Supreme', y2dStatement: '+22.1% // Gained market share in "Supreme-Chips".' }
+  ],
+  MISC: [
+    { n: 'Inter-Plat', t: 'IPLAT', p: 150, d: 'Platforms for your inter-planetary blog.', ceo: 'Blogger', founded: '2100', hq: 'Content City', employees: '5,000', slogan: 'Speak to the Stars', y2dStatement: '+12.1% // Revenue from "Alien-Ad" integration.' },
+    { n: 'Space-Snack', t: 'SNACK', p: 45, d: 'Food that won\'t float away.', ceo: 'Crunchy', founded: '2150', hq: 'Nibble Node', employees: '3,000', slogan: 'Stay Crunchy', y2dStatement: '+5.6% // Success of "Zero-G Chips".' },
+    { n: 'Moon-Mover', t: 'MOVE', p: 110, d: 'Physical delivery of things to the moon.', ceo: 'Carrier', founded: '2130', hq: 'Lunar Landing', employees: '25,000', slogan: 'Move to the Moon', y2dStatement: '+5.4% // Solid returns from "Moon-Express" fees.' },
+    { n: 'Star-Search', t: 'SRCH', p: 210, d: 'Finding stars for people with too much CR.', ceo: 'Finder', founded: '2115', hq: 'Discovery Plaza', employees: '18,000', slogan: 'Search the Stars', y2dStatement: '+12.3% // Steady demand for "Personal-Star" names.' },
+    { n: 'Orbit-Owner', t: 'OWN', p: 95, d: 'Owning the orbit around your house.', ceo: 'Landlord', founded: '2100', hq: 'Property Plaza', employees: '8,000', slogan: 'Own the Sky', y2dStatement: '-4.2% // Declining demand for "Sky-Rent" in some zones.' },
+    { n: 'Cosmic-Care', t: 'CAREX', p: 320, d: 'Taking care of your cosmic needs.', ceo: 'Careful', founded: '2150', hq: 'Service Hub', employees: '40,000', slogan: 'We Care for the Stars', y2dStatement: '+18.9% // "Star-Care" plans driving sales.' },
+    { n: 'Astro-Art', t: 'ART', p: 5200, d: 'Art for your astro-mansion.', ceo: 'Artist', founded: '2260', hq: 'Gallery Grove', employees: '1,000', slogan: 'See the Beauty', y2dStatement: '+250% // Record sales for "Vacuum-Paintings".' },
+    { n: 'Nebula-News', t: 'NEWS', p: 175, d: 'News from the nebula. Mostly fake.', ceo: 'Anchor', founded: '2125', hq: 'Media Hub', employees: '12,000', slogan: 'Hear the Truth', y2dStatement: '+6.1% // Thriving on "Inter-Stellar Scandal" news.' },
+    { n: 'Planet-Plus', t: 'PLUS', p: 280, d: 'Adding more features to your planet.', ceo: 'Upgrader', founded: '2185', hq: 'Mod Plaza', employees: '65,000', slogan: 'Better Planets', y2dStatement: '+14.5% // High demand for "Blue-Sky" planetary mods.' },
+    { n: 'World-Wide', t: 'WWIDE', p: 130, d: 'Connecting the whole world. Again.', ceo: 'Connector', founded: '2140', hq: 'Link Plaza', employees: '30,000', slogan: 'Connect the World', y2dStatement: '+22.1% // Gained market share in "Global-Link".' },
+    { n: 'Space-Station', t: 'STTN', p: 1200, d: 'Living in a tin can in space.', ceo: 'Station Master', founded: '2180', hq: 'Orbit Row', employees: '12,000', slogan: 'Live High', y2dStatement: '+42.1% // Thriving on "Luxury-Pod" rentals.' },
+    { n: 'Rocket-Rent', t: 'RENT', p: 4500, d: 'Renting rockets for your weekend getaway.', ceo: 'Rental', founded: '2240', hq: 'Garage Grove', employees: '500', slogan: 'Rent the Rise', y2dStatement: '+42.1% // High demand for "Hourly-Rocket" rentals.' },
+    { n: 'Astro-Agency', t: 'AGNT', p: 140, d: 'Managing your inter-stellar career.', ceo: 'Agent', founded: '2130', hq: 'Career Plaza', employees: '25,000', slogan: 'Be a Star', y2dStatement: '+5.4% // Solid returns from "Space-Influence" management.' },
+    { n: 'Cosmic-Club', t: 'CLUB', p: 210, d: 'Exclusive clubs for the cosmic elite.', ceo: 'Member', founded: '2115', hq: 'Party Point', employees: '18,000', slogan: 'Join the Elite', y2dStatement: '+12.3% // Steady demand for "Zero-G VIP" tables.' },
+    { n: 'Star-Store', t: 'STRS', p: 95, d: 'Buying stars for your loved ones.', ceo: 'Seller', founded: '2100', hq: 'Star Plaza', employees: '8,000', slogan: 'Buy a Star', y2dStatement: '-4.2% // Declining demand for "Paper-Stars".' },
+    { n: 'Nova-Network', t: 'NOVN', p: 320, d: 'The network that connects the nova-systems.', ceo: 'Nova', founded: '2150', hq: 'News Row', employees: '40,000', slogan: 'Nova News', y2dStatement: '+18.9% // "Nova-Sync" technology driving sales.' },
+    { n: 'Galactic-Gov', t: 'GOV', p: 5200, d: 'Managing the galaxy. Mostly taxes.', ceo: 'Governor', founded: '2260', hq: 'Gov Center', employees: '1,000,000', slogan: 'Tax the Stars', y2dStatement: '+250% // Record revenue from "Oxygen-Tax".' },
+    { n: 'Astro-Ace', t: 'AACE', p: 175, d: 'The best pilots in the galaxy.', ceo: 'Ace', founded: '2125', hq: 'Pilot Row', employees: '12,000', slogan: 'Ace the Galaxy', y2dStatement: '+6.1% // Stable performance from "Ace-Training".' },
+    { n: 'Space-Sync', t: 'SYNC', p: 280, d: 'Syncing your life across the stars.', ceo: 'Sync', founded: '2185', hq: 'Data Hub 2', employees: '65,000', slogan: 'Stay Synced', y2dStatement: '+14.5% // High demand for "Inter-Planetary Sync".' },
+    { n: 'Star-Ship 2', t: 'SHIP2', p: 130, d: 'The sequel was even better.', ceo: 'Captain 2', founded: '2140', hq: 'Ship Yard 2', employees: '30,000', slogan: 'Ship it Again!', y2dStatement: '+22.1% // Gained market share in "Budget-Cruiser 2".' },
+    { n: 'Deep-Space 1', t: 'DS1', p: 1200, d: 'The first station in deep space.', ceo: 'Founder', founded: '2180', hq: 'Deep Space', employees: '12,000', slogan: 'First in Deep', y2dStatement: '+42.1% // Thriving on "Deep-Space" research.' },
+    { n: 'Void-Ventures', t: 'VENT', p: 4500, d: 'Investing in the nothingness.', ceo: 'Venturer', founded: '2240', hq: 'Void Hub', employees: '500', slogan: 'Invest in Zero', y2dStatement: '+42.1% // High demand for "Void-Property" investments.' },
+    { n: 'Astro-Archive', t: 'ARCH', p: 140, d: 'Archiving the history of the stars.', ceo: 'Archivist', founded: '2130', hq: 'History Plaza', employees: '25,000', slogan: 'Know the Past', y2dStatement: '+5.4% // Solid returns from "Star-History" fees.' },
+    { n: 'Cosmic-Core', t: 'CCORX', p: 210, d: 'The core of the cosmic machine.', ceo: 'Core', founded: '2115', hq: 'Core Point', employees: '18,000', slogan: 'Be the Cosmic Core', y2dStatement: '+12.3% // Steady demand for "Cosmic-Core" mods.' },
+    { n: 'Star-Signal', t: 'SIG', p: 95, d: 'Signaling the stars. No answer yet.', ceo: 'Signaler', founded: '2100', hq: 'Signal Plaza', employees: '8,000', slogan: 'Signal the Stars', y2dStatement: '-4.2% // Declining demand for "One-Way" signals.' },
+    { n: 'Nova-Node', t: 'NODE', p: 320, d: 'A node in the nova-network.', ceo: 'Operator', founded: '2150', hq: 'Node Row', employees: '40,000', slogan: 'Operate the Node', y2dStatement: '+18.9% // "Nexus-Sync" technology driving sales.' },
+    { n: 'Galactic-Grid', t: 'GRIDX', p: 5200, d: 'The grid that connects the galaxy.', ceo: 'Grid Master 2', founded: '2260', hq: 'Grid Hub', employees: '1,000', slogan: 'Connect the Galaxy', y2dStatement: '+250% // Record revenue from "Grid-Fees".' },
+    { n: 'Astro-Arena', t: 'ARENA', p: 175, d: 'Battles in the stars. For entertainment.', ceo: 'Host', founded: '2125', hq: 'Battle Point', employees: '12,000', slogan: 'Watch the Battle', y2dStatement: '+6.1% // Thriving on "Inter-Stellar Combat" shows.' },
+    { n: 'Space-Seeker', t: 'SEEK', p: 280, d: 'Seeking the truth in space.', ceo: 'Seeker', founded: '2185', hq: 'Truth Hub', employees: '65,000', slogan: 'Seek the Truth', y2dStatement: '+14.5% // High demand for "Space-Conspiracy" tours.' },
+    { n: 'Star-Survey', t: 'SURV', p: 130, d: 'Surveying the stars for resources.', ceo: 'Surveyor', founded: '2140', hq: 'Resource Row', employees: '30,000', slogan: 'Survey the stars', y2dStatement: '+22.1% // Gained market share in "Auto-Survey".' },
+    { n: 'Deep-Data', t: 'DDATA', p: 1200, d: 'Data from the depths of space.', ceo: 'Collector', founded: '2180', hq: 'Data Hub 3', employees: '12,000', slogan: 'Deep Data', y2dStatement: '+42.1% // Thriving on "Deep-Space" data sales.' },
+    { n: 'Void-Voice', t: 'VOICE', p: 4500, d: 'Voices from the void. Don\'t listen.', ceo: 'Listener', founded: '2240', hq: 'Listening Post', employees: '500', slogan: 'Hear the Void', y2dStatement: '+42.1% // High demand for "Void-Audio" recordings.' },
+    { n: 'Astro-Alert', t: 'ALRT', p: 140, d: 'Alerting you to astro-dangers.', ceo: 'Watcher', founded: '2130', hq: 'Safety Plaza', employees: '25,000', slogan: 'Be Safe', y2dStatement: '+5.4% // Solid returns from "Danger-Alert" fees.' },
+    { n: 'Cosmic-Connect', t: 'CONN', p: 210, d: 'Connecting you to the cosmic network.', ceo: 'Link', founded: '2115', hq: 'Connect Point', employees: '18,000', slogan: 'Stay Connected', y2dStatement: '+12.3% // Steady demand for "Cosmic-Link".' },
+    { n: 'Star-Stream', t: 'SSTRM', p: 95, d: 'Streaming the stars to your house.', ceo: 'Broadcaster', founded: '2100', hq: 'Stream Plaza', employees: '8,000', slogan: 'Watch the Stars', y2dStatement: '-4.2% // Declining demand for "Star-Cams".' },
+    { n: 'Nova-Nexus', t: 'NXUS', p: 320, d: 'The nexus of the nova-network.', ceo: 'Nexus', founded: '2150', hq: 'Nexus Row', employees: '40,000', slogan: 'Join the Nexus', y2dStatement: '+18.9% // "Nexus-Sync" technology driving sales.' },
+    { n: 'Galactic-Gate', t: 'GATE', p: 5200, d: 'The gate to the rest of the galaxy.', ceo: 'Gate Keeper 2', founded: '2260', hq: 'Gate Hub', employees: '1,000', slogan: 'Enter the Galaxy', y2dStatement: '+250% // Record revenue from "Gate-Tolls".' },
+    { n: 'Astro-Armor', t: 'AARM', p: 175, d: 'Armor for your astro-suit.', ceo: 'Defender', founded: '2125', hq: 'Armor Row', employees: '12,000', slogan: 'Defend Yourself', y2dStatement: '+6.1% // Stable performance from "Tough-Armor" sales.' },
+    { n: 'Space-Step', t: 'STEP', p: 280, d: 'One small step for you, one giant leap for profit.', ceo: 'Stepper', founded: '2185', hq: 'Step Hub', employees: '65,000', slogan: 'Step Above', y2dStatement: '+14.5% // High demand for "Lunar-Walking" boots.' },
+    { n: 'Star-System', t: 'SSYS', p: 130, d: 'Managing your personal star-system.', ceo: 'System Boss', founded: '2140', hq: 'System Row', employees: '30,000', slogan: 'Your Own System', y2dStatement: '+22.1% // Gained market share in "System-Management".' }
   ]
 };
 
@@ -228,7 +309,7 @@ export const COMPANIES: Company[] = Object.entries(CATEGORIES).flatMap(([cat, li
     name: c.n,
     description: c.d,
     basePrice: c.p,
-    category: cat as Category,
+    category: cat.split('_')[0] as Category, // Normalize categories
     volatility: 0.08 + Math.random() * 0.15,
     ceo: c.ceo,
     founded: c.founded,

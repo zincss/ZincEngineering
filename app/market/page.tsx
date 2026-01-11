@@ -66,8 +66,8 @@ export default function MarketIndex() {
                         <span className="font-mono text-[10px] font-black uppercase tracking-[0.4em] text-zinc-500 group-hover:text-black/60 transition-colors">01_Exchange</span>
                         <h3 className="text-5xl md:text-6xl font-black uppercase text-white mt-4 tracking-tighter italic group-hover:text-black transition-colors leading-none">StockZ</h3>
                     </div>
-                    <div className="p-4 bg-zinc-900 rounded-2xl group-hover:bg-black/10 transition-all text-[#DFFF00] group-hover:text-black shadow-xl group-hover:scale-110">
-                        <BarChart3 size={32} />
+                    <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-black/10 transition-colors text-[#DFFF00] group-hover:text-black shadow-xl">
+                        <BarChart3 size={18} />
                     </div>
                 </div>
                 <div className="relative z-10 flex items-end justify-between">
@@ -87,8 +87,8 @@ export default function MarketIndex() {
             <Link href="/market/packs" className="group md:col-span-4 relative bg-zinc-950 hover:bg-[#ef4444] transition-colors duration-500 p-10 flex flex-col justify-between overflow-hidden">
                 <div className="relative z-10 flex justify-between items-start">
                     <span className="font-mono text-[10px] font-black uppercase tracking-[0.4em] text-zinc-500 group-hover:text-white/60 transition-colors">02_Acquisition</span>
-                    <div className="p-4 bg-zinc-900 rounded-2xl group-hover:bg-white/10 transition-all text-red-500 group-hover:text-white shadow-xl group-hover:scale-110">
-                        <Package size={28} />
+                    <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-white/10 transition-colors text-red-500 group-hover:text-white shadow-xl">
+                        <Package size={18} />
                     </div>
                 </div>
                 <div className="relative z-10">
@@ -101,8 +101,8 @@ export default function MarketIndex() {
             <Link href="/market/dealership" className="group md:col-span-4 relative bg-zinc-950 hover:bg-white transition-colors duration-500 p-10 flex flex-col justify-between overflow-hidden">
                 <div className="relative z-10 flex justify-between items-start">
                     <span className="font-mono text-[10px] font-black uppercase tracking-[0.4em] text-zinc-500 group-hover:text-black/60 transition-colors">03_Imports</span>
-                    <div className="p-4 bg-zinc-900 rounded-2xl group-hover:bg-black/10 transition-all text-zinc-400 group-hover:text-black shadow-xl group-hover:scale-110">
-                        <CarFront size={28} />
+                    <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-black/10 transition-colors text-zinc-400 group-hover:text-black shadow-xl">
+                        <CarFront size={18} />
                     </div>
                 </div>
                 <div className="relative z-10">
@@ -115,8 +115,8 @@ export default function MarketIndex() {
             <Link href="/market/auction" className="group md:col-span-4 relative bg-zinc-950 hover:bg-[#DFFF00] transition-colors duration-500 p-10 flex flex-col justify-between overflow-hidden">
                 <div className="relative z-10 flex justify-between items-start">
                     <span className="font-mono text-[10px] font-black uppercase tracking-[0.4em] text-zinc-500 group-hover:text-black/60 transition-colors">04_Bidding</span>
-                    <div className="p-4 bg-zinc-900 rounded-2xl group-hover:bg-black/10 transition-all text-[#DFFF00] group-hover:text-black shadow-xl group-hover:scale-110">
-                        <Gavel size={28} />
+                    <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-black/10 transition-colors text-[#DFFF00] group-hover:text-black shadow-xl">
+                        <Gavel size={18} />
                     </div>
                 </div>
                 <div className="relative z-10">
@@ -129,8 +129,8 @@ export default function MarketIndex() {
             <Link href="/market/trading" className="group md:col-span-4 relative bg-zinc-950 hover:bg-[#3b82f6] transition-colors duration-500 p-10 flex flex-col justify-between overflow-hidden">
                 <div className="relative z-10 flex justify-between items-start">
                     <span className="font-mono text-[10px] font-black uppercase tracking-[0.4em] text-zinc-500 group-hover:text-white/60 transition-colors">05_Network</span>
-                    <div className="p-4 bg-zinc-900 rounded-2xl group-hover:bg-white/10 transition-all text-blue-500 group-hover:text-white shadow-xl group-hover:scale-110">
-                        <ArrowLeftRight size={28} />
+                    <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-white/10 transition-colors text-blue-500 group-hover:text-white shadow-xl">
+                        <ArrowLeftRight size={18} />
                     </div>
                 </div>
                 <div className="relative z-10">

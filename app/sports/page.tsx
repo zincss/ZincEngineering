@@ -12,7 +12,7 @@ import PersonalNexus from './components/PersonalNexus';
 const AnimatedFlag = () => {
   const controls = useAnimation();
   return (
-    <motion.svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" onMouseEnter={() => controls.start("hover")} onMouseLeave={() => controls.start("normal")}>
+    <motion.svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" onMouseEnter={() => controls.start("hover")} onMouseLeave={() => controls.start("normal")}>
       <motion.path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" variants={{ hover: { y: [0, -2, 0], x: [0, 1, 0], transition: { duration: 1, repeat: Infinity } }, normal: { y: 0, x: 0 } }} animate={controls} />
       <line x1="4" x2="4" y1="22" y2="15" />
     </motion.svg>
@@ -24,7 +24,7 @@ const AnimatedTrophy = () => {
   return (
     <motion.svg
       xmlns="http://www.w3.org/2000/svg"
-      width="48" height="48" viewBox="0 0 24 24" fill="none"
+      width="18" height="18" viewBox="0 0 24 24" fill="none"
       stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
       onMouseEnter={() => controls.start("hover")}
       onMouseLeave={() => controls.start("normal")}

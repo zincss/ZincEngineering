@@ -22,7 +22,7 @@ export default function WagerHistory() {
   return (
     <div className="mt-12">
       <div className="flex items-center gap-3 mb-6">
-        <div className="p-2 bg-zinc-900 rounded-lg text-zinc-500 border border-zinc-800">
+        <div className="p-2 bg-zinc-900 rounded-lg text-[#DFFF00] border border-zinc-800 shadow-xl">
           <Clock size={18} />
         </div>
         <h3 className="text-xl font-black uppercase text-white tracking-tight italic">Wager History</h3>

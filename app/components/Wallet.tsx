@@ -1,14 +1,23 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CreditCard, Send, History, X, Search, CheckCircle2, AlertCircle, ArrowRightLeft, Clock, ExternalLink, Coins } from 'lucide-react';
+import { 
+    CreditCard, Send, History, X, Search, CheckCircle2, 
+    AlertCircle, ArrowRightLeft, Clock, ExternalLink, 
+    Coins, TrendingUp, Wallet as WalletIcon, ArrowUpRight, ArrowDownLeft
+} from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import Link from 'next/link';
 import { getUserWagers, transferCredits, searchUsers, getTransactions } from '@/app/sports/wagers/actions';
 import { getPortfolioValue } from '@/app/play/stocks/actions';
 
-export default function Wallet() {
+interface WalletProps {
+    isMobile?: boolean;
+    onClose?: () => void;
+}
+
+export default function Wallet({ isMobile = false, onClose }: WalletProps) {
   const { profile, refreshProfile, user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'status' | 'transfer' | 'history'>('status');
@@ -24,8 +33,10 @@ export default function Wallet() {
   const [isTransferring, setIsTransferring] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen || isMobile) {
         getUserWagers().then(data => {
             setPendingWagers(data.filter((w: any) => w.status === 'pending'));
             setSettledWagers(data.filter((w: any) => w.status !== 'pending'));
@@ -33,7 +44,7 @@ export default function Wallet() {
         getTransactions().then(setTransactions);
         getPortfolioValue().then(setPortfolioValue);
     }
-  }, [isOpen]);
+  }, [isOpen, isMobile]);
 
   useEffect(() => {
     if (recipient.length > 1) {
@@ -60,7 +71,6 @@ export default function Wallet() {
     }
   };
 
-  // Merge and sort history items
   const historyItems = [
       ...transactions.map(t => ({ ...t, type: 'transaction' })), 
       ...settledWagers.map(w => ({ ...w, type: 'wager', created_at: w.created_at }))
@@ -68,18 +78,49 @@ export default function Wallet() {
 
   if (!profile) return null;
 
+  const toggleOpen = () => setIsOpen(!isOpen);
+
+  if (isMobile) {
+      return <WalletContent 
+                profile={profile} 
+                portfolioValue={portfolioValue} 
+                activeTab={activeTab} 
+                setActiveTab={setActiveTab}
+                pendingWagers={pendingWagers}
+                recipient={recipient}
+                setRecipient={setRecipient}
+                amount={amount}
+                setAmount={setAmount}
+                suggestions={suggestions}
+                setSuggestions={setSuggestions}
+                handleTransfer={handleTransfer}
+                isTransferring={isTransferring}
+                msg={msg}
+                historyItems={historyItems}
+                user={user}
+                onClose={onClose}
+                isMobile={true}
+             />;
+  }
+
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className="group flex items-center gap-2 md:gap-3 px-3 md:px-4 py-1.5 bg-zinc-900 border border-zinc-800 hover:border-[#DFFF00] transition-colors rounded-full cursor-pointer relative"
+        onClick={toggleOpen}
+        className={`group flex items-center gap-3 px-4 py-2 transition-all duration-300 rounded-2xl border cursor-pointer relative overflow-hidden ${
+            isOpen 
+                ? 'bg-[#DFFF00] border-[#DFFF00] text-black shadow-[0_0_30px_rgba(223,255,0,0.3)]' 
+                : 'bg-zinc-900/50 border-white/5 text-white hover:border-[#DFFF00]/50'
+        }`}
       >
-          <CreditCard size={14} className="text-[#DFFF00] group-hover:rotate-12 transition-transform" />
-          <span className="text-xs md:text-sm font-black text-white font-mono tracking-tight">{profile.credits.toLocaleString()}</span>
+          <WalletIcon size={16} className={`${isOpen ? 'text-black' : 'text-[#DFFF00]'} transition-colors`} />
+          <div className="flex flex-col items-start leading-none">
+              <span className="text-[10px] font-black font-mono tracking-tight uppercase">{profile.credits.toLocaleString()} <span className="opacity-50">CR</span></span>
+          </div>
           {pendingWagers.length > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 md:-top-1 md:-right-1 flex h-2.5 w-2.5 md:h-3 md:w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#DFFF00] opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 md:h-3 md:w-3 bg-[#DFFF00] border-2 border-zinc-950"></span>
+              <span className="absolute top-1 right-1 flex h-2 w-2">
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isOpen ? 'bg-black' : 'bg-[#DFFF00]'}`}></span>
+                <span className={`relative inline-flex rounded-full h-2 w-2 border-zinc-950 ${isOpen ? 'bg-black' : 'bg-[#DFFF00]'}`}></span>
               </span>
           )}
       </button>
@@ -90,257 +131,292 @@ export default function Wallet() {
             <motion.div 
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 onClick={() => setIsOpen(false)}
-                className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm lg:bg-transparent"
+                className="fixed inset-0 z-[110] bg-black/20"
             />
             <motion.div 
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="fixed md:absolute top-[70px] md:top-full right-4 md:right-0 w-[calc(100vw-32px)] md:w-96 bg-zinc-950 border border-zinc-800 rounded-[2rem] shadow-[0_30px_100px_rgba(0,0,0,0.8)] z-[120] overflow-hidden flex flex-col ring-1 ring-white/5"
+                initial={{ opacity: 0, y: 10, scale: 0.95, filter: 'blur(10px)' }}
+                animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, y: 10, scale: 0.95, filter: 'blur(10px)' }}
+                className="absolute top-[calc(100%+12px)] right-0 w-[400px] bg-zinc-950/95 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] shadow-[0_30px_100px_rgba(0,0,0,0.8)] z-[120] overflow-hidden flex flex-col ring-1 ring-white/5"
             >
-                {/* Wallet Header */}
-                <div className="bg-zinc-900/50 p-6 border-b border-zinc-800 flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-zinc-950 rounded-xl text-[#DFFF00] border border-zinc-800 shadow-lg">
-                            <CreditCard size={18} />
-                        </div>
-                        <div>
-                            <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest leading-none mb-1">Total Net Worth</div>
-                            <div className="text-xl font-black text-white font-mono tracking-tighter">{(profile.credits + portfolioValue).toLocaleString()} <span className="text-xs text-zinc-600">CR</span></div>
-                        </div>
-                    </div>
-                    <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-zinc-800 rounded-full transition-colors text-zinc-500"><X size={18}/></button>
-                </div>
-
-                {/* Sub-header Stats */}
-                <div className="grid grid-cols-2 gap-px bg-zinc-800 border-b border-zinc-800">
-                    <div className="bg-zinc-950 p-3 px-6 flex flex-col">
-                        <span className="text-[8px] font-mono text-zinc-600 uppercase tracking-widest">Liquid Credits</span>
-                        <span className="text-xs font-black text-white">{profile.credits.toLocaleString()}</span>
-                    </div>
-                    <div className="bg-zinc-950 p-3 px-6 flex flex-col items-end">
-                        <span className="text-[8px] font-mono text-zinc-600 uppercase tracking-widest">Market Assets</span>
-                        <span className="text-xs font-black text-[#DFFF00]">{portfolioValue.toLocaleString()}</span>
-                    </div>
-                </div>
-
-                {/* Tabs */}
-                <div className="flex p-2 bg-zinc-950 border-b border-zinc-800">
-                    {[
-                        { id: 'status', icon: Clock, label: 'Pending' },
-                        { id: 'transfer', icon: Send, label: 'Wire' },
-                        { id: 'history', icon: History, label: 'Log' }
-                    ].map(tab => (
-                        <button 
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
-                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-[#DFFF00] text-black shadow-lg' : 'text-zinc-500 hover:text-white hover:bg-zinc-900'}`}
-                        >
-                            <tab.icon size={12} />
-                            {tab.label}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Tab Content */}
-                <div className="p-6 max-h-[400px] overflow-y-auto scrollbar-hide">
-                    {activeTab === 'status' && (
-                        <div className="space-y-4">
-                            {pendingWagers.length === 0 ? (
-                                <div className="py-12 text-center border-2 border-dashed border-zinc-900 rounded-3xl opacity-50">
-                                    <Clock size={24} className="mx-auto mb-3 text-zinc-700" />
-                                    <p className="text-[10px] font-mono uppercase tracking-widest text-zinc-600">No Pending Slips</p>
-                                </div>
-                            ) : (
-                                pendingWagers.map(wager => (
-                                    <div key={wager.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 group">
-                                        <div className="flex justify-between items-start mb-3">
-                                            <span className="text-[9px] font-mono text-[#DFFF00] uppercase tracking-widest">Active Slip</span>
-                                            <span className="text-xs font-black text-white">{wager.amount} CR</span>
-                                        </div>
-                                        <div className="space-y-2">
-                                            {wager.wager_legs?.map((leg: any, i: number) => (
-                                                <div key={i} className="flex justify-between items-center text-[10px]">
-                                                    <span className="text-zinc-500 uppercase">{leg.match_name}</span>
-                                                    <span className="text-white font-bold">{leg.selection}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <div className="mt-3 pt-3 border-t border-zinc-800 flex justify-between items-center">
-                                            <div className="flex flex-col">
-                                                <span className="text-[10px] text-zinc-600">Total Odds: {wager.odds}</span>
-                                                <Link 
-                                                    href={`/sports/wagers/${wager.id}`}
-                                                    onClick={() => setIsOpen(false)}
-                                                    className="text-[8px] font-black text-[#DFFF00] uppercase tracking-widest mt-0.5 flex items-center gap-1 hover:underline"
-                                                >
-                                                    Track Live <ExternalLink size={8} />
-                                                </Link>
-                                            </div>
-                                            <span className="text-[10px] text-zinc-500 uppercase font-mono">#{wager.id.slice(0, 6)}</span>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    )}
-
-                    {activeTab === 'transfer' && (
-                        <div className="space-y-6">
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-[9px] font-mono text-zinc-500 uppercase tracking-[0.3em] mb-2 pl-1">Recipient Operator</label>
-                                    <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600" size={14} />
-                                        <input 
-                                            value={recipient}
-                                            onChange={(e) => setRecipient(e.target.value)}
-                                            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-3 pl-10 pr-4 text-xs font-bold text-white focus:outline-none focus:border-[#DFFF00] transition-all"
-                                            placeholder="USERNAME_ENTRY"
-                                        />
-                                        {suggestions.length > 0 && (
-                                            <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl z-50">
-                                                {suggestions.map(s => (
-                                                    <button 
-                                                        key={s}
-                                                        onClick={() => { setRecipient(s); setSuggestions([]); }}
-                                                        className="w-full text-left px-4 py-3 text-xs text-zinc-400 hover:bg-[#DFFF00] hover:text-black transition-colors border-b border-zinc-800 last:border-0"
-                                                    >
-                                                        {s}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-[9px] font-mono text-zinc-500 uppercase tracking-[0.3em] mb-2 pl-1">Credit Amount</label>
-                                    <div className="relative">
-                                        <Coins className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600" size={14} />
-                                        <input 
-                                            type="number"
-                                            value={amount || ''}
-                                            onChange={(e) => setAmount(Number(e.target.value))}
-                                            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-3 pl-10 pr-4 text-xs font-bold text-white focus:outline-none focus:border-[#DFFF00] transition-all font-mono"
-                                            placeholder="0.00"
-                                        />
-                                    </div>
-                                </div>
-
-                                <button 
-                                    onClick={handleTransfer}
-                                    disabled={isTransferring || !recipient || amount <= 0}
-                                    className="w-full bg-[#DFFF00] text-black font-black py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-white transition-all shadow-[0_10px_30px_rgba(223,255,0,0.2)] disabled:opacity-50"
-                                >
-                                    {isTransferring ? 'INITIALIZING_WIRE...' : 'AUTHORIZE_WIRE'}
-                                    <ArrowRightLeft size={16} />
-                                </button>
-
-                                {msg && (
-                                    <div className={`p-4 rounded-2xl flex items-start gap-3 ${msg.type === 'success' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
-                                        {msg.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-                                        <span className="text-[10px] font-bold uppercase leading-tight">{msg.text}</span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === 'history' && (
-                        <div className="space-y-3">
-                            {historyItems.length === 0 ? (
-                                <div className="py-12 text-center opacity-30">
-                                    <History size={24} className="mx-auto mb-3" />
-                                    <p className="text-[10px] font-mono uppercase tracking-widest">No Recent Activity</p>
-                                </div>
-                            ) : (
-                                historyItems.map((item: any) => {
-                                    if (item.type === 'transaction') {
-                                        const isSender = item.sender_id === user?.id;
-                                        return (
-                                            <div key={item.id} className="bg-zinc-900/50 p-3 rounded-xl border border-zinc-800 flex items-center justify-between group">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`p-2 rounded-lg ${isSender ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
-                                                        {isSender ? <Send size={12} /> : <Coins size={12} />}
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-[10px] font-black text-white uppercase leading-none mb-1">
-                                                            {isSender ? `To ${item.metadata?.recipient}` : `From ${item.metadata?.sender}`}
-                                                        </div>
-                                                        <div className="text-[8px] font-mono text-zinc-600 uppercase">
-                                                            {new Date(item.created_at).toLocaleDateString()}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className={`text-xs font-black font-mono ${isSender ? 'text-red-500' : 'text-green-500'}`}>
-                                                    {isSender ? '-' : '+'}{item.amount}
-                                                </div>
-                                            </div>
-                                        );
-                                    } else {
-                                        // Wager Item
-                                        const isWin = item.status === 'won';
-                                        const isVoid = item.status === 'void' || item.status === 'push';
-                                        const isLoss = item.status === 'lost';
-                                        const payout = item.payout || 0;
-                                        
-                                        return (
-                                            <div key={item.id} className={`bg-zinc-900/50 p-4 rounded-xl border relative overflow-hidden group ${isWin ? 'border-green-500/30 bg-green-500/5' : isLoss ? 'border-red-500/30 bg-red-500/5' : 'border-zinc-800'}`}>
-                                                {/* Badge */}
-                                                <div className={`absolute top-0 right-0 px-2 py-1 rounded-bl-xl text-[8px] font-black uppercase tracking-widest ${isWin ? 'bg-green-500 text-black' : isLoss ? 'bg-red-500/20 text-red-500' : 'bg-zinc-800 text-zinc-500'}`}>
-                                                    {item.status}
-                                                </div>
-                                                
-                                                <div className="flex justify-between items-start mb-3 pr-12">
-                                                    <div>
-                                                        <div className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-0.5">Settled Wager</div>
-                                                        <div className="text-[8px] text-zinc-600 font-mono">{new Date(item.created_at).toLocaleDateString()}</div>
-                                                    </div>
-                                                    <div className={`text-sm font-black ${isWin ? 'text-green-500' : isLoss ? 'text-red-500' : 'text-zinc-400'}`}>
-                                                        {isWin ? `+${payout}` : isLoss ? `-${item.amount}` : 'REFUND'} <span className="text-[8px]">CR</span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="space-y-2 mb-3">
-                                                    {item.wager_legs?.map((leg: any, i: number) => {
-                                                        const legStatus = leg.status === 'won' ? 'text-green-500' : leg.status === 'lost' ? 'text-red-500' : 'text-zinc-500';
-                                                        return (
-                                                            <div key={i} className="flex justify-between items-center text-[10px] border-b border-white/5 pb-1 last:border-0 last:pb-0">
-                                                                <div className="flex flex-col">
-                                                                     <span className="text-[8px] text-zinc-500 uppercase font-mono">{leg.type}</span>
-                                                                     <span className="text-zinc-300 font-bold uppercase">{leg.selection.replace(':', ' ')}</span>
-                                                                     <span className="text-[8px] text-zinc-600 italic">{leg.match_name}</span>
-                                                                </div>
-                                                                {/* Optional Leg Status Indicator */}
-                                                                <div className={`text-[8px] font-black uppercase ${legStatus}`}>
-                                                                    {leg.status === 'pending' ? '' : leg.status}
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                                
-                                                <div className="flex justify-between items-center pt-2 border-t border-white/5">
-                                                    <span className="text-[8px] text-zinc-500 font-mono">ID: {item.id.slice(0, 8)}</span>
-                                                    <span className="text-[9px] font-bold text-zinc-400">Wagered: {item.amount}</span>
-                                                </div>
-                                            </div>
-                                        );
-                                    }
-                                })
-                            )}
-                        </div>
-                    )}
-                </div>
-
-                <div className="p-4 bg-zinc-900/30 text-center">
-                    <p className="text-[8px] font-mono text-zinc-600 uppercase tracking-[0.4em]">Secure Zinc Protocol v4.2</p>
-                </div>
+                <WalletContent 
+                    profile={profile} 
+                    portfolioValue={portfolioValue} 
+                    activeTab={activeTab} 
+                    setActiveTab={setActiveTab}
+                    pendingWagers={pendingWagers}
+                    recipient={recipient}
+                    setRecipient={setRecipient}
+                    amount={amount}
+                    setAmount={setAmount}
+                    suggestions={suggestions}
+                    setSuggestions={setSuggestions}
+                    handleTransfer={handleTransfer}
+                    isTransferring={isTransferring}
+                    msg={msg}
+                    historyItems={historyItems}
+                    user={user}
+                    onClose={() => setIsOpen(false)}
+                    isMobile={false}
+                />
             </motion.div>
           </>
         )}
       </AnimatePresence>
     </div>
   );
+}
+
+function WalletContent({ 
+    profile, portfolioValue, activeTab, setActiveTab, pendingWagers, 
+    recipient, setRecipient, amount, setAmount, suggestions, setSuggestions,
+    handleTransfer, isTransferring, msg, historyItems, user, onClose, isMobile 
+}: any) {
+    return (
+        <div className="flex flex-col h-full">
+            {/* Header */}
+            <div className="p-8 pb-6 border-b border-white/5">
+                <div className="flex justify-between items-start mb-6">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-zinc-900 rounded-2xl text-[#DFFF00] border border-white/5 shadow-xl">
+                            <CreditCard size={24} />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-black uppercase text-white tracking-tighter italic">My Wallet</h3>
+                            <p className="text-[9px] font-mono text-zinc-500 uppercase tracking-[0.3em]">Manage Credits & Wagers</p>
+                        </div>
+                    </div>
+                    {!isMobile && <button onClick={onClose} className="p-2.5 bg-zinc-900/50 hover:bg-white hover:text-black rounded-xl transition-all border border-white/5"><X size={18}/></button>}
+                </div>
+
+                <div className="bg-zinc-900/30 rounded-3xl p-6 border border-white/5 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#DFFF00] opacity-[0.02] blur-3xl -mr-16 -mt-16" />
+                    <div className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-2 text-center">Total Net Worth</div>
+                    <div className="flex items-baseline justify-center gap-3">
+                        <span className="text-4xl font-black text-white font-mono tracking-tighter italic">{(profile.credits + portfolioValue).toLocaleString()}</span>
+                        <span className="text-sm font-black text-[#DFFF00] italic">CR</span>
+                    </div>
+                    
+                    <div className="mt-6 grid grid-cols-2 gap-4">
+                        <div className="flex flex-col">
+                            <span className="text-[8px] font-mono text-zinc-600 uppercase tracking-widest">Available</span>
+                            <span className="text-sm font-black text-white">{profile.credits.toLocaleString()}</span>
+                        </div>
+                        <div className="flex flex-col items-end">
+                            <span className="text-[8px] font-mono text-zinc-600 uppercase tracking-widest">Invested</span>
+                            <span className="text-sm font-black text-[#DFFF00]">{portfolioValue.toLocaleString()}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="px-8 py-4 flex gap-2">
+                {[
+                    { id: 'status', icon: Clock, label: 'Pending' },
+                    { id: 'transfer', icon: Send, label: 'Transfer' },
+                    { id: 'history', icon: History, label: 'History' }
+                ].map(tab => (
+                    <button 
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id as any)}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${activeTab === tab.id ? 'bg-[#DFFF00] text-black border-[#DFFF00] shadow-lg shadow-[#DFFF00]/10' : 'bg-zinc-900/50 border-white/5 text-zinc-500 hover:text-white'}`}
+                    >
+                        <tab.icon size={12} />
+                        {tab.label}
+                    </button>
+                ))}
+            </div>
+
+            <div className="px-8 pb-8 flex-1 overflow-y-auto custom-scrollbar max-h-[450px]">
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={activeTab}
+                        initial={{ opacity: 0, x: 10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -10 }}
+                        className="py-4"
+                    >
+                        {activeTab === 'status' && (
+                            <div className="space-y-4">
+                                {pendingWagers.length === 0 ? (
+                                    <div className="py-12 text-center border border-dashed border-zinc-800 rounded-[2rem] bg-zinc-900/20">
+                                        <Clock size={32} className="mx-auto mb-4 text-zinc-800" />
+                                        <p className="text-[10px] font-mono uppercase tracking-widest text-zinc-600 font-bold">No active wagers</p>
+                                    </div>
+                                ) : (
+                                    pendingWagers.map(wager => (
+                                        <div key={wager.id} className="bg-zinc-900/50 border border-white/5 rounded-2xl p-5 group hover:border-[#DFFF00]/30 transition-all">
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-[#DFFF00] animate-pulse" />
+                                                    <span className="text-[10px] font-black text-white uppercase tracking-widest italic">Live Wager</span>
+                                                </div>
+                                                <span className="text-sm font-black text-[#DFFF00] font-mono">{wager.amount}</span>
+                                            </div>
+                                            <div className="space-y-2">
+                                                {wager.wager_legs?.map((leg: any, i: number) => (
+                                                    <div key={i} className="flex justify-between items-center text-[10px]">
+                                                        <span className="text-zinc-500 font-bold uppercase truncate pr-4">{leg.match_name}</span>
+                                                        <span className="text-white font-black shrink-0">{leg.selection}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
+                                                <Link 
+                                                    href={`/sports/wagers/${wager.id}`}
+                                                    onClick={onClose}
+                                                    className="text-[9px] font-black text-[#DFFF00] uppercase tracking-widest flex items-center gap-2 hover:translate-x-1 transition-transform"
+                                                >
+                                                    View Match <ArrowRightLeft size={10} />
+                                                </Link>
+                                                <span className="text-[8px] text-zinc-600 font-mono uppercase">ID: {wager.id.slice(0, 6)}</span>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === 'transfer' && (
+                            <div className="space-y-6">
+                                <div className="space-y-5">
+                                    <div className="space-y-3">
+                                        <label className="text-[9px] font-black text-zinc-500 uppercase tracking-[0.3em] ml-1 italic">Recipient Username</label>
+                                        <div className="relative group">
+                                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-[#DFFF00] transition-colors" size={16} />
+                                            <input 
+                                                value={recipient}
+                                                onChange={(e) => setRecipient(e.target.value)}
+                                                className="w-full bg-zinc-900 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-xs font-bold text-white focus:outline-none focus:border-[#DFFF00] transition-all uppercase placeholder:text-zinc-800"
+                                                placeholder="Username..."
+                                            />
+                                            <AnimatePresence>
+                                                {suggestions.length > 0 && (
+                                                    <motion.div 
+                                                        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+                                                        className="absolute top-full left-0 right-0 mt-2 bg-zinc-950 border border-white/10 rounded-2xl overflow-hidden shadow-2xl z-50 ring-1 ring-white/5"
+                                                    >
+                                                        {suggestions.map(s => (
+                                                            <button 
+                                                                key={s}
+                                                                onClick={() => { setRecipient(s); setSuggestions([]); }}
+                                                                className="w-full text-left px-5 py-4 text-xs font-black text-zinc-400 hover:bg-[#DFFF00] hover:text-black transition-all border-b border-white/5 last:border-0 uppercase italic"
+                                                            >
+                                                                {s}
+                                                            </button>
+                                                        ))}
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <label className="text-[9px] font-black text-zinc-500 uppercase tracking-[0.3em] ml-1 italic">Amount</label>
+                                        <div className="relative">
+                                            <Coins className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={16} />
+                                            <input 
+                                                type="number"
+                                                value={amount || ''}
+                                                onChange={(e) => setAmount(Number(e.target.value))}
+                                                className="w-full bg-zinc-900 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-lg font-black text-white focus:outline-none focus:border-[#DFFF00] transition-all font-mono"
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <button 
+                                        onClick={handleTransfer}
+                                        disabled={isTransferring || !recipient || amount <= 0}
+                                        className="w-full bg-[#DFFF00] text-black font-black py-5 rounded-[2rem] flex items-center justify-center gap-4 hover:bg-white transition-all shadow-2xl active:scale-95 disabled:opacity-30 disabled:grayscale"
+                                    >
+                                        {isTransferring ? 'Sending Credits...' : 'Send Credits'}
+                                        <ArrowRightLeft size={18} />
+                                    </button>
+
+                                    {msg && (
+                                        <motion.div 
+                                            initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                                            className={`p-5 rounded-3xl flex items-start gap-4 border ${msg.type === 'success' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}
+                                        >
+                                            {msg.type === 'success' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
+                                            <span className="text-xs font-black uppercase leading-tight italic tracking-wide">{msg.text}</span>
+                                        </motion.div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'history' && (
+                            <div className="space-y-3">
+                                {historyItems.length === 0 ? (
+                                    <div className="py-12 text-center opacity-30">
+                                        <History size={32} className="mx-auto mb-4" />
+                                        <p className="text-[10px] font-mono uppercase tracking-widest font-black">No recent history</p>
+                                    </div>
+                                ) : (
+                                    historyItems.map((item: any) => {
+                                        if (item.type === 'transaction') {
+                                            const isSender = item.sender_id === user?.id;
+                                            return (
+                                                <div key={item.id} className="bg-zinc-900/50 p-4 rounded-2xl border border-white/5 flex items-center justify-between group hover:border-white/10 transition-colors">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className={`p-2.5 rounded-xl ${isSender ? 'bg-red-500/10 text-red-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
+                                                            {isSender ? <ArrowUpRight size={16} /> : <ArrowDownLeft size={16} />}
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-[11px] font-black text-white uppercase leading-none mb-1.5 italic">
+                                                                {isSender ? `Sent to @${item.metadata?.recipient}` : `Received from @${item.metadata?.sender}`}
+                                                            </div>
+                                                            <div className="text-[8px] font-mono text-zinc-600 uppercase tracking-widest font-bold">
+                                                                {new Date(item.created_at).toLocaleDateString()}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className={`text-sm font-black font-mono ${isSender ? 'text-red-500' : 'text-emerald-500'}`}>
+                                                        {isSender ? '-' : '+'}{item.amount.toLocaleString()}
+                                                    </div>
+                                                </div>
+                                            );
+                                        } else {
+                                            const isWin = item.status === 'won';
+                                            const isLoss = item.status === 'lost';
+                                            
+                                            return (
+                                                <div key={item.id} className={`bg-zinc-900/50 p-5 rounded-2xl border relative overflow-hidden group transition-all hover:border-white/10 ${isWin ? 'border-emerald-500/20 bg-emerald-500/5' : isLoss ? 'border-red-500/20 bg-red-500/5' : 'border-white/5'}`}>
+                                                    <div className="flex justify-between items-start mb-4">
+                                                        <div>
+                                                            <div className="text-[10px] font-black text-white uppercase tracking-widest italic mb-1">Sport Wager</div>
+                                                            <div className="text-[8px] font-mono text-zinc-600 font-bold uppercase">{new Date(item.created_at).toLocaleDateString()} // {item.status}</div>
+                                                        </div>
+                                                        <div className={`text-base font-black font-mono ${isWin ? 'text-emerald-500' : isLoss ? 'text-red-500' : 'text-zinc-500'}`}>
+                                                            {isWin ? `+${item.payout}` : isLoss ? `-${item.amount}` : 'REFUNDED'}
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-2 mb-1">
+                                                        {item.wager_legs?.slice(0, 2).map((leg: any, i: number) => (
+                                                            <div key={i} className="text-[9px] font-bold text-zinc-500 uppercase flex items-center gap-2">
+                                                                <div className={`w-1 h-1 rounded-full ${leg.status === 'won' ? 'bg-emerald-500' : leg.status === 'lost' ? 'bg-red-500' : 'bg-zinc-700'}`} />
+                                                                {leg.selection.replace(':', ' ')} @ {leg.match_name}
+                                                            </div>
+                                                        ))}
+                                                        {item.wager_legs?.length > 2 && <div className="text-[8px] text-zinc-700 uppercase font-black pl-3">+ {item.wager_legs.length - 2} More</div>}
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+                                    })
+                                )}
+                            </div>
+                        )}
+                    </motion.div>
+                </AnimatePresence>
+            </div>
+
+            <div className="p-6 bg-zinc-950/50 border-t border-white/5 flex items-center justify-center gap-4">
+                <span className="text-[8px] font-mono text-zinc-700 uppercase tracking-[0.5em] font-black italic">Network Protocol v4.2 // Secure Session</span>
+            </div>
+        </div>
+    );
 }
