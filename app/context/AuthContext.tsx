@@ -52,9 +52,11 @@ export const AuthProvider = ({
         
         if (data) {
             setProfile(data as Profile);
+        } else if (error) {
+            console.error("Profile fetch error:", error);
         }
     } catch (error) {
-        console.error("Profile fetch error:", error);
+        console.error("Unexpected profile fetch error:", error);
     } finally {
         isFetchingRef.current = false;
     }
