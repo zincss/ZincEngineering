@@ -25,7 +25,7 @@ import Link from 'next/link';
 
 // --- CONFIG ---
 const MAX_GUESSES = 6;
-const REWARD_AMOUNT = 300;
+const REWARD_AMOUNT = 150;
 const TRANSITION_MS = 1500;
 const REVEAL_DELAY_MS = 80;
 

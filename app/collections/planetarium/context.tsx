@@ -617,8 +617,11 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
             let selectedCargo = cargoPool[Math.floor(Math.random() * cargoPool.length)];
             
             // --- UPDATED ECONOMY MATH ---
-            // Base reward increased from 10 -> 30 to better cover fuel
-            let baseReward = dist * 30; 
+            
+                        // Balanced Economy Patch
+                        // Reduced from 30 -> 12 to prevent hyper-inflation
+                        let baseReward = dist * 12;
+             
             
             // Multiplier based on cargo tier
             let valueMult = 1.0;

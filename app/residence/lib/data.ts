@@ -54,7 +54,7 @@ export const UPGRADES: UpgradeDefinition[] = [
         type: 'INCOME',
         cost: 5000,
         description: 'Basic crypto-mining rig. Generates passive income.',
-        modifier: 25 // +25 credits/hr
+        modifier: 5 // +5 credits/hr
     },
     {
         slug: 'mining_rig_beta',
@@ -62,7 +62,7 @@ export const UPGRADES: UpgradeDefinition[] = [
         type: 'INCOME',
         cost: 15000,
         description: 'Advanced rig with liquid cooling systems.',
-        modifier: 80 // +80 credits/hr
+        modifier: 15 // +15 credits/hr
     },
     {
         slug: 'quantum_server',
@@ -70,7 +70,7 @@ export const UPGRADES: UpgradeDefinition[] = [
         type: 'INCOME',
         cost: 50000,
         description: 'Experimental processor. Massive yield potential.',
-        modifier: 300 // +300 credits/hr
+        modifier: 40 // +40 credits/hr
     },
 
     // --- SECURITY UPGRADES ---

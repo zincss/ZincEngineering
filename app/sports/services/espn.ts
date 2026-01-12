@@ -455,6 +455,86 @@ export const getGameResult = async (league: League, gameId: string) => {
     } catch (e) { return null; }
 };
 
+export const getMatchDetails = async (league: League, gameId: string) => {
+    try {
+        const sport = league === 'nfl' ? 'football' : 'basketball';
+        const url = `https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/summary?event=${gameId}`;
+        const res = await fetch(url, { headers: HEADERS, next: { revalidate: 30 } });
+        if (!res.ok) return null;
+        const data = await res.json();
+        
+        const header = data.header;
+        const boxscore = data.boxscore;
+        const gameInfo = data.gameInfo; // venue, attendance, etc.
+
+        if (!header) return null;
+
+        const competition = header.competitions[0];
+        const competitors = competition.competitors;
+        const homeComp = competitors.find((c: any) => c.homeAway === 'home');
+        const awayComp = competitors.find((c: any) => c.homeAway === 'away');
+
+        // Extract Linescores
+        const formatLinescores = (comp: any) => {
+            return comp.linescores?.map((ls: any) => ls.displayValue) || [];
+        };
+
+        // Extract Team Stats (just a few key ones)
+        const formatTeamStats = (teamId: string) => {
+            const teamStats = boxscore.teams?.find((t: any) => t.team.id === teamId);
+            if (!teamStats) return [];
+            // Filter specific stats based on league
+            const keys = league === 'nfl' 
+                ? ['totalYards', 'rushingYards', 'netPassingYards', 'turnovers', 'possessionTime']
+                : ['fieldGoals', 'threePointers', 'freeThrows', 'rebounds', 'assists']; // NBA
+            
+            return teamStats.statistics?.filter((s: any) => keys.includes(s.name)).map((s: any) => ({
+                label: s.label,
+                value: s.displayValue
+            })) || [];
+        };
+
+        // Extract Leaders
+        const leaders = data.leaders?.map((group: any) => {
+             const team = group.team;
+             const statLeaders = group.leaders?.map((cat: any) => ({
+                 category: cat.displayName,
+                 athlete: cat.leaders?.[0]?.athlete?.displayName,
+                 headshot: cat.leaders?.[0]?.athlete?.headshot?.href,
+                 value: cat.leaders?.[0]?.displayValue,
+                 teamAbbr: team.abbreviation
+             }));
+             return statLeaders;
+        }).flat() || [];
+
+        return {
+            id: header.id,
+            date: competition.date,
+            status: header.competitions[0].status.type.shortDetail,
+            venue: gameInfo?.venue?.fullName || competition.venue?.fullName,
+            home: {
+                id: homeComp.team.id,
+                name: homeComp.team.displayName,
+                code: homeComp.team.abbreviation,
+                logo: homeComp.team.logos?.[0]?.href,
+                score: homeComp.score,
+                linescores: formatLinescores(homeComp),
+                stats: formatTeamStats(homeComp.team.id)
+            },
+            away: {
+                id: awayComp.team.id,
+                name: awayComp.team.displayName,
+                code: awayComp.team.abbreviation,
+                logo: awayComp.team.logos?.[0]?.href,
+                score: awayComp.score,
+                linescores: formatLinescores(awayComp),
+                stats: formatTeamStats(awayComp.team.id)
+            },
+            leaders
+        };
+    } catch (e) { return null; }
+};
+
 export const getLiveMatches = async () => {
     const leagues: ('nba' | 'nfl')[] = ['nba', 'nfl'];
     const results = await Promise.all(leagues.map(async (l) => {

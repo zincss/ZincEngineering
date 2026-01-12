@@ -5,4 +5,4 @@ export const PRIZE_LADDER = [
 ];
 
 export const SAFETY_NETS = [4, 9]; // Indexes of safe havens (5th and 10th question)
-export const ENTRY_FEE = 10;
+export const ENTRY_FEE = 50;

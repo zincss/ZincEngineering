@@ -13,3 +13,7 @@ export async function getLiveMatchCenterData() {
         golf
     };
 }
+
+export async function getMatchDetails(league: string, gameId: string) {
+    return await ESPN.getMatchDetails(league as any, gameId);
+}
