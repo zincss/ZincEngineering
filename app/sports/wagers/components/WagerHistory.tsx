@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { getUserWagers } from '../actions';
 import { getLiveScores } from '../../actions';
-import { Clock, CheckCircle2, XCircle, AlertCircle, Coins, ExternalLink, ArrowUpCircle, ArrowDownCircle, Target } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, AlertCircle, Coins, ExternalLink, ArrowUpCircle, ArrowDownCircle, Target, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 
 export default function WagerHistory() {
@@ -29,11 +29,20 @@ export default function WagerHistory() {
 
   return (
     <div className="mt-12">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-2 bg-zinc-900 rounded-lg text-[#DFFF00] border border-zinc-800 shadow-xl">
-          <Clock size={18} />
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+            <div className="p-2 bg-zinc-900 rounded-lg text-[#DFFF00] border border-zinc-800 shadow-xl">
+            <Clock size={18} />
+            </div>
+            <h3 className="text-xl font-black uppercase text-white tracking-tight italic">Wager History</h3>
         </div>
-        <h3 className="text-xl font-black uppercase text-white tracking-tight italic">Wager History</h3>
+        <button 
+            onClick={() => { setLoading(true); getUserWagers().then(data => { setWagers(data); setLoading(false); }); }}
+            className="flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white hover:border-[#DFFF00]/50 transition-all"
+        >
+            <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+            Sync
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
