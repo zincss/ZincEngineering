@@ -1,10 +1,7 @@
 
 import { createClient } from '@supabase/supabase-js';
-// We need to use require for the service because of TS execution context issues in scripts sometimes, 
-// but let's try import first. If it fails, we will inline the logic.
-// Actually, to be safe and avoid "cannot use import outside module" or path alias issues:
-// I will inline the getGameResult logic or a simplified version of it.
-// It's safer for a standalone script.
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
 
 const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -41,6 +38,38 @@ async function getGameResult(league: string, gameId: string) {
                 winner: away.winner
             }
         };
+    } catch (e) { return null; }
+}
+
+async function getLiveBoxScore(league: string, gameId: string) {
+    try {
+        const sport = league === 'nfl' ? 'football' : 'basketball';
+        const url = `https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/summary?event=${gameId}`;
+        const res = await fetch(url, { headers: HEADERS });
+        if (!res.ok) return null;
+        const data = await res.json();
+        
+        const playerStats: Record<string, any> = {};
+        
+        data.boxscore?.players?.forEach((team: any) => {
+            team.statistics?.forEach((cat: any) => {
+                const labels = cat.labels;
+                cat.athletes?.forEach((ath: any) => {
+                    const stats: Record<string, string> = {};
+                    ath.stats?.forEach((val: string, idx: number) => {
+                        stats[labels[idx]] = val;
+                    });
+                    
+                    // ESPN names can vary, we key by Display Name
+                    if (!playerStats[ath.athlete.displayName]) {
+                        playerStats[ath.athlete.displayName] = {};
+                    }
+                    Object.assign(playerStats[ath.athlete.displayName], stats);
+                });
+            });
+        });
+
+        return playerStats;
     } catch (e) { return null; }
 }
 
@@ -95,18 +124,66 @@ async function main() {
             const result = await getGameResult(league, realGameId);
 
             if (!result || !result.completed) {
-                console.log(`  Leg ${leg.id.slice(0, 8)}: Game ${realGameId} not finished.`);
+                // Game not finished
+                // Exception: Check if player prop hit (optional - but usually we wait for game end)
+                // For safety, we only settle when game is Final.
                 anyLegPending = true;
                 continue;
             }
 
             let legStatus = 'pending';
-            const selection = leg.selection.toLowerCase();
+            const selection = leg.selection.trim(); // Case sensitive for YES/NO/O/U?
             
-            if (leg.type === 'moneyline') {
+            // Check for Player Prop (Name in brackets or match_name indicates player)
+            const playerMatch = leg.match_name.match(/\[(.*?)\]/);
+            const isPlayerProp = !!playerMatch;
+
+            if (isPlayerProp) {
+                const playerName = playerMatch[1];
+                const statsMap = await getLiveBoxScore(league, realGameId);
+                const stats = statsMap ? statsMap[playerName] : null;
+
+                if (!stats) {
+                    console.log(`  Leg ${leg.id.slice(0, 8)}: Player Stats not found for ${playerName}`);
+                    // If game is final and player has no stats -> Void? Lost?
+                    // Typically 'Did Not Play' = Void. 
+                    // But if they played and got 0, they should be in boxscore? 
+                    // ESPN boxscore includes all active players.
+                    // If not found, assume DNP -> Void.
+                    legStatus = 'void';
+                } else {
+                    const parts = selection.split(' '); // "O 79.5" or "YES"
+                    const val = parseFloat(parts[1] || parts[0]); // 79.5 or NaN
+                    const isOver = selection.startsWith('O') || selection === 'YES';
+                    
+                    let actual = 0;
+                    // Infer stat category based on available stats and priority
+                    if (stats.YDS) actual = parseInt(stats.YDS);
+                    else if (stats.PTS) actual = parseInt(stats.PTS);
+                    else if (stats.REB) actual = parseInt(stats.REB);
+                    else if (stats.AST) actual = parseInt(stats.AST);
+                    else if (stats.TD) actual = parseInt(stats.TD);
+                    
+                    // Specific logic for YES/NO (usually TD)
+                    if (selection === 'YES') {
+                        legStatus = actual > 0 ? 'won' : 'lost';
+                    } else if (selection === 'NO') {
+                        legStatus = actual === 0 ? 'won' : 'lost';
+                    } else if (!isNaN(val)) {
+                        if (isOver) legStatus = actual > val ? 'won' : 'lost';
+                        else legStatus = actual < val ? 'won' : 'lost';
+                    } else {
+                        console.log(`  Leg ${leg.id.slice(0, 8)}: Unknown Prop Format (${selection})`);
+                        legStatus = 'void';
+                    }
+                    console.log(`  Leg ${leg.id.slice(0, 8)} [Player]: ${playerName} Actual: ${actual}, Target: ${selection} -> ${legStatus.toUpperCase()}`);
+                }
+
+            } else if (leg.type === 'moneyline') {
                 const winner = result.home.winner ? 'home' : 'away';
-                if (selection === 'home' || selection === 'away') {
-                     if (selection === winner) legStatus = 'won';
+                const sel = selection.toLowerCase();
+                if (sel === 'home' || sel === 'away') {
+                     if (sel === winner) legStatus = 'won';
                      else legStatus = 'lost';
                 } else {
                     legStatus = 'lost'; 
@@ -117,41 +194,49 @@ async function main() {
 
                 if (!side || isNaN(line)) {
                     console.log(`  Leg ${leg.id.slice(0, 8)}: Invalid Spread Format (${selection}).`);
-                    anyLegPending = true;
-                    continue;
+                    // If format is invalid but game is over, we can't settle. 
+                    // Mark void?
+                    legStatus = 'void';
+                } else {
+                    const homeScore = result.home.score;
+                    const awayScore = result.away.score;
+                    let scoreDiff = 0;
+
+                    if (side === 'home') scoreDiff = homeScore - awayScore;
+                    else if (side === 'away') scoreDiff = awayScore - homeScore;
+                    
+                    if (scoreDiff + line > 0) legStatus = 'won';
+                    else if (scoreDiff + line < 0) legStatus = 'lost';
+                    else legStatus = 'void'; // Push
                 }
-
-                const homeScore = result.home.score;
-                const awayScore = result.away.score;
-                let scoreDiff = 0;
-
-                if (side === 'home') scoreDiff = homeScore - awayScore;
-                else if (side === 'away') scoreDiff = awayScore - homeScore;
-                
-                if (scoreDiff + line > 0) legStatus = 'won';
-                else if (scoreDiff + line < 0) legStatus = 'lost';
-                else legStatus = 'void';
                 
             } else if (leg.type === 'total') {
-                const [side, lineStr] = selection.split(':');
-                const line = parseFloat(lineStr);
+                // Handle "over:210.5" OR potentially broken "over" (if found)
+                let side = '';
+                let line = NaN;
 
-                if (!side || isNaN(line)) {
+                if (selection.includes(':')) {
+                    const parts = selection.split(':');
+                    side = parts[0];
+                    line = parseFloat(parts[1]);
+                } else {
+                    // Try to recover from broken format if possible, or just fail
+                    // We saw "over" in DB. 
                     console.log(`  Leg ${leg.id.slice(0, 8)}: Invalid Total Format (${selection}).`);
-                    anyLegPending = true;
-                    continue;
+                    legStatus = 'void'; // Can't settle without line
                 }
 
-                const totalScore = result.home.score + result.away.score;
-                
-                if (side === 'over') {
-                    if (totalScore > line) legStatus = 'won';
-                    else if (totalScore < line) legStatus = 'lost';
-                    else legStatus = 'void';
-                } else if (side === 'under') {
-                    if (totalScore < line) legStatus = 'won';
-                    else if (totalScore > line) legStatus = 'lost';
-                    else legStatus = 'void';
+                if (!isNaN(line)) {
+                    const totalScore = result.home.score + result.away.score;
+                    if (side === 'over') {
+                        if (totalScore > line) legStatus = 'won';
+                        else if (totalScore < line) legStatus = 'lost';
+                        else legStatus = 'void';
+                    } else if (side === 'under') {
+                        if (totalScore < line) legStatus = 'won';
+                        else if (totalScore > line) legStatus = 'lost';
+                        else legStatus = 'void';
+                    }
                 }
             }
 

@@ -111,3 +111,11 @@ export async function getNexusPlayerStats(league: 'nba' | 'nfl', playerId: strin
         };
     }
 }
+
+export async function getLiveScores() {
+    const [nba, nfl] = await Promise.all([
+        ESPN.getScoreboard('nba'),
+        ESPN.getScoreboard('nfl')
+    ]);
+    return [...nba, ...nfl];
+}

@@ -2,18 +2,26 @@
 
 import React, { useEffect, useState } from 'react';
 import { getUserWagers } from '../actions';
-import { Clock, CheckCircle2, XCircle, AlertCircle, Coins, ExternalLink } from 'lucide-react';
+import { getLiveScores } from '../../actions';
+import { Clock, CheckCircle2, XCircle, AlertCircle, Coins, ExternalLink, ArrowUpCircle, ArrowDownCircle, Target } from 'lucide-react';
 import Link from 'next/link';
 
 export default function WagerHistory() {
   const [wagers, setWagers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [scores, setScores] = useState<any[]>([]);
 
   useEffect(() => {
-    getUserWagers().then(data => {
-      setWagers(data);
-      setLoading(false);
-    });
+    const loadData = async () => {
+        const [wagersData, scoresData] = await Promise.all([
+            getUserWagers(),
+            getLiveScores()
+        ]);
+        setWagers(wagersData);
+        setScores(scoresData);
+        setLoading(false);
+    };
+    loadData();
   }, []);
 
   if (loading) return <div className="animate-pulse h-24 bg-zinc-900 rounded-3xl" />;
@@ -41,16 +49,75 @@ export default function WagerHistory() {
                 <StatusBadge status={wager.status} />
             </div>
 
-            <div className="space-y-3">
-                {wager.wager_legs?.map((leg: any, i: number) => (
-                    <div key={i} className="flex justify-between items-center text-xs">
-                        <div className="flex flex-col">
-                            <span className="text-zinc-400 font-bold uppercase">{leg.selection}</span>
-                            <span className="text-[8px] font-mono text-zinc-600 uppercase">{leg.match_name}</span>
+            <div className="space-y-4">
+                {wager.wager_legs?.map((leg: any, i: number) => {
+                    const matchId = leg.match_id.split('-')[0];
+                    const match = scores.find(s => s.id === matchId);
+                    const isPlayerProp = leg.match_name.includes('[');
+                    
+                    let mainText = leg.selection;
+                    let subText = leg.match_name;
+                    let Icon = Target;
+                    let scoreText = '';
+
+                    // Formatting
+                    if (isPlayerProp) {
+                        const playerName = leg.match_name.match(/\[(.*?)\]/)?.[1] || 'Player';
+                        const cleanMatch = leg.match_name.replace(/\[.*?\]\s*/, '');
+                        subText = `${playerName} • ${cleanMatch}`;
+                        
+                        if (leg.selection === 'YES') {
+                            mainText = 'To Happen (Yes)';
+                            Icon = CheckCircle2;
+                        } else if (leg.selection.startsWith('O ')) {
+                            mainText = `Over ${leg.selection.substring(2)}`;
+                            Icon = ArrowUpCircle;
+                        } else if (leg.selection.startsWith('U ')) {
+                            mainText = `Under ${leg.selection.substring(2)}`;
+                            Icon = ArrowDownCircle;
+                        }
+                    } else if (leg.type === 'total') {
+                         if (leg.selection.includes(':')) {
+                            const [side, line] = leg.selection.split(':');
+                            mainText = `${side === 'over' ? 'Over' : 'Under'} ${line}`;
+                            Icon = side === 'over' ? ArrowUpCircle : ArrowDownCircle;
+                         } else {
+                            // Legacy/Broken format fallback
+                            mainText = leg.selection.toUpperCase(); 
+                         }
+                         subText = leg.match_name;
+
+                         if (match) {
+                             const total = parseInt(match.home.score) + parseInt(match.away.score);
+                             scoreText = `${match.away.code} ${match.away.score} - ${match.home.code} ${match.home.score} (T: ${total})`;
+                         }
+                    } else if (leg.type === 'spread') {
+                        const [side, line] = leg.selection.split(':');
+                        mainText = `${side === 'home' ? 'Home' : 'Away'} ${line}`;
+                        subText = leg.match_name;
+                        if (match) {
+                             scoreText = `${match.away.code} ${match.away.score} - ${match.home.code} ${match.home.score}`;
+                        }
+                    }
+
+                    return (
+                        <div key={i} className="flex justify-between items-start text-xs border-b border-zinc-800/50 pb-2 last:border-0 last:pb-0">
+                            <div className="flex gap-3">
+                                <div className="mt-1 text-zinc-600">
+                                    <Icon size={14} />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-zinc-200 font-black uppercase tracking-tight">{mainText}</span>
+                                    <span className="text-[9px] font-mono text-zinc-500 uppercase">{subText}</span>
+                                    {scoreText && (
+                                        <span className="text-[8px] font-mono text-[#DFFF00] mt-0.5">{scoreText}</span>
+                                    )}
+                                </div>
+                            </div>
+                            <span className="text-zinc-500 font-mono bg-zinc-950 px-1.5 py-0.5 rounded">@{leg.odds}</span>
                         </div>
-                        <span className="text-zinc-500 font-mono">@{leg.odds}</span>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             <div className="mt-6 pt-4 border-t border-zinc-800 flex justify-between items-center">
