@@ -43,6 +43,11 @@ module.exports = {
           '100%': { transform: 'translateY(100%)' },
         }
       },
+      colors: {
+        brand: 'var(--brand)',
+        main: 'var(--bg-main)',
+        card: 'var(--bg-card)',
+      },
       animation: {
         ticker: 'ticker 60s linear infinite',
         scanline: 'scanline 8s linear infinite',

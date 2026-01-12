@@ -119,3 +119,11 @@ export async function getLiveScores() {
     ]);
     return [...nba, ...nfl];
 }
+
+export async function getMatchDetails(league: string, gameId: string) {
+    return await ESPN.getMatchDetails(league as any, gameId);
+}
+
+export async function getSportsNews() {
+    return await ESPN.getSportsNews();
+}

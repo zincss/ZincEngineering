@@ -2,6 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Default Zinc Theme (Acid Green & Black) */
+  --brand-rgb: 223, 255, 0;
+  --brand: rgb(var(--brand-rgb)); /* #DFFF00 */
+  --bg-main: #09090b; /* zinc-950 */
+  --bg-card: rgba(24, 24, 27, 0.5); /* zinc-900/50 */
+}
+
+.theme-sports {
+  /* ZincSports Theme (Electric Sky & Deep Navy) */
+  --brand-rgb: 56, 189, 248;
+  --brand: rgb(var(--brand-rgb)); /* #38bdf8 (Sky-400) */
+  --bg-main: #020617; /* slate-950 */
+  --bg-card: rgba(15, 23, 42, 0.6); /* slate-900/60 */
+}
+
+/* Base styles using variables */
+body {
+  background-color: var(--bg-main);
+  transition: background-color 0.5s ease;
+}
+
+@layer utilities {
+  .text-brand {
+    color: var(--brand);
+  }
+  .bg-brand {
+    background-color: var(--brand);
+  }
+  .border-brand {
+    border-color: var(--brand);
+  }
+  .shadow-brand {
+    box-shadow: 0 0 20px rgba(var(--brand-rgb), 0.3);
+  }
+}
+
 /* CHANGED: min-height instead of strict height helps scroll detection */
 html, body {
   overflow-x: hidden;

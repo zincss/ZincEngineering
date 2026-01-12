@@ -2,6 +2,7 @@
 
 import { ThemeProvider } from 'next-themes'
 import { AuthProvider } from './context/AuthContext'
+import { SportsModeProvider } from './context/SportsModeContext'
 
 // [UPDATE] Accept initialUser prop
 
@@ -20,12 +21,13 @@ export function Providers({ children, initialUser }: { children: React.ReactNode
       enableSystem={false}
 
     >
+      <SportsModeProvider>
+        <AuthProvider initialUser={initialUser}>
 
-      <AuthProvider initialUser={initialUser}>
+          {children}
 
-        {children}
-
-      </AuthProvider>
+        </AuthProvider>
+      </SportsModeProvider>
 
     </ThemeProvider>
 

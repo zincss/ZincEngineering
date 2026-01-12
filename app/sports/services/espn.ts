@@ -92,7 +92,11 @@ export const getScoreboard = async (league: League, date?: string) => {
                     logo: c.competitors[1].team.logo,
                     score: c.competitors[1].score,
                     record: c.competitors[1].records?.[0]?.summary || '0-0'
-                }
+                },
+                odds: c.odds?.[0] ? {
+                    details: c.odds[0].details,
+                    overUnder: c.odds[0].overUnder
+                } : null
             };
         }) || [];
     } catch (e) { return []; }
@@ -388,6 +392,31 @@ export const searchAthletes = async (league: League, query: string) => {
             url: `/sports/${league}/player/${item.id}`,
             image: item.images?.[0]?.url || null
         }));
+    } catch (e) { return []; }
+};
+
+export const getSportsNews = async () => {
+    try {
+        const [nfl, nba] = await Promise.all([
+            fetch(`${BASE_API}/football/nfl/news`, { headers: HEADERS, next: { revalidate: 300 } }).then(r => r.json()),
+            fetch(`${BASE_API}/basketball/nba/news`, { headers: HEADERS, next: { revalidate: 300 } }).then(r => r.json())
+        ]);
+
+        const formatNews = (articles: any[], league: string) => articles?.map((a: any) => ({
+            headline: a.headline,
+            description: a.description,
+            image: a.images?.[0]?.url,
+            link: a.links?.web?.href,
+            published: a.published,
+            league
+        })) || [];
+
+        const news = [
+            ...formatNews(nfl.articles, 'NFL'),
+            ...formatNews(nba.articles, 'NBA')
+        ].sort((a, b) => new Date(b.published).getTime() - new Date(a.published).getTime());
+
+        return news.slice(0, 10);
     } catch (e) { return []; }
 };
 

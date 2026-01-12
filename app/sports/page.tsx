@@ -6,6 +6,8 @@ import { motion, useAnimation, useMotionTemplate, useMotionValue } from 'framer-
 import { ArrowRight, Zap, Radio, Microscope, Shield, Flag } from 'lucide-react';
 import GlobalTicker from '../components/GlobalTicker';
 import PersonalNexus from './components/PersonalNexus';
+import { useSportsMode } from '@/app/context/SportsModeContext';
+import SportsDashboard from './components/SportsDashboard';
 
 // --- CUSTOM ANIMATED ICONS ---
 
@@ -58,6 +60,12 @@ function SpotlightCard({ children, className = "", spotlightColor = "rgba(223, 2
 }
 
 export default function SportsHub() {
+  const { isSportsMode } = useSportsMode();
+
+  if (isSportsMode) {
+      return <SportsDashboard />;
+  }
+
   return (
     <main className="min-h-screen bg-zinc-950 text-white pb-20 relative overflow-x-hidden selection:bg-[#DFFF00] selection:text-black font-sans">
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">

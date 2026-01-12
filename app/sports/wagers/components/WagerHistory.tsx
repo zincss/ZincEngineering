@@ -5,8 +5,10 @@ import { getUserWagers } from '../actions';
 import { getLiveScores } from '../../actions';
 import { Clock, CheckCircle2, XCircle, AlertCircle, Coins, ExternalLink, ArrowUpCircle, ArrowDownCircle, Target, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
+import { useSportsMode } from '@/app/context/SportsModeContext';
 
 export default function WagerHistory() {
+  const { isSportsMode } = useSportsMode();
   const [wagers, setWagers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [scores, setScores] = useState<any[]>([]);
@@ -24,21 +26,40 @@ export default function WagerHistory() {
     loadData();
   }, []);
 
-  if (loading) return <div className="animate-pulse h-24 bg-zinc-900 rounded-3xl" />;
+  // Theme Variables
+  const theme = isSportsMode ? {
+      cardBg: 'bg-slate-900/50',
+      cardBorder: 'border-blue-500/10',
+      accent: 'text-blue-400',
+      accentBg: 'bg-blue-500',
+      subText: 'text-slate-400',
+      iconBg: 'bg-slate-800',
+      heading: 'text-white'
+  } : {
+      cardBg: 'bg-zinc-900/50',
+      cardBorder: 'border-zinc-800',
+      accent: 'text-[#DFFF00]',
+      accentBg: 'bg-[#DFFF00]',
+      subText: 'text-zinc-500',
+      iconBg: 'bg-zinc-900',
+      heading: 'text-white'
+  };
+
+  if (loading) return <div className={`animate-pulse h-24 rounded-3xl ${isSportsMode ? 'bg-slate-900' : 'bg-zinc-900'}`} />;
   if (wagers.length === 0) return null;
 
   return (
     <div className="mt-12">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-            <div className="p-2 bg-zinc-900 rounded-lg text-[#DFFF00] border border-zinc-800 shadow-xl">
-            <Clock size={18} />
+            <div className={`p-2 rounded-lg border shadow-xl ${theme.iconBg} ${theme.cardBorder} ${theme.accent}`}>
+                <Clock size={18} />
             </div>
-            <h3 className="text-xl font-black uppercase text-white tracking-tight italic">Wager History</h3>
+            <h3 className="text-xl font-black uppercase tracking-tight italic text-white">Wager History</h3>
         </div>
         <button 
             onClick={() => { setLoading(true); getUserWagers().then(data => { setWagers(data); setLoading(false); }); }}
-            className="flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white hover:border-[#DFFF00]/50 transition-all"
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${isSportsMode ? 'bg-slate-900 border-blue-500/20 text-slate-400 hover:text-white hover:border-blue-500/50' : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-white hover:border-[#DFFF00]/50'}`}
         >
             <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
             Sync
@@ -47,15 +68,15 @@ export default function WagerHistory() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {wagers.map(wager => (
-          <div key={wager.id} className="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-6 relative overflow-hidden group">
+          <div key={wager.id} className={`${theme.cardBg} border ${theme.cardBorder} rounded-3xl p-6 relative overflow-hidden group`}>
             <div className="flex justify-between items-start mb-4">
                 <div>
-                    <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-1">
+                    <div className={`text-[10px] font-mono uppercase tracking-widest mb-1 ${theme.subText}`}>
                         {wager.is_parlay ? 'Parlay' : 'Single Wager'}
                     </div>
-                    <div className="text-lg font-black text-white">{wager.amount} <span className="text-xs text-zinc-600">CR</span></div>
+                    <div className="text-lg font-black text-white">{wager.amount} <span className={`text-xs ${theme.subText}`}>CR</span></div>
                 </div>
-                <StatusBadge status={wager.status} />
+                <StatusBadge status={wager.status} theme={theme} />
             </div>
 
             <div className="space-y-4">
@@ -110,37 +131,37 @@ export default function WagerHistory() {
                     }
 
                     return (
-                        <div key={i} className="flex justify-between items-start text-xs border-b border-zinc-800/50 pb-2 last:border-0 last:pb-0">
+                        <div key={i} className={`flex justify-between items-start text-xs border-b pb-2 last:border-0 last:pb-0 ${isSportsMode ? 'border-slate-800' : 'border-zinc-800/50'}`}>
                             <div className="flex gap-3">
-                                <div className="mt-1 text-zinc-600">
+                                <div className={`mt-1 ${theme.subText}`}>
                                     <Icon size={14} />
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="text-zinc-200 font-black uppercase tracking-tight">{mainText}</span>
-                                    <span className="text-[9px] font-mono text-zinc-500 uppercase">{subText}</span>
+                                    <span className={`text-[9px] font-mono uppercase ${theme.subText}`}>{subText}</span>
                                     {scoreText && (
-                                        <span className="text-[8px] font-mono text-[#DFFF00] mt-0.5">{scoreText}</span>
+                                        <span className={`text-[8px] font-mono mt-0.5 ${theme.accent}`}>{scoreText}</span>
                                     )}
                                 </div>
                             </div>
-                            <span className="text-zinc-500 font-mono bg-zinc-950 px-1.5 py-0.5 rounded">@{leg.odds}</span>
+                            <span className={`font-mono px-1.5 py-0.5 rounded ${isSportsMode ? 'bg-slate-950 text-slate-400' : 'bg-zinc-950 text-zinc-500'}`}>@{leg.odds}</span>
                         </div>
                     );
                 })}
             </div>
 
-            <div className="mt-6 pt-4 border-t border-zinc-800 flex justify-between items-center">
+            <div className={`mt-6 pt-4 border-t flex justify-between items-center ${theme.cardBorder}`}>
                 <div className="flex flex-col">
-                    <div className="text-[10px] font-mono text-zinc-600 uppercase">Total Odds: {wager.odds}</div>
+                    <div className={`text-[10px] font-mono uppercase ${theme.subText}`}>Total Odds: {wager.odds}</div>
                     <Link 
                         href={`/sports/wagers/${wager.id}`}
-                        className="text-[9px] font-black text-[#DFFF00] uppercase tracking-widest mt-1 flex items-center gap-1 hover:underline"
+                        className={`text-[9px] font-black uppercase tracking-widest mt-1 flex items-center gap-1 hover:underline ${theme.accent}`}
                     >
                         Track Live <ExternalLink size={10} />
                     </Link>
                 </div>
                 {wager.status === 'won' && (
-                    <div className="flex items-center gap-2 text-[#DFFF00]">
+                    <div className={`flex items-center gap-2 ${theme.accent}`}>
                         <Coins size={12} />
                         <span className="text-xs font-black">+{wager.payout} CR</span>
                     </div>
@@ -153,11 +174,11 @@ export default function WagerHistory() {
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, theme }: { status: string, theme: any }) {
     switch (status) {
         case 'won': return <div className="flex items-center gap-1 text-green-500 text-[8px] font-black uppercase bg-green-500/10 px-2 py-1 rounded-full"><CheckCircle2 size={10} /> Won</div>;
         case 'lost': return <div className="flex items-center gap-1 text-red-500 text-[8px] font-black uppercase bg-red-500/10 px-2 py-1 rounded-full"><XCircle size={10} /> Lost</div>;
-        case 'pending': return <div className="flex items-center gap-1 text-[#DFFF00] text-[8px] font-black uppercase bg-[#DFFF00]/10 px-2 py-1 rounded-full"><Clock size={10} /> Pending</div>;
-        default: return <div className="flex items-center gap-1 text-zinc-500 text-[8px] font-black uppercase bg-zinc-500/10 px-2 py-1 rounded-full"><AlertCircle size={10} /> {status}</div>;
+        case 'pending': return <div className={`flex items-center gap-1 text-[8px] font-black uppercase px-2 py-1 rounded-full ${theme.accent} ${theme.accentBg}/10`}><Clock size={10} /> Pending</div>;
+        default: return <div className={`flex items-center gap-1 text-[8px] font-black uppercase px-2 py-1 rounded-full ${theme.subText} bg-zinc-500/10`}><AlertCircle size={10} /> {status}</div>;
     }
 }
