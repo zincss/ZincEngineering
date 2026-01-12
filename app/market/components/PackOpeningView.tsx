@@ -5,9 +5,9 @@ import { createClient } from '@/utils/supabase/client';
 import { 
     Layers, Grid3X3, Info, Lock, Zap, CarFront, Loader2, X, Sparkles, Cpu, 
     RotateCcw, Trophy, AlertTriangle, Siren, Radiation, Fingerprint, Crown, Scan, 
-    Signal, Radio, Disc, ChevronRight, LayoutGrid
+    Signal, Radio, Disc, ChevronRight, LayoutGrid, Hand
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { REEL_ITEMS_SOURCE, CAR_PACK_SOURCE, GRIDIRON_PACK_SOURCE, BasePackIcon, ItemImage } from './shared';
 import { TradingCard } from './TradingCard';
 
@@ -52,6 +52,7 @@ const MiniSummaryCard = ({ item, index }: { item: any, index: number }) => {
     );
 };
 
+// --- HYPE OVERLAY WITH GOD RAYS ---
 const HypeOverlay = ({ rarity, item }: { rarity: string, item: any }) => {
     const config = getHypeConfig(rarity);
     const [phase, setPhase] = useState<'DETECTING' | 'IDENTIFIED' | 'REVEALED'>('DETECTING');
@@ -65,8 +66,15 @@ const HypeOverlay = ({ rarity, item }: { rarity: string, item: any }) => {
     const isRevealed = phase === 'REVEALED';
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, filter: 'blur(20px)' }} className="fixed inset-0 z-[150] bg-zinc-950 flex flex-col items-center justify-center overflow-hidden">
+            
+            {/* GOD RAYS BACKGROUND */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                 <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200vw] h-[200vh] opacity-20 bg-[conic-gradient(from_0deg_at_50%_50%,transparent_0deg,${config.color}_30deg,transparent_60deg,${config.color}_90deg,transparent_120deg,${config.color}_150deg,transparent_180deg)] animate-spin-slow blur-3xl`} />
+            </div>
+
             <motion.div animate={{ opacity: isDetecting ? [0.05, 0.15, 0.05] : 0.1, backgroundColor: isDetecting ? '#ef4444' : config.color }} transition={{ duration: 0.5, repeat: isDetecting ? Infinity : 0 }} className="absolute inset-0 z-0" />
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.02] mix-blend-overlay" />
+            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.05] mix-blend-overlay" />
+            
             <AnimatePresence>
                 {isRevealed && (
                     <motion.div initial={{ scale: 0.5, opacity: 0, rotateY: 90 }} animate={{ scale: 1, opacity: 1, rotateY: 0 }} transition={{ type: "spring", damping: 15 }} className="relative z-50 flex flex-col items-center">
@@ -104,24 +112,125 @@ const HypeOverlay = ({ rarity, item }: { rarity: string, item: any }) => {
     );
 };
 
-const FoilPack = ({ config, isSelected }: { config: any, isSelected: boolean }) => (
-    <div className={`relative w-56 h-80 shrink-0 transition-all duration-500 ${isSelected ? 'scale-110 z-10' : 'scale-90 opacity-40 grayscale hover:opacity-100 hover:grayscale-0'}`}>
-        <div className={`absolute inset-0 bg-${config.color === '#DFFF00' ? '[#DFFF00]' : 'red-500'}/20 blur-[60px] rounded-full transition-opacity duration-1000 ${isSelected ? 'opacity-100' : 'opacity-0'}`} />
-        <div className={`relative w-full h-full flex flex-col items-center justify-between overflow-hidden shadow-2xl rounded-[2.5rem] border-2 transition-all duration-500 ${isSelected ? 'border-[#DFFF00]/50' : 'border-white/5'}`} style={{ background: `linear-gradient(135deg, #09090b 0%, #18181b 100%)` }}>
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.05] pointer-events-none" />
-            <div className="flex-1 w-full flex flex-col items-center justify-center p-6 relative z-10 text-center">
-                <div className="mb-6 p-5 rounded-[2rem] bg-zinc-900 border border-white/5 shadow-2xl">
-                    <config.icon size={48} style={{ color: config.color }} />
+// --- IMPROVED FOIL PACK WITH 3D TILT ---
+const FoilPack = ({ config, isSelected }: { config: any, isSelected: boolean }) => {
+    const ref = useRef<HTMLDivElement>(null);
+    const x = useMotionValue(0);
+    const y = useMotionValue(0);
+    const mouseX = useSpring(x, { stiffness: 500, damping: 100 });
+    const mouseY = useSpring(y, { stiffness: 500, damping: 100 });
+    const rotateX = useTransform(mouseY, [-0.5, 0.5], ["15deg", "-15deg"]);
+    const rotateY = useTransform(mouseX, [-0.5, 0.5], ["-15deg", "15deg"]);
+    const glareX = useTransform(mouseX, [-0.5, 0.5], ["0%", "100%"]);
+    const glareY = useTransform(mouseY, [-0.5, 0.5], ["0%", "100%"]);
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!isSelected) return;
+        const rect = ref.current?.getBoundingClientRect();
+        if (rect) {
+            x.set((e.clientX - rect.left) / rect.width - 0.5);
+            y.set((e.clientY - rect.top) / rect.height - 0.5);
+        }
+    };
+    const handleMouseLeave = () => { x.set(0); y.set(0); };
+
+    return (
+        <motion.div
+            ref={ref} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}
+            style={{ perspective: 1000, transformStyle: "preserve-3d", rotateX: isSelected ? rotateX : 0, rotateY: isSelected ? rotateY : 0 }}
+            className={`relative w-64 h-96 shrink-0 transition-all duration-500 ${isSelected ? 'scale-105 z-10' : 'scale-90 opacity-40 grayscale hover:opacity-100 hover:grayscale-0'}`}
+        >
+             <div className={`absolute -inset-4 bg-${config.color === '#DFFF00' ? '[#DFFF00]' : config.color.replace('text-', '').replace('-500', '-500')}/20 blur-[50px] rounded-full transition-opacity duration-1000 ${isSelected ? 'opacity-100' : 'opacity-0'}`} />
+            
+            {/* PHYSICAL PACK WRAPPER */}
+            <div className={`relative w-full h-full flex flex-col items-center justify-between overflow-hidden shadow-2xl rounded-[1.5rem] border transition-all duration-500 bg-zinc-950 ${isSelected ? 'border-white/20' : 'border-white/5'}`}>
+                
+                {/* METALLIC GRADIENT BG */}
+                <div className="absolute inset-0 z-0 bg-gradient-to-br from-zinc-800 via-zinc-950 to-zinc-900" />
+                <div className="absolute inset-0 z-0 opacity-30 bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+                
+                {/* CRIMPED EDGES (TOP/BOTTOM) */}
+                <div className="absolute top-0 left-0 right-0 h-4 bg-[repeating-linear-gradient(90deg,transparent,transparent_2px,#000_2px,#000_4px)] opacity-50 z-20" />
+                <div className="absolute bottom-0 left-0 right-0 h-4 bg-[repeating-linear-gradient(90deg,transparent,transparent_2px,#000_2px,#000_4px)] opacity-50 z-20" />
+
+                {/* CONTENT */}
+                <div className="flex-1 w-full flex flex-col items-center justify-center p-6 relative z-10 text-center">
+                    <div className="mb-8 p-6 rounded-[2rem] bg-zinc-900 border border-white/5 shadow-2xl relative group">
+                        <div className={`absolute inset-0 blur-xl opacity-20 bg-${config.color === '#DFFF00' ? '[#DFFF00]' : config.color.replace('text-', '')}`} />
+                        <config.icon size={56} style={{ color: config.color }} className="relative z-10" />
+                    </div>
+                    <h3 className="text-4xl font-black uppercase italic leading-none text-white tracking-tighter drop-shadow-lg">{config.label}</h3>
+                    <div className="mt-4 text-[10px] font-mono font-black uppercase tracking-[0.3em] text-[#DFFF00] bg-[#DFFF00]/10 px-4 py-1.5 rounded-full border border-[#DFFF00]/20">{config.name}</div>
                 </div>
-                <h3 className="text-3xl font-black uppercase italic leading-none text-white tracking-tighter">{config.label}</h3>
-                <div className="mt-3 text-[9px] font-mono font-black uppercase tracking-[0.3em] text-[#DFFF00] bg-[#DFFF00]/10 px-4 py-1.5 rounded-full border border-[#DFFF00]/20">{config.name}</div>
+
+                <div className="w-full text-center py-8 relative z-10 bg-gradient-to-t from-black to-transparent">
+                    <div className="text-xs font-black text-white italic tracking-widest">{config.cost} CREDITS</div>
+                </div>
+
+                {/* HOLOGRAPHIC GLARE */}
+                {isSelected && (
+                    <motion.div 
+                        style={{ background: `linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.4) 45%, rgba(255,255,255,0.0) 50%)`, backgroundSize: '200% 200%', backgroundPosition: glareX }}
+                        className="absolute inset-0 z-30 opacity-40 mix-blend-overlay pointer-events-none"
+                    />
+                )}
             </div>
-            <div className="w-full text-center py-6 relative z-10 bg-zinc-950/50 border-t border-white/5">
-                <div className="text-xs font-black text-white italic tracking-widest">{config.cost} CREDITS</div>
+        </motion.div>
+    );
+};
+
+// --- HOLD BUTTON ---
+const HoldButton = ({ onComplete, disabled, loading, cost }: any) => {
+    const [holding, setHolding] = useState(false);
+    const progress = useMotionValue(0);
+    const scale = useTransform(progress, [0, 100], [1, 0.95]);
+    const fill = useTransform(progress, [0, 100], ["0%", "100%"]);
+    const intervalRef = useRef<any>(null);
+
+    const startHold = () => {
+        if (disabled || loading) return;
+        setHolding(true);
+        let p = 0;
+        intervalRef.current = setInterval(() => {
+            p += 2; // Speed of fill
+            progress.set(p);
+            if (p >= 100) {
+                clearInterval(intervalRef.current);
+                onComplete();
+                setHolding(false);
+                progress.set(0);
+            }
+        }, 16); // ~60fps
+    };
+
+    const stopHold = () => {
+        setHolding(false);
+        progress.set(0);
+        if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+
+    return (
+        <motion.button
+            onMouseDown={startHold} onMouseUp={stopHold} onMouseLeave={stopHold} onTouchStart={startHold} onTouchEnd={stopHold}
+            style={{ scale }}
+            disabled={disabled}
+            className={`relative w-full py-8 rounded-[2rem] overflow-hidden group select-none ${disabled ? 'opacity-50 cursor-not-allowed grayscale' : 'cursor-pointer'}`}
+        >
+            <div className="absolute inset-0 bg-zinc-800 border border-white/10" />
+            <motion.div style={{ width: fill }} className="absolute inset-0 bg-[#DFFF00]" />
+            
+            <div className="relative z-10 flex flex-col items-center justify-center gap-2">
+                <div className="flex items-center gap-3">
+                    {loading ? <Loader2 className="animate-spin text-zinc-500" /> : <Fingerprint size={24} className={holding ? 'text-black' : 'text-[#DFFF00]'} />}
+                    <span className={`text-sm font-black uppercase tracking-[0.3em] italic ${holding ? 'text-black' : 'text-white'}`}>
+                        {loading ? 'Processing...' : holding ? 'HOLD TO AUTHORIZE' : `HOLD TO PURCHASE (${cost} CR)`}
+                    </span>
+                </div>
             </div>
-        </div>
-    </div>
-);
+        </motion.button>
+    );
+};
+
 
 export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: any) => {
     const supabase = createClient();
@@ -131,7 +240,6 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
     const [isCardFlipped, setIsCardFlipped] = useState(false); 
     const [isAutoFlipping, setIsAutoFlipping] = useState(false);
     const [error, setError] = useState('');
-    const [saveStatus, setSaveStatus] = useState<'SAVING' | 'SAVED' | 'ERROR' | null>(null);
     const [showInfo, setShowInfo] = useState(false);
     const [packQuantity, setPackQuantity] = useState<1 | 3>(1);
     const [selectedPack, setSelectedPack] = useState<'BASE' | 'CARS' | 'GRIDIRON' | 'TEST'>('BASE');
@@ -143,15 +251,6 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
         TEST: { cost: 9999, name: 'Debug_Mode', label: 'Test Protocol', icon: Cpu, source: REEL_ITEMS_SOURCE, color: '#ff00ff', desc: "Restricted developer access. Guaranteed high-tier walkouts." }
     };
 
-    const RARITY_ODDS = [
-        { label: 'Common', chance: '50%', color: 'text-zinc-500' },
-        { label: 'Uncommon', chance: '30%', color: 'text-emerald-500' },
-        { label: 'Rare', chance: '15%', color: 'text-blue-500' },
-        { label: 'Super Rare', chance: '4%', color: 'text-orange-500' },
-        { label: 'Ultra', chance: '0.9%', color: 'text-purple-500' },
-        { label: 'Zenith', chance: '0.1%', color: 'text-[#DFFF00]' },
-    ];
-
     const currentConfig = PACK_CONFIG[selectedPack];
     const cost = packQuantity * currentConfig.cost;
     const canAfford = (profile?.credits || 0) >= cost;
@@ -159,7 +258,7 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
 
     const handleOpenPack = async () => {
         if (authLoading || !profile || profile.credits < cost) return;
-        setStage('CHARGING'); setSaveStatus('SAVING'); setError(''); setPackQueue([]); setCurrentCardIndex(0); setIsCardFlipped(false);
+        setStage('CHARGING'); setError(''); setPackQueue([]); setCurrentCardIndex(0); setIsCardFlipped(false);
         try {
             const { error: txError } = await supabase.rpc('add_credits', { amount: -cost });
             if (txError) throw txError;
@@ -173,12 +272,12 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
                 const wonItem = (pool.length > 0 ? pool : currentConfig.source)[Math.floor(Math.random() * (pool.length || currentConfig.source.length))];
                 generatedItems.push({ ...wonItem, rarity, uniqueId: Math.random().toString() });
             }
-            setPackQueue(generatedItems); setSaveStatus('SAVED'); refreshProfile();
-            setTimeout(() => setStage('BURST'), 800); 
+            setPackQueue(generatedItems); refreshProfile();
+            setStage('BURST');
             setTimeout(() => { 
                 if (WALKOUT_RARITIES.includes(generatedItems[0].rarity)) { setStage('HYPE'); setIsCardFlipped(true); setTimeout(() => setStage('REVEAL'), 6000); }
                 else setStage('REVEAL');
-            }, 1000);
+            }, 2000); // Wait for burst anim
         } catch (err: any) { setError(err.message || "Uplink Failed"); setStage('IDLE'); }
     };
 
@@ -198,19 +297,39 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
 
     return (
         <div className="w-full flex flex-col items-center justify-center py-12 px-4 relative min-h-[800px]">
-            <AnimatePresence>{stage === 'BURST' && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-white pointer-events-none" />}</AnimatePresence>
+            
+            {/* AMBIENT VIDEO BACKGROUND */}
+            <div className="fixed inset-0 z-0 opacity-20 pointer-events-none mix-blend-screen">
+                <video autoPlay loop muted playsInline className="w-full h-full object-cover">
+                    <source src="/market-page.mp4" type="video/mp4" />
+                </video>
+            </div>
+
+            <AnimatePresence>
+                {stage === 'BURST' && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-white flex items-center justify-center pointer-events-none">
+                        <motion.div animate={{ scale: [1, 20], opacity: [1, 0] }} transition={{ duration: 1.5, ease: "circOut" }} className="w-24 h-24 bg-[#DFFF00] rounded-full blur-xl" />
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             <AnimatePresence>{stage === 'HYPE' && packQueue[currentCardIndex] && <HypeOverlay rarity={packQueue[currentCardIndex].rarity} item={packQueue[currentCardIndex]} />}</AnimatePresence>
 
             <AnimatePresence>
                 {stage === 'IDLE' && (
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-6xl flex flex-col items-center z-10">
-                        <div className="flex items-center gap-8 mb-16 overflow-x-auto no-scrollbar snap-x snap-mandatory px-[calc(50%-7rem)] w-full pb-8">
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-7xl flex flex-col items-center z-10">
+                        
+                        {/* PACK CAROUSEL */}
+                        <div className="flex items-center gap-12 mb-20 overflow-x-auto no-scrollbar snap-x snap-mandatory px-[calc(50%-8rem)] w-full py-12 mask-linear-fade">
                             {Object.keys(PACK_CONFIG).map((id) => (
-                                <div key={id} onClick={() => setSelectedPack(id as any)} className="cursor-pointer snap-center"><FoilPack config={PACK_CONFIG[id as keyof typeof PACK_CONFIG]} isSelected={selectedPack === id} /></div>
+                                <div key={id} onClick={() => setSelectedPack(id as any)} className="cursor-pointer snap-center outline-none">
+                                    <FoilPack config={PACK_CONFIG[id as keyof typeof PACK_CONFIG]} isSelected={selectedPack === id} />
+                                </div>
                             ))}
                         </div>
 
-                        <div className="w-full max-w-2xl bg-zinc-900/50 backdrop-blur-3xl rounded-[3rem] border border-white/5 p-10 shadow-[0_30px_100px_rgba(0,0,0,0.5)] relative overflow-hidden ring-1 ring-white/5">
+                        {/* CONTROLS */}
+                        <div className="w-full max-w-2xl bg-zinc-950/80 backdrop-blur-3xl rounded-[3rem] border border-white/10 p-10 shadow-[0_30px_100px_rgba(0,0,0,0.5)] relative overflow-hidden ring-1 ring-white/5">
                             <div className="flex justify-between items-start mb-10">
                                 <div>
                                     <div className="flex items-center gap-3 text-zinc-500 font-mono text-[10px] font-bold tracking-[0.4em] uppercase mb-3">Archive_Extraction // Series_09</div>
@@ -230,34 +349,43 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
                                 ))}
                             </div>
 
-                            <button onClick={handleOpenPack} disabled={!isReady || !canAfford} className="w-full py-6 rounded-[2rem] bg-[#DFFF00] text-black font-black uppercase tracking-[0.3em] text-sm shadow-[0_20px_50px_rgba(223,255,0,0.2)] hover:bg-white hover:shadow-white/20 transition-all flex items-center justify-center gap-4 active:scale-95 disabled:opacity-30 disabled:grayscale">
-                                {authLoading ? <Loader2 className="animate-spin" size={20}/> : <Zap size={20} fill="black"/>}
-                                Authorize Acquisition ({cost} CR)
-                            </button>
+                            <HoldButton onComplete={handleOpenPack} disabled={!isReady || !canAfford} loading={authLoading} cost={cost} />
+                            
+                            {!canAfford && (
+                                <div className="mt-4 text-center">
+                                    <span className="text-red-500 font-mono text-[10px] uppercase tracking-widest">Insufficient Funds // Required: {cost} CR</span>
+                                </div>
+                            )}
                         </div>
                     </motion.div>
                 )}
             </AnimatePresence>
 
             {(stage === 'REVEAL' || stage === 'HYPE') && (
-                <div className="fixed inset-0 z-[100] bg-zinc-950/95 backdrop-blur-2xl flex flex-col items-center justify-center" onClick={handleCardTap}>
-                    <div className="absolute top-28 text-center">
+                <div className="fixed inset-0 z-[100] bg-zinc-950/95 backdrop-blur-3xl flex flex-col items-center justify-center" onClick={handleCardTap}>
+                    
+                    {/* GOD RAYS */}
+                     <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[100vw] h-[100vh] bg-gradient-to-b from-[#DFFF00]/10 to-transparent blur-3xl opacity-50" />
+                    </div>
+
+                    <div className="absolute top-28 text-center z-10">
                         <div className="text-zinc-600 font-mono text-[10px] uppercase tracking-[0.5em] mb-4">Uplink_Sequence_Active</div>
                         <div className="flex items-center gap-4 justify-center text-4xl font-black italic tracking-tighter text-white">
                             <span>{currentCardIndex + 1}</span> <span className="text-zinc-800">/</span> <span>{packQueue.length}</span>
                         </div>
                     </div>
-                    <div className="relative w-[85vw] max-w-[340px] aspect-[2/3] perspective-1000">
+                    <div className="relative w-[85vw] max-w-[340px] aspect-[2/3] perspective-1000 z-20">
                         <AnimatePresence mode='wait'>
-                            <motion.div key={currentCardIndex} initial={{ y: 400, opacity: 0, rotate: 10 }} animate={{ y: 0, opacity: 1, rotate: 0 }} exit={{ y: -400, opacity: 0, rotate: -10 }} transition={{ type: "spring", damping: 20 }} className="w-full h-full relative" style={{ transformStyle: 'preserve-3d' }}>
-                                <motion.div animate={{ rotateY: isCardFlipped ? 180 : 0 }} transition={{ duration: 0.6, ease: "circOut" }} className="w-full h-full relative" style={{ transformStyle: 'preserve-3d' }}>
+                            <motion.div key={currentCardIndex} initial={{ y: 200, opacity: 0, rotateX: 20 }} animate={{ y: 0, opacity: 1, rotateX: 0 }} exit={{ y: -200, opacity: 0, rotateX: -20 }} transition={{ type: "spring", damping: 20 }} className="w-full h-full relative" style={{ transformStyle: 'preserve-3d' }}>
+                                <motion.div animate={{ rotateY: isCardFlipped ? 180 : 0 }} transition={{ duration: 0.8, ease: "backOut" }} className="w-full h-full relative" style={{ transformStyle: 'preserve-3d' }}>
                                     <div className="absolute inset-0 backface-hidden rounded-[2.5rem] overflow-hidden" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}><TradingCard item={packQueue[currentCardIndex]} /></div>
                                     <div className="absolute inset-0 backface-hidden rounded-[2.5rem] overflow-hidden" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(0deg)' }}><CardBack config={currentConfig} /></div>
                                 </motion.div>
                             </motion.div>
                         </AnimatePresence>
                     </div>
-                    <div className="absolute bottom-16 text-[#DFFF00] font-mono text-[10px] uppercase tracking-[0.4em] animate-pulse italic">{isCardFlipped ? 'Tap_to_Dismiss' : 'Authorize_Signal_Reveal'}</div>
+                    <div className="absolute bottom-16 text-[#DFFF00] font-mono text-[10px] uppercase tracking-[0.4em] animate-pulse italic z-10 cursor-pointer">{isCardFlipped ? 'Tap_to_Dismiss' : 'Tap_to_Reveal'}</div>
                 </div>
             )}
 
@@ -265,7 +393,7 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
                 <div className="fixed inset-0 z-[200] bg-zinc-950 flex flex-col items-center overflow-y-auto pt-32 pb-20 px-6">
                     <div className="max-w-6xl w-full">
                         <div className="flex flex-col items-center text-center mb-16">
-                            <div className="w-16 h-16 bg-[#DFFF00] rounded-2xl flex items-center justify-center mb-6 shadow-2xl"><CheckCircle2 className="text-black" size={32}/></div>
+                            <div className="w-16 h-16 bg-[#DFFF00] rounded-2xl flex items-center justify-center mb-6 shadow-2xl"><Scan className="text-black" size={32}/></div>
                             <h2 className="text-5xl font-black italic tracking-tighter text-white uppercase">Acquisition_Report</h2>
                             <p className="text-zinc-500 font-mono text-xs uppercase tracking-[0.3em] mt-4">Security verification complete. Assets transferred to local storage.</p>
                         </div>
@@ -277,5 +405,3 @@ export const PackOpeningView = ({ user, profile, authLoading, refreshProfile }: 
         </div>
     );
 };
-
-const CheckCircle2 = ({ size, className }: any) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>;
