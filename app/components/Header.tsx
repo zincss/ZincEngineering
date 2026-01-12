@@ -274,7 +274,7 @@ export default function Header() {
                     <div className="max-w-2xl mx-auto w-full space-y-6">
                         <div className="flex p-1 bg-zinc-900/50 rounded-2xl border border-white/5">
                             <button onClick={() => setActiveMenu('MOBILE')} className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeMenu === 'MOBILE' ? `${brandBg} text-black shadow-lg` : 'text-zinc-500'}`}>Navigation</button>
-                            {user && <button onClick={() => setActiveMenu('WALLET')} className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeMenu === 'WALLET' ? `${brandBg} text-black shadow-lg` : 'text-zinc-500'}`}>Wallet</button>}
+                            {user && <button onClick={() => setActiveMenu('WALLET')} className="flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all text-zinc-500">Wallet</button>}
                         </div>
 
                         <div className="space-y-2 pb-8">
