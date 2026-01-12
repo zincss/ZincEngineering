@@ -277,6 +277,23 @@ export default function Header() {
                             {user && <button onClick={() => setActiveMenu('WALLET')} className="flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all text-zinc-500">Wallet</button>}
                         </div>
 
+                        <div className="grid grid-cols-2 gap-2">
+                             <button onClick={() => { if(isSportsMode) handleModeSwitch(); }} className={`flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all ${!isSportsMode ? 'bg-zinc-900 border-[#DFFF00] shadow-[0_0_20px_-5px_rgba(223,255,0,0.3)]' : 'bg-zinc-950/50 border-white/5 opacity-50'}`}>
+                                <div className="w-8 h-8 rounded-full bg-[#DFFF00] flex items-center justify-center text-black font-black text-xs">Z</div>
+                                <div className="text-center">
+                                    <span className="block text-[10px] font-black uppercase text-white tracking-widest">Standard</span>
+                                    <span className="block text-[8px] font-mono text-zinc-500 uppercase">Original Exp</span>
+                                </div>
+                             </button>
+                             <button onClick={() => { if(!isSportsMode) handleModeSwitch(); }} className={`flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all ${isSportsMode ? 'bg-blue-900/20 border-blue-500 shadow-[0_0_20px_-5px_rgba(59,130,246,0.3)]' : 'bg-zinc-950/50 border-white/5 opacity-50'}`}>
+                                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-black font-black text-xs tracking-tighter">ZS</div>
+                                <div className="text-center">
+                                    <span className="block text-[10px] font-black uppercase text-white tracking-widest">ZincSports</span>
+                                    <span className="block text-[8px] font-mono text-zinc-500 uppercase">Dedicated Hub</span>
+                                </div>
+                             </button>
+                        </div>
+
                         <div className="space-y-2 pb-8">
                             {navItems.map((item) => (
                                 <MobileNavLink key={item.id} {...item} active={getActiveState(item.href)} isSports={isSportsMode} onClick={() => setActiveMenu('NONE')} />
