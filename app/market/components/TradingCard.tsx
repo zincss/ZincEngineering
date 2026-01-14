@@ -1,41 +1,39 @@
 'use client'
 
-import React, { useRef, useState } from 'react';
-import { RealAssetImage } from '@/app/market/components/shared';
-import { Trophy, Wind, Activity, ScanLine, Lock, Star, Shield, Flame, Crown } from 'lucide-react';
+import React, { useRef } from 'react';
+import { GenerativeCardArt } from '@/app/market/components/GenerativeCardArt';
+import { Trophy, Wind, Activity, ScanLine, Lock, Sparkles, Shield, Flame, Crown, Zap, Hexagon, Component, Gauge, Zap as ZapIcon } from 'lucide-react';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 
+// --- TYPES ---
 interface TradingCardProps {
   item: any;
   showDetails?: boolean;
   isLocked?: boolean;
 }
 
+// --- RARITY CONFIG ---
 const getRarityConfig = (rarity: string) => {
   switch (rarity) {
-    case 'ZENITH': return { color: '#DFFF00', border: 'border-[#DFFF00]', bg: 'bg-[#DFFF00]/10', text: 'text-[#DFFF00]', glow: 'shadow-[0_0_30px_rgba(223,255,0,0.3)]' };
-    case 'COSMIC': return { color: '#EC4899', border: 'border-pink-500', bg: 'bg-pink-500/10', text: 'text-pink-500', glow: 'shadow-[0_0_30px_rgba(236,72,153,0.3)]' };
-    case 'ULTRA': return { color: '#A855F7', border: 'border-purple-500', bg: 'bg-purple-500/10', text: 'text-purple-500', glow: 'shadow-[0_0_20px_rgba(168,85,247,0.3)]' };
-    case 'SUPER_RARE': return { color: '#F97316', border: 'border-orange-500', bg: 'bg-orange-500/10', text: 'text-orange-500', glow: 'shadow-[0_0_20px_rgba(249,115,22,0.3)]' };
-    case 'RARE': return { color: '#3B82F6', border: 'border-blue-500', bg: 'bg-blue-500/10', text: 'text-blue-500', glow: 'shadow-[0_0_15px_rgba(59,130,246,0.3)]' };
-    case 'UNCOMMON': return { color: '#10B981', border: 'border-emerald-500', bg: 'bg-emerald-500/10', text: 'text-emerald-500', glow: 'shadow-none' };
-    default: return { color: '#71717A', border: 'border-zinc-700', bg: 'bg-zinc-800/50', text: 'text-zinc-500', glow: 'shadow-none' };
+    case 'ZENITH': return { color: '#DFFF00', border: 'border-[#DFFF00]', bg: 'bg-[#DFFF00]/10', text: 'text-[#DFFF00]', glow: 'shadow-[0_0_40px_rgba(223,255,0,0.4)]', icon: Crown };
+    case 'COSMIC': return { color: '#EC4899', border: 'border-pink-500', bg: 'bg-pink-500/10', text: 'text-pink-500', glow: 'shadow-[0_0_35px_rgba(236,72,153,0.4)]', icon: Sparkles };
+    case 'ULTRA': return { color: '#A855F7', border: 'border-purple-500', bg: 'bg-purple-500/10', text: 'text-purple-500', glow: 'shadow-[0_0_30px_rgba(168,85,247,0.4)]', icon: Zap };
+    case 'SUPER_RARE': return { color: '#F97316', border: 'border-orange-500', bg: 'bg-orange-500/10', text: 'text-orange-500', glow: 'shadow-[0_0_25px_rgba(249,115,22,0.4)]', icon: Flame };
+    case 'RARE': return { color: '#3B82F6', border: 'border-blue-500', bg: 'bg-blue-500/10', text: 'text-blue-500', glow: 'shadow-[0_0_20px_rgba(59,130,246,0.3)]', icon: Shield };
+    case 'UNCOMMON': return { color: '#10B981', border: 'border-emerald-500', bg: 'bg-emerald-500/10', text: 'text-emerald-500', glow: 'shadow-none', icon: Hexagon };
+    default: return { color: '#71717A', border: 'border-zinc-700', bg: 'bg-zinc-800/50', text: 'text-zinc-500', glow: 'shadow-none', icon: Component };
   }
 };
 
-// --- 3D TILT WRAPPER ---
+// --- 3D WRAPPER ---
 const TiltCard = ({ children, isLocked, rarity }: { children: React.ReactNode, isLocked: boolean, rarity: string }) => {
     const ref = useRef<HTMLDivElement>(null);
     const x = useMotionValue(0);
     const y = useMotionValue(0);
-
     const mouseX = useSpring(x, { stiffness: 500, damping: 100 });
     const mouseY = useSpring(y, { stiffness: 500, damping: 100 });
-
-    const rotateX = useTransform(mouseY, [-0.5, 0.5], ["15deg", "-15deg"]);
-    const rotateY = useTransform(mouseX, [-0.5, 0.5], ["-15deg", "15deg"]);
-    
-    // Glare moves opposite to rotation
+    const rotateX = useTransform(mouseY, [-0.5, 0.5], ["10deg", "-10deg"]);
+    const rotateY = useTransform(mouseX, [-0.5, 0.5], ["-10deg", "10deg"]);
     const glareX = useTransform(mouseX, [-0.5, 0.5], ["0%", "100%"]);
     const glareY = useTransform(mouseY, [-0.5, 0.5], ["0%", "100%"]);
 
@@ -43,257 +41,209 @@ const TiltCard = ({ children, isLocked, rarity }: { children: React.ReactNode, i
         if (isLocked) return;
         const rect = ref.current?.getBoundingClientRect();
         if (rect) {
-            const width = rect.width;
-            const height = rect.height;
-            const mouseXPos = e.clientX - rect.left;
-            const mouseYPos = e.clientY - rect.top;
-            
-            // Normalize to -0.5 to 0.5
-            const xPct = (mouseXPos / width) - 0.5;
-            const yPct = (mouseYPos / height) - 0.5;
-            
-            x.set(xPct);
-            y.set(yPct);
+            x.set((e.clientX - rect.left) / rect.width - 0.5);
+            y.set((e.clientY - rect.top) / rect.height - 0.5);
         }
     };
 
-    const handleMouseLeave = () => {
-        x.set(0);
-        y.set(0);
-    };
-
-    const isHolo = ['ZENITH', 'ULTRA', 'SUPER_RARE'].includes(rarity);
-
     return (
         <motion.div
-            ref={ref}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
-            style={{
-                perspective: 1000,
-                rotateX: isLocked ? 0 : rotateX,
-                rotateY: isLocked ? 0 : rotateY,
-                transformStyle: "preserve-3d"
-            }}
-            className="w-full h-full relative will-change-transform"
+            ref={ref} onMouseMove={handleMouseMove} onMouseLeave={() => { x.set(0); y.set(0); }}
+            style={{ perspective: 1200, rotateX: isLocked ? 0 : rotateX, rotateY: isLocked ? 0 : rotateY, transformStyle: "preserve-3d" }}
+            className="w-full h-full relative will-change-transform z-0"
         >
             {children}
-            
-            {/* HOLOGRAPHIC OVERLAY */}
-            {!isLocked && isHolo && (
-                <motion.div 
-                    style={{
-                        background: `radial-gradient(circle at ${glareX} ${glareY}, rgba(255,255,255,0.3) 0%, transparent 60%)`,
-                        mixBlendMode: "overlay",
-                        pointerEvents: "none"
-                    }}
-                    className="absolute inset-0 z-40 rounded-2xl opacity-60"
-                />
+            {!isLocked && ['ZENITH', 'ULTRA', 'SUPER_RARE', 'COSMIC'].includes(rarity) && (
+                <motion.div style={{ background: `radial-gradient(circle at ${glareX} ${glareY}, rgba(255,255,255,0.4) 0%, transparent 60%)`, mixBlendMode: "overlay", pointerEvents: "none" }} className="absolute inset-0 z-40 rounded-[1.5rem] opacity-50" />
             )}
-            {!isLocked && isHolo && (
-                 <motion.div 
-                    className="absolute inset-0 z-30 opacity-30 rounded-2xl pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-color-dodge"
-                 />
+            {!isLocked && (
+                 <motion.div className="absolute inset-0 z-30 opacity-20 rounded-[1.5rem] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-color-dodge" />
             )}
         </motion.div>
     );
 };
 
-// --- SPECIAL VARIANT: GRIDIRON LEGENDS ---
-const GridironCard = ({ item, isLocked, serialNo, config }: any) => {
-    const teamColor = item.color || '#333';
-    
-    // Split description to get position/team cleanly if possible
-    const parts = item.description?.split('|') || [];
-    const position = parts[0]?.trim() || 'PLY';
-    const teamName = parts[1]?.trim() || 'LEGEND';
-    
-    return (
-      <TiltCard isLocked={isLocked} rarity={item.rarity}>
-          <div className={`
-            relative w-full h-full rounded-2xl overflow-hidden flex flex-col backface-hidden
-            transition-all duration-500 bg-zinc-950 border border-white/10
-            ${isLocked ? 'grayscale opacity-60' : ''}
-          `}
-          style={{
-              boxShadow: isLocked ? 'none' : `0 10px 30px -10px ${teamColor}80`
-          }}>
-              
-              {/* Dynamic Background Pattern */}
-              <div className="absolute inset-0 z-0" style={{ background: `linear-gradient(160deg, #09090b 40%, ${teamColor} 120%)` }} />
-              <div className="absolute inset-0 opacity-10 pointer-events-none z-0" 
-                   style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, #ffffff 10px, #ffffff 11px)' }} 
-              />
+// ==========================================
+// 1. CYBER CARD (ITEMS / BASE)
+// ==========================================
+const CyberCard = ({ item, config, isLocked, serialNo }: any) => (
+    <div className={`relative w-full h-full rounded-[1.5rem] overflow-hidden bg-zinc-950 border-2 ${isLocked ? 'border-zinc-800 grayscale opacity-60' : config.border} flex flex-col`}>
+        {/* BG */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-900 to-black" />
+        <div className="absolute inset-0 opacity-20 bg-[linear-gradient(0deg,transparent_24%,rgba(255,255,255,.05)_25%,rgba(255,255,255,.05)_26%,transparent_27%,transparent_74%,rgba(255,255,255,.05)_75%,rgba(255,255,255,.05)_76%,transparent_77%,transparent),linear-gradient(90deg,transparent_24%,rgba(255,255,255,.05)_25%,rgba(255,255,255,.05)_26%,transparent_27%,transparent_74%,rgba(255,255,255,.05)_75%,rgba(255,255,255,.05)_76%,transparent_77%,transparent)] bg-[size:30px_30px]" />
+        
+        {/* HEADER */}
+        <div className="relative z-10 flex justify-between items-center p-4 border-b border-white/5 bg-zinc-900/50 backdrop-blur-sm">
+            <div className="flex items-center gap-2">
+                <config.icon size={14} style={{ color: config.color }} />
+                <span className="text-[9px] font-mono uppercase tracking-widest text-zinc-400">ARCHIVE_ITEM</span>
+            </div>
+            <div className="px-2 py-0.5 rounded bg-zinc-950 border border-white/10 text-[9px] font-mono text-zinc-500">
+                #{serialNo}
+            </div>
+        </div>
 
-              {/* Top Bar: Team & Position */}
-              <div className="relative z-10 p-4 flex justify-between items-center bg-gradient-to-b from-black/80 to-transparent">
-                  <div className="flex flex-col leading-none">
-                      <span className="text-[8px] text-zinc-400 font-mono uppercase tracking-widest mb-1">Team</span>
-                      <span className="text-sm font-black italic uppercase text-white drop-shadow-md">{teamName}</span>
-                  </div>
-                  <div className="flex flex-col items-end leading-none">
-                      <div className="px-2 py-1 rounded bg-white text-black font-black text-xs transform skew-x-[-10deg] shadow-lg">
-                        <span className="transform skew-x-[10deg] block">{position}</span>
-                      </div>
-                  </div>
-              </div>
+        {/* IMAGE */}
+        <div className="relative flex-1 flex items-center justify-center p-6">
+            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent opacity-80" />
+            <motion.div 
+                className="relative z-10 w-full h-full drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+                animate={!isLocked ? { y: [0, -5, 0] } : {}}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            >
+                <GenerativeCardArt name={item.name} type="ITEM" className="w-full h-full object-contain filter drop-shadow-2xl" />
+            </motion.div>
+        </div>
 
-              {/* Main Image Area */}
-              <div className="relative flex-1 mx-2 my-0 overflow-hidden rounded-xl border border-white/10 bg-black/40 group shadow-inner">
-                  {/* Image */}
-                  <div className="absolute inset-0">
-                       <RealAssetImage 
-                            name={item.name} 
-                            searchQuery={item.searchQuery} 
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                       />
-                  </div>
-                  
-                  {/* Gradient Overlay for Text Visibility */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-90" />
-                  
-                  {/* Player Name (Bottom of Image) */}
-                  <div className="absolute bottom-3 left-3 right-3 z-20">
-                      <h2 className="text-3xl font-black uppercase italic leading-none text-white drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)]" style={{ WebkitTextStroke: '1px rgba(0,0,0,0.5)' }}>
-                          {item.name.split(' ').map((n:string, i:number) => (
-                              <span key={i} className="block">{n}</span>
-                          ))}
-                      </h2>
-                  </div>
-              </div>
+        {/* FOOTER */}
+        <div className="relative z-10 p-5 pt-0">
+            <div className="flex items-center gap-2 mb-2">
+                <div className={`w-1 h-1 rounded-full ${isLocked ? 'bg-zinc-600' : 'bg-[#DFFF00] animate-pulse'}`} />
+                <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: config.color }}>{item.rarity.replace('_', ' ')}</span>
+            </div>
+            <h3 className="text-xl font-bold text-white font-mono leading-tight mb-2 uppercase line-clamp-2">{item.name}</h3>
+            <div className="w-full h-1 bg-zinc-900 rounded-full overflow-hidden">
+                <div className="h-full w-2/3 bg-zinc-700" style={{ backgroundColor: isLocked ? undefined : config.color }} />
+            </div>
+        </div>
+    </div>
+);
 
-              {/* Stats / Info Bar */}
-              <div className="relative z-10 px-3 py-3 grid grid-cols-3 gap-2 text-center">
-                  <div className="bg-black/40 backdrop-blur-md rounded-lg p-1.5 border border-white/5">
-                      <div className="text-[7px] text-zinc-500 uppercase tracking-widest mb-0.5">ERA</div>
-                      <div className="text-[10px] font-bold text-white">{parts[2]?.split('-')[0] || 'Unknown'}</div>
-                  </div>
-                  <div className="bg-black/40 backdrop-blur-md rounded-lg p-1.5 border border-white/5">
-                      <div className="text-[7px] text-zinc-500 uppercase tracking-widest mb-0.5">Class</div>
-                      <div className="text-[10px] font-bold" style={{ color: config.color }}>{item.rarity.substring(0,3)}</div>
-                  </div>
-                  <div className="bg-black/40 backdrop-blur-md rounded-lg p-1.5 border border-white/5">
-                      <div className="text-[7px] text-zinc-500 uppercase tracking-widest mb-0.5">Serial</div>
-                      <div className="text-[10px] font-bold text-zinc-300">#{serialNo}</div>
-                  </div>
-              </div>
+// ==========================================
+// 2. TURBO CARD (CARS)
+// ==========================================
+const TurboCard = ({ item, config, isLocked, serialNo }: any) => (
+    <div className={`relative w-full h-full rounded-[1.5rem] overflow-hidden bg-zinc-900 border ${isLocked ? 'border-zinc-800 grayscale opacity-60' : 'border-red-500/30'} flex flex-col`}>
+        {/* CARBON TEXTURE */}
+        <div className="absolute inset-0 bg-[#111]" />
+        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle, #333 1px, transparent 1px)', backgroundSize: '4px 4px' }} />
+        
+        {/* RACING STRIPE */}
+        <div className="absolute top-0 bottom-0 right-8 w-16 bg-gradient-to-b from-red-600/20 to-transparent transform skew-x-[-15deg]" />
 
-              {isLocked && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-                    <Lock className="text-zinc-600" size={32} />
+        {/* IMAGE AREA */}
+        <div className="relative h-[65%] w-full overflow-hidden">
+             {/* Blurred BG */}
+             <div className="absolute inset-0 scale-110 blur-xl opacity-50">
+                <GenerativeCardArt name={item.name} type="CAR" className="w-full h-full object-cover" />
+             </div>
+             <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black" />
+             
+             <div className="relative h-full w-full p-4 flex items-center justify-center">
+                <GenerativeCardArt name={item.name} type="CAR" className="w-full h-full object-contain drop-shadow-2xl" />
+             </div>
+        </div>
+
+        {/* INFO PLATE */}
+        <div className="relative flex-1 bg-gradient-to-t from-black to-zinc-900/80 p-5 flex flex-col justify-end border-t border-white/10">
+            <div className="flex justify-between items-end mb-2">
+                <div className="flex flex-col">
+                    <span className="text-[9px] font-black italic text-zinc-500 uppercase">Model</span>
+                    <h3 className="text-2xl font-black italic text-white uppercase leading-none">{item.name}</h3>
                 </div>
-              )}
-          </div>
-      </TiltCard>
+                <div className="text-right">
+                    <span className="text-[9px] font-black italic text-red-500 uppercase">Class</span>
+                    <div className="text-xl font-black italic text-white uppercase leading-none">A+</div>
+                </div>
+            </div>
+            
+            <div className="flex items-center gap-3 mt-2 pt-2 border-t border-white/10">
+                 <div className="flex items-center gap-1">
+                     <Gauge size={12} className="text-zinc-500" />
+                     <span className="text-[9px] font-mono text-zinc-400">TURBO_CHARGED</span>
+                 </div>
+                 <div className="flex items-center gap-1 ml-auto">
+                     <span className="text-[9px] font-mono text-zinc-600">#{serialNo}</span>
+                 </div>
+            </div>
+        </div>
+    </div>
+);
+
+// ==========================================
+// 3. LEGENDS CARD (NFL)
+// ==========================================
+const LegendsCard = ({ item, config, isLocked, serialNo }: any) => {
+    // Determine Team Color (Mock logic or use item prop if available)
+    const teamColor = item.color || '#3b82f6'; // Default blue
+
+    return (
+        <div className={`relative w-full h-full rounded-[1.5rem] overflow-hidden bg-white border-4 ${isLocked ? 'border-zinc-300 grayscale opacity-60' : 'border-white'} shadow-2xl flex flex-col`}>
+            {/* STADIUM BG */}
+            <div className="absolute inset-0 bg-gradient-to-b from-zinc-200 to-zinc-100" />
+            <div className="absolute top-0 w-full h-1/2 bg-gradient-to-b from-black/80 to-transparent z-0" />
+            
+            {/* MESH TEXTURE TOP */}
+            <div className="absolute top-0 w-full h-32 opacity-20 z-0" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '6px 6px' }} />
+
+            {/* MAIN PORTRAIT */}
+            <div className="absolute inset-0 z-10">
+                <GenerativeCardArt name={item.name} type="NFL_PLAYER" className="w-full h-full object-cover" />
+                {/* Gradient fade at bottom for text */}
+                <div className="absolute bottom-0 w-full h-1/2 bg-gradient-to-t from-black via-black/60 to-transparent" />
+            </div>
+
+            {/* OVERLAYS */}
+            <div className="relative z-20 flex-1 flex flex-col justify-between p-5">
+                {/* Top Header */}
+                <div className="flex justify-between items-start">
+                    <div className="bg-white/20 backdrop-blur-md border border-white/30 px-3 py-1 transform -skew-x-12">
+                         <span className="text-[10px] font-black italic text-white uppercase tracking-wider">{item.team || 'PRO LEAGUE'}</span>
+                    </div>
+                    <Trophy className="text-yellow-400 drop-shadow-md" size={24} />
+                </div>
+
+                {/* Bottom Nameplate */}
+                <div className="mt-auto">
+                     <div className="flex items-center gap-2 mb-1">
+                         <div className="px-2 py-0.5 rounded bg-blue-600 text-[8px] font-black uppercase text-white shadow-lg">
+                             {item.position || 'PLY'}
+                         </div>
+                         <span className="text-[10px] font-black uppercase text-zinc-300 tracking-widest">{item.rarity.replace('_', ' ')}</span>
+                     </div>
+                     <h2 className="text-4xl font-black uppercase italic text-white leading-[0.85] tracking-tighter drop-shadow-lg">
+                        {item.name.split(' ').map((n:string, i:number) => (
+                            <span key={i} className="block">{n}</span>
+                        ))}
+                     </h2>
+                </div>
+            </div>
+            
+            {/* FOOTER STRIP */}
+            <div className="relative z-20 h-8 bg-white flex items-center justify-between px-4 border-t-2" style={{ borderColor: teamColor }}>
+                 <span className="text-[8px] font-black uppercase text-zinc-400">Zinc Legends Series</span>
+                 <span className="text-[8px] font-mono font-bold text-zinc-800">#{serialNo}</span>
+            </div>
+        </div>
     );
 };
 
 
-// --- STANDARD ZINC VARIANT ---
-const ZincCard = ({ item, isLocked, serialNo, config, description, isCar }: any) => (
-    <TiltCard isLocked={isLocked} rarity={item.rarity}>
-        <div className={`
-          relative group w-full h-full aspect-[2/3] rounded-3xl 
-          bg-zinc-950 border ${isLocked ? 'border-zinc-800' : config.border}
-          flex flex-col overflow-hidden transition-all duration-500 
-          ${isLocked ? 'opacity-60 grayscale' : ''}
-        `}
-        style={{
-             boxShadow: isLocked ? 'none' : `0 0 40px -10px ${config.color}40`
-        }}>
-          
-          {isLocked && (
-            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
-                <div className="p-4 rounded-full bg-zinc-900 border-2 border-zinc-700 mb-2">
-                    <Lock size={24} className="text-zinc-500" />
-                </div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Undiscovered</span>
-            </div>
-          )}
-          
-          {/* Tech Grid Background */}
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
-          <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-${config.color === '#DFFF00' ? '[#DFFF00]' : config.color.replace('text-', '').replace('-500', '-500')}/20 to-transparent blur-2xl rounded-bl-[100%]`} />
-          
-          <div className="relative z-10 p-5 pb-0 flex justify-between items-start">
-            <div className="flex flex-col">
-               <div className="flex items-center gap-2 mb-1.5">
-                 <div className={`w-1.5 h-1.5 rounded-full ${isLocked ? 'bg-zinc-700' : 'bg-white shadow-[0_0_10px_white]'}`} />
-                 <span className="text-[9px] font-mono font-bold text-zinc-500 tracking-[0.2em] uppercase">
-                   {isLocked ? 'UNKNOWN' : `Z-ASSET // ${serialNo}`}
-                 </span>
-               </div>
-               <div className={`
-                 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-zinc-900/80 backdrop-blur-sm
-                 ${isLocked ? 'border-zinc-800' : config.border}
-               `}>
-                 <Activity size={12} className={isLocked ? 'text-zinc-600' : config.text} />
-                 <span className={`text-[10px] font-black uppercase tracking-wider ${isLocked ? 'text-zinc-600' : config.text}`}>
-                   {item.rarity.replace('_', ' ')}
-                 </span>
-               </div>
-            </div>
-
-            <div className="bg-zinc-900/80 backdrop-blur-sm border border-zinc-800 w-10 h-10 flex items-center justify-center rounded-xl text-zinc-400 shadow-xl">
-               {isCar ? <Wind size={18} /> : <Trophy size={18} />}
-            </div>
-          </div>
-
-          <div className="relative z-10 px-5 py-5">
-            <div className={`relative aspect-square w-full rounded-[20px] overflow-hidden border-2 bg-zinc-900 group-hover:border-white/20 transition-colors shadow-2xl ${isLocked ? 'border-zinc-800' : config.border}`}>
-                <div className="absolute inset-0 p-1.5">
-                   <div className="w-full h-full rounded-[14px] relative overflow-hidden bg-zinc-950">
-                      <RealAssetImage 
-                        name={item.name} 
-                        searchQuery={item.searchQuery || item.name} 
-                        className="w-full h-full object-cover opacity-90 hover:scale-110 transition-transform duration-700" 
-                      />
-                   </div>
-                </div>
-            </div>
-          </div>
-
-          <div className="relative z-10 flex-1 px-5 flex flex-col pb-5">
-             <h3 className={`text-2xl font-black uppercase italic tracking-tighter leading-none mb-3 truncate ${isLocked ? 'text-zinc-700' : 'text-white'}`}>
-                {item.name}
-             </h3>
-
-             <div className="flex-1 bg-zinc-900/30 rounded-xl border border-white/5 p-3 overflow-hidden relative">
-                <div className="absolute top-0 left-0 w-0.5 h-full bg-white/10" />
-                <p className="text-[10px] font-mono text-zinc-500 leading-relaxed pl-2 line-clamp-3">
-                  {isLocked ? "DATA_REDACTED // ACQUIRE TO DECRYPT LOGS." : description}
-                </p>
-             </div>
-          </div>
-
-          <div className="relative z-10 bg-zinc-950/80 border-t border-white/5 p-3 flex justify-between items-center text-[8px] font-mono text-zinc-600 uppercase tracking-widest backdrop-blur-sm">
-             <span className="flex items-center gap-1.5">
-                <ScanLine size={10} /> Verified
-             </span>
-             <span>Zinc Eng. © 2025</span>
-          </div>
-        </div>
-    </TiltCard>
-);
-
-
-// --- MAIN COMPONENT ---
-export const TradingCard = ({ item, showDetails = true, isLocked = false }: TradingCardProps) => {
-  const isCar = item.type === 'CAR';
-  const isGridiron = item.type === 'NFL_PLAYER';
-  const config = getRarityConfig(item.rarity);
-  
-  const description = item.description || item.history || "No data available.";
-  
-  const serialNo = isLocked 
-    ? '????' 
-    : item.serial_number 
+// --- MAIN CONTROLLER ---
+export const TradingCard = ({ item, isLocked = false }: TradingCardProps) => {
+    const config = getRarityConfig(item.rarity);
+    
+    // Generate Stable Serial
+    const serialNo = item.serial_number 
         ? String(item.serial_number).padStart(4, '0') 
-        : Math.floor(Math.random() * 9000) + 1000;
+        : Math.floor(Math.random() * 9999).toString().padStart(4, '0');
 
-  if (isGridiron) {
-      return <GridironCard item={item} isLocked={isLocked} serialNo={serialNo} config={config} />;
-  }
+    // Dispatcher
+    let CardComponent = CyberCard;
+    if (item.type === 'CAR') CardComponent = TurboCard;
+    if (item.type === 'NFL_PLAYER') CardComponent = LegendsCard;
 
-  return <ZincCard item={item} isLocked={isLocked} serialNo={serialNo} config={config} description={description} isCar={isCar} />;
+    return (
+        <TiltCard isLocked={isLocked} rarity={item.rarity}>
+            <CardComponent item={item} config={config} isLocked={isLocked} serialNo={serialNo} />
+            
+            {/* GENERIC LOCK OVERLAY (If specific cards don't handle it fully) */}
+            {isLocked && (
+                <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/50 backdrop-blur-[2px] rounded-[1.5rem]">
+                    <Lock size={32} className="text-white/50 mb-2" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-white/50">Restricted</span>
+                </div>
+            )}
+        </TiltCard>
+    );
 };

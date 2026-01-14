@@ -5,7 +5,10 @@ import {
   Users, Shield, Coins, Search, Edit2, Check, X, 
   Activity, Database, Terminal, AlertTriangle, Zap, RefreshCw, Trash2, Mail
 } from 'lucide-react';
-import { getAdminData, updateUserCredits, updateUserRole, distributeStimulus, resetEconomy, clearSystemCache, sendTestDigest } from './actions';
+import { 
+  getAdminData, updateUserCredits, updateUserRole, distributeStimulus, 
+  resetEconomy, clearSystemCache, sendTestDigest, getSystemMessage, updateSystemMessage 
+} from './actions';
 import { useRouter } from 'next/navigation';
 
 export default function AdminPage() {
@@ -17,6 +20,11 @@ export default function AdminPage() {
   const [error, setError] = useState('');
   const [processing, setProcessing] = useState(false);
   const [testMailHtml, setTestMailHtml] = useState<string | null>(null);
+  
+  // System Message State
+  const [sysMsg, setSysMsg] = useState({ message: '', link: '' });
+  const [msgSaving, setMsgSaving] = useState(false);
+
   const router = useRouter();
 
   useEffect(() => {
@@ -24,7 +32,8 @@ export default function AdminPage() {
   }, []);
 
   const loadData = async () => {
-    const res = await getAdminData();
+    const [res, msgRes] = await Promise.all([getAdminData(), getSystemMessage()]);
+    
     if (res.error) {
         setError(res.error);
         if (res.error === 'Unauthorized' || res.error === 'Forbidden') {
@@ -33,6 +42,14 @@ export default function AdminPage() {
     } else {
         setData(res);
     }
+
+    if (msgRes && msgRes.data) {
+        setSysMsg({ message: msgRes.data.message, link: msgRes.data.link });
+    } else {
+        // Defaults
+        setSysMsg({ message: 'INITIALIZE ASTRO EXPANSION', link: '/collections/astro' });
+    }
+
     setLoading(false);
   };
 
@@ -42,6 +59,13 @@ export default function AdminPage() {
       await updateUserRole(editingUser.id, editingUser.role);
       setEditingUser(null);
       loadData();
+  };
+
+  const handleUpdateMessage = async () => {
+      setMsgSaving(true);
+      await updateSystemMessage(sysMsg.message, sysMsg.link);
+      setMsgSaving(false);
+      alert('Broadcast Updated');
   };
 
   const executeAction = async () => {
@@ -179,6 +203,45 @@ export default function AdminPage() {
                       <h3 className="text-lg font-black text-white uppercase tracking-tight mb-1">Economy Reset</h3>
                       <p className="text-xs text-zinc-500">Wipe all balances to default (1,000 CR). Danger!</p>
                   </button>
+              </div>
+          </div>
+
+          {/* BROADCAST CONFIGURATION */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8">
+              <div className="flex items-center gap-3 mb-6">
+                  <Activity size={20} className="text-[#DFFF00]" />
+                  <h2 className="text-lg font-black uppercase tracking-tight text-white">Broadcast Configuration</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Display Message</label>
+                      <input 
+                        type="text" 
+                        value={sysMsg.message}
+                        onChange={(e) => setSysMsg({ ...sysMsg, message: e.target.value })}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-white font-mono outline-none focus:border-[#DFFF00] transition-colors"
+                        placeholder="INITIALIZE ASTRO EXPANSION"
+                      />
+                  </div>
+                  <div>
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Target Link</label>
+                      <div className="flex gap-4">
+                          <input 
+                            type="text" 
+                            value={sysMsg.link}
+                            onChange={(e) => setSysMsg({ ...sysMsg, link: e.target.value })}
+                            className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-white font-mono outline-none focus:border-[#DFFF00] transition-colors"
+                            placeholder="/collections/astro"
+                          />
+                          <button 
+                            onClick={handleUpdateMessage}
+                            disabled={msgSaving}
+                            className="px-8 bg-[#DFFF00] text-black font-black uppercase tracking-widest rounded-xl hover:bg-white transition-colors disabled:opacity-50"
+                          >
+                              {msgSaving ? <RefreshCw className="animate-spin" size={16} /> : 'Update'}
+                          </button>
+                      </div>
+                  </div>
               </div>
           </div>
 

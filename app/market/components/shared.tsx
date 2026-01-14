@@ -116,16 +116,53 @@ export const FLAIR_ITEMS_SOURCE = FLAIR_LIST.map((name, i) => {
 
 
 // --- FALLBACK AI ---
-export const getAssetUrl = (name: string, type?: string) => {
+export const getAssetUrl = (name: string, type: string = 'ITEM') => {
+    // We add a random component to the seed to ensure variation if called multiple times, 
+    // but typically we want stable images for the same item name. 
+    // However, to fix the 'moved' issue, we might need to ensure the URL is fresh or clean.
     const seed = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const prompt = encodeURIComponent(`high quality photo of ${name}, isolated on black background, 8k`);
-    return `https://image.pollinations.ai/prompt/${prompt}?width=1080&height=1080&seed=${seed}&nologo=true&model=flux-realism`;
+    let prompt = '';
+    
+    // DISTINCT ART STYLES
+    switch (type) {
+        case 'CAR':
+            // Style 1: Photorealistic Automotive Studio
+            prompt = `photorealistic studio photography of ${name} car, side profile, dramatic rim lighting, dark background, 8k resolution, highly detailed, automotive magazine style`;
+            break;
+        case 'NFL_PLAYER':
+            // Style 2: Digital Oil Painting / Concept Art
+            prompt = `digital oil painting of ${name} american football player, dynamic action pose, stadium lights background, expressive brushstrokes, dramatic lighting, heroic composition, concept art`;
+            break;
+        case 'FLAIR':
+            prompt = `abstract 3d render of ${name}, cyberpunk aesthetic, neon glowing shapes, dark background, digital art, octane render`;
+            break;
+        case 'ITEM':
+        default:
+            // Style 3: Isometric 3D Cyberpunk
+            prompt = `isometric 3d render of ${name} object, cyberpunk sci-fi aesthetic, glowing neon edges, mechanical details, dark background, unreal engine 5, high fidelity`;
+            break;
+    }
+
+    // Using the /p/ format which is often more reliable for direct embedding
+    return `https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=800&height=1200&seed=${seed}&nologo=true&model=flux`;
 };
 
 // --- REAL ASSET FETCHER COMPONENT (UPDATED) ---
 const IMAGE_CACHE = new Map<string, string>();
 
-export const RealAssetImage = ({ name, searchQuery, className = "", forcedUrl }: { name: string, searchQuery: string, className?: string, forcedUrl?: string }) => {
+export const RealAssetImage = ({ 
+    name, 
+    searchQuery, 
+    className = "", 
+    forcedUrl,
+    type = 'ITEM'
+}: { 
+    name: string, 
+    searchQuery: string, 
+    className?: string, 
+    forcedUrl?: string,
+    type?: string 
+}) => {
     const [src, setSrc] = useState<string | null>(forcedUrl || null);
     const [loading, setLoading] = useState(!forcedUrl);
 
@@ -138,9 +175,10 @@ export const RealAssetImage = ({ name, searchQuery, className = "", forcedUrl }:
 
         const fetchImage = async () => {
             const query = searchQuery || name;
+            const cacheKey = `${query}_${type}_v3`; // Bump version to v3 to invalidate previous 'moved' images
             
-            if (IMAGE_CACHE.has(query)) {
-                setSrc(IMAGE_CACHE.get(query)!);
+            if (IMAGE_CACHE.has(cacheKey)) {
+                setSrc(IMAGE_CACHE.get(cacheKey)!);
                 setLoading(false);
                 return;
             }
@@ -148,7 +186,7 @@ export const RealAssetImage = ({ name, searchQuery, className = "", forcedUrl }:
             try {
                 const supabase = createClient();
                 
-                // 1. Check for Admin Override First
+                // 1. Check for Admin Override
                 const { data: override } = await supabase
                     .from('asset_overrides')
                     .select('image_url')
@@ -156,54 +194,64 @@ export const RealAssetImage = ({ name, searchQuery, className = "", forcedUrl }:
                     .single();
 
                 if (override && override.image_url) {
-                    IMAGE_CACHE.set(query, override.image_url);
+                    IMAGE_CACHE.set(cacheKey, override.image_url);
                     setSrc(override.image_url);
                     setLoading(false);
                     return;
                 }
 
-                // 2. Fallback to Wikimedia
+                // 2. Wiki Fallback (Only for Cars/Players where real photos exist)
+                // We SKIP wiki for ITEMS to ensure the 3D Cyberpunk style is consistent
                 let searchContext = query;
-                const isCar = CAR_PACK_SOURCE.some(c => c.name === name);
-                const isPlayer = GRIDIRON_PACK_SOURCE.some(p => p.name === name);
+                const isCar = type === 'CAR';
+                const isPlayer = type === 'NFL_PLAYER';
                 
-                if (isCar && !query.toLowerCase().includes('car')) searchContext = `${query} car`; 
-                if (isPlayer && !query.toLowerCase().includes('nfl')) searchContext = `${query} NFL`;
+                if (isCar || isPlayer) {
+                    if (isCar && !query.toLowerCase().includes('car')) searchContext = `${query} car`; 
+                    if (isPlayer && !query.toLowerCase().includes('nfl')) searchContext = `${query} NFL`;
 
-                const response = await fetch(
-                    `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(searchContext)}&gsrlimit=1&prop=imageinfo&iiprop=url&format=json&origin=*`
-                );
-                
-                const data = await response.json();
-                let foundUrl = null;
+                    try {
+                        const response = await fetch(
+                            `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(searchContext)}&gsrlimit=1&prop=imageinfo&iiprop=url&format=json&origin=*`
+                        );
+                        const data = await response.json();
+                        let foundUrl = null;
 
-                if (data.query?.pages) {
-                    const pages = Object.values(data.query.pages);
-                    // @ts-ignore
-                    if (pages.length > 0 && pages[0].imageinfo && pages[0].imageinfo.length > 0) {
-                        // @ts-ignore
-                        foundUrl = pages[0].imageinfo[0].url;
+                        if (data.query?.pages) {
+                            const pages = Object.values(data.query.pages);
+                            // @ts-ignore
+                            if (pages.length > 0 && pages[0].imageinfo && pages[0].imageinfo.length > 0) {
+                                // @ts-ignore
+                                foundUrl = pages[0].imageinfo[0].url;
+                            }
+                        }
+
+                        if (foundUrl) {
+                            IMAGE_CACHE.set(cacheKey, foundUrl);
+                            setSrc(foundUrl);
+                            setLoading(false);
+                            return;
+                        }
+                    } catch (e) {
+                        // Ignore wiki error, fall through to AI
                     }
                 }
 
-                if (foundUrl) {
-                    IMAGE_CACHE.set(query, foundUrl);
-                    setSrc(foundUrl);
-                } else {
-                    const fallbackUrl = getAssetUrl(name);
-                    IMAGE_CACHE.set(query, fallbackUrl);
-                    setSrc(fallbackUrl);
-                }
+                // 3. AI Generation (The fallback for everything)
+                const fallbackUrl = getAssetUrl(name, type);
+                IMAGE_CACHE.set(cacheKey, fallbackUrl);
+                setSrc(fallbackUrl);
+
             } catch (err) {
                 console.error("Failed to fetch image for", query, err);
-                setSrc(getAssetUrl(name));
+                setSrc(getAssetUrl(name, type));
             } finally {
                 setLoading(false);
             }
         };
 
         fetchImage();
-    }, [name, searchQuery, forcedUrl]);
+    }, [name, searchQuery, forcedUrl, type]);
 
     if (loading) {
         return <div className={`flex items-center justify-center bg-zinc-900 ${className}`}><Loader2 className="animate-spin text-zinc-600" /></div>;
@@ -217,7 +265,17 @@ export const RealAssetImage = ({ name, searchQuery, className = "", forcedUrl }:
         );
     }
 
-    return <img src={src} alt={name} className={className} />;
+    return (
+        <img 
+            src={src} 
+            alt={name} 
+            className={`${className} transition-opacity duration-500`} 
+            style={{ 
+                // Subtle grading to unify different sources
+                filter: type === 'ITEM' ? 'contrast(1.2) saturate(1.1)' : 'contrast(1.05)'
+            }}
+        />
+    );
 };
 
 // --- HELPERS ---

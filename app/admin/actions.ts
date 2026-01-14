@@ -146,3 +146,65 @@ export async function sendTestDigest() {
     const result = await sendUserDigest(user.id);
     return result;
 }
+
+// 5. System Updates (Broadcast Message)
+export async function getSystemMessage() {
+    const { authorized, error, supabase } = await verifyAdmin();
+    if (!authorized || !supabase) return { error };
+
+    const { data, error: dbError } = await supabase
+        .from('system_updates')
+        .select('*')
+        .limit(1)
+        .single();
+    
+    if (dbError && dbError.code !== 'PGRST116') return { error: dbError.message }; // PGRST116 is 'Row not found' which is fine, we return null
+
+    return { data };
+}
+
+export async function updateSystemMessage(message: string, link: string) {
+    const { authorized, error, supabase } = await verifyAdmin();
+    if (!authorized || !supabase) return { error };
+
+    // We assume a single row architecture for simplicity.
+    // First, check if one exists.
+    const { data: existing, error: fetchError } = await supabase.from('system_updates').select('id').limit(1).maybeSingle();
+
+    if (fetchError) {
+        console.error("Error fetching system update:", fetchError);
+        return { error: fetchError.message };
+    }
+
+    let result;
+    if (existing) {
+        console.log("Updating existing message ID:", existing.id);
+        result = await supabase
+            .from('system_updates')
+            .update({ 
+                message, 
+                link, 
+                updated_at: new Date().toISOString() 
+            })
+            .eq('id', existing.id);
+    } else {
+        console.log("Inserting new system message");
+        result = await supabase
+            .from('system_updates')
+            .insert({ 
+                message, 
+                link, 
+                active: true 
+            });
+    }
+
+    if (result.error) {
+        console.error("Database update error:", result.error);
+        return { error: result.error.message };
+    }
+
+    console.log("System message updated successfully");
+    revalidatePath('/', 'layout'); // Update home page
+    revalidatePath('/admin');
+    return { success: true };
+}

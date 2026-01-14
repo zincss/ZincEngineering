@@ -1,20 +1,23 @@
 'use client';
 
-import React, { useState, useEffect, MouseEvent } from 'react';
+import React, { useState, useEffect, MouseEvent, useCallback, useRef } from 'react';
 import GlobalTicker from './components/GlobalTicker';
 import PersonalLogs from './components/PersonalLogs';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
-  motion, AnimatePresence, useScroll, useTransform, 
+  motion, AnimatePresence, useScroll, useTransform, useSpring,
   useMotionTemplate, useMotionValue, useAnimation, Variants 
 } from 'framer-motion';
 import { 
-  ArrowRight, Activity, ShieldCheck, Cpu,
-  Info, X, MoveRight, Rocket, Globe, Eye, Star, Terminal, CloudRain, LayoutGrid, Trophy, Gamepad2, FolderOpen, TrendingUp, Layers
+  ArrowRight, Activity, ShieldCheck, Cpu, Radio, Edit2, Scan,
+  Info, X, MoveRight, Rocket, Globe, Eye, Star, Terminal, CloudRain, LayoutGrid, Trophy, Gamepad2, FolderOpen, TrendingUp, Layers, RefreshCw, Check
 } from 'lucide-react';
 import { COMPANIES } from './play/stocks/data';
 import { getCurrentPrice } from './play/stocks/utils';
+import { getPublicSystemMessage } from '@/app/system-actions';
+import { useAuth } from '@/app/context/AuthContext';
+import { updateSystemMessage } from '@/app/admin/actions';
 
 // --- CUSTOM ANIMATED ICONS ---
 
@@ -288,79 +291,187 @@ const dlcSteps = [
   }
 ];
 
-const IntroOverlay = ({ onClose }: { onClose: () => void }) => {
-  const [step, setStep] = useState(0);
-  const router = useRouter();
-  const currentData = dlcSteps[step];
-  const isLast = step === dlcSteps.length - 1;
+const CreatorLetterModal = ({ sysMsg, isAdmin, onClose, onRefresh }: { sysMsg: { message: string }, isAdmin: boolean, onClose: () => void, onRefresh: () => void }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedMessage, setEditingMessage] = useState(sysMsg.message);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    container: scrollRef
+  });
 
-  const handleAction = () => {
-    if (isLast) {
-      router.push('/collections/planetarium');
+  const scaleX = useSpring(scrollYProgress, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001
+  });
+
+  // Calculate reading time
+  const wordCount = sysMsg.message.split(/\s+/).length;
+  const readTime = Math.max(1, Math.ceil(wordCount / 200));
+
+  // Sync edit buffer with incoming message
+  useEffect(() => {
+    setEditingMessage(sysMsg.message);
+  }, [sysMsg.message]);
+
+  const handleSave = async () => {
+    if (!editedMessage.trim()) return;
+    setIsSaving(true);
+    const res = await updateSystemMessage(editedMessage, ''); 
+    if (res.success) {
+        setIsEditing(false);
+        onRefresh();
     } else {
-      setStep(prev => prev + 1);
+        alert("Failed to save: " + res.error);
     }
+    setIsSaving(false);
   };
 
   return (
     <motion.div 
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-2xl p-4"
+      className="fixed inset-0 z-[150] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 md:p-12"
+      onClick={onClose}
     >
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay pointer-events-none" />
-      
       <motion.div 
-        layout
-        className="relative w-full max-w-2xl bg-zinc-950 border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl"
+        initial={{ scale: 0.98, y: 10, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0.98, y: 10, opacity: 0 }}
+        className="relative w-full max-w-4xl bg-white text-zinc-900 shadow-[0_50px_100px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col rounded-xl"
+        onClick={(e) => e.stopPropagation()}
+        style={{ maxHeight: '90vh' }}
       >
-        <div className="absolute top-0 left-0 right-0 h-1 bg-zinc-800 flex">
-          {dlcSteps.map((_, i) => (
-             <div key={i} className={`h-full flex-1 transition-all duration-500 ${i <= step ? 'bg-[#DFFF00]' : 'bg-transparent'}`} />
-          ))}
-        </div>
+        {/* SCROLL PROGRESS BAR */}
+        {!isEditing && (
+            <motion.div 
+                className="absolute top-0 left-0 right-0 h-1 bg-[#DFFF00] origin-left z-50 shadow-[0_0_15px_rgba(223,255,0,0.5)]"
+                style={{ scaleX }}
+            />
+        )}
 
-        <div className="p-12 flex flex-col items-center text-center">
-           <AnimatePresence mode="wait">
-             <motion.div 
-               key={currentData.id}
-               initial={{ y: 20, opacity: 0, filter: 'blur(10px)' }}
-               animate={{ y: 0, opacity: 1, filter: 'blur(0px)' }}
-               exit={{ y: -20, opacity: 0, filter: 'blur(10px)' }}
-               className="flex flex-col items-center"
-             >
-                <div className="mb-6 p-6 rounded-3xl bg-white/5 border border-white/10 shadow-lg backdrop-blur-md">
-                   {currentData.icon}
-                </div>
-                <h1 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tighter mb-2">
-                  {currentData.title}
-                </h1>
-                <h2 className="text-[#DFFF00] font-mono text-xs uppercase tracking-widest mb-4">
-                  {currentData.subtitle}
-                </h2>
-                <p className="text-zinc-400 font-mono text-sm leading-relaxed max-w-md mb-8">
-                  {currentData.description}
-                </p>
-             </motion.div>
-           </AnimatePresence>
-
-           <div className="flex items-center gap-4 w-full justify-center">
-              {step > 0 && (
-                <button onClick={() => setStep(prev => prev - 1)} className="px-6 py-3 rounded-xl border border-white/10 text-zinc-500 hover:text-white hover:bg-white/5 transition-colors text-xs font-bold uppercase tracking-widest">
-                  Back
-                </button>
-              )}
-              <button 
-                onClick={handleAction}
-                className="px-10 py-3 bg-[#DFFF00] hover:bg-white text-black rounded-xl transition-all font-black text-xs uppercase tracking-widest flex items-center gap-2 shadow-[0_0_20px_rgba(223,255,0,0.3)] hover:shadow-[0_0_30px_rgba(223,255,0,0.5)]"
-              >
-                 {isLast ? "Launch Planetarium" : "Next Info"} <ArrowRight size={14} />
-              </button>
-           </div>
-        </div>
+        {/* PREMIUM PAPER TEXTURE */}
+        <div className="absolute inset-0 opacity-[0.06] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/natural-paper.png')]" />
         
-        <button onClick={onClose} className="absolute top-6 right-6 p-2 text-zinc-600 hover:text-white transition-colors">
-          <X size={20} />
+        {/* CLOSE BUTTON */}
+        <button onClick={onClose} className="absolute top-10 right-10 text-zinc-300 hover:text-zinc-900 transition-colors z-20 p-2">
+            <X size={28} />
         </button>
+
+        <div ref={scrollRef} className="overflow-y-auto flex-1 custom-scrollbar scroll-smooth">
+            <div className="p-10 md:p-24 flex flex-col relative z-10">
+                
+                {/* ADMIN CONTROLS */}
+                {isAdmin && (
+                    <div className="flex gap-3 mb-16">
+                        <button 
+                            onClick={() => setIsEditing(!isEditing)}
+                            className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-zinc-100 text-zinc-600 text-[10px] font-black uppercase tracking-widest hover:bg-zinc-200 transition-all border border-zinc-200"
+                        >
+                            {isEditing ? <X size={14} /> : <Edit2 size={14} />}
+                            {isEditing ? 'Discard' : 'Edit Content'}
+                        </button>
+                        {isEditing && (
+                            <button 
+                                onClick={handleSave}
+                                disabled={isSaving}
+                                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-zinc-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-zinc-800 transition-all disabled:opacity-50 shadow-lg"
+                            >
+                                {isSaving ? <RefreshCw className="animate-spin" size={14} /> : <Check size={14} />}
+                                Save Letter
+                            </button>
+                        )}
+                    </div>
+                )}
+
+                {/* STATIONERY HEADER */}
+                <div className="mb-20">
+                    <div className="w-14 h-14 bg-[#DFFF00] flex items-center justify-center rounded-2xl mb-12 shadow-[0_10px_30px_rgba(223,255,0,0.3)]">
+                        <span className="text-black font-black text-3xl">Z</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-end">
+                        <div className="space-y-4">
+                            <div className="flex flex-col gap-1">
+                                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-400">Published</span>
+                                <p className="text-xl font-serif italic text-zinc-900">
+                                    {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                </p>
+                            </div>
+                            <div className="h-px w-24 bg-zinc-200" />
+                        </div>
+
+                        {!isEditing && (
+                            <div className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest flex items-center gap-2 bg-zinc-50 px-3 py-1.5 rounded-md border border-zinc-100">
+                                <Scan size={10} className="text-[#DFFF00]" />
+                                {readTime} min read
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* MESSAGE AREA */}
+                <div className="flex-1">
+                    {isEditing ? (
+                        <textarea 
+                            value={editedMessage}
+                            onChange={(e) => setEditingMessage(e.target.value)}
+                            className="w-full h-[400px] p-10 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-serif text-xl focus:outline-none focus:border-zinc-900 transition-colors resize-none leading-relaxed shadow-inner"
+                            placeholder="Write something personal to the community..."
+                        />
+                    ) : (
+                        <article className="font-serif text-xl md:text-2xl text-zinc-800 leading-[1.8] max-w-3xl">
+                            <span className="text-7xl font-black mr-4 float-left leading-[0.7] text-zinc-900 uppercase">
+                                {sysMsg.message.charAt(0)}
+                            </span>
+                            <p className="whitespace-pre-wrap">
+                                {sysMsg.message.slice(1)}
+                            </p>
+                        </article>
+                    )}
+                </div>
+
+                {/* SIGNATURE AREA */}
+                {!isEditing && (
+                    <div className="mt-32">
+                        <div className="flex flex-col gap-8">
+                            <div className="space-y-2">
+                                <p className="text-sm font-serif italic text-zinc-500">Sincerely,</p>
+                                <div className="font-serif italic text-5xl text-zinc-900 tracking-tighter">Zac</div>
+                            </div>
+                            
+                            <div className="flex items-center justify-between pt-12 border-t border-zinc-100">
+                                <p className="text-[10px] font-mono text-zinc-400 uppercase tracking-[0.3em]">Zinc Engineering // Core Lead</p>
+                                <button 
+                                    onClick={onClose}
+                                    className="px-12 py-5 bg-zinc-900 text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-zinc-800 transition-all shadow-2xl"
+                                >
+                                    Return to Dashboard
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+
+        {/* BOTTOM ACCENT / SCROLL HINT */}
+        <div className="h-1.5 w-full bg-zinc-900 shrink-0 relative overflow-hidden">
+            {!isEditing && (
+                <motion.div 
+                    style={{ opacity: useTransform(scrollYProgress, [0, 0.9], [1, 0]) }}
+                    className="absolute inset-0 flex items-center justify-center"
+                >
+                    <div className="flex items-center gap-2">
+                        <motion.div 
+                            animate={{ y: [0, 2, 0] }} 
+                            transition={{ repeat: Infinity, duration: 1.5 }}
+                        >
+                            <ArrowRight size={8} className="text-white/20 rotate-90" />
+                        </motion.div>
+                    </div>
+                </motion.div>
+            )}
+        </div>
       </motion.div>
     </motion.div>
   );
@@ -370,15 +481,32 @@ const IntroOverlay = ({ onClose }: { onClose: () => void }) => {
 export default function Home() {
   const [wordIndex, setWordIndex] = useState(0);
   const words = ["ENGINEERING", "TELEMETRY", "EXCHANGE", "FRONTIER", "STRATEGY", "LIFESTYLE", "ARCHIVE", "ANALYTICS", "ECOSYSTEMS"];
-  const [showIntro, setShowIntro] = useState(false);
+  const [showBroadcast, setShowBroadcast] = useState(false);
   const [cinematicMode, setCinematicMode] = useState(false);
   const [tickerData, setTickerData] = useState<any[]>([]);
+  
+  const { isAdmin } = useAuth();
+
+  // System Broadcast Message
+  const [sysMsg, setSysMsg] = useState({ message: 'SYSTEM UPDATES // ONLINE', link: '/collections/astro' });
+
+  const refreshMessage = useCallback(() => {
+    getPublicSystemMessage().then(res => {
+        if (res && res.message) {
+            setSysMsg({ message: res.message, link: res.link || '/collections/astro' });
+        }
+    });
+  }, []);
 
   // Parallax Logic
   const { scrollY } = useScroll();
   const heroY = useTransform(scrollY, [0, 500], [0, 200]);
   const heroOpacity = useTransform(scrollY, [0, 400], [1, 0]);
   const videoY = useTransform(scrollY, [0, 1000], [0, -150]);
+
+  useEffect(() => {
+    refreshMessage();
+  }, [refreshMessage]);
 
   useEffect(() => {
     // Generate ticker data on client-side mount
@@ -395,22 +523,11 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const hasSeen = localStorage.getItem('zinc_intro_v3_1'); 
-    if (!hasSeen) {
-      const timer = setTimeout(() => setShowIntro(true), 1000);
-      return () => clearTimeout(timer);
-    }
-    
     const interval = setInterval(() => {
       setWordIndex((prev) => (prev + 1) % words.length);
     }, 3000); 
     return () => clearInterval(interval);
   }, []);
-
-  const handleCloseIntro = () => {
-    setShowIntro(false);
-    localStorage.setItem('zinc_intro_v3_1', 'true');
-  };
 
   const scrollToLogs = () => document.getElementById('system-logs')?.scrollIntoView({ behavior: 'smooth' });
 
@@ -421,7 +538,7 @@ export default function Home() {
       <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.15] mix-blend-overlay pointer-events-none z-[60]" />
 
       <AnimatePresence>
-        {showIntro && <IntroOverlay onClose={handleCloseIntro} />}
+        {showBroadcast && <CreatorLetterModal sysMsg={sysMsg} isAdmin={isAdmin} onClose={() => setShowBroadcast(false)} onRefresh={refreshMessage} />}
       </AnimatePresence>
 
       {/* --- CINEMATIC BACKGROUND VIDEO --- */}
@@ -553,21 +670,68 @@ export default function Home() {
               {/* Action Buttons */}
               <motion.div 
                 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8, duration: 0.8 }}
-                className="mt-20 flex flex-col sm:flex-row items-center gap-6 w-full justify-center"
+                className="mt-20 flex flex-col sm:flex-row items-center gap-8 w-full justify-center"
               >
-                <Link 
-                  href="/collections/astro"
-                  className="group relative px-12 py-5 bg-[#DFFF00] text-black font-black text-[10px] tracking-[0.3em] uppercase rounded-full overflow-hidden transition-all hover:scale-[1.05] active:scale-95 shadow-[0_0_50px_rgba(223,255,0,0.2)]"
-                >
-                  <span className="relative z-10 flex items-center gap-4 italic">
-                    INITIALIZE ASTRO EXPANSION // <ArrowRight size={14} />
-                  </span>
-                  <div className="absolute inset-0 bg-white/40 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                </Link>
+                <div className="relative group">
+                  {/* Ambient Core Glow */}
+                  <motion.div 
+                    animate={{ 
+                      scale: [1, 1.2, 1],
+                      opacity: [0.15, 0.3, 0.15]
+                    }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute inset-0 bg-[#DFFF00] blur-[60px] rounded-full pointer-events-none z-0"
+                  />
+
+                  {/* Refined Liquid Ripples */}
+                  {[...Array(4)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ scale: 1, opacity: 0 }}
+                      animate={{ 
+                        scale: [1, 2.2],
+                        opacity: [0, 0.4, 0]
+                      }}
+                      transition={{ 
+                        duration: 4, 
+                        repeat: Infinity, 
+                        delay: i * 1,
+                        ease: [0.16, 1, 0.3, 1],
+                        times: [0, 0.2, 1] // Quick fade in, slow fade out
+                      }}
+                      className="absolute inset-0 rounded-full border-[0.5px] border-[#DFFF00]/40 blur-[1px] pointer-events-none z-0"
+                    />
+                  ))}
+
+                  <motion.button 
+                    onClick={() => setShowBroadcast(true)}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="relative px-16 py-7 bg-white text-black font-black text-xs tracking-[0.5em] uppercase rounded-full overflow-hidden transition-all shadow-[0_0_50px_rgba(223,255,0,0.2)] ring-1 ring-black/5 hover:ring-[#DFFF00]/40 z-10"
+                  >
+                    <span className="relative z-10 flex items-center gap-4 italic">
+                      <span className="relative flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#DFFF00] opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#DFFF00]"></span>
+                      </span>
+                      READ ME <span className="mx-1 text-black/30 font-bold">//</span> <Radio size={18} className="animate-pulse" />
+                    </span>
+                    
+                    {/* Hover Background Fluid */}
+                    <div className="absolute inset-0 bg-[#DFFF00] translate-y-full group-hover:translate-y-0 transition-transform duration-500 cubic-bezier[0.16,1,0.3,1]" />
+                    
+                    {/* Shimmer Light */}
+                    <motion.div 
+                      animate={{ x: ['-100%', '200%'] }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none"
+                    />
+                  </motion.button>
+                </div>
 
                 <button 
                   onClick={scrollToLogs}
-                  className="group flex items-center gap-4 px-10 py-5 rounded-full bg-white/5 border border-white/10 hover:bg-zinc-900 hover:border-[#DFFF00]/30 transition-all backdrop-blur-md"
+                  className="group flex items-center gap-4 px-10 py-7 rounded-full bg-white/5 border border-white/10 hover:bg-zinc-900 hover:border-[#DFFF00]/30 transition-all backdrop-blur-md"
                 >
                   <Terminal size={14} className="text-zinc-500 group-hover:text-[#DFFF00] transition-colors"/>
                   <span className="text-[10px] font-black text-zinc-400 group-hover:text-white uppercase tracking-[0.3em] italic">System_Logs_v3.1 //</span>
